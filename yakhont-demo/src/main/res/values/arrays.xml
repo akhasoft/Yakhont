@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string-array name="advertisement_kitsch" tools:ignore="MissingTranslation">
+        <item>Complex lib implementation</item>
+        <item>Leads to robust applications!</item>
+
+        <item tools:ignore="Typos">Wanna kill your competitors?</item>
+        <item>Cut their heads with Yakhont scissors!</item>
+
+        <item>Say \'Good-Bye\' to welfare queue -</item>
+        <item>Yakhont\'s here to the rescue!</item>
+
+        <item>Yakhont\'s clone in project trunk -</item>
+        <item>Like a rainbow in the dark!</item>
+
+        <item>Thirst for glory? - Just say \'Yes\'!</item>
+        <item>Yakhont\'s here - for your success!</item>
+
+        <item>Yakhont is your Dad and Mommy -</item>
+        <item>Yakhont is the one and only!</item>
+
+        <item>Fetch available updates</item>
+        <item>For external components!</item>
+
+        <item tools:ignore="Typos">Dreamin\' for unreal f*ck?</item>
+        <item>Yakhont offers good life hack!</item>
+    </string-array>
+
+    <array name="advertisement_colors">
+        <item>#FFFF0000</item>
+        <item>#FF00FF00</item>
+        <item>#FFFF9900</item>
+        <item>#FF59D5FE</item>
+        <item>#FF660099</item>
+        <item>#FF0099CC</item>
+        <item>#FF097054</item>
+        <item>#FFFFDE00</item>
+        <item>#FFAA0078</item>
+        <item>#FFFF0080</item>
+        <item>#FFCCFF33</item>
+    </array>
+
+    <!-- from https://github.com/chiuki/advanced-textView -->
+    <integer-array name="rainbow_colors">
+        <item>@color/rainbow_red   </item>
+        <item>@color/rainbow_yellow</item>
+        <item>@color/rainbow_green </item>
+        <item>@color/rainbow_blue  </item>
+        <item>@color/rainbow_purple</item>
+    </integer-array>
+</resources>

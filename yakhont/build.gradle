@@ -1,0 +1,129 @@
+/*
+ * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'          // Dagger 2
+    }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'com.neenbedankt.android-apt'
+
+apply from:   'preprocessor.gradle'
+
+String verName                  = '0.9.17'
+int    verCode                  =    901717
+
+ext {
+    publishedName               = 'Yakhont'
+    publishedDescription        = 'The high-level Android components for data loading, location and lifecycle callbacks'
+
+    publishedGroupId            = 'com.github.akhasoft'
+    publishedArtifactId         = 'yakhont'
+    publishedPackaging          = 'aar'
+    publishedVersion            = verName
+
+    projectDefaultFlavor        = 'core'
+    projectJavaDocLinks         = ['http://google.github.io/dagger/api/latest/'             ,
+                                   'http://google.github.io/gson/apidocs/'                  ,
+                                   'http://reactivex.io/RxJava/javadoc/'                    ,
+                                   'http://square.github.io/retrofit/1.x/retrofit/']
+}
+
+//noinspection GroovyMissingReturnStatement
+android {
+    compileSdkVersion           24
+    buildToolsVersion          '24.0.3'
+
+    defaultConfig {
+        minSdkVersion            9
+        //noinspection OldTargetApi
+        targetSdkVersion        21
+        versionCode        verCode
+        versionName        verName
+    }
+
+    compileOptions {
+        sourceCompatibility     JavaVersion.VERSION_1_7
+        targetCompatibility     JavaVersion.VERSION_1_7
+    }
+
+    productFlavors {
+        //noinspection GroovyMissingReturnStatement
+        core {
+            minSdkVersion       11
+        }
+        support     // same as core but based on support library (android.support.v4.app.Fragment etc.)
+        full        // core + support + debug classes for Activities and Fragments
+    }
+
+    defaultPublishConfig        'fullRelease'
+
+    lintOptions {
+        abortOnError            false
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled       true
+
+            rootProject.ext.projectProGuardFiles.each {
+                //noinspection GroovyAssignabilityCheck
+                proguardFile            '../proguard/libs/' + it
+            }
+            proguardFile                './proguard/proguard-consumer.pro'
+            proguardFile                './proguard/proguard-project-lib.pro'
+            proguardFile                '../proguard/proguard-project.pro'
+            //noinspection GroovyAssignabilityCheck
+            proguardFile                getDefaultProguardFile('proguard-android.txt')
+
+            consumerProguardFiles       './proguard/proguard-consumer.pro'
+        }
+    }
+}
+
+ext.supportLibraryVersion = '24.2.1'
+                                                                            // in alphabetical order:
+dependencies {
+    compile  "com.google.dagger:dagger:2.0.2"                               // Dagger2
+    apt      "com.google.dagger:dagger-compiler:2.0.2"
+    provided "javax.annotation:jsr250-api:1.0"
+
+    compile  "com.android.support:appcompat-v7:${supportLibraryVersion}"    // Google
+    compile  "com.google.android.gms:play-services-location:9.6.1"
+
+    fullCompile "com.android.support:design:${supportLibraryVersion}"
+    fullCompile "com.android.support:leanback-v17:${supportLibraryVersion}"
+    fullCompile "com.android.support:mediarouter-v7:${supportLibraryVersion}"
+    fullCompile "com.android.support:preference-v14:${supportLibraryVersion}"
+    fullCompile "com.android.support:preference-leanback-v17:${supportLibraryVersion}"
+
+    compile  "com.google.code.gson:gson:2.6.2"                              // Gson
+
+    compile 'com.squareup.picasso:picasso:2.5.2'                            // Picasso
+
+    compile  "com.squareup.retrofit:retrofit:1.9.0"                         // Retrofit
+    compile  "com.squareup.okhttp:okhttp:2.7.5"
+    compile  "com.squareup.okhttp:okhttp-urlconnection:2.7.5"
+
+    compile  "io.reactivex:rxjava:1.1.6"                                    // Rx
+}
+
+apply from: '../publish.gradle'

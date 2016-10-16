@@ -1,0 +1,475 @@
+/*
+ * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+File localPropertiesFile   = project.rootProject.file('local.properties')
+Properties localProperties = localPropertiesFile.exists() ? new Properties(): null
+if (localProperties != null) {
+    localProperties.load(localPropertiesFile.newDataInputStream())
+}
+
+def getProperty = { String cfgKey, String envKey, String defValue ->
+    String locProperty = cfgKey == null || localProperties == null ? null: localProperties.getProperty(cfgKey)
+    String envProperty = envKey == null                            ? null: System.getenv(envKey)
+    String cfgProperty = cfgKey != null && project.hasProperty(cfgKey) ? project.property(cfgKey): null
+
+    return locProperty != null ? locProperty: cfgProperty != null ? cfgProperty: envProperty != null ? envProperty:
+            defValue != null ? defValue: System.console().readLine('\n' + (envKey != null ? envKey: cfgKey) + ': ')
+}
+
+def getPropertyExt = { String key ->
+    return project.ext.has(key) ? project.ext.get(key): rootProject.ext.has(key) ? rootProject.ext.get(key): getProperty(key, null, '')
+}
+
+def getPropertyExtArray = { String key ->
+    return project.ext.has(key) ? project.ext.get(key): rootProject.ext.get(key)
+}
+
+boolean projectPublish = getProperty('publish', null, 'false') == 'true'
+
+if (getProperty('javadoc', null, 'true') == 'false') {
+    if (projectPublish) {
+        println(' Publish without javadoc is not allowed')
+    }
+    return
+}
+
+apply plugin: 'com.github.dcendents.android-maven'
+apply plugin: 'com.jfrog.bintray'
+apply plugin: 'maven-publish'
+
+version = getPropertyExt('publishedVersion')
+group   = getPropertyExt('publishedGroupId')
+
+def pomConfig = {
+    def nodeRoot = asNode()
+
+    String dependencies = 'dependencies', packaging = 'packaging'
+
+    boolean addDependencies = nodeRoot.getAt(dependencies).size() == 0
+    boolean addPackaging    = nodeRoot.getAt(packaging)   .size() == 0
+
+    if (addPackaging) {
+        nodeRoot.appendNode(packaging, getPropertyExt('publishedPackaging'))
+    }
+
+    nodeRoot.children().last() + {
+        //noinspection UnnecessaryQualifiedReference
+        resolveStrategy             Closure.DELEGATE_FIRST
+
+        name                        getPropertyExt('publishedName')
+        description                 getPropertyExt('publishedDescription')
+        url                         getPropertyExt('urlSite')
+        inceptionYear               getPropertyExt('projectYear')
+
+        scm {
+            connection              getPropertyExt('urlGit')
+            developerConnection     getPropertyExt('urlGit')
+            url                     getPropertyExt('urlSite')
+        }
+
+        issueManagement {
+            system                  getPropertyExt('projectIssueManagement')
+            url                     getPropertyExt('urlIssues')
+        }
+
+        licenses {
+            license {
+                //noinspection GroovyAssignabilityCheck
+                name                getPropertyExt('licenseName')
+                url                 getPropertyExt('licenseUrl')
+                //noinspection GroovyAssignabilityCheck
+                distribution        getPropertyExt('licenseDistribution')
+            }
+        }
+
+        developers {
+            developer {
+                id                  getPropertyExt('developerId')
+                //noinspection GroovyAssignabilityCheck
+                name                getPropertyExt('developerName')
+                email               getPropertyExt('developerEmail')
+                url                 getPropertyExt('urlSite')
+            }
+        }
+    }
+
+    def nodeRoles = nodeRoot.getAt('developers').get(0).getAt('developer').get(0).appendNode('roles')
+    getPropertyExtArray('developerRoles').each {
+        nodeRoles.appendNode('role', it)
+    }
+
+    if (addDependencies) {
+        def nodeDependencies = nodeRoot.appendNode(dependencies)
+        configurations.compile.allDependencies.each {
+            def nodeDependency = nodeDependencies.appendNode('dependency')
+
+            nodeDependency.appendNode('groupId',        it.group)
+            nodeDependency.appendNode('artifactId',     it.name)
+            nodeDependency.appendNode('version',        it.version)
+            nodeDependency.appendNode('scope',          'compile')
+        }
+    }
+}
+
+String classifierJavadoc = 'javadoc', classifierSources = 'sources'
+
+//noinspection GroovyAssignabilityCheck
+List<String> flavorList = new ArrayList<String>(), linkList = new ArrayList<String>(getPropertyExtArray('projectJavaDocLinks'))
+List<JavadocOfflineLink> linkOfflineList = new ArrayList<JavadocOfflineLink>()
+
+def getLocProperty = { String key, String addKey ->
+    if (localProperties == null) {
+        return null
+    }
+    else {
+        String locProperty = addKey == null ? null: localProperties.getProperty(key + '.' + addKey)
+        return locProperty != null ? locProperty: localProperties.getProperty(key)
+    }
+}
+
+def javadocTitle = { String title ->
+    return title.capitalize() + ' ' + getPropertyExt('publishedVersion') + ' API'
+}
+
+def javadocConfig = { options, addKey ->
+    options.locale              'en_US'
+    options.charSet             'UTF-8'
+    options.encoding            'UTF-8'
+
+    options.bottom              getPropertyExt('projectCopyright')
+
+    options.setLinks            linkList + 'http://docs.oracle.com/javase/8/docs/api/'
+
+    options.docTitle            javadocTitle(getPropertyExt('publishedArtifactId'))
+    options.windowTitle         javadocTitle(getPropertyExt('publishedArtifactId'))
+
+    options.noTimestamp         true
+    
+    options.tags                'yakhont.preprocessor.remove.in.generated:X'
+
+    //noinspection GroovyAssignabilityCheck
+    String docletProperty = getLocProperty('doclet', addKey)
+    if (docletProperty == null) {
+        options.tags            'exclude:X', 'yakhont.see:X', 'yakhont.link:X'
+    }
+    else {
+        options.doclet          docletProperty
+
+        List<File>      fileList = new ArrayList<File>()
+        //noinspection GroovyAssignabilityCheck
+        getLocProperty('doclet.path', addKey).split(File.pathSeparator).each {
+            fileList.add(new File(it))
+        }
+        options.setDocletpath   fileList
+    }
+
+    //noinspection GroovyAssignabilityCheck
+    String docletOptions = getLocProperty('doclet.options', addKey)
+    if (docletOptions == null) {
+        return
+    }
+
+    docletOptions.split('::').each {
+        String[] docletOption = it.split('->')
+        switch (docletOption.length) {
+
+            case 1:
+                options.addOption new JavadocOptionFileOption<String>() {
+                    public String getOption() {
+                        return docletOption[0]
+                    }
+                    public String getValue() {
+                        return null
+                    }
+                    public void setValue(String value) {
+                    }
+                    @SuppressWarnings("UnnecessaryQualifiedReference")
+                    public void write(org.gradle.external.javadoc.internal.JavadocOptionFileWriterContext context) throws IOException {
+                        context.writeOption(docletOption[0])
+                    }
+                }
+                break
+
+            case 2:
+                if      (docletOption[0] == 'tags'   ) {
+                    options.tags    Arrays.asList(docletOption[1].split(','))
+                }
+                else if (docletOption[0] == 'taglets') {
+                    options.taglets Arrays.asList(docletOption[1].split(','))
+                }
+                else {
+                    options.addStringOption docletOption[0], docletOption[1]
+                }
+                break
+
+            default:
+                println 'wrong doclet option ' + docletOption[0]
+                break
+        }
+    }
+}
+
+// disable the doclint tool in Java 8
+if (JavaVersion.current().isJava8Compatible()) {
+    allprojects {
+        tasks.withType(Javadoc) {
+            options.addStringOption('Xdoclint:none', '-quiet')
+        }
+    }
+}
+
+boolean isAndroidApp = project.plugins.hasPlugin('com.android.application')
+boolean isAndroidLib = project.plugins.hasPlugin('com.android.library')
+
+if (isAndroidApp || isAndroidLib) {
+
+    boolean makeReleaseBuilds = !android.defaultPublishConfig.endsWith('Debug')
+
+    android.variantFilter { variant ->
+        if ((variant.buildType.name.equals('debug')   &&  makeReleaseBuilds) ||
+            (variant.buildType.name.equals('release') && !makeReleaseBuilds)) {
+            
+            variant.setIgnore(true);
+        }
+    }
+
+    project.ext.archivesBaseName = getPropertyExt('publishedArtifactId')
+
+    //noinspection GroovyAssignabilityCheck
+    linkOfflineList.add(new JavadocOfflineLink('http://developer.android.com/reference/',
+            android.sdkDirectory.path + '/docs/reference/'))
+    //noinspection GroovyAssignabilityCheck
+    linkOfflineList.add(new JavadocOfflineLink('https://developers.google.com/android/reference/',
+            android.sdkDirectory.path + '/extras/google/google_play_services/docs/reference/'))
+
+    def makeArtifactsAndroid = { variant ->
+        variant.outputs.each { output ->
+
+            //noinspection GroovyAssignabilityCheck
+            output.outputFile = new File(output.outputFile.parent,
+                    output.outputFile.name.replace('-release', '').replace('-' + getPropertyExt('projectDefaultFlavor'), ''))
+                    
+            boolean isDebugVariant = variant.buildType.name.equals('debug')
+
+            String flavorName = getPropertyExt('projectDefaultFlavor') == 'release' ? 'release':
+                    variant.getVariantData().getVariantConfiguration().getFlavorName()
+
+            boolean isDefaultFlavor     = flavorName == getPropertyExt('projectDefaultFlavor')
+            String  appendixValue       = isDefaultFlavor ? null: flavorName
+            String  flavorAdded         = '-' + flavorName
+            String  flavorArtifactId    = getPropertyExt('publishedArtifactId') + (isDefaultFlavor ? '': flavorAdded)
+
+            //noinspection GroovyAssignabilityCheck
+            Task javadoc = task('generate' + variant.name.capitalize() + 'Javadoc', type: Javadoc) {
+            
+                source          = android.sourceSets.main.java.srcDirs + android.sourceSets[flavorName].java.srcDirs
+                
+                //noinspection GroovyAssignabilityCheck
+                classpath       = variant.javaCompiler.classpath + project.files(android.getBootClasspath().join(File.pathSeparator))
+                
+                //noinspection GroovyAssignabilityCheck
+                destinationDir  = new File(project.docsDir, 'javadoc-' + variant.name)
+
+                options {
+                    javadocConfig(options, flavorName)
+                }
+                options {
+                    setLinksOffline     linkOfflineList
+
+                    docTitle            javadocTitle(flavorArtifactId)
+                    windowTitle         javadocTitle(flavorArtifactId)
+                }
+
+                failOnError     = false
+            }
+
+            //noinspection GroovyAssignabilityCheck
+            Task javadocJar = task('generate' + variant.name.capitalize() + 'JavadocJar', type: Jar, dependsOn: javadoc) {
+                //noinspection GroovyAssignabilityCheck
+                from javadoc.destinationDir
+
+                baseName                = getPropertyExt('publishedArtifactId')
+                appendix                = appendixValue
+                classifier              = classifierJavadoc
+            }
+
+            //noinspection GroovyAssignabilityCheck
+            Task sourcesJar = task('generate' + variant.name.capitalize() + 'SourcesJar', type: Jar) {
+            
+                    into('java-main'                     )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets.main                   .java.srcDirs }                                              
+                    into('java-' + flavorName            )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets[flavorName            ].java.srcDirs }
+                if (isDebugVariant) {                                                         
+                    into('java-debug'                    )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets.debug                  .java.srcDirs }
+                    into('java-' + flavorName + 'Debug'  )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets[flavorName + 'Debug'  ].java.srcDirs }
+                }
+                else {
+                    into('java-release'                  )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets.release                .java.srcDirs }
+                    into('java-' + flavorName + 'Release')  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets[flavorName + 'Release'].java.srcDirs }
+                }                            
+                    into('res-main'                      )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets.main                   .res .srcDirs }                                              
+                    into('res-' + flavorName             )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets[flavorName            ].res .srcDirs }
+                if (isDebugVariant) {                                                         
+                    into('res-debug'                     )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets.debug                  .res .srcDirs }
+                    into('res-' + flavorName + 'Debug'   )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets[flavorName + 'Debug'  ].res .srcDirs }
+                }
+                else {
+                    into('res-release'                   )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets.release                .res .srcDirs }
+                    into('res-' + flavorName + 'Release' )  { //noinspection GroovyAssignabilityCheck
+                                                            from android.sourceSets[flavorName + 'Release'].res .srcDirs }
+                }
+
+                if (variant.getBuildType().isMinifyEnabled()) { from variant.mappingFile }
+
+                baseName                = getPropertyExt('publishedArtifactId')
+                appendix                = appendixValue
+                classifier              = classifierSources + (isDebugVariant ? '-debug': '')
+
+                duplicatesStrategy      = DuplicatesStrategy.WARN
+            }
+
+            project.artifacts.archives output.outputFile, javadocJar, sourcesJar
+
+            install.repositories.mavenInstaller {
+
+                addFilter(flavorName) { artifact, file ->
+                    isDefaultFlavor ? artifact.name == flavorArtifactId: artifact.name.contains(flavorAdded)
+                }
+                pom(flavorName).artifactId = flavorArtifactId
+
+                pom(flavorName).project {
+                    packaging                   getPropertyExt('publishedPackaging')
+                    groupId                     getPropertyExt('publishedGroupId')
+                    //noinspection GroovyAssignabilityCheck
+                    version                     getPropertyExt('publishedVersion')
+                }
+                pom(flavorName).withXml         pomConfig
+            }
+
+            if (projectPublish && !isDebugVariant) {
+                publishing.publications.create(flavorName, MavenPublication) {
+                    artifactId                  flavorArtifactId
+                    pom.packaging               getPropertyExt('publishedPackaging')
+                    groupId                     getPropertyExt('publishedGroupId')
+                    //noinspection GroovyAssignabilityCheck
+                    version                     getPropertyExt('publishedVersion')
+                    pom.withXml                 pomConfig
+
+                    artifacts = [output.outputFile, javadocJar, sourcesJar]
+                }
+
+                flavorList.add(flavorName)
+                bintray.publications = flavorList.toArray()
+                
+                println(' Added to bintray.publications:   ' + flavorArtifactId)
+            }
+        }
+    }
+
+    if (isAndroidLib) {
+        android.libraryVariants.all { variant ->
+            makeArtifactsAndroid(variant)
+        }
+    }
+
+    if (isAndroidApp) {
+        android.applicationVariants.all { variant ->
+            makeArtifactsAndroid(variant)
+        }
+    }
+}
+
+if (project.plugins.hasPlugin('java')) {
+
+    //noinspection GroovyUnusedAssignment
+    archivesBaseName = getPropertyExt('publishedArtifactId')
+
+    install.repositories.mavenInstaller.pom.withXml pomConfig
+
+    javadoc {
+        options {
+            javadocConfig(options, null)
+        }
+        failOnError false
+    }
+
+    task sourceJar(type: Jar) {
+        from sourceSets.main.allSource
+        classifier = classifierSources
+    }
+
+    task javadocJar(type: Jar, dependsOn: javadoc) {
+        from javadoc.destinationDir
+        classifier = classifierJavadoc
+    }
+
+    artifacts.archives sourceJar, javadocJar
+
+    if (projectPublish) {
+        bintray.configurations = ['archives']
+        println(' Added to bintray.configurations: ' + archivesBaseName)
+    }
+}
+
+if ((bintray.publications   == null || bintray.publications  .length == 0) &&
+    (bintray.configurations == null || bintray.configurations.length == 0)) {
+    
+    return
+}
+
+bintray {
+    user                            = getProperty('bintray.user',   'BINTRAY_USER',    null)
+    key                             = getProperty('bintray.apikey', 'BINTRAY_API_KEY', '')
+
+    pkg {
+        repo                        = getPropertyExt('bintrayRepo')
+        name                        = getPropertyExt('bintrayName')
+        desc                        = getPropertyExt('publishedDescription')
+
+        websiteUrl                  = getPropertyExt('urlSite')
+        vcsUrl                      = getPropertyExt('urlGit')
+        issueTrackerUrl             = getPropertyExt('urlIssues')
+
+        githubRepo                  = getPropertyExt('urlGitHubRepo')
+        githubReleaseNotesFile      = getPropertyExt('projectReadme')
+
+        licenses                    = getPropertyExtArray('licenseList')
+
+        publish                     = true
+        publicDownloadNumbers       = true
+
+        //noinspection GroovyAssignabilityCheck
+        version {
+            name                    = getPropertyExt('publishedVersion')
+            desc                    = getPropertyExt('publishedDescription')
+
+            gpg {
+                sign                = true
+                passphrase          = getProperty('bintray.gpg.password', null, null)
+            }
+        }
+    }
+}

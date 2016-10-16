@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Duvel",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_00_00_duvel"
+  },
+  {
+    "title": "Abbaye de Brogne",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_01_00_abbaye_de_brogne_blonde"
+  },
+  {
+    "title": "Chimay",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_02_00_chimay_blanc"
+  },
+  {
+    "title": "Delirium Tremens",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_03_00_delirium_tremens"
+  },
+  {
+    "title": "Gouden Carolus",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_04_00_gouden_carolus_classic"
+  },
+  {
+    "title": "Green Killer",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_05_00_ipa_green_killer"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "title": "Gulden Draak",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_06_00_gulden_draak_new"
+  },
+  {
+    "title": "Liefmans",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_07_00_liefmans_goudenband"
+  },
+  {
+    "title": "Orval Trappist",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_08_00_orval_trappist"
+  },
+  {
+    "title": "Pauwel Kwak",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_09_00_pauwel_kwak_beer_bosteels"
+  },
+  {
+    "title": "Petrus",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_10_00_petrus_oud_bruin"
+  },
+  {
+    "title": "Rodenbach Grand Cru",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_11_00_rodenbach_grand_cru"
+  }
+]

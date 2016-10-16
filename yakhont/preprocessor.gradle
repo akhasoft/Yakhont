@@ -1,0 +1,375 @@
+/*
+ * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+ 
+// Yakhont preprocessor
+
+task preprocessor << {
+
+    // very simple search and replace
+    // but if something goes wrong - it'll just not compile (or throw GradleException)
+    
+    boolean supportAdapter     = true       // use support version of SimpleCursorAdapter
+
+    boolean addDebugActivities = true       // auto generate additional debug Activities
+    boolean addDebugFragments  = true       // auto generate additional debug Fragments
+    
+    println(' Preprocessing sources...')
+
+    clearTmpSources()
+  
+    makeFlavorSupport(supportAdapter)
+
+    if (addDebugActivities) {
+        generateActivities()
+    }
+            
+    renameBaseActivity()
+
+    makeFlavorFull()
+    
+    if (addDebugFragments) {
+        generateFragments()
+    }
+
+    clearGenerated()
+}
+
+preBuild.dependsOn preprocessor
+
+gradle.buildFinished { buildResult ->
+    clearTmpSources()
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+// if you need more lifecycle debug versions of Activities and Fragments (including 3rd party ones) - 
+// please don't hesitate to add them to the arrays below
+// you will find generated debug classes in the 'debug' and 'support.debug' packages with prefix 'Base'
+    
+// also, you can remove debug Activities and Fragments which is not needed
+
+def generateActivities() {
+
+    String[] debugActivityClasses = [
+        'android.accounts.AccountAuthenticatorActivity'                                     ,               
+        'android.app.ActivityGroup'                                                         ,                              
+        'android.app.AliasActivity'                                                         ,                              
+        'android.app.ExpandableListActivity'                                                ,                     
+        'android.app.LauncherActivity'                                                      ,                           
+        'android.app.ListActivity'                                                          ,                               
+        'android.app.NativeActivity'                                                        ,                             
+        'android.app.TabActivity'                                                           ,                                
+        'android.preference.PreferenceActivity'                    
+    ]
+    
+    String[] debugSupportActivityClasses = [
+        'android.support.v7.app.ActionBarActivity'                                          ,
+        'android.support.v7.app.AppCompatActivity'
+    ]
+    
+    addActivities('src/core/java/akha/yakhont/debug'           ,    false,  debugActivityClasses       )
+    addActivities('src/support/java/akha/yakhont/support/debug',    true ,  debugSupportActivityClasses)
+}
+
+def generateFragments() {
+
+    String[] debugFragmentClasses = [
+        'android.app.ListFragment'                                                          ,                               
+        'android.preference.PreferenceFragment'                                             ,                         
+        'android.support.v17.leanback.app.BrowseFragment'                                   ,                             
+        'android.support.v17.leanback.app.DetailsFragment'                                  ,                            
+        'android.support.v17.leanback.app.ErrorFragment'                                    ,                              
+        'android.support.v17.leanback.app.GuidedStepFragment'                               ,                         
+        'android.support.v17.leanback.app.HeadersFragment'                                  ,                            
+        'android.support.v17.leanback.app.PlaybackOverlayFragment'                          ,                    
+        'android.support.v17.leanback.app.RowsFragment'                                     ,                               
+        'android.support.v17.leanback.app.SearchFragment'                                   ,
+        'android.support.v17.leanback.app.VerticalGridFragment'                             ,
+        'android.support.v17.preference.LeanbackListPreferenceDialogFragment'               ,       
+        'android.support.v17.preference.LeanbackPreferenceDialogFragment'                   ,
+        'android.webkit.WebViewFragment'
+    ]
+    
+    String[] debugDialogFragmentClasses = [
+        'android.support.v14.preference.EditTextPreferenceDialogFragment'                   ,           
+        'android.support.v14.preference.ListPreferenceDialogFragment'                       ,               
+        'android.support.v14.preference.MultiSelectListPreferenceDialogFragment'  
+    ]
+    
+    String[] debugSupportFragmentClasses = [
+        'android.support.v4.app.ListFragment'                                               ,                               
+        'android.support.v7.app.MediaRouteDiscoveryFragment'                                ,                
+        'android.support.v17.leanback.app.BrowseSupportFragment'                            ,                      
+        'android.support.v17.leanback.app.DetailsSupportFragment'                           ,                     
+        'android.support.v17.leanback.app.ErrorSupportFragment'                             ,                       
+        'android.support.v17.leanback.app.GuidedStepSupportFragment'                        ,                  
+        'android.support.v17.leanback.app.HeadersSupportFragment'                           ,                     
+        'android.support.v17.leanback.app.PlaybackOverlaySupportFragment'                   ,             
+        'android.support.v17.leanback.app.RowsSupportFragment'                              ,                        
+        'android.support.v17.leanback.app.SearchSupportFragment'                            ,                      
+        'android.support.v17.leanback.app.VerticalGridSupportFragment'        
+    ]
+    
+    String[] debugSupportDialogFragmentClasses = [
+        'android.support.design.widget.BottomSheetDialogFragment'                           ,                             
+        'android.support.v7.app.AppCompatDialogFragment'                                    ,                               
+        'android.support.v7.app.MediaRouteChooserDialogFragment'                            ,                       
+        'android.support.v7.app.MediaRouteControllerDialogFragment'                         ,                    
+        'android.support.v7.preference.EditTextPreferenceDialogFragmentCompat'              ,                
+        'android.support.v7.preference.ListPreferenceDialogFragmentCompat'
+    ]
+
+    String fullPath        = 'src/full/java/akha/yakhont/debug'
+    String fullSupportPath = 'src/full/java/akha/yakhont/support/debug'
+
+    addFragments(fullPath       ,        false,  debugFragmentClasses             )
+    addFragments(fullPath       ,        true ,  debugDialogFragmentClasses       )
+
+    addFragments(fullSupportPath,        false,  debugSupportFragmentClasses      )
+    addFragments(fullSupportPath,        true ,  debugSupportDialogFragmentClasses)
+}
+
+import groovy.transform.Field
+
+@Field String preprocessorAddToGenerated       = '//YakhontPreprocessor:addToGenerated'
+@Field String preprocessorRemoveInFlavor       = '//YakhontPreprocessor:removeInFlavor'
+@Field String preprocessorRemoveInGenerated    = '//YakhontPreprocessor:removeInGenerated'
+
+@Field String preprocessorDocRemoveInGenerated = '@yakhont.preprocessor.remove.in.generated'
+
+def addActivities(String componentDir, boolean isSupport, String[] data) {
+    data.each {
+        addActivity(componentDir, getShortClassName(it), it, isSupport, false)
+    }
+}
+
+def addActivity(String componentDir, String shortClassName, String fullClassName, boolean isSupport, boolean justRename) {
+    addComponent(componentDir, 'BaseActivity', 'Base' + shortClassName, justRename,
+        isSupport ? 'android.support.v4.app.FragmentActivity': 'Activity', fullClassName)
+}
+
+def addFragments(String componentDir, boolean isDialog, String[] data) {
+    data.each {
+        addFragment(componentDir, getShortClassName(it), it, isDialog)
+    }
+}
+
+def addFragment(String componentDir, String shortClassName, String fullClassName, boolean isDialog) {
+    String add = isDialog ? 'Dialog': ''
+    addComponent(componentDir, 'Base' + add + 'Fragment', 'Base' + shortClassName, false, add + 'Fragment', fullClassName)
+}
+
+def addComponent(String componentDir, String oldName, String newName, boolean justRename, String oldClass, String newClass) {
+    String oldFileName = oldName + '.java'
+    
+    copy {
+        from       (componentDir)
+        include    (oldFileName )
+        into       (componentDir)
+        rename     { fileName -> fileName.replace(oldName,   newName) }
+        filter     { line     -> line    .replace(oldName,   newName) }
+        
+        if (!justRename) {
+            filter { line     -> //noinspection GroovyAssignabilityCheck
+                replaceExtends(line, oldClass, newClass, oldFileName) }
+                
+            filter { line     -> //noinspection GroovyAssignabilityCheck
+                removeLine(line, preprocessorRemoveInGenerated,     true,  true) }
+            filter { line     -> //noinspection GroovyAssignabilityCheck
+                removeLine(line, preprocessorDocRemoveInGenerated, false, false) }
+
+            filter { line     -> //noinspection GroovyAssignabilityCheck
+                addLine   (line, preprocessorAddToGenerated, getShortClassName(newClass), true) }
+
+            filter { line     -> line.replace(preprocessorRemoveInFlavor, ''   ) }
+        }
+    }
+}
+
+def removeLine(String line, String target, boolean endsWith, boolean commentOut) {
+    String newLine = line
+    if (endsWith ? line.trim().endsWith(target): line.contains(target)) {
+        newLine = commentOut ? '// ' + line.replace(target, ''): null
+    }
+    return newLine
+}
+
+def addLine(String line, String target, String className, boolean removeExtraAddLines) {
+    String newLine = line
+    if (line.trim().startsWith(target)) {
+        if (removeExtraAddLines) newLine = null
+        int pos1 = line.indexOf('-')
+        int pos2 = line.indexOf('-', pos1 + 1)
+        List<String> names = Arrays.asList(line.substring(pos1 + 1, pos2).split(','))
+        if (names.contains(className)) {
+            newLine = line.substring(pos2 + 1)
+        }
+    }
+    return newLine
+}
+
+def getShortClassName(String fullClassName) {
+    return fullClassName.substring(fullClassName.lastIndexOf('.') + 1)
+}
+
+def clearActivities(String componentDir, String excludeActivity) {
+    ant.delete() {
+        fileset(dir: file(componentDir), includes: '**/*Activity*', excludes: '**/' + excludeActivity + '.java')
+    }
+}
+
+def clearDebugActivities() {
+    clearActivities('src/core/java/akha/yakhont/debug',             'BaseActivity')
+}
+
+def clearDebugSupportActivities() {
+    clearActivities('src/support/java/akha/yakhont/support/debug',  'BaseFragmentActivity')
+}
+
+def clearGenerated() {
+    clearDebugActivities()
+    clearDebugSupportActivities()
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+def makeFlavorSupport(boolean supportAdapter) {
+
+    // don't modify
+    String[] packages = ['adapter', 'debug', 'dialog', 'fragment', 'lifecycle', 'loader', 'retrofit', 'wrapper']
+    
+    // don't modify
+    String[] classes = [
+        'adapter.BaseSimpleCursorAdapter',                      'debug.BaseActivity',                       'debug.BaseDialogFragment',
+        'debug.BaseFragment',                                   'dialog.AlertDialogFragment',               'dialog.CommonDialogFragment',
+        'dialog.ProgressDialogFragment',                        'fragment.WorkerFragment',                  'lifecycle.BaseFragmentLifecycleProceed',
+        'loader.BaseLoader',                                    'loader.CacheLoader',                       'retrofit.RetrofitLoaderWrapper',
+        'wrapper.BaseLoaderWrapper',                            'wrapper.BaseResponseLoaderWrapper',        'BaseFragmentLifecycleProceed.BaseFragmentCallbacks',
+        'BaseFragmentLifecycleProceed.FragmentLifecycle',       'BaseLoader.ProgressWrapper',               'BaseLoaderWrapper.LoaderBuilder',
+        'BaseLoaderWrapper.SwipeRefreshWrapper',                'BaseResponseLoaderWrapper.BaseResponseLoaderBuilder',  
+        'BaseResponseLoaderWrapper.CoreLoad',                   'ProgressDialogFragment.ProgressLoaderDialogFragment',
+        'RetrofitLoaderWrapper.RetrofitLoaderBuilder',          'SwipeRefreshWrapper.FragmentData',         'WorkerFragment.WorkerFragmentCallbacks'
+    ]
+
+    copy {
+        from (fileTree('src/core/java/akha/yakhont').include('**/*.java').exclude('**/SupportHelper.java'))
+        into ('src/support/java/akha/yakhont/support')
+
+        eachFile { copyDetails ->
+
+            String fileName = copyDetails.getName()
+
+            if (fileName.equals("BaseActivity.java")) {
+                filter { line ->    //noinspection GroovyAssignabilityCheck
+                    replaceExtends(line, 'Activity', 'android.support.v4.app.FragmentActivity', fileName)
+                }
+
+                filter { line ->    //noinspection GroovyAssignabilityCheck
+                    addLine(line, preprocessorAddToGenerated, 'FragmentActivity', false)
+                }
+            }
+            else {
+                filter { line ->    //noinspection GroovyAssignabilityCheck
+                    replaceToSupport(line, supportAdapter)
+                }
+            }
+
+            filter { line ->        //noinspection GroovyAssignabilityCheck
+                checkClasses(line, classes) || checkPackages(line, packages) ? line.replace('.yakhont', '.yakhont.support'): line
+            }
+
+            filter { line ->        //noinspection GroovyAssignabilityCheck
+                removeLine(line, preprocessorRemoveInFlavor, true, true)
+            }
+        }
+    }
+}
+
+def makeFlavorFull() {
+    copyFull('src/core/java/akha/yakhont',            'src/full/java/akha/yakhont'        )
+    copyFull('src/support/java/akha/yakhont/support', 'src/full/java/akha/yakhont/support')
+}
+
+def copyFull(String copyFrom, String copyTo) {
+    copy {
+        from (fileTree(copyFrom).include('**/*.java').exclude('**/SupportHelper.java'))
+        into (copyTo)
+    }
+}
+
+def replaceToSupport(String line, boolean supportAdapter) {
+    String newLine = line
+
+    // FragmentManager too
+    newLine = newLine.replace    ('android.app.Fragment',                'android.support.v4.app.Fragment'              )
+    newLine = newLine.replace    ('android.app.DialogFragment',          'android.support.v4.app.DialogFragment'        )
+
+    newLine = newLine.replace    ('android.content.Loader',              'android.support.v4.content.Loader'            )
+    newLine = newLine.replace    ('android.content.CursorLoader',        'android.support.v4.content.CursorLoader'      )
+    newLine = newLine.replace    ('android.app.LoaderManager',           'android.support.v4.app.LoaderManager'         )
+
+    if (supportAdapter) {
+        newLine = newLine.replace('android.widget.CursorAdapter',        'android.support.v4.widget.CursorAdapter'      )
+        newLine = newLine.replace('android.widget.SimpleCursorAdapter',  'android.support.v4.widget.SimpleCursorAdapter')
+    }
+
+    return newLine
+}
+
+def replaceExtends(String line, String oldString, String newString, String fileName) {
+    String target = 'extends ' + oldString, newLine = line
+
+    if (line.contains('extends') && line.contains(' ' + oldString)) {
+        if (line.contains(target)) {
+            newLine = line.replace(target, 'extends ' + newString)
+        }
+        else {
+            throw new GradleException('not found \'' + target + '\' in ' + fileName)
+        }
+    }
+
+    return newLine
+}
+
+def checkClasses(String line, String[] data) {
+    boolean found = false
+    data.each { if (line.contains(it))              { found = true } }
+    return found
+}
+
+def checkPackages(String line, String[] data) {
+    boolean found = false
+    data.each { if (line.endsWith('.' + it + ';'))  { found = true } }
+    return found
+}
+
+def renameBaseActivity() {
+    addActivity('src/support/java/akha/yakhont/support/debug', 'FragmentActivity', null, true, true)
+    delete      'src/support/java/akha/yakhont/support/debug/BaseActivity.java'
+}
+
+def clearTmpSource(String dirToClear) {
+    ant.delete(includeEmptyDirs: 'true') {
+        fileset(dir: file(dirToClear), includes: '**/*', excludes: '**/SupportHelper.java')
+    }
+}
+
+def clearTmpSources() {
+    clearTmpSource('src/full/java')
+    clearTmpSource('src/support/java')
+    
+    clearDebugActivities()
+}

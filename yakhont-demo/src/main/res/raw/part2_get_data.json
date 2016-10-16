@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Val-Dieu",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_12_00_val_dieu_tripel"
+  },
+  {
+    "title": "Waterloo",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_13_00_waterloo_cuvee_imperiale"
+  },
+  {
+    "title": "Westmalle",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_14_00_westmalle_dubbel"
+  },
+  {
+    "title": "Westvleteren",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_15_00_westvleteren_xii"
+  },
+  {
+    "title": "Wilderen Goud",
+    "image": "android.resource://akha.yakhont.demo/drawable/img_16_00_wilderen_goud"
+  }
+]
