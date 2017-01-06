@@ -32,8 +32,8 @@ apply plugin: 'com.neenbedankt.android-apt'
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           24
-    buildToolsVersion          '24.0.3'
+    compileSdkVersion           25
+    buildToolsVersion          '25.0.2'
 
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
@@ -91,9 +91,9 @@ dependencies {
     apt      'com.google.dagger:dagger-compiler:2.0.2'
     provided 'javax.annotation:jsr250-api:1.0'
 
-    compile  'com.android.support:appcompat-v7:24.2.1'                      // Google
-    compile  'com.android.support:design:24.2.1'
-    compile  'com.google.android.gms:play-services-location:9.6.1'
+    compile  'com.android.support:appcompat-v7:25.1.0'                      // Google
+    compile  'com.android.support:design:25.1.0'
+    compile  'com.google.android.gms:play-services-location:10.0.1'
 
     compile  'com.squareup.retrofit:retrofit:1.9.0'                         // Retrofit
 
@@ -110,6 +110,7 @@ android.variantFilter { variant ->
 
 String[] weaverConfigFiles = null   // use default one; or something like "new String[] {projectDir.absolutePath + '/weaver.config'}"
 boolean weaverDebug = false, weaverAddConfig = true
+
 //noinspection GroovyAssignabilityCheck, UnnecessaryQualifiedReference
 android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
         android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig))

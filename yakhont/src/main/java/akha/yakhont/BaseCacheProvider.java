@@ -167,8 +167,9 @@ public class BaseCacheProvider extends ContentProvider {
             id = insert(db, tableName, values);
             CoreLogger.log(String.format(getLocale(), "table %s, new id %d", tableName, id));
         }
+        if (id == -1) CoreLogger.logError("table " + tableName + ": insert error");
 
-        return ContentUris.withAppendedId(uri, id);
+        return id == -1 ? null: ContentUris.withAppendedId(uri, id);
     }
 
     private long insert(@NonNull final SQLiteDatabase db, @NonNull final String tableName, @NonNull final ContentValues values) {
