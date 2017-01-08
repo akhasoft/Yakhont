@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import android.content.res.Resources;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -156,6 +157,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
         private static BitmapDrawable   sBackground;
 
+        @NonNull
         @Override
         @SuppressWarnings({"unused", "UnusedParameters"})
         public Dialog onCreateDialog(Bundle savedInstanceState) {

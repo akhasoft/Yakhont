@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ ext {
     publishedGroupId            = 'com.github.akhasoft'
     publishedArtifactId         = 'yakhont-weaver'
     publishedPackaging          = 'jar'
-    publishedVersion            = '0.9.17'
+    publishedVersion            = '0.9.18'
 
     projectJavaDocLinks         = ['http://jboss-javassist.github.io/javassist/html/',
                                    'http://google.github.io/android-gradle-dsl/javadoc/current/']

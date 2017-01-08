@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,6 +128,7 @@ public class BaseResponse<R, E, D> {
      * Callback interface for a client to interact with loader manager. Simplified version of the
      * {@link android.app.LoaderManager.LoaderCallbacks}.
      */
+    @SuppressWarnings("unused")
     public interface LoaderCallback<D> {
 
         /**
@@ -338,6 +339,7 @@ public class BaseResponse<R, E, D> {
      * @param tableName
      *        The table name
      */
+    @SuppressWarnings("unused")
     public static void clearTable(@NonNull final ContextWrapper contextWrapper, @NonNull final String tableName) {
         contextWrapper.getContentResolver().delete(Utils.getUri(tableName), null, null);
     }

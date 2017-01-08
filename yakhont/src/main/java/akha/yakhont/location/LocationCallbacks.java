@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -323,7 +323,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      * @param value
      *        The value to set
      */
-    @SuppressWarnings("SameParameterValue")
+    @SuppressWarnings({"SameParameterValue", "unused"})
     public static void allowAccessToLocation(final Boolean value) {
         sAccessToLocation = value;
     }
@@ -671,6 +671,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      *
      * @return  The location in the DMS format
      */
+    @SuppressWarnings("unused")
     public static String toDms(final Location location) {
         return location == null ? null: String.format(CoreLogger.getLocale(), "%s %s",
                 toDms(location.getLatitude(), false), toDms(location.getLongitude(), true));

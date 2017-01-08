@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,15 +48,15 @@ ext {
     licenseDistribution     = 'repo'
     licenseList             = ['Apache-2.0']
 
-    projectCopyright        = '<font size="-1">&nbsp;<br>Copyright &copy; 2016 akha, a.k.a. Alexander Kharitonov<br><br>'   +
-            'Licensed under the Apache License, Version 2.0 (the "License");<br>'                                           +
-            'you may not use this file except in compliance with the License.<br>'                                          +
-            'You may obtain a copy of the License at<br><br>&nbsp;&nbsp;&nbsp;&nbsp;'                                       +
-            '<a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a><br><br>'   +
-            'Unless required by applicable law or agreed to in writing, software<br>'                                       +
-            'distributed under the License is distributed on an "AS IS" BASIS,<br>'                                         +
-            'WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br>'                                  +
-            'See the License for the specific language governing permissions and<br>'                                       +
+    projectCopyright        = '<font size="-1">&nbsp;<br>Copyright &copy; 2015-2017 akha, a.k.a. Alexander Kharitonov<br><br>' +
+            'Licensed under the Apache License, Version 2.0 (the "License");<br>'                                              +
+            'you may not use this file except in compliance with the License.<br>'                                             +
+            'You may obtain a copy of the License at<br><br>&nbsp;&nbsp;&nbsp;&nbsp;'                                          +
+            '<a href="http://www.apache.org/licenses/LICENSE-2.0">http://www.apache.org/licenses/LICENSE-2.0</a><br><br>'      +
+            'Unless required by applicable law or agreed to in writing, software<br>'                                          +
+            'distributed under the License is distributed on an "AS IS" BASIS,<br>'                                            +
+            'WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.<br>'                                     +
+            'See the License for the specific language governing permissions and<br>'                                          +
             'limitations under the License.</font>'
 
     projectProGuardFiles    = ['proguard-google-play-services.pro'                      ,

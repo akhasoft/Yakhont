@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,6 +77,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class Bubbles {
 
     private static final int                BUBBLES_INTERVAL_MAX    = 10;
+    private static final int                BUBBLES_INTERVAL_MIN    = 10;
     private static final int                DURATION_MAX            = 10;
 
     @SuppressLint("StaticFieldLeak")
@@ -133,7 +134,9 @@ public class Bubbles {
     }
 
     private static int getBubblesInterval() {
-        return sRandom.nextInt(BUBBLES_INTERVAL_MAX * 1000);
+        int interval    = sRandom.nextInt(BUBBLES_INTERVAL_MAX * 1000);
+        int intervalMin = BUBBLES_INTERVAL_MIN * 1000;
+        return interval < intervalMin ? intervalMin: interval;
     }
 
     public static void setState(final boolean cancel) {

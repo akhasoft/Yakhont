@@ -27,6 +27,10 @@ The Yakhont AAR is about 200 KB (except the _full_ version, which is 400 KB).
 
 Yakhont supports Android 2.3 and above (_core_ version requires Android 3.0 as a minimum).
 
+## Demo
+
+Demo application is available [here](https://akhasoft.github.io/yakhont/yakhont-demo.apk).
+
 ## Versions
 
 - _core_: works with native Fragments
@@ -134,7 +138,7 @@ For bugs, questions and discussions please use the
 
 ## LICENSE
 
-    Copyright 2016 akha, a.k.a. Alexander Kharitonov
+    Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ buildscript {
     dependencies {
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'          // Dagger 2
 
-        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.17'               // Yakhont weaver
+        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.18'               // Yakhont weaver
         classpath 'org.javassist:javassist:3.20.0-GA'
     }
 }
@@ -56,22 +56,12 @@ android {
         abortOnError            false
     }
 
-    signingConfigs {
-        config {
-            storeFile file('../../misc/testkeystore.jks')
-            keyAlias       'test'
-            keyPassword    'qwerty'
-            storePassword  'qwerty'
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled       true
-            signingConfig       signingConfigs.config
 
             // normally it added from aar automatically - but this demo is not dependent on yakhont.aar
-            proguardFile                '../yakhont/proguard/proguard-consumer.pro'
+            //proguardFile                '../yakhont/proguard/proguard-consumer.pro'
 
             rootProject.ext.projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
@@ -83,6 +73,11 @@ android {
             //noinspection GroovyAssignabilityCheck
             proguardFile                getDefaultProguardFile('proguard-android.txt')
         }
+    }
+
+    // workaround for the local Yakhont aar
+    repositories {
+        flatDir dirs: '../yakhont/build/outputs/aar'
     }
 }
                                                                             // in alphabetical order:
@@ -99,11 +94,13 @@ dependencies {
 
     compile  'io.reactivex:rxjava:1.1.6'                                    // Rx
 
-    compile project(':yakhont')                                             // Yakhont
+    compile   name:'yakhont-full', ext:'aar'                                // Yakhont
+// 'cause support sources doesn't exist and generated 'on the fly'
+//    compile  project(':yakhont')
 }
 
 android.variantFilter { variant ->
-    if (variant.buildType.name.equals('debug')) {     // or 'release'; weaver can't handle both release and debug at the same time
+    if (variant.buildType.name.equals('release')) {     // or 'debug'; weaver can't handle both release and debug at the same time
         variant.setIgnore(true);
     }
 }
