@@ -44,13 +44,13 @@ Add the following to your build.gradle:
 ```groovy
 buildscript {
     dependencies {
-        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.17'
+        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.18'
         classpath 'org.javassist:javassist:3.20.0-GA'
     }
 }
 
 dependencies {
-    compile 'com.github.akhasoft:yakhont:0.9.17'
+    compile 'com.github.akhasoft:yakhont:0.9.18'
 }
 
 String[] weaverConfigFiles = null
