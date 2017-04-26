@@ -20,6 +20,7 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Fragment;
@@ -46,7 +47,8 @@ import java.util.Arrays;
  * @author akha
  */
 @SuppressWarnings("JavaDoc")
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)           //YakhontPreprocessor:removeInFlavor
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)           //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
+//YakhontPreprocessor:addToGenerated-SearchFragment-@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class BaseFragment extends Fragment {        // don't modify this line: it's subject to change by the Yakhont preprocessor
 
     /**
@@ -445,6 +447,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      *        The view
      */
     @SuppressWarnings("unused")                                                                 //YakhontPreprocessor:removeInGenerated
+    @SuppressLint("ObsoleteSdkInt")                                                             //YakhontPreprocessor:removeInGenerated
     protected void onAdjustMeasuredView(@NonNull final View measuredView) {                     //YakhontPreprocessor:removeInGenerated
 
         measuredView.getViewTreeObserver().addOnGlobalLayoutListener(                           //YakhontPreprocessor:removeInGenerated

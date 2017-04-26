@@ -20,6 +20,7 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 
+import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.res.Configuration;
 import android.os.Build;
@@ -32,6 +33,7 @@ import android.support.annotation.NonNull;
  *
  * @author akha
  */
+@SuppressLint("Registered")
 @SuppressWarnings("unused")
 public class BaseApplication extends Application {
 
@@ -146,6 +148,7 @@ public class BaseApplication extends Application {
      *
      * @return  {@code true} if {@link StrictMode} was enabled, {@code false} otherwise
      */
+    @SuppressLint("ObsoleteSdkInt")
     public static boolean setStrictMode(@NonNull final String packageName, @NonNull final String info) {
         if (!Utils.isDebugMode(packageName)) return false;
 

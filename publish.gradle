@@ -58,7 +58,9 @@ def pomConfig = {
 
     String dependencies = 'dependencies', packaging = 'packaging'
 
+    //noinspection ChangeToOperator
     boolean addDependencies = nodeRoot.getAt(dependencies).size() == 0
+    //noinspection ChangeToOperator
     boolean addPackaging    = nodeRoot.getAt(packaging)   .size() == 0
 
     if (addPackaging) {
@@ -106,6 +108,7 @@ def pomConfig = {
         }
     }
 
+    //noinspection ChangeToOperator
     def nodeRoles = nodeRoot.getAt('developers').get(0).getAt('developer').get(0).appendNode('roles')
     getPropertyExtArray('developerRoles').each {
         nodeRoles.appendNode('role', it)
@@ -239,6 +242,7 @@ if (isAndroidApp || isAndroidLib) {
     boolean makeReleaseBuilds = !android.defaultPublishConfig.endsWith('Debug')
 
     android.variantFilter { variant ->
+        //noinspection ChangeToOperator
         if ((variant.buildType.name.equals('debug')   &&  makeReleaseBuilds) ||
             (variant.buildType.name.equals('release') && !makeReleaseBuilds)) {
             
@@ -261,7 +265,8 @@ if (isAndroidApp || isAndroidLib) {
             //noinspection GroovyAssignabilityCheck
             output.outputFile = new File(output.outputFile.parent,
                     output.outputFile.name.replace('-release', '').replace('-' + getPropertyExt('projectDefaultFlavor'), ''))
-                    
+
+            //noinspection ChangeToOperator
             boolean isDebugVariant = variant.buildType.name.equals('debug')
 
             String flavorName = getPropertyExt('projectDefaultFlavor') == 'release' ? 'release':

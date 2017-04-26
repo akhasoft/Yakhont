@@ -20,6 +20,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.Core.Utils;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.ContextWrapper;
 import android.database.Cursor;
@@ -305,6 +306,7 @@ public class BaseResponse<R, E, D> {
      * @return  The value of the requested column (or Exception)
      */
     @Nullable
+    @SuppressLint("ObsoleteSdkInt")
     public static Object getData(@NonNull final Cursor cursor, final int columnIndex) {
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {

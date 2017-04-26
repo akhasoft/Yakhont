@@ -15,11 +15,6 @@
 -->
 
 <lint>
-    <issue id="Registered">
-        <ignore path="src/**/*Activity*.java" />
-        <ignore path="src/**/BaseApplication.java" />
-        <ignore path="src/**/BaseCacheProvider.java" />
-    </issue>
     <issue id="InvalidPackage">
         <ignore regexp="okio-1.6.0.jar" />
     </issue>

@@ -96,7 +96,8 @@ public class CoreReflection {
      *
      * @return  The result of method invoking
      *
-     * @throws InvocationTargetException
+     * @throws  InvocationTargetException
+     *          please refer to the exception description
      */
     @SuppressWarnings("WeakerAccess")
     public static Object invoke(@NonNull final Object object, @NonNull final String methodName, final Object... args)
@@ -124,7 +125,8 @@ public class CoreReflection {
      *
      * @return  The result of method invoking
      *
-     * @throws InvocationTargetException
+     * @throws  InvocationTargetException
+     *          please refer to the exception description
      */
     @SuppressWarnings("WeakerAccess")
     public static Object invoke(final Object object, final Method method, final Object... args)

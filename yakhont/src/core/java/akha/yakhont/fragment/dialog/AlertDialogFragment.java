@@ -21,6 +21,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 // import akha.yakhont.debug.BaseActivity;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -158,6 +159,7 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
         return dialog;
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private AlertDialog.Builder getBuilder(@NonNull final Activity activity, @NonNull final Bundle arguments) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             return new AlertDialog.Builder(activity, arguments.getInt(ARG_THEME));

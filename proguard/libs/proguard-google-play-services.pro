@@ -5,9 +5,11 @@
 # and finally, rejected it all and...
 
 # added by akha
+
 -dontnote com.google.android.gms.common.internal.safeparcel.SafeParcelable
 # added for SDK version 25
 -dontnote com.google.android.gms.common.internal.ReflectedParcelable
+-dontnote com.google.android.gms.gcm.GcmListenerService
 
 # for yakhont-demo
 -dontnote com.google.android.gms.internal.**

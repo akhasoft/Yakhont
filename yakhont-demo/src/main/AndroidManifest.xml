@@ -19,6 +19,7 @@
     package="akha.yakhont.demo"
     tools:ignore="MissingLeanbackLauncher">
 
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
     <application

@@ -21,6 +21,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.debug.BaseApplication;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
@@ -44,6 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author akha
  */
+@SuppressLint("Registered")
 @SuppressWarnings({"unused", "JavaDoc"})
 public class BaseActivity extends Activity {        // don't modify this line: it's subject to change by the Yakhont preprocessor
 

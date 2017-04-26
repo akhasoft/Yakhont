@@ -16,35 +16,36 @@
  
 // Yakhont preprocessor
 
-task preprocessor << {
+task preprocessor {
+    doLast {
+        // very simple search and replace
+        // but if something goes wrong - it'll just not compile (or throw GradleException)
 
-    // very simple search and replace
-    // but if something goes wrong - it'll just not compile (or throw GradleException)
-    
-    boolean supportAdapter     = true       // use support version of SimpleCursorAdapter
+        boolean supportAdapter     = true       // use support version of SimpleCursorAdapter
 
-    boolean addDebugActivities = true       // auto generate additional debug Activities
-    boolean addDebugFragments  = true       // auto generate additional debug Fragments
-    
-    println(' Preprocessing sources...')
+        boolean addDebugActivities = true       // auto generate additional debug Activities
+        boolean addDebugFragments  = true       // auto generate additional debug Fragments
 
-    clearTmpSources()
-  
-    makeFlavorSupport(supportAdapter)
+        println(' Preprocessing sources...')
 
-    if (addDebugActivities) {
-        generateActivities()
+        clearTmpSources()
+
+        makeFlavorSupport(supportAdapter)
+
+        if (addDebugActivities) {
+            generateActivities()
+        }
+
+        renameBaseActivity()
+
+        makeFlavorFull()
+
+        if (addDebugFragments) {
+            generateFragments()
+        }
+
+        clearGenerated()
     }
-            
-    renameBaseActivity()
-
-    makeFlavorFull()
-    
-    if (addDebugFragments) {
-        generateFragments()
-    }
-
-    clearGenerated()
 }
 
 preBuild.dependsOn preprocessor
@@ -81,7 +82,7 @@ def generateActivities() {
     ]
     
     addActivities('src/core/java/akha/yakhont/debug'           ,    false,  debugActivityClasses       )
-    addActivities('src/support/java/akha/yakhont/support/debug',    true ,  debugSupportActivityClasses)
+    addActivities('src/support/java/akha/yakhont/support/debug',     true,  debugSupportActivityClasses)
 }
 
 def generateFragments() {
@@ -136,10 +137,10 @@ def generateFragments() {
     String fullSupportPath = 'src/full/java/akha/yakhont/support/debug'
 
     addFragments(fullPath       ,        false,  debugFragmentClasses             )
-    addFragments(fullPath       ,        true ,  debugDialogFragmentClasses       )
+    addFragments(fullPath       ,         true,  debugDialogFragmentClasses       )
 
     addFragments(fullSupportPath,        false,  debugSupportFragmentClasses      )
-    addFragments(fullSupportPath,        true ,  debugSupportDialogFragmentClasses)
+    addFragments(fullSupportPath,         true,  debugSupportDialogFragmentClasses)
 }
 
 import groovy.transform.Field
@@ -179,41 +180,62 @@ def addComponent(String componentDir, String oldName, String newName, boolean ju
         from       (componentDir)
         include    (oldFileName )
         into       (componentDir)
-        rename     { fileName -> fileName.replace(oldName,   newName) }
-        filter     { line     -> line    .replace(oldName,   newName) }
+        rename     { fileName -> fileName.replace(oldName,   newName)   }
+        filter     { line     -> line    .replace(oldName,   newName)   }
         
         if (!justRename) {
-            filter { line     -> //noinspection GroovyAssignabilityCheck
-                replaceExtends(line, oldClass, newClass, oldFileName) }
-                
-            filter { line     -> //noinspection GroovyAssignabilityCheck
-                removeLine(line, preprocessorRemoveInGenerated,     true,  true) }
-            filter { line     -> //noinspection GroovyAssignabilityCheck
-                removeLine(line, preprocessorDocRemoveInGenerated, false, false) }
+            String shortClassName = getShortClassName(newClass)
 
             filter { line     -> //noinspection GroovyAssignabilityCheck
-                addLine   (line, preprocessorAddToGenerated, getShortClassName(newClass), true) }
+                replaceExtends(  line, oldClass, newClass, oldFileName) }
 
-            filter { line     -> line.replace(preprocessorRemoveInFlavor, ''   ) }
+            filter { line     -> line.replace(preprocessorRemoveInFlavor, '')}
+
+            filter { line     -> //noinspection GroovyAssignabilityCheck
+                removeLine(line, preprocessorRemoveInGenerated,    shortClassName,  true,  true)}
+            filter { line     -> //noinspection GroovyAssignabilityCheck
+                removeLine(line, preprocessorDocRemoveInGenerated, shortClassName, false, false)}
+
+            filter { line     -> //noinspection GroovyAssignabilityCheck
+                addLine   (line, preprocessorAddToGenerated,       shortClassName,  true)}
         }
     }
 }
 
-def removeLine(String line, String target, boolean endsWith, boolean commentOut) {
+static def removeLine(String line, String target, String className, boolean endsWith, boolean commentOut) {
     String newLine = line
-    if (endsWith ? line.trim().endsWith(target): line.contains(target)) {
-        newLine = commentOut ? '// ' + line.replace(target, ''): null
+
+    int pos1 = line.lastIndexOf('-')
+    int pos2 = line.lastIndexOf(target)
+
+    boolean endsCheck = line.trim().endsWith(target)
+    if (pos2 > 0 && pos1 > pos2) {
+        endsCheck = line.substring(0, pos1).trim().endsWith(target)
+    }
+    if (endsWith ? endsCheck: line.contains(target)) {
+        boolean update = true
+        if (pos1 > pos2 && className.length() > 0) {
+            List<String> names = Arrays.asList(line.substring(pos1 + 1).trim().split(','))
+            update = names.contains(className)
+        }
+        if (update) {
+            newLine = !commentOut ? null:
+                    '// ' + (endsWith ? line.substring(0, pos2): line.replace(target, ''))
+        }
+        else if (pos2 > 0) {
+            newLine = line.substring(0, pos2)
+        }
     }
     return newLine
 }
 
-def addLine(String line, String target, String className, boolean removeExtraAddLines) {
+static def addLine(String line, String target, String className, boolean removeExtraAddLines) {
     String newLine = line
     if (line.trim().startsWith(target)) {
         if (removeExtraAddLines) newLine = null
         int pos1 = line.indexOf('-')
         int pos2 = line.indexOf('-', pos1 + 1)
-        List<String> names = Arrays.asList(line.substring(pos1 + 1, pos2).split(','))
+        List<String> names = Arrays.asList(line.substring(pos1 + 1, pos2).trim().split(','))
         if (names.contains(className)) {
             newLine = line.substring(pos2 + 1)
         }
@@ -221,7 +243,7 @@ def addLine(String line, String target, String className, boolean removeExtraAdd
     return newLine
 }
 
-def getShortClassName(String fullClassName) {
+static def getShortClassName(String fullClassName) {
     return fullClassName.substring(fullClassName.lastIndexOf('.') + 1)
 }
 
@@ -272,6 +294,7 @@ def makeFlavorSupport(boolean supportAdapter) {
 
             String fileName = copyDetails.getName()
 
+            //noinspection ChangeToOperator
             if (fileName.equals("BaseActivity.java")) {
                 filter { line ->    //noinspection GroovyAssignabilityCheck
                     replaceExtends(line, 'Activity', 'android.support.v4.app.FragmentActivity', fileName)
@@ -292,7 +315,7 @@ def makeFlavorSupport(boolean supportAdapter) {
             }
 
             filter { line ->        //noinspection GroovyAssignabilityCheck
-                removeLine(line, preprocessorRemoveInFlavor, true, true)
+                removeLine(line, preprocessorRemoveInFlavor, '', true, true)
             }
         }
     }
@@ -310,7 +333,7 @@ def copyFull(String copyFrom, String copyTo) {
     }
 }
 
-def replaceToSupport(String line, boolean supportAdapter) {
+static def replaceToSupport(String line, boolean supportAdapter) {
     String newLine = line
 
     // FragmentManager too
@@ -329,7 +352,7 @@ def replaceToSupport(String line, boolean supportAdapter) {
     return newLine
 }
 
-def replaceExtends(String line, String oldString, String newString, String fileName) {
+static def replaceExtends(String line, String oldString, String newString, String fileName) {
     String target = 'extends ' + oldString, newLine = line
 
     if (line.contains('extends') && line.contains(' ' + oldString)) {
@@ -344,13 +367,13 @@ def replaceExtends(String line, String oldString, String newString, String fileN
     return newLine
 }
 
-def checkClasses(String line, String[] data) {
+static def checkClasses(String line, String[] data) {
     boolean found = false
     data.each { if (line.contains(it))              { found = true } }
     return found
 }
 
-def checkPackages(String line, String[] data) {
+static def checkPackages(String line, String[] data) {
     boolean found = false
     data.each { if (line.endsWith('.' + it + ';'))  { found = true } }
     return found

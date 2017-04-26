@@ -105,7 +105,8 @@ To do a clean build, issue the following commands:
 
 ```
 $ ./gradlew --configure-on-demand yakhont-weaver:clean yakhont-weaver:build
-$ ./gradlew -x yakhont-weaver:clean clean build
+$ ./gradlew --configure-on-demand yakhont:clean yakhont:build
+$ ./gradlew --configure-on-demand yakhont-demo:clean yakhont-demo:build
 ```
 
 **Note:** you may need to update your Android SDK before building.

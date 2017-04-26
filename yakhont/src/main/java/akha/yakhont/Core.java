@@ -25,6 +25,7 @@ import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.OrientationC
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
@@ -344,6 +345,7 @@ public class Core {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    @SuppressLint("ObsoleteSdkInt")
     private static void registerCallbacks(@NonNull final Application application) {
         register((BaseActivityCallbacks) new HideKeyboardCallbacks()               .setForceProceed(true));
         register((BaseActivityCallbacks) new OrientationCallbacks()                .setForceProceed(true));

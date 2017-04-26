@@ -242,8 +242,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         onAdjustMeasuredView(view.findViewById(R.id.container));
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1)
-            mSlideShow.init(view);
+        mSlideShow.init(view);
 
         return view;
     }
@@ -252,12 +251,10 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         if (savedInstanceState != null && savedInstanceState.keySet().contains(ARG_PART_COUNTER))
             mPartCounter = savedInstanceState.getInt(ARG_PART_COUNTER);
         setPartToLoad(mPartCounter);
-        
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1)
-            mSlideShow.init(this);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            Bubbles.init(getActivity());
+        mSlideShow.init(this);
+
+        Bubbles.init(getActivity());
     }
 
     @Override
@@ -268,11 +265,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     @Override
     public void onDestroyView() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB_MR1)
-            mSlideShow.cleanUp();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            Bubbles.cleanUp();
+        mSlideShow.cleanUp();
+        Bubbles.cleanUp();
 
         rxUnsubscribe();
 
@@ -284,8 +278,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     private void setBubblesState(final boolean cancel) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
-            Bubbles.setState(cancel);
+        Bubbles.setState(cancel);
     }
 
     @SuppressWarnings("WeakerAccess")

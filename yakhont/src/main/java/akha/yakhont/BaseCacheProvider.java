@@ -20,6 +20,7 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 
+import android.annotation.SuppressLint;
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -80,6 +81,7 @@ import java.util.Set;
  *
  * @author akha
  */
+@SuppressLint("Registered")
 @SuppressWarnings("unused")
 public class BaseCacheProvider extends ContentProvider {
 
@@ -213,6 +215,7 @@ public class BaseCacheProvider extends ContentProvider {
         return columnsAdded;
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private Set<String> getKeySet(@NonNull final ContentValues values) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) return values.keySet();
 
@@ -447,6 +450,7 @@ public class BaseCacheProvider extends ContentProvider {
      * @param runnable
      *        The transaction to execute
      */
+    @SuppressLint("ObsoleteSdkInt")
     protected void runTransaction(@NonNull final SQLiteDatabase db, @NonNull final Runnable runnable) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)

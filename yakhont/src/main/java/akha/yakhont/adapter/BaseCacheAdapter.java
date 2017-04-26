@@ -22,6 +22,7 @@ import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.loader.BaseResponse;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.Resources;
@@ -327,6 +328,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         }
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private void addAll(final Collection<? extends T> collection) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             mArrayAdapter.addAll(collection);
@@ -799,6 +801,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @return  The {@code BaseCacheAdapter} instance
          */
+        @SuppressLint("ObsoleteSdkInt")
         public BaseCacheAdapter<T, R, E, D> getAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
                                                        @NonNull @Size(min = 1) final String[]         from,
                                                        @NonNull @Size(min = 1) final    int[]         to,

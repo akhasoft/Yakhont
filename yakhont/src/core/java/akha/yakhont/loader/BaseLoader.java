@@ -32,6 +32,7 @@ import akha.yakhont.technology.Rx.RxLoader;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitAdapterWrapper;
 import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitLoaderBuilder;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Fragment;
@@ -638,6 +639,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         cancelLoadHelper();
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private void cancelLoadHelper() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) cancelLoad();
     }

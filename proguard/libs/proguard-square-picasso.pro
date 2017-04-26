@@ -5,6 +5,7 @@
 
 -dontwarn com.squareup.okhttp.**
 
+# added by akha
 # for yakhont-demo
 -dontwarn com.squareup.picasso.Picasso
 -dontwarn com.squareup.picasso.RequestCreator

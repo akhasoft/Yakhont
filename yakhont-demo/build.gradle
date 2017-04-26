@@ -38,7 +38,7 @@ android {
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
         applicationId           'akha.yakhont.demo'
-        minSdkVersion            9
+        minSdkVersion           14
         //noinspection OldTargetApi
         targetSdkVersion        21
         versionCode            10000
@@ -86,9 +86,9 @@ dependencies {
     apt      'com.google.dagger:dagger-compiler:2.0.2'
     provided 'javax.annotation:jsr250-api:1.0'
 
-    compile  'com.android.support:appcompat-v7:25.1.0'                      // Google
-    compile  'com.android.support:design:25.1.0'
-    compile  'com.google.android.gms:play-services-location:10.0.1'
+    compile  'com.android.support:appcompat-v7:25.3.1'                      // Google
+    compile  'com.android.support:design:25.3.1'
+    compile  'com.google.android.gms:play-services-location:10.2.1'
 
     compile  'com.squareup.retrofit:retrofit:1.9.0'                         // Retrofit
 
@@ -100,6 +100,7 @@ dependencies {
 }
 
 android.variantFilter { variant ->
+    //noinspection ChangeToOperator
     if (variant.buildType.name.equals('release')) {     // or 'debug'; weaver can't handle both release and debug at the same time
         variant.setIgnore(true);
     }

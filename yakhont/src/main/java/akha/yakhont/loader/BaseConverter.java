@@ -19,6 +19,7 @@ package akha.yakhont.loader;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.loader.BaseResponse.Converter;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.MatrixCursor;
@@ -324,8 +325,9 @@ public class BaseConverter<D> implements Converter<D> {
             return new MatrixCursor(columns.toArray(new String[columns.size()]));
         }
 
+        @SuppressLint("ObsoleteSdkInt")
         private void addColumn(@NonNull final String name, final String value) {
-            if (Build.VERSION.SDK_INT >= 19)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
                 mBuilder.add(name, value);
             else
                 mBuilder.add(value);

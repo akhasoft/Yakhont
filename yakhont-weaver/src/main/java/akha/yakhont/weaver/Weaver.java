@@ -107,9 +107,12 @@ public class Weaver {
      * @param addConfig
      *        Indicates whether the configuration file provided should be added to the default one
      *
-     * @throws NotFoundException
-     * @throws CannotCompileException
-     * @throws IOException
+     * @throws  NotFoundException
+     *          please refer to the exception description
+     * @throws  CannotCompileException
+     *          please refer to the exception description
+     * @throws  IOException
+     *          please refer to the exception description
      */
     public void run(boolean debug, String applicationId, String classesDir, String classPath,
                     String bootClassPath, String[] configFiles, boolean addConfig)
@@ -167,7 +170,8 @@ public class Weaver {
      * @param map
      *        The internal representation of the configuration info (after successful parsing)
      *
-     * @throws CannotCompileException
+     * @throws  CannotCompileException
+     *          please refer to the exception description
      */
     @SuppressWarnings({"WeakerAccess", "SameParameterValue"})
     protected void parseConfig(String line, Map<String, Map<String, Set<String>>> map) throws CannotCompileException {
@@ -347,8 +351,10 @@ public class Weaver {
      *
      * @return  The {@code String} containing the Java code of the created method
      *
-     * @throws NotFoundException
-     * @throws CannotCompileException
+     * @throws  NotFoundException
+     *          please refer to the exception description
+     * @throws  CannotCompileException
+     *          please refer to the exception description
      */
     @SuppressWarnings({"WeakerAccess", "UnusedParameters"})
     protected String newMethod(CtMethod methodSrc, String data, CtClass clsDest)
