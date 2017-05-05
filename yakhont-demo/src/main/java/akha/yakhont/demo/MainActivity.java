@@ -16,6 +16,7 @@
 
 package akha.yakhont.demo;
 
+import akha.yakhont.CoreLogger;
 import akha.yakhont.demo.gui.Utils;
 import akha.yakhont.demo.retrofit.LocalJsonClient;
 import akha.yakhont.demo.retrofit.RetrofitApi;
@@ -82,6 +83,9 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
         LocationCallbacks.allowAccessToLocation(true);      // suppress confirmation dialog
 
+        // optional; on shaking device will send email with logs to the address below
+        if (BuildConfig.DEBUG) CoreLogger.registerShakeDataSender(this, "yourname@yourcompany.com");
+
         //noinspection ConstantConditions
         setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat: R.style.AppThemeCompat_Hack);
         super.onCreate(savedInstanceState);
@@ -89,6 +93,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
         mJsonClient = new LocalJsonClient(this);
 
+        // local JSON client, so URL doesn't matter (as well as timeouts)
         mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder("http://xyz.com").setClient(mJsonClient),
                 20, 20);    // connect and read timeouts (in seconds)
 

@@ -247,22 +247,23 @@ public class BaseResponse<R, E, D> {
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         final Locale locale = CoreLogger.getLocale();
+        final String newLine = System.getProperty("line.separator");
 
-        builder.append(String.format(locale, "%s, class: %s, error: %s\n", mSource.name(),
-                mData == null ? null: mData.getClass().getSimpleName(), mError));
+        builder.append(String.format(locale, "%s, class: %s, error: %s%s", mSource.name(),
+                mData == null ? null: mData.getClass().getSimpleName(), mError, newLine));
 
         if (mData == null)
-            builder.append("no data\n");
+            builder.append("no data").append(newLine);
         else {
             if (mData.getClass().isArray()) {
                 final Object[] array = (Object[]) mData;
-                builder.append(String.format(locale, "data: length %d\n", array.length));
+                builder.append(String.format(locale, "data: length %d%s", array.length, newLine));
 
                 for (int i = 0; i < array.length; i++)
-                    builder.append(String.format(locale, "[%d] %s\n", i, array[i]));
+                    builder.append(String.format(locale, "[%d] %s%s", i, array[i], newLine));
             }
             else
-                builder.append("data ").append(mData).append("\n");
+                builder.append("data ").append(mData).append(newLine);
         }
 
         final int nPos = (mCursor == null) ? -1: mCursor.getPosition();
@@ -272,12 +273,12 @@ public class BaseResponse<R, E, D> {
         else if (!mCursor.moveToFirst())
             builder.append("empty cursor");
         else {
-            builder.append("cursor:\n");
+            builder.append("cursor:").append(newLine);
 
             for (;;) {
                 for (int i = 0; i < mCursor.getColumnCount(); i++)
                     builder.append(String.format(locale, "%s%s == %s", i == 0 ? "": ", ", mCursor.getColumnName(i), getString(mCursor, i)));
-                builder.append("\n");
+                builder.append(newLine);
 
                 if (!mCursor.moveToNext()) break;
             }

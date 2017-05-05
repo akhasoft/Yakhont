@@ -16,15 +16,28 @@
 
 package akha.yakhont;
 
+import akha.yakhont.Core.Utils;
+import akha.yakhont.location.LocationCallbacks;
+
 import android.app.Activity;
-import android.content.Intent;
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.View;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -423,6 +436,33 @@ public class CoreLogger {
     private static final String                         LOGCAT_CMD               = "logcat -d";
     private static final int                            LOGCAT_BUFFER_SIZE       = 1024;
 
+    private interface LogHandler {
+        @SuppressWarnings("RedundantThrows")
+        void handle(String line) throws IOException;
+    }
+
+    private static void getLog(@NonNull final String cmd, @NonNull final LogHandler handler) {
+        Process process = null;
+        try {
+            @SuppressWarnings("ConstantConditions") final String cmdToExecute =
+                    cmd == null ? LOGCAT_CMD: cmd;
+            log("about to execute " + cmdToExecute);
+            process = Runtime.getRuntime().exec(Utils.removeExtraSpaces(cmdToExecute).split(" "));
+            final BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    process.getInputStream()), LOGCAT_BUFFER_SIZE);
+
+            String line;
+            while ((line = reader.readLine()) != null)
+                handler.handle(line);
+        }
+        catch (IOException e) {
+            log("failed running logcat", e);
+        }
+        finally {
+            if (process != null) process.destroy();
+        }
+    }
+
     /**
      * Collects records from the main log buffer of the Android logging system.
      *
@@ -438,32 +478,21 @@ public class CoreLogger {
      * @return  The list with log records
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
-    public static List<String> logCatGet(List<String> list, final boolean clearList,
-                                         final String cmd) {
-        if (list == null) list = new ArrayList<>();
-        if (clearList) list.clear();
+    public static List<String> getLogCat(List<String> list, final boolean clearList, final String cmd) {
+        final List<String> listActual = (list == null) ? new ArrayList<String>(): list;
+        if (clearList) listActual.clear();
 
-        Process logCatProcess = null;
-        try {
-            logCatProcess = Runtime.getRuntime().exec(Core.Utils.removeExtraSpaces(
-                    cmd == null ? LOGCAT_CMD: cmd).split(" "));
-            final BufferedReader reader = new BufferedReader(new InputStreamReader(
-                    logCatProcess.getInputStream()), LOGCAT_BUFFER_SIZE);
-            String line;
-            while ((line = reader.readLine()) != null)
-                list.add(line);
-        }
-        catch (IOException | IllegalArgumentException e) {
-            log("failed", e);
-        }
-        finally {
-            if (logCatProcess != null) logCatProcess.destroy();
-        }
+        getLog(cmd, new LogHandler() {
+            @Override
+            public void handle(String line) throws IOException {
+                listActual.add(line);
+            }
+        });
         return list;
     }
 
     /**
-     * Sends e-mail with log records collected by the {@link #logCatGet logCatGet()}.
+     * Sends e-mail with log records collected by the {@link #getLogCat getLogCat()}.
      *
      * @param activity
      *        The Activity
@@ -472,12 +501,12 @@ public class CoreLogger {
      *        The e-mail address
      */
     @SuppressWarnings("unused")
-    public static void logCatSend(@NonNull final Activity activity, @NonNull final String address) {
-        logCatSend(activity, address, "logcat", true, null);
+    public static void sendLogCat(@NonNull final Activity activity, @NonNull final String address) {
+        sendLogCat(activity, address, "logcat", true, null);
     }
 
     /**
-     * Sends e-mail with log records collected by the {@link #logCatGet logCatGet()}.
+     * Sends e-mail with log records collected by the {@link #getLogCat getLogCat()}.
      *
      * @param activity
      *        The Activity
@@ -495,22 +524,278 @@ public class CoreLogger {
      *        <code>logcat</code> command line, or null for the default one ("logcat -d")
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
-    public static void logCatSend(@NonNull final Activity activity,
+    public static void sendLogCat(@NonNull final Activity activity,
                                   @NonNull final String address, @NonNull final String subject,
                                   final boolean clearList, final String cmd) {
-        Core.Utils.runInBackground(new Runnable() {
+        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(System.getProperty("line.separator"),
+                getLogCat(null, clearList, cmd)), null);
+    }
+
+    /**
+     * Sends email with log records and some additional info (if any).
+     * The ANR traces are always added (if available).
+     *
+     * @param context
+     *        The Context
+     *
+     * @param addresses
+     *        The list of email addresses to send data
+     *
+     * @param subject
+     *        The email subject (or null)
+     *
+     * @param cmd
+     *        The logcat command to execute (or null to execute the default one)
+     *
+     * @param hasScreenShot
+     *        {@code true} to include screen shot
+     *
+     * @param hasDb
+     *        {@code true} to include cache database snapshot
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static void sendData(final Context context, final String[] addresses, final String subject,
+                                final String cmd, final boolean hasScreenShot, final boolean hasDb) {
+        Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
-                final Intent intent = new Intent(Intent.ACTION_SEND);
-                intent.setType("text/plain");
-
-                intent.putExtra(Intent.EXTRA_EMAIL,   new String[] {address});
-                intent.putExtra(Intent.EXTRA_SUBJECT, subject);
-                intent.putExtra(Intent.EXTRA_TEXT,    TextUtils.join("\n",
-                        logCatGet(null, clearList, cmd)));
-
-                activity.startActivity(Intent.createChooser(intent, "Send logcat..."));
+                try {
+                    Sender.sendEmailSync(context, addresses, subject, cmd, hasScreenShot, hasDb);
+                }
+                catch (Exception e) {
+                    log("failed sending email", e);
+                }
             }
         });
+    }
+
+    /**
+     * Registers email addresses to which on shaking device to send email with log records
+     * and some additional info (if any). The ANR traces are always added (if available).
+     *
+     * @param context
+     *        The Context
+     *
+     * @param address
+     *        The email address to send data
+     */
+    @SuppressWarnings("unused")
+    public static void registerShakeDataSender(final Context context, final String address) {
+        if (address == null) {
+            logError("address == null");
+            return;
+        }
+        registerShakeDataSender(context, new String[] {address}, null, null, true, true);
+    }
+
+    /**
+     * Registers email addresses to which on shaking device to send email with log records
+     * and some additional info (if any). The ANR traces are always added (if available).
+     *
+     * @param context
+     *        The Context
+     *
+     * @param addresses
+     *        The list of email addresses to send data
+     *
+     * @param subject
+     *        The email subject (or null)
+     *
+     * @param cmd
+     *        The logcat command to execute (or null to execute the default one)
+     *
+     * @param hasScreenShot
+     *        {@code true} to include screen shot
+     *
+     * @param hasDb
+     *        {@code true} to include cache database snapshot
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static void registerShakeDataSender(final Context context, final String[] addresses,
+                                               @SuppressWarnings("SameParameterValue") final String  subject,
+                                               @SuppressWarnings("SameParameterValue") final String  cmd,
+                                               @SuppressWarnings("SameParameterValue") final boolean hasScreenShot,
+                                               @SuppressWarnings("SameParameterValue") final boolean hasDb) {
+        if (context == null || addresses == null || addresses.length == 0) {
+            logError("no arguments");
+            return;
+        }
+        final Context contextToUse = context.getApplicationContext();
+
+        new ShakeEventListener(contextToUse, new Runnable() {
+            @Override
+            public void run() {
+                sendData(contextToUse, addresses, subject, cmd, hasScreenShot, hasDb);
+            }
+        }).register();
+    }
+
+    private static class ShakeEventListener implements SensorEventListener {
+
+        private static final float                      THRESHOLD                =    2;
+        private static final int                        DELAY                    = 1000;
+
+        private final SensorManager     mSensorManager;
+        private final Sensor            mSensor;
+        private final Runnable          mHandler;
+        private       long              mLastShakeTime;
+
+        public ShakeEventListener(@NonNull final Context context, @NonNull final Runnable handler) {
+            mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+            mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            mHandler = handler;
+        }
+
+        public void register() {
+            mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
+            logWarning("shake event listener registered");
+        }
+
+        @SuppressWarnings("unused")
+        public void unregister() {
+            mSensorManager.unregisterListener(this, mSensor);
+            logWarning("shake event listener unregistered");
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            if (event.sensor.getType() != Sensor.TYPE_ACCELEROMETER) return;
+
+            double gravityTotal = 0;
+            for (int i = 0; i <= 2; i++) {
+                final float gravity = event.values[i] / SensorManager.GRAVITY_EARTH;
+                gravityTotal += gravity * gravity;
+            }
+            if (Math.sqrt(gravityTotal) < THRESHOLD) return;
+
+            final long currentTime = System.currentTimeMillis();
+            if (mLastShakeTime + DELAY > currentTime) return;
+
+            log("shake detected");
+            mLastShakeTime = currentTime;
+            mHandler.run();
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
+    }
+
+    private static class Sender {
+
+        private static final String                     ANR_TRACES               = "/data/anr/traces.txt";
+        private static final int                        SCREENSHOT_JPEG_QUALITY  = 100;
+
+        private static void sendEmailSync(final Context context, final String[] addresses, final String subject,
+                                          final String cmd, final boolean hasScreenShot, final boolean hasDb) {
+            if (context == null || addresses == null || addresses.length == 0) {
+                logError("no arguments");
+                return;
+            }
+
+            final Activity activity = LocationCallbacks.getActivity();
+            if (activity == null) {
+                logError("activity == null");
+                return;
+            }
+
+            final File tmpDir    = Utils.getTmpDir(context);
+            final String suffix  = Utils.getTmpFileSuffix();
+            final File anrTraces = new File(ANR_TRACES);
+
+            File db = null, screenShot = null;
+
+            final ArrayList<String>     list = new ArrayList<>();
+            if (anrTraces.exists())     list.add(ANR_TRACES);
+            if (hasScreenShot) {
+                screenShot = getScreenShot(activity, tmpDir, suffix);
+                if (screenShot != null) list.add(screenShot.getAbsolutePath());
+            }
+            if (hasDb) {
+                db = BaseCacheProvider.copyDbSync(context, null, null);
+                if (db != null)         list.add(db.getAbsolutePath());
+            }
+            final File log = getLogFile(cmd, tmpDir, suffix);
+            if (log != null)            list.add(log.getAbsolutePath());
+
+            final String subject2send = subject == null ? "log" + suffix: subject;
+            final String body = String.format("ANR traces %b, screenshot %b, database %b",
+                    anrTraces.exists(), hasScreenShot, hasDb);
+            try {
+                final File zipFile = getTmpFile("data", suffix, "zip", tmpDir);
+                if (Utils.zip(list.toArray(new String[list.size()]), zipFile.getAbsolutePath()))
+                    Utils.sendEmail(activity, addresses, subject2send, body, zipFile);
+            }
+//            catch (IOException e) {
+//                log("failed creating tmp ZIP file", e);
+//            }
+            finally {
+                delete(db);
+                delete(screenShot);
+                delete(log);
+            }
+        }
+
+        private static void delete(final File file) {
+            if (file == null) return;
+            final boolean result = file.delete();
+            if (!result) logWarning("can not delete " + file);
+        }
+/*
+        private static File getTmpFile(final String prefix, final String suffix, final File dir)
+                throws IOException {
+            return File.createTempFile(prefix,
+                    suffix.startsWith(".") ? suffix: "." + suffix, dir);
+        }
+*/
+        private static File getTmpFile(final String prefix, final String suffix,
+                                       final String extension, final File dir) {
+            return new File(dir, String.format("%s%s.%s", prefix, suffix, extension));
+        }
+
+        private static File getLogFile(final String cmd, final File tmpDir, final String suffix) {
+            try {
+                final File tmpFile = getTmpFile("log", suffix, "txt", tmpDir);
+                final PrintWriter output = new PrintWriter(new FileWriter(tmpFile));
+
+                getLog(cmd, new LogHandler() {
+                    @Override
+                    public void handle(String line) throws IOException {
+                        output.println(line);
+                    }
+                });
+                output.close();
+
+                return tmpFile;
+            }
+            catch (Exception e) {
+                log("failed creating log file", e);
+            }
+            return null;
+        }
+
+        private static File getScreenShot(final Activity activity, final File tmpDir, final String suffix) {
+            try {
+                final View view = activity.getWindow().getDecorView().getRootView();
+                final boolean savedValue = view.isDrawingCacheEnabled();
+
+                final File tmpFile = getTmpFile("screen", suffix, "jpg", tmpDir);
+                final FileOutputStream outputStream = new FileOutputStream(tmpFile);
+
+                try {
+                    view.setDrawingCacheEnabled(true);
+                    view.getDrawingCache().compress(Bitmap.CompressFormat.JPEG, SCREENSHOT_JPEG_QUALITY, outputStream);
+                    outputStream.close();
+                    return tmpFile;
+                }
+                finally {
+                    view.setDrawingCacheEnabled(savedValue);
+                }
+            }
+            catch (Exception e) {
+                log("failed creating screenshot", e);
+                return null;
+            }
+        }
     }
 }

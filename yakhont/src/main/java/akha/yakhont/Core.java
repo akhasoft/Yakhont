@@ -34,6 +34,7 @@ import android.content.ComponentCallbacks2;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -42,20 +43,32 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.text.DateFormat;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 /**
  * The base class for the library. Usage example in Activity:
@@ -804,6 +817,117 @@ public class Core {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String replaceSpecialChars(String str) {
             return str == null ? null: str.trim().replaceAll("[^A-Za-z0-9_]", "_");
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static String getTmpFileSuffix() {
+            return "_" + replaceSpecialChars(DateFormat.getDateTimeInstance(
+                    DateFormat.SHORT, DateFormat.LONG, Locale.getDefault())
+                    .format(new Date(System.currentTimeMillis())));
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static File getTmpDir(@NonNull final Context context) {
+            File dir;
+            if (checkDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)))                    return dir;
+            if (checkDir(dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)))  return dir;
+            if (checkDir(dir = Environment.getExternalStorageDirectory()))                                      return dir;
+            if (checkDir(dir = context.getExternalCacheDir()))                                                  return dir;
+
+            CoreLogger.logError("can not find tmp directory");
+            return null;
+        }
+
+        private static boolean checkDir(final File dir) {
+            CoreLogger.log("check directory: " + dir);
+            return dir != null && dir.isDirectory() && dir.canWrite();
+        }
+
+        /**
+         * Creates ZIP file.
+         *
+         * @param srcFiles
+         *        The source files
+         *
+         * @param zipFile
+         *        The destination ZIP file
+         *
+         * @return  {@code true} if ZIP file was created successfully, {@code false} otherwise
+         */
+        public static boolean zip(final String[] srcFiles, final String zipFile) {
+            if (zipFile == null || srcFiles == null || srcFiles.length == 0) {
+                CoreLogger.logError("no arguments");
+                return false;
+            }
+            try {
+                final ZipOutputStream outputStream = new ZipOutputStream(
+                        new BufferedOutputStream(new FileOutputStream(zipFile)));
+                final byte[] buffer = new byte[2048];
+
+                for (final String srcFile: srcFiles) {
+                    final BufferedInputStream inputStream = new BufferedInputStream(
+                            new FileInputStream(srcFile), buffer.length);
+                    final int pos = srcFile.lastIndexOf(File.separator);
+                    final ZipEntry entry = new ZipEntry(pos < 0 ? srcFile: srcFile.substring(pos + 1));
+                    outputStream.putNextEntry(entry);
+
+                    int length;
+                    while ((length = inputStream.read(buffer)) != -1)
+                        outputStream.write(buffer, 0, length);
+                    inputStream.close();
+                }
+                outputStream.close();
+                return true;
+            }
+            catch (IOException e) {
+                CoreLogger.log("failed creating ZIP " + zipFile, e);
+                return false;
+            }
+        }
+
+        /**
+         * Sends email.
+         *
+         * @param activity
+         *        The Activity
+         *
+         * @param addresses
+         *        The email's addresses
+         *
+         * @param subject
+         *        The email's subject
+         *
+         * @param text
+         *        The email's text
+         *
+         * @param attachment
+         *        The email's attachment (or null)
+         *
+         */
+        public static void sendEmail(final Activity activity, final String[] addresses,
+                                     final String subject, final String text, final File attachment) {
+            if (activity == null || addresses == null || addresses.length == 0 ||
+                    subject == null || text == null) {
+                CoreLogger.logError("no arguments");
+                return;
+            }
+            runInBackground(new Runnable() {
+                @Override
+                public void run() {
+                    final Intent intent = new Intent(Intent.ACTION_SEND);
+                    intent.setType("text/plain");
+
+                    intent.putExtra(Intent.EXTRA_EMAIL,     addresses);
+                    intent.putExtra(Intent.EXTRA_SUBJECT,   subject);
+                    intent.putExtra(Intent.EXTRA_TEXT,      text);
+
+                    if (attachment != null)
+                        intent.putExtra(Intent.EXTRA_STREAM,
+                                Uri.parse( "file://" + attachment.getAbsolutePath()));
+
+                    activity.startActivity(Intent.createChooser(intent, "Sending email..."));
+                }
+            });
         }
 
         private static       Boolean sDebug;

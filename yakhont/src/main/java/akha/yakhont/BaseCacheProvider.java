@@ -31,7 +31,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.support.annotation.Size;
@@ -44,8 +43,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
-import java.text.DateFormat;
-import java.util.Date;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -94,7 +92,8 @@ public class BaseCacheProvider extends ContentProvider {
 
     private static final String         SELECTION_ID      = BaseColumns._ID + "=?";
 
-    private static final String         CREATE_INDEX      = "CREATE INDEX IF NOT EXISTS idx_%s_id ON  %s (" + BaseColumns._ID + " ASC);";
+    private static final String         CREATE_INDEX      = "CREATE INDEX IF NOT EXISTS idx_%s_id ON %s (" +
+                                                            BaseColumns._ID + " ASC);";
     private static final String         CREATE_TABLE      = "CREATE TABLE IF NOT EXISTS %s (" + BaseColumns._ID +
                                                             " INTEGER PRIMARY KEY AUTOINCREMENT";
     private static final String         ALTER_TABLE       = "ALTER TABLE %s ADD COLUMN %s %s;";
@@ -160,10 +159,11 @@ public class BaseCacheProvider extends ContentProvider {
     private Uri insert(@NonNull final Uri uri, @NonNull final ContentValues values, final boolean silent,
                        final ContentValues[] bulkValues) {
         final String tableName = Utils.getLoaderTableName(uri);
-        if (!silent) CoreLogger.log("table " + tableName);
 
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         long id = insert(db, tableName, values);
+
+        if (!silent) CoreLogger.log(String.format(getLocale(), "table %s, id %d", tableName, id));
 
         if (id == -1 && isMissedColumnsOrTable(db, tableName, bulkValues == null ? new ContentValues[] {values}: bulkValues)) {
             id = insert(db, tableName, values);
@@ -291,8 +291,6 @@ public class BaseCacheProvider extends ContentProvider {
     public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
         final String tableName = Utils.getLoaderTableName(uri);
 
-        CoreLogger.log("table " + tableName);
-
         switch (mUriMatcher.match(uri)) {       // fall through
             case ID:
                 selection       = SELECTION_ID;
@@ -302,8 +300,9 @@ public class BaseCacheProvider extends ContentProvider {
                 try {
                     return mDbHelper.getReadableDatabase().query(tableName, projection, selection, selectionArgs, null, null, sortOrder);
                 }
-                catch (SQLException e) {
-                    CoreLogger.log(Level.WARNING, "table " + tableName, e);
+                catch (Exception e) {
+                    CoreLogger.log(Level.WARNING, String.format("table %s, selection %s, selection args %s",
+                            tableName, selection, Arrays.deepToString(selectionArgs)), e);
                     return BaseResponse.EMPTY_CURSOR;
                 }
 
@@ -433,12 +432,59 @@ public class BaseCacheProvider extends ContentProvider {
                                @NonNull @Size(min = 1) final Map<String, String> columns) {
         CoreLogger.log(String.format("%s", tableName));
 
-        final StringBuilder builder = new StringBuilder(String.format(CREATE_TABLE, tableName));
+        final CreateTableScriptBuilder builder = new CreateTableScriptBuilder(tableName);
         for (final String columnName: columns.keySet())
-            builder.append(String.format(", %s %s", columnName, columns.get(columnName)));
+            builder.addColumn(String.format("%s %s", columnName, columns.get(columnName)));
+        execSQL(db, builder.create());
 
-        execSQL(db, builder.append(");").toString());
         execSQL(db, String.format(CREATE_INDEX, tableName, tableName));
+    }
+
+    /**
+     * Simple class to generate typical CREATE TABLE script.
+     * The {@link BaseColumns#_ID _ID} column is added by default.
+     */
+    public static class CreateTableScriptBuilder {
+
+        private final String mTable;
+        private final Set<String> mColumns = Utils.newSet();
+
+        /**
+         * Initialises a newly created {@code CreateTableScriptBuilder} object.
+         *
+         * @param table
+         *        The name of SQL table to create
+         */
+        public CreateTableScriptBuilder(@NonNull String table) {
+            mTable = table;
+        }
+
+        /**
+         * Adds column in the SQL table's columns list.
+         * The {@link BaseColumns#_ID _ID} column is already in.
+         *
+         * @param column
+         *        The SQL column definition, e.g. "address TEXT"
+         *
+         * @return  This {@code CreateTableScriptBuilder} object to allow for chaining of calls to add methods
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        public CreateTableScriptBuilder addColumn(@NonNull String column) {
+            mColumns.add(column);
+            return this;
+        }
+
+        /**
+         * Creates a SQL script with the arguments supplied to this builder.
+         *
+         * @return  The newly created SQL script to execute
+         */
+        public String create() {
+            final StringBuilder builder = new StringBuilder(String.format(CREATE_TABLE, mTable));
+            for (final String column: mColumns)
+                builder.append(String.format(", %s", column));
+            return builder.append(");").toString();
+        }
     }
 
     /**
@@ -452,7 +498,6 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @SuppressLint("ObsoleteSdkInt")
     protected void runTransaction(@NonNull final SQLiteDatabase db, @NonNull final Runnable runnable) {
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             db.beginTransactionNonExclusive();
         else
@@ -496,15 +541,17 @@ public class BaseCacheProvider extends ContentProvider {
      *
      * @param scriptName
      *        The name of the asset
+     *
+     * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    protected void executeSQLScript(@NonNull final Context context, @NonNull final SQLiteDatabase db, @NonNull final String scriptName) {
+    protected boolean executeSQLScript(@NonNull final Context context, @NonNull final SQLiteDatabase db, @NonNull final String scriptName) {
         try {
             final InputStream inputStream = context.getAssets().open(scriptName);
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            final byte buf[] = new byte[1024];
-            int len;
-            while ((len = inputStream.read(buf)) != -1)
-                outputStream.write(buf, 0, len);
+            final byte[] buffer = new byte[1024];
+            int length;
+            while ((length = inputStream.read(buffer)) != -1)
+                outputStream.write(buffer, 0, length);
             outputStream.close();
             inputStream.close();
 
@@ -515,9 +562,11 @@ public class BaseCacheProvider extends ContentProvider {
                 if (sqlStatement.length() > 0)
                     execSQL(db, sqlStatement + ";");
             }
+            return true;
         }
         catch (IOException | SQLException e) {
             CoreLogger.log(scriptName, e);
+            return false;
         }
     }
 
@@ -651,68 +700,63 @@ public class BaseCacheProvider extends ContentProvider {
      */
     public static void copyDb(@NonNull final Context context, final File srcDb, final File dstDb) {
         if (!Utils.isDebugMode(context.getPackageName())) return;
-        copyFile(context, srcDb != null ? srcDb: context.getDatabasePath(DB_NAME), dstDb);
+        copyFile(context, getSrcDb(context, srcDb), dstDb);
     }
 
     private static void copyFile(@NonNull final Context context, @NonNull final File srcFile, final File dstFileOrg) {
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
-                try {
-                    if (!srcFile.exists()) {
-                        CoreLogger.logError("file doesn't exist: " + srcFile);
-                        return;
-                    }
-
-                    File dstFile = dstFileOrg;
-                    if (dstFile == null) dstFile = getDirToCopy(context);
-                    if (dstFile == null) {
-                        CoreLogger.logError("can not find where to copy " + srcFile);
-                        return;
-                    }
-
-                    if (dstFile.isDirectory()) {
-                        if (!dstFile.canWrite()) {
-                            CoreLogger.logError("directory is read-only: " + dstFile);
-                            return;
-                        }
-                        dstFile = new File(dstFile, getDstFileName(srcFile.getName()));
-                    }
-
-                    final FileChannel src = new FileInputStream (srcFile).getChannel();
-                    final FileChannel dst = new FileOutputStream(dstFile).getChannel();
-                    dst.transferFrom(src, 0, src.size());
-                    src.close();
-                    dst.close();
-
-                    CoreLogger.log(srcFile + " copied to " + dstFile);
-                }
-                catch (Exception e) {
-                    CoreLogger.log("failed", e);
-                }
-            }
+                copyFileSync(context, srcFile, dstFileOrg);            }
         });
     }
 
-    private static File getDirToCopy(@NonNull final Context context) {
-        File dir;
-        if (checkDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)))                    return dir;
-        if (checkDir(dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)))  return dir;
-        if (checkDir(dir = Environment.getExternalStorageDirectory()))                                      return dir;
-        if (checkDir(dir = context.getExternalCacheDir()))                                                  return dir;
-        return null;
+    private static File getSrcDb(@NonNull final Context context, final File srcDb) {
+        return srcDb != null ? srcDb: context.getDatabasePath(DB_NAME);
     }
 
-    private static boolean checkDir(final File dir) {
-        CoreLogger.log("check directory: " + dir);
-        return dir != null && dir.isDirectory() && dir.canWrite();
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static File copyDbSync(@NonNull final Context context, final File srcDb, final File dstDb) {
+        return copyFileSync(context, getSrcDb(context, srcDb), dstDb);
+    }
+
+    private static File copyFileSync(@NonNull final Context context, @NonNull final File srcFile, final File dstFileOrg) {
+        try {
+            if (!srcFile.exists()) {
+                CoreLogger.logError("file doesn't exist: " + srcFile);
+                return null;
+            }
+
+            File dstFile = dstFileOrg;
+            if (dstFile == null) dstFile = Utils.getTmpDir(context);
+            if (dstFile == null) return null;
+
+            if (dstFile.isDirectory()) {
+                if (!dstFile.canWrite()) {
+                    CoreLogger.logError("directory is read-only: " + dstFile);
+                    return null;
+                }
+                dstFile = new File(dstFile, getDstFileName(srcFile.getName()));
+            }
+
+            final FileChannel src = new FileInputStream (srcFile).getChannel();
+            final FileChannel dst = new FileOutputStream(dstFile).getChannel();
+            dst.transferFrom(src, 0, src.size());
+            src.close();
+            dst.close();
+
+            CoreLogger.log(srcFile + " copied to " + dstFile);
+            return dstFile;
+        }
+        catch (Exception e) {
+            CoreLogger.log("failed", e);
+            return null;
+        }
     }
 
     private static String getDstFileName(@NonNull final String name) {
-        final String time = Utils.replaceSpecialChars(DateFormat.getDateTimeInstance(
-                DateFormat.SHORT, DateFormat.LONG, Locale.getDefault())
-                .format(new Date(System.currentTimeMillis())));
+        final String suffix = Utils.getTmpFileSuffix();
         final int idx = name.lastIndexOf('.');
-        return idx < 0 ? name + "_" + time: name.substring(0, idx) + "_" + time + name.substring(idx);
+        return idx < 0 ? name + suffix: name.substring(0, idx) + suffix + name.substring(idx);
     }
 }
