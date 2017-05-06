@@ -97,8 +97,6 @@ public class BaseCacheProvider extends ContentProvider {
     private static final String         CREATE_TABLE      = "CREATE TABLE IF NOT EXISTS %s (" + BaseColumns._ID +
                                                             " INTEGER PRIMARY KEY AUTOINCREMENT";
     private static final String         ALTER_TABLE       = "ALTER TABLE %s ADD COLUMN %s %s;";
-    private static final String         COLUMN_TEXT       = "TEXT";
-    private static final String         COLUMN_BLOB       = "BLOB";
 
     private final Matcher               mUriMatcher       = new Matcher();
 
@@ -180,7 +178,7 @@ public class BaseCacheProvider extends ContentProvider {
 
     private boolean isMissedColumnsOrTable(@NonNull final SQLiteDatabase db, @NonNull final String tableName,
                                            @NonNull final ContentValues[] bulkValues) {
-        final Map<String, String> columns = getColumns(tableName, bulkValues);
+        final Map<String, CreateTableScriptBuilder.DataType> columns = getColumns(tableName, bulkValues);
 
         if (!isTableExist(tableName)) {
             createTable(db, tableName, columns);
@@ -205,11 +203,12 @@ public class BaseCacheProvider extends ContentProvider {
      * @return  Whether the column(s) addition was successful
      */
     protected boolean addColumns(@NonNull final SQLiteDatabase db, @NonNull final String tableName,
-                                 @NonNull final Map<String, String> columns) {
+                                 @NonNull final Map<String, CreateTableScriptBuilder.DataType> columns) {
         boolean columnsAdded = false;
         for (final String columnName: columns.keySet())
             if (!isColumnExist(tableName, columnName)) {
-                execSQL(db, String.format(ALTER_TABLE, tableName, columnName, columns.get(columnName)));
+                execSQL(db, String.format(ALTER_TABLE, tableName, columnName,
+                        columns.get(columnName).name()));
                 columnsAdded = true;
             }
         return columnsAdded;
@@ -236,21 +235,25 @@ public class BaseCacheProvider extends ContentProvider {
      *
      * @return  The list of columns
      */
-    protected Map<String, String> getColumns(@NonNull final String tableName, @NonNull final ContentValues[] bulkValues) {
-        final Map<String, String> columns = new LinkedHashMap<>();
+    protected Map<String, CreateTableScriptBuilder.DataType> getColumns(@NonNull final String tableName,
+                                                                        @NonNull final ContentValues[] bulkValues) {
+        final Map<String, CreateTableScriptBuilder.DataType> columns = new LinkedHashMap<>();
 
         for (final ContentValues values: bulkValues) {
             for (final String key: getKeySet(values))
                 if (!columns.containsKey(key) && values.get(key) != null) columns.put(key,
-                        values.getAsByteArray(key) == null ? COLUMN_TEXT: COLUMN_BLOB);
+                        values.getAsByteArray(key) == null ?
+                                CreateTableScriptBuilder.DataType.TEXT:
+                                CreateTableScriptBuilder.DataType.BLOB);
             if (values.size() == columns.size()) return columns;
         }
 
         for (final String key: getKeySet(bulkValues[0]))
             if (!columns.containsKey(key)) {
+                final CreateTableScriptBuilder.DataType type = CreateTableScriptBuilder.DataType.TEXT;
                 CoreLogger.logWarning(String.format("table %s, column %s: no data found, column type forced to %s",
-                        tableName, key, COLUMN_TEXT));
-                columns.put(key, COLUMN_TEXT);
+                        tableName, key, type.name()));
+                columns.put(key, type);
             }
         return columns;
     }
@@ -429,12 +432,12 @@ public class BaseCacheProvider extends ContentProvider {
      *        The list of columns
      */
     protected void createTable(@NonNull final SQLiteDatabase db, @NonNull final String tableName,
-                               @NonNull @Size(min = 1) final Map<String, String> columns) {
+                               @NonNull @Size(min = 1) final Map<String, CreateTableScriptBuilder.DataType> columns) {
         CoreLogger.log(String.format("%s", tableName));
 
         final CreateTableScriptBuilder builder = new CreateTableScriptBuilder(tableName);
         for (final String columnName: columns.keySet())
-            builder.addColumn(String.format("%s %s", columnName, columns.get(columnName)));
+            builder.addColumn(columnName, columns.get(columnName));
         execSQL(db, builder.create());
 
         execSQL(db, String.format(CREATE_INDEX, tableName, tableName));
@@ -446,7 +449,21 @@ public class BaseCacheProvider extends ContentProvider {
      */
     public static class CreateTableScriptBuilder {
 
-        private final String mTable;
+        /**
+         * The SQL data types.
+         */
+        public enum DataType {
+            /** The signed integer. */
+            INTEGER,
+            /** The floating point. */
+            REAL,
+            /** The text string. */
+            TEXT,
+            /** The blob (Binary Large Object). */
+            BLOB
+        }
+
+        private final String      mTable;
         private final Set<String> mColumns = Utils.newSet();
 
         /**
@@ -455,7 +472,7 @@ public class BaseCacheProvider extends ContentProvider {
          * @param table
          *        The name of SQL table to create
          */
-        public CreateTableScriptBuilder(@NonNull String table) {
+        public CreateTableScriptBuilder(@NonNull final String table) {
             mTable = table;
         }
 
@@ -463,14 +480,18 @@ public class BaseCacheProvider extends ContentProvider {
          * Adds column in the SQL table's columns list.
          * The {@link BaseColumns#_ID _ID} column is already in.
          *
-         * @param column
-         *        The SQL column definition, e.g. "address TEXT"
+         * @param name
+         *        The SQL column name
+         *
+         * @param type
+         *        The SQL column type
          *
          * @return  This {@code CreateTableScriptBuilder} object to allow for chaining of calls to add methods
          */
         @SuppressWarnings("UnusedReturnValue")
-        public CreateTableScriptBuilder addColumn(@NonNull String column) {
-            mColumns.add(column);
+        public CreateTableScriptBuilder addColumn(@NonNull final String   name,
+                                                  @NonNull final DataType type) {
+            mColumns.add(String.format("%s %s", name, type.name()));
             return this;
         }
 
