@@ -25,6 +25,7 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
 import akha.yakhont.support.loader.BaseLoader;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
@@ -59,12 +60,6 @@ import android.widget.TextView;
 
 import java.util.Arrays;
 
-import retrofit.client.Response;
-
-import rx.Observable;
-import rx.Subscriber;
-import rx.Subscription;
-
 public class MainFragment extends /* android.app.Fragment */ android.support.v4.app.Fragment {
 
     private CoreLoad                    mCoreLoad;
@@ -81,6 +76,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         initGui(savedInstanceState);
 
         registerSwipeRefresh();     // SwipeRefreshLayout handling (optional)
+
+        initRx();                   // optional
 
         mCoreLoad = BaseLoader.simpleInit(this, Beer[].class, mRx, R.string.table_desc_beers, // data description for GUI (optional)
         
@@ -109,7 +106,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         mCoreLoad.setGoBackOnLoadingCanceled(!byUserRequest);
 
-        rxSubscribe();      // optional
+        subscribeRx();      // optional
 
         mCoreLoad.startLoading(byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
             !byUserRequest, mCheckBoxMerge.isChecked(), false);
@@ -166,24 +163,25 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     /////////// Rx handling (optional)
 
-    private final RetrofitRx<Beer[]>    mRx                             = new RetrofitRx<>();
-    private final Observable<BaseResponse<Response, Exception, Beer[]>>
-                                        mRxObservable                   = mRx.createObservable();
-    private       Subscription          mRxSubscription;
+    private RetrofitRx<Beer[]>          mRx;
 
-    private void rxSubscribe() {
-        rxUnsubscribe();
-        mRxSubscription = mRxObservable.subscribe(new Subscriber<BaseResponse<Response, Exception, Beer[]>>() {
-            @Override public void onNext(BaseResponse<Response, Exception, Beer[]> beers) {
-                Log.d("MainFragment", "Rx: onNext, data = " + Arrays.deepToString(beers.getResult()));
+    private void initRx() {
+        mRx = new RetrofitRx<>(getMainActivity().isRx2());
+    }
+
+    private void subscribeRx() {
+        unsubscribeRx();
+
+        mRx.subscribeSimple(new SubscriberRx<Beer[]>() {
+            @Override
+            public void onNext(final Beer[] data) {
+                Log.w("MainFragment", "LoaderRx: onNext, data == " + Arrays.deepToString(data));
             }
-            @Override public void onCompleted(           ) { Log.d("MainFragment", "Rx: onCompleted"); }
-            @Override public void onError    (Throwable e) { Log.d("MainFragment", "Rx: onError",  e); }
         });
     }
 
-    private void rxUnsubscribe() {
-        if (mRxSubscription != null) mRxSubscription.unsubscribe();
+    private void unsubscribeRx() {
+        if (mRx != null) mRx.cleanup();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -216,7 +214,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                 MainFragment.this, R.id.swipeContainer, mCheckBoxForce.isChecked(), mCheckBoxMerge.isChecked(), new Runnable() {
                     @Override
                     public void run() {
-                        rxSubscribe();
+                        subscribeRx();
                     }
                 }));
     }
@@ -268,7 +266,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         mSlideShow.cleanUp();
         Bubbles.cleanUp();
 
-        rxUnsubscribe();
+        unsubscribeRx();
 
         super.onDestroyView();
     }

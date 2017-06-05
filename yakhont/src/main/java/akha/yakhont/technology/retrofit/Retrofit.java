@@ -16,11 +16,11 @@
 
 package akha.yakhont.technology.retrofit;
 
-import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
-import akha.yakhont.technology.Rx.RxLoader;
+import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -108,12 +108,9 @@ import retrofit.client.Response;
  * @author akha
  */
 @SuppressWarnings("unused")
-public class Retrofit<T> {
+public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
 
     private static final String                     LOG_RETROFIT_SUFFIX        = "-Retrofit";
-
-    private T                                       mRetrofitApi;
-    private int                                     mConnectionTimeout;
 
     private static YakhontRestAdapter               sYakhontRestAdapter;
 
@@ -129,55 +126,9 @@ public class Retrofit<T> {
     }
 
     /**
-     * Returns the API defined by the service interface, see {@link RestAdapter#create}.
-     *
-     * @return  The API
+     * Please refer to the base method description.
      */
-    public T getRetrofitApi() {
-        return mRetrofitApi;
-    }
-
-    /**
-     * Returns the connection timeout (in seconds).
-     *
-     * @return  The connection timeout
-     */
-    public int getConnectionTimeout() {
-        return mConnectionTimeout;
-    }
-
-    /**
-     * Initialises Retrofit client.
-     *
-     * @param service
-     *        The service interface, see {@link RestAdapter#create}
-     *
-     * @param retrofitBase
-     *        The Retrofit API endpoint URL
-     */
-    public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
-        init(service, retrofitBase, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, null);
-    }
-
-    /**
-     * Initialises Retrofit client.
-     *
-     * @param service
-     *        The service interface, see {@link RestAdapter#create}
-     *
-     * @param retrofitBase
-     *        The Retrofit API endpoint URL
-     *
-     * @param connectTimeout
-     *        The connection timeout (in seconds)
-     *
-     * @param readTimeout
-     *        The read timeout (in seconds)
-     *
-     * @param headers
-     *        The optional HTTP headers (or null)
-     */
-    @SuppressWarnings("WeakerAccess")
+    @Override
     public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
                      @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
                      @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
@@ -192,46 +143,30 @@ public class Retrofit<T> {
     }
 
     /**
-     * Initialises Retrofit client.
-     *
-     * @param service
-     *        The service interface, see {@link RestAdapter#create}
-     *
-     * @param builder
-     *        The {@code RestAdapter.Builder}
-     *
-     * @param connectTimeout
-     *        The connection timeout (in seconds)
-     *
-     * @param readTimeout
-     *        The read timeout (in seconds)
+     * Please refer to the base method description.
      */
-    @SuppressWarnings("WeakerAccess")
+    @Override
     public void init(@NonNull final Class<T> service, @NonNull final RestAdapter.Builder builder,
-                     @IntRange(from = 1) final int connectTimeout, @IntRange(from = 1) final int readTimeout) {
-        mConnectionTimeout                      = Math.max(connectTimeout, readTimeout);
+                     @IntRange(from = 1) final int connectTimeout,
+                     @IntRange(from = 1) final int readTimeout) {
+
+        super.init(service, builder, connectTimeout, readTimeout);
 
         final YakhontRestAdapter<T> adapter     = new YakhontRestAdapter<>();
         mRetrofitApi                            = adapter.create(service, builder.build());
         sYakhontRestAdapter                     = adapter;
-
-        CoreLogger.log("connection timeout set to " + mConnectionTimeout + " seconds, read timeout set to " + readTimeout + " seconds");
     }
 
     /**
-     * Returns the default builder.
-     *
-     * @param retrofitBase
-     *        The service API endpoint URL
-     *
-     * @return  The {@code RestAdapter.Builder}
+     * Please refer to the base method description.
      */
+    @Override
     public RestAdapter.Builder getDefaultBuilder(@NonNull final String retrofitBase) {
         return getDefaultBuilder(retrofitBase, null);
     }
 
     /**
-     * Returns the default builder.
+     * Returns the default Retrofit builder.
      *
      * @param retrofitBase
      *        The service API endpoint URL
@@ -239,23 +174,24 @@ public class Retrofit<T> {
      * @param headers
      *        The optional HTTP headers (or null)
      *
-     * @return  The {@code RestAdapter.Builder}
+     * @return  The Retrofit Builder
      */
-    @SuppressWarnings("WeakerAccess")
     public RestAdapter.Builder getDefaultBuilder(@NonNull  final String                 retrofitBase,
                                                  @Nullable final Map<String, String>    headers) {
 
         final RestAdapter.Builder builder = new RestAdapter.Builder()
                 .setLog(new AndroidLog(CoreLogger.getTag() + LOG_RETROFIT_SUFFIX))
-                .setLogLevel(CoreLogger.isFullInfo() ? RestAdapter.LogLevel.FULL: RestAdapter.LogLevel.NONE)
+                .setLogLevel(CoreLogger.isFullInfo() ?
+                        RestAdapter.LogLevel.FULL:
+                        RestAdapter.LogLevel.NONE)
                 .setEndpoint(retrofitBase);
 
         if (headers != null && !headers.isEmpty())
             builder.setRequestInterceptor(new RequestInterceptor() {
                 @Override
                 public void intercept(RequestFacade request) {
-                    for (final Map.Entry<String, String> entry: headers.entrySet())
-                        request.addHeader(entry.getKey(), entry.getValue());
+                    for (final Map.Entry<String, String> header: headers.entrySet())
+                        request.addHeader(header.getKey(), header.getValue());
                 }
             });
 
@@ -341,11 +277,68 @@ public class Retrofit<T> {
     }
 
     /**
-     * Extends the {@link RxLoader} class to provide Retrofit support.
+     * Extends the {@link LoaderRx} class to provide Retrofit support.
      *
      * @param <D>
      *        The type of data
      */
-    public static class RetrofitRx<D> extends RxLoader<Response, Exception, D> {
+    public static class RetrofitRx<D> extends LoaderRx<Response, Exception, D> {
+
+        /**
+         * Initialises a newly created {@code RetrofitRx} object.
+         */
+        public RetrofitRx() {
+            super();
+        }
+
+        /**
+         * Initialises a newly created {@code RetrofitRx} object.
+         *
+         * @param isRx2
+         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
+         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         */
+        public RetrofitRx(final boolean isRx2) {
+            super(isRx2);
+        }
+
+        /**
+         * Initialises a newly created {@code RetrofitRx} object.
+         *
+         * @param commonRx
+         *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
+         */
+        public RetrofitRx(final CommonRx<BaseResponse<Response, Exception, D>> commonRx) {
+            super(commonRx);
+        }
+
+        /**
+         * Initialises a newly created {@code RetrofitRx} object.
+         *
+         * @param commonRx
+         *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
+         *
+         * @param isSingle
+         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx} either emits one value only or an error notification, {@code false} otherwise
+         */
+        public RetrofitRx(final CommonRx<BaseResponse<Response, Exception, D>> commonRx, final boolean isSingle) {
+            super(commonRx, isSingle);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public RetrofitRx<D> subscribe(final SubscriberRx<BaseResponse<Response, Exception, D>> subscriber) {
+            return (RetrofitRx<D>) super.subscribe(subscriber);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public RetrofitRx<D> subscribeSimple(final SubscriberRx<D> subscriber) {
+            return (RetrofitRx<D>) super.subscribeSimple(subscriber);
+        }
     }
 }

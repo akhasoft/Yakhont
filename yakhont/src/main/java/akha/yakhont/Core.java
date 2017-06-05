@@ -54,7 +54,6 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.text.DateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -854,7 +853,14 @@ public class Core {
          *
          * @return  {@code true} if ZIP file was created successfully, {@code false} otherwise
          */
+        @SuppressWarnings("unused")
         public static boolean zip(final String[] srcFiles, final String zipFile) {
+            return zip(srcFiles, zipFile, null);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static boolean zip(final String[] srcFiles, final String zipFile,
+                                  final Map<String, Exception> errors) {
             if (zipFile == null || srcFiles == null || srcFiles.length == 0) {
                 CoreLogger.logError("no arguments");
                 return false;
@@ -864,25 +870,37 @@ public class Core {
                         new BufferedOutputStream(new FileOutputStream(zipFile)));
                 final byte[] buffer = new byte[2048];
 
-                for (final String srcFile: srcFiles) {
-                    final BufferedInputStream inputStream = new BufferedInputStream(
-                            new FileInputStream(srcFile), buffer.length);
-                    final int pos = srcFile.lastIndexOf(File.separator);
-                    final ZipEntry entry = new ZipEntry(pos < 0 ? srcFile: srcFile.substring(pos + 1));
-                    outputStream.putNextEntry(entry);
+                for (final String srcFile: srcFiles)
+                    try {
+                        final BufferedInputStream inputStream = new BufferedInputStream(
+                                new FileInputStream(srcFile), buffer.length);
+                        final int pos = srcFile.lastIndexOf(File.separator);
+                        final ZipEntry entry = new ZipEntry(pos < 0 ? srcFile: srcFile.substring(pos + 1));
+                        outputStream.putNextEntry(entry);
 
-                    int length;
-                    while ((length = inputStream.read(buffer)) != -1)
-                        outputStream.write(buffer, 0, length);
-                    inputStream.close();
-                }
+                        int length;
+                        while ((length = inputStream.read(buffer)) != -1)
+                            outputStream.write(buffer, 0, length);
+                        inputStream.close();
+                    }
+                    catch (Exception e) {
+                        handleError("failed creating ZIP entry " + srcFile, e, errors);
+                    }
+
                 outputStream.close();
                 return true;
             }
-            catch (IOException e) {
-                CoreLogger.log("failed creating ZIP " + zipFile, e);
+            catch (Exception e) {
+                handleError("failed creating ZIP " + zipFile, e, errors);
                 return false;
             }
+        }
+
+        private static void handleError(final String text, final Exception exception,
+                                        final Map<String, Exception> map) {
+            CoreLogger.log(text, exception);
+            if (map != null) //noinspection ThrowableResultOfMethodCallIgnored
+                map.put(text, exception);
         }
 
         /**

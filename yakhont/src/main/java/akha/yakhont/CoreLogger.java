@@ -27,6 +27,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.support.annotation.NonNull;
+import android.support.v4.util.ArrayMap;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -34,13 +35,14 @@ import android.view.View;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.FileWriter;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -552,15 +554,19 @@ public class CoreLogger {
      *
      * @param hasDb
      *        {@code true} to include cache database snapshot
+     *
+     * @param moreFiles
+     *        Additional files to include (or null)
      */
     @SuppressWarnings("WeakerAccess")
     public static void sendData(final Context context, final String[] addresses, final String subject,
-                                final String cmd, final boolean hasScreenShot, final boolean hasDb) {
+                                final String cmd, final boolean hasScreenShot, final boolean hasDb,
+                                final String[] moreFiles) {
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Sender.sendEmailSync(context, addresses, subject, cmd, hasScreenShot, hasDb);
+                    Sender.sendEmailSync(context, addresses, subject, cmd, hasScreenShot, hasDb, moreFiles);
                 }
                 catch (Exception e) {
                     log("failed sending email", e);
@@ -585,7 +591,7 @@ public class CoreLogger {
             logError("address == null");
             return;
         }
-        registerShakeDataSender(context, new String[] {address}, null, null, true, true);
+        registerShakeDataSender(context, new String[] {address}, null, null, true, true, null);
     }
 
     /**
@@ -609,13 +615,17 @@ public class CoreLogger {
      *
      * @param hasDb
      *        {@code true} to include cache database snapshot
+     *
+     * @param moreFiles
+     *        Additional files to include (or null)
      */
     @SuppressWarnings("WeakerAccess")
     public static void registerShakeDataSender(final Context context, final String[] addresses,
                                                @SuppressWarnings("SameParameterValue") final String  subject,
                                                @SuppressWarnings("SameParameterValue") final String  cmd,
                                                @SuppressWarnings("SameParameterValue") final boolean hasScreenShot,
-                                               @SuppressWarnings("SameParameterValue") final boolean hasDb) {
+                                               @SuppressWarnings("SameParameterValue") final boolean hasDb,
+                                               @SuppressWarnings("SameParameterValue") final String[] moreFiles) {
         if (context == null || addresses == null || addresses.length == 0) {
             logError("no arguments");
             return;
@@ -625,7 +635,7 @@ public class CoreLogger {
         new ShakeEventListener(contextToUse, new Runnable() {
             @Override
             public void run() {
-                sendData(contextToUse, addresses, subject, cmd, hasScreenShot, hasDb);
+                sendData(contextToUse, addresses, subject, cmd, hasScreenShot, hasDb, moreFiles);
             }
         }).register();
     }
@@ -684,10 +694,12 @@ public class CoreLogger {
     private static class Sender {
 
         private static final String                     ANR_TRACES               = "/data/anr/traces.txt";
+        private static final String                     ZIP_PREFIX               = "data_yakhont";
         private static final int                        SCREENSHOT_JPEG_QUALITY  = 100;
 
         private static void sendEmailSync(final Context context, final String[] addresses, final String subject,
-                                          final String cmd, final boolean hasScreenShot, final boolean hasDb) {
+                                          final String cmd, final boolean hasScreenShot, final boolean hasDb,
+                                          final String[] moreFiles) {
             if (context == null || addresses == null || addresses.length == 0) {
                 logError("no arguments");
                 return;
@@ -701,30 +713,44 @@ public class CoreLogger {
 
             final File tmpDir    = Utils.getTmpDir(context);
             final String suffix  = Utils.getTmpFileSuffix();
-            final File anrTraces = new File(ANR_TRACES);
+            final boolean hasAnr = new File(ANR_TRACES).exists();
 
             File db = null, screenShot = null;
 
+            final Map<String, Exception> errors = new ArrayMap<>();
+
+            removePreviousZipFiles(tmpDir);
+
             final ArrayList<String>     list = new ArrayList<>();
-            if (anrTraces.exists())     list.add(ANR_TRACES);
+            if (hasAnr)                 list.add(ANR_TRACES);
             if (hasScreenShot) {
-                screenShot = getScreenShot(activity, tmpDir, suffix);
+                screenShot = getScreenShot(activity, tmpDir, suffix, errors);
                 if (screenShot != null) list.add(screenShot.getAbsolutePath());
             }
             if (hasDb) {
-                db = BaseCacheProvider.copyDbSync(context, null, null);
+                db = BaseCacheProvider.copyDbSync(context, null, null, errors);
                 if (db != null)         list.add(db.getAbsolutePath());
             }
-            final File log = getLogFile(cmd, tmpDir, suffix);
+            if (moreFiles != null)
+                for (final String file: moreFiles)
+                    if (!TextUtils.isEmpty(file))
+                                        list.add(file);
+
+            final File log = getLogFile(cmd, tmpDir, suffix, errors);
             if (log != null)            list.add(log.getAbsolutePath());
 
-            final String subject2send = subject == null ? "log" + suffix: subject;
-            final String body = String.format("ANR traces %b, screenshot %b, database %b",
-                    anrTraces.exists(), hasScreenShot, hasDb);
+            final String subjectToSend = subject == null ? "log" + suffix: subject;
+            final StringBuilder body = new StringBuilder(String.format(
+                    "ANR traces %b, screenshot %b, database %b", hasAnr, hasScreenShot, hasDb));
             try {
-                final File zipFile = getTmpFile("data", suffix, "zip", tmpDir);
-                if (Utils.zip(list.toArray(new String[list.size()]), zipFile.getAbsolutePath()))
-                    Utils.sendEmail(activity, addresses, subject2send, body, zipFile);
+                final File zipFile = getTmpFile(ZIP_PREFIX, suffix, "zip", tmpDir);
+                if (!Utils.zip(list.toArray(new String[list.size()]), zipFile.getAbsolutePath(), errors)) return;
+
+                final String newLine = System.getProperty("line.separator");
+                for (final String error: errors.keySet())
+                    body.append(newLine).append(newLine).append(error).append(newLine).append(errors.get(error));
+
+                Utils.sendEmail(activity, addresses, subjectToSend, body.toString(), zipFile);
             }
 //            catch (IOException e) {
 //                log("failed creating tmp ZIP file", e);
@@ -738,8 +764,23 @@ public class CoreLogger {
 
         private static void delete(final File file) {
             if (file == null) return;
+            log("about to delete " + file);
             final boolean result = file.delete();
             if (!result) logWarning("can not delete " + file);
+        }
+
+        private static void removePreviousZipFiles(final File dir) {
+            if (dir == null) return;
+            final File[] files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(final File dir, final String name) {
+                    return name.startsWith(ZIP_PREFIX);
+                }
+            });
+            if (files == null) return;
+
+            for (final File file: files)
+                delete(file);
         }
 /*
         private static File getTmpFile(final String prefix, final String suffix, final File dir)
@@ -753,10 +794,11 @@ public class CoreLogger {
             return new File(dir, String.format("%s%s.%s", prefix, suffix, extension));
         }
 
-        private static File getLogFile(final String cmd, final File tmpDir, final String suffix) {
+        private static File getLogFile(final String cmd, final File tmpDir, final String suffix,
+                                       final Map<String, Exception> errors) {
             try {
                 final File tmpFile = getTmpFile("log", suffix, "txt", tmpDir);
-                final PrintWriter output = new PrintWriter(new FileWriter(tmpFile));
+                final PrintWriter output = new PrintWriter(tmpFile);
 
                 getLog(cmd, new LogHandler() {
                     @Override
@@ -769,12 +811,20 @@ public class CoreLogger {
                 return tmpFile;
             }
             catch (Exception e) {
-                log("failed creating log file", e);
+                handleError("failed creating log file", e, errors);
             }
             return null;
         }
 
-        private static File getScreenShot(final Activity activity, final File tmpDir, final String suffix) {
+        private static void handleError(final String text, final Exception exception,
+                                        final Map<String, Exception> map) {
+            log(text, exception);
+            if (map != null) //noinspection ThrowableResultOfMethodCallIgnored
+                map.put(text, exception);
+        }
+
+        private static File getScreenShot(final Activity activity, final File tmpDir, final String suffix,
+                                          final Map<String, Exception> errors) {
             try {
                 final View view = activity.getWindow().getDecorView().getRootView();
                 final boolean savedValue = view.isDrawingCacheEnabled();
@@ -793,7 +843,7 @@ public class CoreLogger {
                 }
             }
             catch (Exception e) {
-                log("failed creating screenshot", e);
+                handleError("failed creating screenshot", e, errors);
                 return null;
             }
         }

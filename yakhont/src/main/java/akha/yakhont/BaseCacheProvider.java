@@ -720,7 +720,11 @@ public class BaseCacheProvider extends ContentProvider {
      *        The file to copy database to, or null (means default backup directory and file name)
      */
     public static void copyDb(@NonNull final Context context, final File srcDb, final File dstDb) {
-        if (!Utils.isDebugMode(context.getPackageName())) return;
+        if (!Utils.isDebugMode(context.getPackageName())) {
+            CoreLogger.logWarning(
+                    "db copying is available in debug builds only; please consider to use CoreLogger.registerShakeDataSender()");
+            return;
+        }
         copyFile(context, getSrcDb(context, srcDb), dstDb);
     }
 
@@ -728,7 +732,8 @@ public class BaseCacheProvider extends ContentProvider {
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
-                copyFileSync(context, srcFile, dstFileOrg);            }
+                copyFileSync(context, srcFile, dstFileOrg, null);
+            }
         });
     }
 
@@ -737,14 +742,16 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static File copyDbSync(@NonNull final Context context, final File srcDb, final File dstDb) {
-        return copyFileSync(context, getSrcDb(context, srcDb), dstDb);
+    public static File copyDbSync(@NonNull final Context context, final File srcDb, final File dstDb,
+                                  final Map<String, Exception> errors) {
+        return copyFileSync(context, getSrcDb(context, srcDb), dstDb, errors);
     }
 
-    private static File copyFileSync(@NonNull final Context context, @NonNull final File srcFile, final File dstFileOrg) {
+    private static File copyFileSync(@NonNull final Context context, @NonNull final File srcFile,
+                                     final File dstFileOrg, final Map<String, Exception> errors) {
         try {
             if (!srcFile.exists()) {
-                CoreLogger.logError("file doesn't exist: " + srcFile);
+                handleError("file doesn't exist: " + srcFile, errors);
                 return null;
             }
 
@@ -754,7 +761,7 @@ public class BaseCacheProvider extends ContentProvider {
 
             if (dstFile.isDirectory()) {
                 if (!dstFile.canWrite()) {
-                    CoreLogger.logError("directory is read-only: " + dstFile);
+                    handleError("directory is read-only: " + dstFile, errors);
                     return null;
                 }
                 dstFile = new File(dstFile, getDstFileName(srcFile.getName()));
@@ -770,9 +777,18 @@ public class BaseCacheProvider extends ContentProvider {
             return dstFile;
         }
         catch (Exception e) {
-            CoreLogger.log("failed", e);
+            final String text = "copying failed: " + srcFile;
+            CoreLogger.log(text, e);
+            if (errors != null) //noinspection ThrowableResultOfMethodCallIgnored
+                errors.put(text, e);
             return null;
         }
+    }
+
+    private static void handleError(final String text, final Map<String, Exception> map) {
+        CoreLogger.logError(text);
+        if (map != null) //noinspection ThrowableResultOfMethodCallIgnored
+            map.put(text, new RuntimeException("copy file stack trace"));
     }
 
     private static String getDstFileName(@NonNull final String name) {

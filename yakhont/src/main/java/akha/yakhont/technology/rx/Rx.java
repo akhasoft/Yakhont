@@ -14,377 +14,323 @@
  * limitations under the License.
  */
 
-package akha.yakhont.technology;
+package akha.yakhont.technology.rx;
 
-import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.loader.BaseResponse;
-import akha.yakhont.location.LocationCallbacks;
+import akha.yakhont.technology.rx.BaseRx.CallbackRx;
+import akha.yakhont.technology.rx.BaseRx.CommonRx;
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
-import android.app.Activity;
-import android.location.Location;
 import android.support.annotation.NonNull;
 
-import java.lang.ref.WeakReference;
-import java.util.Set;
-
+import rx.Completable;
 import rx.Observable;
 import rx.Producer;
+import rx.Single;
 import rx.Subscriber;
 import rx.Subscription;
-import rx.exceptions.Exceptions;
+import rx.functions.Action1;
+import rx.observers.SafeSubscriber;
+import rx.plugins.RxJavaHooks;
+import rx.subscriptions.CompositeSubscription;
 
 /**
- * The base component to work with {@link <a href="http://reactivex.io/">Rx</a>}.
+ * The component to work with {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}.
  *
  * @param <D>
  *        The data type
  *
- * @see RxLoader
- * @see RxLocation
+ * @see CommonRx
  *
  * @author akha
  */
-public abstract class Rx<D> {
+public class Rx<D> extends CommonRx<D> {
 
-    private   final Set<Subscriber<? super D>>  mSubscribers                = Utils.newWeakSet();
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected final boolean                     mIsSingle;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final boolean                     mIsNullable;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final boolean                     mHasProducer;
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected final CompositeSubscription       mCompositeSubscription;
+
+    /**
+     * Initialises a newly created {@code Rx} object.
+     */
+    public Rx() {
+        this(false, false);
+    }
+
     /**
      * Initialises a newly created {@code Rx} object.
      *
-     * @param single
-     *        {@code true} if {@link Observable} either emits one value only or an error notification, {@code false} otherwise
-     *
      * @param nullable
-     *        {@code true} if emitted data can be null, {@code false} otherwise
+     *        {@code true} if given {@code Rx} object should support nulls, {@code false} otherwise
      *
      * @param hasProducer
-     *        {@code true} if the given component should provide {@link Producer}, {@code false} otherwise
+     *        {@code true} if given {@code Rx} object has {@link Producer}, {@code false} otherwise
      */
-    @SuppressWarnings({"WeakerAccess", "SameParameterValue"})
-    protected Rx(final boolean single, final boolean nullable, final boolean hasProducer) {
-        mIsSingle       = single;
-        mIsNullable     = nullable;
-        mHasProducer    = hasProducer;
+    @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
+    public Rx(final boolean nullable, final boolean hasProducer) {
+        mIsNullable             = nullable;
+        mHasProducer            = hasProducer;
+        mCompositeSubscription  = new CompositeSubscription();
+
+        CoreLogger.logWarning("please consider using RxJava 2");
     }
 
     /**
-     * Returns the list of {@link Subscriber Subscribers}.
-     *
-     * @return  The subscribers list
+     * Please refer to the base method description.
      */
-    public Set<Subscriber<? super D>> getSubscribers() {
-        return mSubscribers;
+    @Override
+    public void setErrorHandlerEmpty() {
+        setErrorHandlerHelper(false);
     }
 
     /**
-     * Stops the receipt of notifications on the registered {@link Subscriber Subscribers}.
+     * Please refer to the base method description.
      */
-    public void unsubscribe() {
-        final int size = mSubscribers.size();
-        if (size == 0) return;
-
-        CoreLogger.logWarning("RX unsubscribe, size " + size);
-
-        for (final Subscriber<? super D> subscriber: mSubscribers)
-            if (!subscriber.isUnsubscribed()) subscriber.unsubscribe();
-
-        mSubscribers.clear();
+    @Override
+    public void setErrorHandlerJustLog() {
+        setErrorHandlerHelper(true);
     }
 
-    /**
-     * Returns the {@link Observable}.
-     *
-     * @return  The {@code Observable}
-     */
-    @NonNull
-    @SuppressWarnings("unused")
-    public Observable<D> createObservable() {
-        return Observable.create(new Observable.OnSubscribe<D>() {
+    private static void setErrorHandlerHelper(final boolean isLog) {
+        setErrorHandler(new Action1<Throwable>() {
             @Override
-            public void call(final Subscriber<? super D> subscriber) {
-                if (subscriber == null) {
-                    CoreLogger.logWarning("subscriber is null");
-                    return;
-                }
-
-                subscriber.add(new Subscription() {
-                    @Override
-                    public void unsubscribe() {
-                        mSubscribers.remove(subscriber);
-                    }
-                    @Override
-                    public boolean isUnsubscribed() {
-                        return mSubscribers.contains(subscriber);
-                    }
-                });
-
-                if (mHasProducer) subscriber.setProducer(new Producer() {
-                    @Override
-                    public void request(long n) {
-                        if (n <= 0)
-                            CoreLogger.logWarning("not valid n " + n);
-                        else
-                            onResult(getResult());
-                    }
-                });
-
-                mSubscribers.add(subscriber);
+            public void call(Throwable throwable) {
+                if (isLog) CoreLogger.log("Rx error handler", throwable);
             }
         });
     }
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected D getResult() {
-        return null;
+    /**
+     * Sets Rx error handler. Please refer to {@link RxJavaHooks#setOnError RxJavaHooks.setOnError()} for more info.
+     *
+     * @param handler
+     *        The Rx error handler to set
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static void setErrorHandler(final Action1<Throwable> handler) {
+        RxJavaHooks.setOnError(handler);
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    protected boolean isNullable() {
+        return mIsNullable;
+    }
+
+    /**
+     * Converts {@link SubscriberRx} to {@link Subscriber}.
+     *
+     * @param subscriber
+     *        The {code SubscriberRx} to convert
+     *
+     * @return  The converted subscriber
+     */
+    @SuppressWarnings("WeakerAccess")
+    public Subscriber<D> getSubscriber(final SubscriberRx<D> subscriber) {
+        if (subscriber == null) {
+            CoreLogger.logError("subscriber is null");
+            return null;
+        }
+        final Subscriber<D> s = new Subscriber<D>() {
+            @Override
+            public void onNext(final D result) {
+                subscriber.onNext(result);
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                subscriber.onError(throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+                subscriber.onCompleted();
+            }
+        };
+        if (mHasProducer) s.setProducer(new Producer() {
+            @Override
+            public void request(long n) {
+                subscriber.request(n);
+            }
+        });
+        return s;
+    }
+
+    /**
+     * Subscribes {@link Subscriber} to receive Rx push-based notifications.
+     *
+     * @param subscriber
+     *        The {@link Subscriber subscriber}
+     *
+     * @return  The {@link Subscription}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public Subscription subscribe(@NonNull final Subscriber<D> subscriber) {
+        return createObservable().subscribe(subscriber);
+    }
+
+    /**
+     * Subscribes {@link SubscriberRx} to receive Rx push-based notifications.
+     *
+     * @param subscriber
+     *        The {@link SubscriberRx subscriber}
+     *
+     * @return  The {@link Subscription}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public Subscription subscribe(@NonNull final SubscriberRx<D> subscriber) {
+        return subscribe(getSubscriber(subscriber));
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public void onResult(final D result) {
-        for (final Subscriber<? super D> subscriber: mSubscribers) {
-            if (subscriber.isUnsubscribed()) {
-                CoreLogger.log("unsubscribed: " + subscriber);
-                continue;
-            }
-
-            if (!mIsNullable && result == null) {
-                subscriber.onError(new Exception("result is null"));
-                continue;
-            }
-
-            try {
-                if (!onNext(subscriber, result)) continue;
-            }
-            catch (Throwable t) {
-                Exceptions.throwIfFatal(t);
-                subscriber.onError(t);
-                continue;
-            }
-
-            if (mIsSingle) subscriber.onCompleted();
-        }
-
-        if (mIsSingle) mSubscribers.clear();
-    }
-
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "BooleanMethodIsAlwaysInverted", "WeakerAccess"})
-    protected boolean onNext(@NonNull final Subscriber<? super D> subscriber, final D result) {
-        subscriber.onNext(result);
-        return true;
+    @Override
+    protected void subscribeRx(@NonNull final SubscriberRx<D> subscriber) {
+        add(subscribe(subscriber));
     }
 
     /**
-     * Extends the {@link Rx} class to provide {@link BaseResponse} support. For example, in Fragment:
+     * Adds {@link Subscription} to the registered subscriptions list.
      *
-     * <p><pre style="background-color: silver; border: thin solid black;">
-     * import akha.yakhont.loader.BaseLoader;
-     * import akha.yakhont.loader.BaseResponse;
-     * import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
-     *
-     * import com.mypackage.model.MyData;
-     *
-     * import retrofit.client.Response;
-     *
-     * import rx.Subscriber;
-     * import rx.Subscription;
-     *
-     * public class MyFragment extends Fragment {
-     *
-     *     private Subscription mRxSubscription;
-     *
-     *     &#064;Override
-     *     public void onActivityCreated(Bundle savedInstanceState) {
-     *         super.onActivityCreated(savedInstanceState);
-     *         ...
-     *
-     *         RetrofitRx&lt;MyData[]&gt; rx = new RetrofitRx&lt;&gt;();
-     *
-     *         mRxSubscription = rx.createObservable().subscribe(
-     *                 new Subscriber&lt;BaseResponse&lt;Response, Exception, MyData[]&gt;&gt;() {
-     *
-     *             &#064;Override
-     *             public void onNext(BaseResponse&lt;Response, Exception, MyData[]&gt; baseResponse) {
-     *                 MyData[] data = baseResponse.getResult();
-     *                 // your code here
-     *             }
-     *
-     *             &#064;Override
-     *             public void onCompleted() {
-     *                 // your code here
-     *             }
-     *
-     *             &#064;Override
-     *             public void onError(Throwable e) {
-     *                 // your code here
-     *             }
-     *         });
-     *
-     *         BaseLoader.simpleInit(this, MyData[].class, rx).startLoading();
-     *     }
-     *
-     *     &#064;Override
-     *     public void onDestroy() {
-     *         mRxSubscription.unsubscribe();
-     *
-     *         super.onDestroy();
-     *     }
-     * }
-     * </pre>
-     *
-     * @param <R>
-     *        The type of network response
-     *
-     * @param <E>
-     *        The type of error (if any)
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @yakhont.see BaseResponseLoaderWrapper.CoreLoad
-     * @yakhont.see Retrofit.RetrofitRx
+     * @param subscription
+     *        The {@link Subscription} to add
      */
-    public static class RxLoader<R, E, D> extends Rx<BaseResponse<R, E, D>> {
-
-        /**
-         * Initialises a newly created {@code RxLoader} object.
-         */
-        public RxLoader() {
-            this(true, true);
+    @SuppressWarnings("WeakerAccess")
+    public void add(final Subscription subscription) {
+        if (subscription == null) {
+            CoreLogger.logError("subscription is null");
+            return;
         }
-
-        /**
-         * Initialises a newly created {@code RxLoader} object.
-         *
-         * @param single
-         *        {@code true} if {@link Observable} either emits one value only or an error notification, {@code false} otherwise
-         *
-         * @param nullable
-         *        {@code true} if emitted data can be null, {@code false} otherwise
-         */
-        @SuppressWarnings("SameParameterValue")
-        public RxLoader(final boolean single, final boolean nullable) {
-            super(single, nullable, false);
-        }
-
-        /** @exclude */
-        @Override
-        @SuppressWarnings("JavaDoc")
-        protected boolean onNext(@NonNull final Subscriber<? super BaseResponse<R, E, D>> subscriber,
-                                 final BaseResponse<R, E, D> baseResponse) {
-            if (baseResponse == null) {     // should never happen
-                subscriber.onError(new Exception("BaseResponse is null"));
-                return false;
-            }
-
-            if (baseResponse.getResult() != null) return super.onNext(subscriber, baseResponse);
-
-            final E error = baseResponse.getError();
-            if (error != null) {
-                if (error instanceof Throwable) Exceptions.throwIfFatal((Throwable) error);
-                subscriber.onError(error instanceof Throwable ? (Throwable) error: new Exception(error.toString()));
-                return false;
-            }
-
-            if (mIsNullable) return super.onNext(subscriber, baseResponse);
-
-            subscriber.onError(new Exception("BaseResponse.getResult() is null"));
-            return false;
-        }
+        mCompositeSubscription.add(subscription);
     }
 
     /**
-     * Extends the {@link Rx} class to provide {@link Location} support. For example, in Activity:
-     *
-     * <p><pre style="background-color: silver; border: thin solid black;">
-     * import akha.yakhont.callback.annotation.CallbacksInherited;
-     * import akha.yakhont.location.LocationCallbacks;
-     *
-     * import rx.Subscription;
-     * import rx.functions.Action1;
-     *
-     * &#064;CallbacksInherited(LocationCallbacks.class)
-     * public class MyActivity extends Activity {
-     *
-     *     private LocationCallbacks mLocationCallbacks;
-     *     private RxLocation        mRx;
-     *     private Subscription      mRxSubscription;
-     *
-     *     &#064;Override
-     *     protected void onCreate(Bundle savedInstanceState) {
-     *         super.onCreate(savedInstanceState);
-     *         ...
-     *
-     *         mLocationCallbacks = LocationCallbacks.getLocationCallbacks(this);
-     *
-     *         mRx = new RxLocation(this);
-     *
-     *         mRxSubscription = mRx.createObservable().subscribe(new Action1&lt;Location&gt;() {
-     *
-     *             &#064;Override
-     *             public void call(Location location) {
-     *                 // your code here
-     *             }
-     *         });
-     *
-     *         mLocationCallbacks.register(mRx);
-     *     }
-     *
-     *     &#064;Override
-     *     protected void onDestroy() {
-     *         mLocationCallbacks.unregister(mRx);
-     *         mRxSubscription.unsubscribe();
-     *
-     *         super.onDestroy();
-     *     }
-     * }
-     * </pre>
-     *
-     * @see LocationCallbacks
+     * Please refer to the base method description.
      */
-    public static class RxLocation extends Rx<Location> {
+    @Override
+    public void unsubscribe() {
+        if (!mCompositeSubscription.hasSubscriptions()) return;
 
-        private final WeakReference<Activity>   mActivity;
+        CoreLogger.logWarning("Rx unsubscribe");
+        mCompositeSubscription.unsubscribe();
+    }
 
-        /**
-         * Initialises a newly created {@code RxLocation} object.
-         *
-         * @param activity
-         *        The Activity
-         */
-        @SuppressWarnings("unused")
-        public RxLocation(@NonNull final Activity activity) {
-            this(activity, false);
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    private boolean checkNullSubscriber(final Subscriber<? super D> subscriber) {
+        if (subscriber == null) CoreLogger.logError("subscriber is null");
+        return subscriber != null;
+    }
+
+    /**
+     * Creates the {@link Observable}.
+     *
+     * @return  The {@link Observable}
+     */
+    @NonNull
+    @SuppressWarnings("WeakerAccess")
+    public Observable<D> createObservable() {
+        return Observable.unsafeCreate(new Observable.OnSubscribe<D>() {
+            @Override
+            public void call(final Subscriber<? super D> subscriber) {
+                if (!checkNullSubscriber(subscriber)) return;
+
+                register(new CallbackRx<D>() {
+                    @Override
+                    public void onResult(D result) {
+                        Rx.this.onResult(subscriber, result);
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        Rx.this.onError(subscriber, throwable);
+                    }
+                });
+            }
+        });
+    }
+
+    /**
+     * Converts {@link Subscriber} to {@link SafeSubscriber}.
+     *
+     * @param subscriber
+     *        The {code Subscriber} to convert
+     *
+     * @return  The converted subscriber
+     */
+    @SuppressWarnings("WeakerAccess")
+    public SafeSubscriber<? super D> getSafeSubscriber(final Subscriber<? super D> subscriber) {
+        return new SafeSubscriber<>(subscriber);
+    }
+
+    /**
+     * Implementation of {@link CallbackRx#onResult CallbackRx.onResult()}.
+     *
+     * @param subscriber
+     *        The {@code Subscriber}
+     *
+     * @param result
+     *        The item emitted by the {@code Observable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    protected void onResult(final Subscriber<? super D> subscriber, final D result) {
+        if (!checkNullSubscriber(subscriber)) return;
+
+        if (!mIsNullable && result == null) {
+            onError(subscriber, new Exception("Rx: result is null"));
+            return;
         }
 
-        /**
-         * Initialises a newly created {@code RxLocation} object.
-         *
-         * @param activity
-         *        The Activity
-         *
-         * @param single
-         *        {@code true} if {@link Observable} either emits one value only or an error notification, {@code false} otherwise
-         */
-        @SuppressWarnings("SameParameterValue")
-        public RxLocation(@NonNull final Activity activity, final boolean single) {
-            super(single, true, true);
-            mActivity = new WeakReference<>(activity);
-        }
+        final SafeSubscriber<? super D> safeSubscriber = getSafeSubscriber(subscriber);
+        safeSubscriber.onNext(result);
 
-        /** @exclude */
-        @Override
-        @SuppressWarnings("JavaDoc")
-        protected Location getResult() {
-            return LocationCallbacks.getCurrentLocation(mActivity.get());
-        }
+        if (!isSingle()) return;
+        safeSubscriber.onCompleted();
+    }
+
+    /**
+     * Implementation of {@link CallbackRx#onError CallbackRx.onError()}.
+     *
+     * @param subscriber
+     *        The {@code Subscriber}
+     *
+     * @param throwable
+     *        The exception encountered by the {@code Observable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    protected void onError(final Subscriber<? super D> subscriber, final Throwable throwable) {
+        CoreLogger.log("Rx failed", throwable);
+
+        if (!checkNullSubscriber(subscriber)) return;
+
+        final SafeSubscriber<? super D> safeSubscriber = getSafeSubscriber(subscriber);
+        safeSubscriber.onError(throwable);
+    }
+
+    /**
+     * Creates the {@link Single}.
+     *
+     * @return  The {@link Single}
+     */
+    @NonNull
+    @SuppressWarnings("unused")
+    public Single<D> createSingle() {
+        checkSingle();
+        return createObservable().toSingle();
+    }
+
+    /**
+     * Creates the {@link Completable}.
+     *
+     * @return  The {@link Completable}
+     */
+    @NonNull
+    @SuppressWarnings("unused")
+    public Completable createCompletable() {
+        return createObservable().toCompletable();
     }
 }

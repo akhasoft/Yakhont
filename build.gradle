@@ -19,7 +19,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.1'
+        classpath 'com.android.tools.build:gradle:2.3.2'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:1.5'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.1'
     }
@@ -63,9 +63,11 @@ ext {
                                'proguard-gson.pro'                                      ,
                                'proguard-rx-java.pro'                                   ,
                                'proguard-square-okhttp.pro'                             ,
+                               'proguard-square-okhttp3.pro'                            ,
                                'proguard-square-okio.pro'                               ,
                                'proguard-square-picasso.pro'                            ,
                                'proguard-square-retrofit.pro'                           ,
+                               'proguard-square-retrofit2.pro'                          ,
                                'proguard-support-v7-appcompat.pro']
 }
 

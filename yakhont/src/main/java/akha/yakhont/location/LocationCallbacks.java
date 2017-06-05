@@ -24,7 +24,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
-import akha.yakhont.technology.Rx.RxLocation;
+import akha.yakhont.technology.rx.BaseRx.LocationRx;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -102,7 +102,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     private Provider<BaseDialog>            mAlertProvider;
     private BaseDialog                      mAlert;
 
-    private final Set<RxLocation>           mRx                                      = Utils.newSet();
+    private final Set<LocationRx>           mRx                                      = Utils.newSet();
 
     private static Boolean                  sAccessToLocation;
 
@@ -492,38 +492,38 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
             if (activity instanceof LocationListener)
                 ((LocationListener) activity).onLocationChanged(location, date);
 
-        for (final RxLocation rxLocation: mRx)
-            rxLocation.onResult(location);
+        for (final LocationRx locationRx: mRx)
+            locationRx.onResult(location);
     }
 
     /**
      * Registers Rx component to be notified about location changes.
      *
-     * @param rxLocation
+     * @param locationRx
      *        The component to register
      *
      * @return  {@code true} if registration was successful, {@code false} otherwise
      */
     @SuppressWarnings({"unused", "UnusedReturnValue"})
-    public boolean register(final RxLocation rxLocation) {
-        if (rxLocation == null)
-            CoreLogger.logError("rxLocation == null");
-        return rxLocation != null && mRx.add(rxLocation);
+    public boolean register(final LocationRx locationRx) {
+        if (locationRx == null)
+            CoreLogger.logError("locationRx == null");
+        return locationRx != null && mRx.add(locationRx);
     }
 
     /**
-     * Removes a Rx component that was previously registered with {@link #register(akha.yakhont.technology.Rx.RxLocation)}.
+     * Removes a Rx component that was previously registered with {@link #register(akha.yakhont.technology.rx.BaseRx.LocationRx)}.
      *
-     * @param rxLocation
+     * @param locationRx
      *        The component to remove
      *
      * @return  {@code true} if component removing was successful, {@code false} otherwise
      */
     @SuppressWarnings({"unused", "UnusedReturnValue"})
-    public boolean unregister(final RxLocation rxLocation) {
-        if (rxLocation == null)
+    public boolean unregister(final LocationRx locationRx) {
+        if (locationRx == null)
             CoreLogger.logWarning("rxLocation == null");
-        return rxLocation != null && mRx.remove(rxLocation);
+        return locationRx != null && mRx.remove(locationRx);
     }
 
     /**

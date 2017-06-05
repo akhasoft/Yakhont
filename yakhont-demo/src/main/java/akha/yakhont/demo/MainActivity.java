@@ -16,17 +16,18 @@
 
 package akha.yakhont.demo;
 
-import akha.yakhont.CoreLogger;
 import akha.yakhont.demo.gui.Utils;
 import akha.yakhont.demo.retrofit.LocalJsonClient;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 
 import akha.yakhont.Core;
+import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
-import akha.yakhont.technology.Rx.RxLocation;
+import akha.yakhont.technology.rx.BaseRx.LocationRx;
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 import akha.yakhont.technology.retrofit.Retrofit;
 
 import akha.yakhont.support.fragment.dialog.ProgressDialogFragment;
@@ -60,9 +61,6 @@ import dagger.Module;
 
 import java.util.Date;
 
-import rx.Subscription;
-import rx.functions.Action1;
-
 @CallbacksInherited(LocationCallbacks.class)
 public class MainActivity extends /* Activity */ android.support.v7.app.AppCompatActivity
         implements LocationCallbacks.LocationListener /* optional */ {
@@ -70,11 +68,6 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     private       LocalJsonClient           mJsonClient;
 
     private final Retrofit<RetrofitApi>     mRetrofit                       = new Retrofit<>();
-
-    // Rx part (optional)
-    private       LocationCallbacks         mLocationCallbacks;
-    private       RxLocation                mRx;
-    private       Subscription              mRxSubscription;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,16 +81,16 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
         //noinspection ConstantConditions
         setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat: R.style.AppThemeCompat_Hack);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         mJsonClient = new LocalJsonClient(this);
 
-        // local JSON client, so URL doesn't matter (as well as timeouts)
-        mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder("http://xyz.com").setClient(mJsonClient),
-                20, 20);    // connect and read timeouts (in seconds)
+        // local JSON client, so URL doesn't matter
+        mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder("http://localhost/").setClient(mJsonClient));
 
-        initRxLocation();   // optional
+        initLocationRx();   // optional
 
         //noinspection ConstantConditions
         findViewById(R.id.fab_location).setOnClickListener(new View.OnClickListener() {
@@ -119,27 +112,62 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         });
     }
 
+    /////////// Rx handling (optional)
+
+    private       LocationCallbacks         mLocationCallbacks;
+    private       LocationRx                mRx;
+
+    @SuppressWarnings("SameReturnValue")
+    public boolean isRx2() {
+        return false;
+    }
+
+    private void initLocationRx() {
+        mLocationCallbacks = LocationCallbacks.getLocationCallbacks(this);
+        if (mLocationCallbacks == null) return;
+
+        mRx = new LocationRx(isRx2(), this).subscribe(new SubscriberRx<Location>() {
+            @Override
+            public void onNext(final Location location) {
+                Log.w("MainActivity", "LocationRx: " + location);
+            }
+        });
+
+        // avoids terminating the application by calls to the Rx uncaught exception handler
+        // actually it's the final application only that should set (or not) such kind of handlers:
+        // it's not advised for intermediate libraries to change the global handlers behavior
+        mRx.setErrorHandlerJustLog();
+
+        mLocationCallbacks.register(mRx);
+    }
+
     @Override
     protected void onDestroy() {
+        if (mRx                != null) mRx.cleanup();
         if (mLocationCallbacks != null) mLocationCallbacks.unregister(mRx);
-        if (mRxSubscription    != null) mRxSubscription.unsubscribe();
 
         super.onDestroy();
     }
 
-    private void initRxLocation() {
-        mLocationCallbacks = LocationCallbacks.getLocationCallbacks(this);
-        if (mLocationCallbacks == null) return;
+    private Location getLocation() {
+        return mRx.getResult();
+    }
 
-        mRx = new RxLocation(this);
-        mRxSubscription = mRx.createObservable().subscribe(new Action1<Location>() {
-            @Override
-            public void call(Location location) {
-                Log.d("MainActivity", "RxLocation: " + location);
-            }
-        });
+    /////////// end of Rx handling
 
-        mLocationCallbacks.register(mRx);
+    @Override
+    public void onLocationChanged(Location location, Date date) {
+        Log.d("MainActivity", "onLocationChanged: " + location);
+    }
+
+    public LocalJsonClient getJsonClient() {
+        return mJsonClient;
+    }
+
+    @Override
+    public void finish() {
+        super.finish();
+        overridePendingTransition(0, android.R.anim.fade_out);
     }
 
     // custom progress dialog (with background image) example (using custom view R.layout.progress)
@@ -197,26 +225,5 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
             return (DemoProgress) ProgressDialogFragment.newInstance(null, new DemoProgress()
                     .setConfirmation(false) /* for demo only */ );
         }
-    }
-
-    // end of custom progress dialog example
-
-    @Override
-    public void onLocationChanged(Location location, Date date) {
-        Log.d("MainActivity", "onLocationChanged: " + location);
-    }
-
-    private Location getLocation() {
-        return LocationCallbacks.getCurrentLocation(this);
-    }
-
-    public LocalJsonClient getJsonClient() {
-        return mJsonClient;
-    }
-
-    @Override
-    public void finish() {
-        super.finish();
-        overridePendingTransition(0, android.R.anim.fade_out);
     }
 }

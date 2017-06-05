@@ -28,7 +28,7 @@ import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.CacheLoader;
 import akha.yakhont.loader.BaseConverter;
-import akha.yakhont.technology.Rx.RxLoader;
+import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.annotation.TargetApi;
 import android.app.Fragment;
@@ -88,7 +88,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
     private       CacheAdapter<R, E, D>                     mAdapter;
     private       Loader<BaseResponse<R, E, D>>             mLoader;
 
-    private       RxLoader<R, E, D>                         mRx;
+    private       LoaderRx<R, E, D>                         mRx;
 
     /**
      * Initialises a newly created {@code BaseResponseLoaderWrapper} object.
@@ -188,7 +188,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      * @return  This {@code BaseLoaderWrapper} object
      */
     @SuppressWarnings("UnusedReturnValue")
-    public BaseResponseLoaderWrapper<C, R, E, D> setRx(final RxLoader<R, E, D> rx) {
+    public BaseResponseLoaderWrapper<C, R, E, D> setRx(final LoaderRx<R, E, D> rx) {
         mRx             = rx;
         return this;
     }
@@ -198,7 +198,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *
      * @return  The Rx component
      */
-    public RxLoader<R, E, D> getRx() {
+    public LoaderRx<R, E, D> getRx() {
         return mRx;
     }
 
@@ -822,7 +822,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          * @return  The loader (added or modified)
          */
         @SuppressWarnings({"SameParameterValue", "unused"})
-        BaseLoaderWrapper addLoader(CacheAdapter adapter, RxLoader rx, LoaderBuilder builder);
+        BaseLoaderWrapper addLoader(CacheAdapter adapter, LoaderRx rx, LoaderBuilder builder);
 
         /**
          * Adds loader to the collection of {@link BaseLoaderWrapper loaders} associated with the given {@code CoreLoad} component.
@@ -857,7 +857,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          * @return  The loader (added or modified)
          */
         @SuppressWarnings("unused")
-        BaseLoaderWrapper addLoader(CacheAdapter adapter, RxLoader rx, BaseLoaderWrapper loader);
+        BaseLoaderWrapper addLoader(CacheAdapter adapter, LoaderRx rx, BaseLoaderWrapper loader);
 
         /**
          * Starts all loaders associated with the given {@code CoreLoad} component.

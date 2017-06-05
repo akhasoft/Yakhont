@@ -31,7 +31,7 @@ import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
-import akha.yakhont.technology.Rx.RxLoader;
+import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -165,23 +165,23 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     }
 
     @SuppressWarnings("unchecked")
-    private void setRxUnchecked(@NonNull final BaseResponseLoaderWrapper baseResponseLoaderWrapper, final RxLoader rx) {
+    private void setRxUnchecked(@NonNull final BaseResponseLoaderWrapper baseResponseLoaderWrapper, final LoaderRx rx) {
         baseResponseLoaderWrapper.setRx(rx);
     }
 
-    private void setRx(@NonNull final BaseLoaderWrapper loader, final RxLoader rx) {
+    private void setRx(@NonNull final BaseLoaderWrapper loader, final LoaderRx rx) {
         if (!(loader instanceof BaseResponseLoaderWrapper)) return;
 
         final BaseResponseLoaderWrapper baseResponseLoaderWrapper = (BaseResponseLoaderWrapper) loader;
 
-        final RxLoader prevRx = baseResponseLoaderWrapper.getRx();
+        final LoaderRx prevRx = baseResponseLoaderWrapper.getRx();
         if (prevRx == rx) return;
 
-        if (prevRx != null && rx != null && rx.getSubscribers().size() == 0) {
-            CoreLogger.logWarning("no subscribers in Rx passed; Rx ignored");
+        if (prevRx != null && rx != null && !rx.hasObservers()) {
+            CoreLogger.logWarning("no observers in Rx passed; Rx ignored");
             return;
         }
-        if (prevRx != null) prevRx.unsubscribe();
+        if (prevRx != null) prevRx.cleanup();
 
         setRxUnchecked(baseResponseLoaderWrapper, rx);
     }
@@ -321,7 +321,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final RxLoader rx, @NonNull final LoaderBuilder builder) {
+    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final LoaderRx rx, @NonNull final LoaderBuilder builder) {
         return addLoader(adapter, rx, builder.create());
     }
 
@@ -337,7 +337,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final RxLoader rx, @NonNull final BaseLoaderWrapper loader) {
+    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final LoaderRx rx, @NonNull final BaseLoaderWrapper loader) {
         @SuppressWarnings("unchecked")
         BaseLoaderWrapper foundLoader = loader.findLoader(mLoaders), loaderToSet = loader;
 

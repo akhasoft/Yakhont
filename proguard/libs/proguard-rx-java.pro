@@ -16,4 +16,10 @@
 }
 
 # added by akha
+# for yakhont-demo
 -dontnote rx.internal.util.PlatformDependent
+
+-keep class rx.functions.Func1 {
+    public <methods>;
+}
+-dontnote rx.functions.Func1

@@ -28,9 +28,9 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
-import akha.yakhont.technology.Rx.RxLoader;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitAdapterWrapper;
 import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitLoaderBuilder;
+import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -804,7 +804,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      * @see RetrofitLoaderBuilder
      */
     @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type, final RxLoader rx) {
+    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type, final LoaderRx rx) {
         return simpleInit(fragment, type, rx, null, null, null);
     }
 
@@ -930,7 +930,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      */
     @SuppressWarnings("unused")
     public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type,
-                                          final RxLoader rx, final String description,
+                                          final LoaderRx rx, final String description,
                                           final LoaderCallback<D> loaderCallback, final ViewBinder viewBinder) {
         return simpleInit(fragment, rx, getBuilder(fragment, type, Utils.NOT_VALID_RES_ID, description, loaderCallback), viewBinder);
     }
@@ -968,7 +968,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      */
     @SuppressWarnings("unused")
     public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type,
-                                          final RxLoader rx, @StringRes final int descriptionId,
+                                          final LoaderRx rx, @StringRes final int descriptionId,
                                           final LoaderCallback<D> loaderCallback, final ViewBinder viewBinder) {
         return simpleInit(fragment, rx, getBuilder(fragment, type, descriptionId, null, loaderCallback), viewBinder);
     }
@@ -1156,7 +1156,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      * akha.yakhont.adapter.BaseCacheAdapter.ViewBinder)
      */
     @SuppressWarnings("WeakerAccess")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, final RxLoader rx,
+    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, final LoaderRx rx,
                                           @NonNull final RetrofitLoaderBuilder<D> loaderBuilder, final ViewBinder viewBinder) {
         return simpleInit(fragment, rx, View.NO_ID, Utils.NOT_VALID_RES_ID, loaderBuilder, viewBinder);
     }
@@ -1225,7 +1225,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      * @return  The {@code CoreLoad}
      */
     @SuppressWarnings("WeakerAccess")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, final RxLoader rx,
+    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, final LoaderRx rx,
                                           @SuppressWarnings("SameParameterValue") @IdRes     final int listView,
                                           @SuppressWarnings("SameParameterValue") @LayoutRes final int listItem,
                                           @NonNull final RetrofitLoaderBuilder<D> loaderBuilder, final ViewBinder viewBinder) {
