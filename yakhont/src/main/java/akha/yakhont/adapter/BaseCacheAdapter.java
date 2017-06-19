@@ -21,6 +21,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.loader.BaseResponse.Source;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -312,18 +313,23 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        {@code true} if new data should be merged with existing ones, {@code false} otherwise
      */
     public void update(@NonNull final BaseResponse<R, E, D> data, final boolean isMerge) {
-        switch (data.getSource()) {
+        final Source source = data.getSource();
+        switch (source) {
             case NETWORK:
                 updateArray(mConverter.convert(data), isMerge);
                 break;
 
             case CACHE:
-            case TIMEOUT:
                 updateCursor(data.getCursor());
                 break;
 
+            case TIMEOUT:
+            case UNKNOWN:
+                CoreLogger.logWarning("nothing to update 'cause of " + source);
+                break;
+
             default:
-                CoreLogger.logError("unknown source " + data.getSource());
+                CoreLogger.logError("unknown source " + source);
                 break;
         }
     }

@@ -60,7 +60,9 @@ public class BaseResponse<R, E, D> {
         /** The network. */
         NETWORK,
         /** The loading process was cancelled because of timeout. */
-        TIMEOUT
+        TIMEOUT,
+        /** The loading process was cancelled because of some unknown reason. */
+        UNKNOWN
     }
 
     /** @exclude */
@@ -76,6 +78,7 @@ public class BaseResponse<R, E, D> {
     private final           Cursor                mCursor;
     private                 ContentValues[]       mContentValues;
     private final           Source                mSource;
+    private final           Throwable             mThrowable;
 
     /**
      * The API to convert data.
@@ -153,7 +156,7 @@ public class BaseResponse<R, E, D> {
      *        The source of data
      */
     public BaseResponse(@NonNull final Source source) {
-        this(null, null, null, null, source);
+        this(null, null, null, null, source, null);
     }
 
     /**
@@ -173,13 +176,18 @@ public class BaseResponse<R, E, D> {
      *
      * @param source
      *        The source of data
+     *
+     * @param throwable
+     *        The additional error info (normally if error is not an instance of Throwable)
      */
-    public BaseResponse(final D data, final R response, final Cursor cursor, final E error, @NonNull final Source source) {
+    public BaseResponse(final D data, final R response, final Cursor cursor, final E error,
+                        @NonNull final Source source, final Throwable throwable) {
         mData               = data;
         mResponse           = response;
         mCursor             = cursor;
         mError              = error;
         mSource             = source;
+        mThrowable          = throwable;
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -231,6 +239,16 @@ public class BaseResponse<R, E, D> {
     }
 
     /**
+     * Returns the he additional error info (if any).
+     *
+     * @return  The additional error info
+     */
+    @SuppressWarnings("unused")
+    public Throwable getThrowable() {
+        return mThrowable;
+    }
+
+    /**
      * Returns the source of data.
      *
      * @return  The source of data
@@ -249,8 +267,10 @@ public class BaseResponse<R, E, D> {
         final Locale locale = CoreLogger.getLocale();
         final String newLine = System.getProperty("line.separator");
 
-        builder.append(String.format(locale, "%s, class: %s, error: %s%s", mSource.name(),
-                mData == null ? null: mData.getClass().getSimpleName(), mError, newLine));
+        builder.append(String.format(locale, "%s, class: %s, error: %s%s",
+                mSource.name(), mData == null ? null: mData.getClass().getSimpleName(),
+                mError, newLine));
+        builder.append(String.format(locale, "more error info: %s%s", mThrowable, newLine));
 
         if (mData == null)
             builder.append("no data").append(newLine);

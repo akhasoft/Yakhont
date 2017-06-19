@@ -21,3 +21,5 @@
 -keep class akha.yakhont.demo.BuildConfig { *; }
 
 -keep class akha.yakhont.demo.model.** { *; }
+
+-keep interface akha.yakhont.demo.retrofit.** { *; }

@@ -25,23 +25,26 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
+import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
-import akha.yakhont.support.loader.BaseLoader;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
 import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+import akha.yakhont.support.technology.retrofit.RetrofitLoaderWrapper.RetrofitCoreLoadBuilder;
+import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 
 // for using non-support version of library (android.app.Fragment etc.):
 // comment out akha.yakhont.support.loader.* imports above and uncomment ones below
 
 /*
-import akha.yakhont.loader.BaseLoader;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitCoreLoadBuilder;
+import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 */
 
 import android.graphics.Rect;
@@ -79,25 +82,47 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         initRx();                   // optional
 
-        mCoreLoad = BaseLoader.simpleInit(this, Beer[].class, mRx, R.string.table_desc_beers, // data description for GUI (optional)
-        
-            new LoaderCallback<Beer[]>() {                                                  // optional callback
-                @Override
-                public void onLoadFinished(Beer[] data, Source source) {
-                    MainFragment.this.onLoadFinished(data, source);
-                }
-            },
-            new ViewBinder() {                                                              // data binding (optional too)
-                @Override
-                public boolean setViewValue(View view, Object data, String textRepresentation) {
-                    return MainFragment.this.setViewValue(view, data, textRepresentation);
-                }
-            });
-            
+        if (getMainActivity().isRetrofit2())
+            mCoreLoad = new Retrofit2CoreLoadBuilder<>(this, Beer[].class, getMainActivity().getRetrofit2())
+                    .setDescriptionId(R.string.table_desc_beers)        // data description for GUI (optional)
+
+                    .setLoaderCallback(new LoaderCallback<Beer[]>() {   // optional callback
+                        @Override
+                        public void onLoadFinished(Beer[] data, Source source) {
+                            MainFragment.this.onLoadFinished(data, source);
+                        }
+                    })
+                    .setViewBinder(new ViewBinder() {                   // data binding (optional too)
+                        @Override
+                        public boolean setViewValue(View view, Object data, String textRepresentation) {
+                            return MainFragment.this.setViewValue(view, data, textRepresentation);
+                        }
+                    })
+                    .setRx(mRxRetrofit2)                                // optional
+                    .create();
+        else
+            mCoreLoad = new RetrofitCoreLoadBuilder<>(this, Beer[].class, getMainActivity().getRetrofit())
+                    .setDescriptionId(R.string.table_desc_beers)    // data description for GUI (optional)
+
+                    .setLoaderCallback(new LoaderCallback<Beer[]>() {   // optional callback
+                        @Override
+                        public void onLoadFinished(Beer[] data, Source source) {
+                            MainFragment.this.onLoadFinished(data, source);
+                        }
+                    })
+                    .setViewBinder(new ViewBinder() {                   // data binding (optional too)
+                        @Override
+                        public boolean setViewValue(View view, Object data, String textRepresentation) {
+                            return MainFragment.this.setViewValue(view, data, textRepresentation);
+                        }
+                    })
+                    .setRx(mRxRetrofit)                                 // optional
+                    .create();
+
         // clear cache (optional)
         if (savedInstanceState == null) BaseResponse.clearTable(getActivity(),
                 ((BaseResponseLoaderWrapper) mCoreLoad.getLoaders().iterator().next()).getTableName());
-        
+
         startLoading(savedInstanceState, false);
     }
 
@@ -150,11 +175,11 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     private void setPartToLoad(int counter) {
-        getMainActivity().getJsonClient().setScenario("part" + counter);
+        getMainActivity().setScenario("part" + counter);
     }
 
     private void setNetworkDelay() {
-        getMainActivity().getJsonClient().setDelay(EMULATED_NETWORK_DELAY);
+        getMainActivity().setNetworkDelay(EMULATED_NETWORK_DELAY);
     }
 
     private MainActivity getMainActivity() {
@@ -163,25 +188,42 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     /////////// Rx handling (optional)
 
-    private RetrofitRx<Beer[]>          mRx;
+    private RetrofitRx <Beer[]>         mRxRetrofit;
+    private Retrofit2Rx<Beer[]>         mRxRetrofit2;
 
     private void initRx() {
-        mRx = new RetrofitRx<>(getMainActivity().isRx2());
+        if (getMainActivity().isRetrofit2())
+            mRxRetrofit2 = new Retrofit2Rx<>(getMainActivity().isRxJava2());
+        else
+            mRxRetrofit  = new RetrofitRx <>(getMainActivity().isRxJava2());
     }
 
     private void subscribeRx() {
         unsubscribeRx();
 
-        mRx.subscribeSimple(new SubscriberRx<Beer[]>() {
-            @Override
-            public void onNext(final Beer[] data) {
-                Log.w("MainFragment", "LoaderRx: onNext, data == " + Arrays.deepToString(data));
-            }
-        });
+        if (getMainActivity().isRetrofit2())
+            mRxRetrofit2.subscribeSimple(new SubscriberRx<Beer[]>() {
+                @Override
+                public void onNext(final Beer[] data) {
+                    logRx("Retrofit2", data);
+                }
+            });
+        else
+            mRxRetrofit.subscribeSimple(new SubscriberRx<Beer[]>() {
+                @Override
+                public void onNext(final Beer[] data) {
+                    logRx("Retrofit", data);
+                }
+            });
+    }
+
+    private void logRx(String info, Beer[] data) {
+        Log.w("MainFragment", "LoaderRx (" + info + "): onNext, data == " + Arrays.deepToString(data));
     }
 
     private void unsubscribeRx() {
-        if (mRx != null) mRx.cleanup();
+        if (mRxRetrofit  != null) mRxRetrofit .cleanup();
+        if (mRxRetrofit2 != null) mRxRetrofit2.cleanup();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

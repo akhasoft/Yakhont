@@ -18,6 +18,8 @@ package akha.yakhont.demo;
 
 import akha.yakhont.demo.gui.Utils;
 import akha.yakhont.demo.retrofit.LocalJsonClient;
+import akha.yakhont.demo.retrofit.LocalJsonClient2;
+import akha.yakhont.demo.retrofit.Retrofit2Api;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 
 import akha.yakhont.Core;
@@ -26,9 +28,10 @@ import akha.yakhont.SupportHelper;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
+import akha.yakhont.technology.retrofit.Retrofit;
+import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.rx.BaseRx.LocationRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
-import akha.yakhont.technology.retrofit.Retrofit;
 
 import akha.yakhont.support.fragment.dialog.ProgressDialogFragment;
 
@@ -65,9 +68,16 @@ import java.util.Date;
 public class MainActivity extends /* Activity */ android.support.v7.app.AppCompatActivity
         implements LocationCallbacks.LocationListener /* optional */ {
 
-    private       LocalJsonClient           mJsonClient;
+    // well, it's also possible to use all that stuff (1 and 2) simultaneously
+    // but I wouldn't like to mess the demo with such kind of extravaganza
+    private static final boolean            USE_RETROFIT_2                  = true;
+    private static final boolean            USE_RX_JAVA_2                   = true;
 
-    private final Retrofit<RetrofitApi>     mRetrofit                       = new Retrofit<>();
+    private       LocalJsonClient           mJsonClient;
+    private       LocalJsonClient2          mJsonClient2;
+
+    private final Retrofit <RetrofitApi>    mRetrofit                       = new Retrofit <>();
+    private final Retrofit2<Retrofit2Api>   mRetrofit2                      = new Retrofit2<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,15 +90,22 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         if (BuildConfig.DEBUG) CoreLogger.registerShakeDataSender(this, "yourname@yourcompany.com");
 
         //noinspection ConstantConditions
-        setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat: R.style.AppThemeCompat_Hack);
+        setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat: R.style.AppThemeCompat_Special);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mJsonClient = new LocalJsonClient(this);
+        if (isRetrofit2())
+            mJsonClient2 = new LocalJsonClient2(this);
+        else
+            mJsonClient  = new LocalJsonClient (this);
 
         // local JSON client, so URL doesn't matter
-        mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder("http://localhost/").setClient(mJsonClient));
+        String url = "http://localhost/";
+        if (isRetrofit2())
+            mRetrofit2.init(Retrofit2Api.class, mRetrofit2.getDefaultBuilder(url).   client(mJsonClient2));
+        else
+            mRetrofit .init(RetrofitApi.class,  mRetrofit .getDefaultBuilder(url).setClient(mJsonClient));
 
         initLocationRx();   // optional
 
@@ -112,21 +129,26 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         });
     }
 
+    @SuppressWarnings("SameReturnValue")
+    public boolean isRetrofit2() {
+        return USE_RETROFIT_2;
+    }
+
     /////////// Rx handling (optional)
 
     private       LocationCallbacks         mLocationCallbacks;
     private       LocationRx                mRx;
 
     @SuppressWarnings("SameReturnValue")
-    public boolean isRx2() {
-        return false;
+    public boolean isRxJava2() {
+        return USE_RX_JAVA_2;
     }
 
     private void initLocationRx() {
         mLocationCallbacks = LocationCallbacks.getLocationCallbacks(this);
         if (mLocationCallbacks == null) return;
 
-        mRx = new LocationRx(isRx2(), this).subscribe(new SubscriberRx<Location>() {
+        mRx = new LocationRx(isRxJava2(), this).subscribe(new SubscriberRx<Location>() {
             @Override
             public void onNext(final Location location) {
                 Log.w("MainActivity", "LocationRx: " + location);
@@ -160,8 +182,26 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         Log.d("MainActivity", "onLocationChanged: " + location);
     }
 
-    public LocalJsonClient getJsonClient() {
-        return mJsonClient;
+    public Retrofit <RetrofitApi>  getRetrofit() {
+        return mRetrofit;
+    }
+
+    public Retrofit2<Retrofit2Api> getRetrofit2() {
+        return mRetrofit2;
+    }
+
+    public void setScenario(String scenario) {
+        if (isRetrofit2())
+            mJsonClient2.getLocalJsonClientHelper().setScenario(scenario);
+        else
+            mJsonClient .getLocalJsonClientHelper().setScenario(scenario);
+    }
+
+    public void setNetworkDelay(@SuppressWarnings("SameParameterValue") int delay) {
+        if (isRetrofit2())
+            mJsonClient2.getLocalJsonClientHelper().setDelay(delay);
+        else
+            mJsonClient .getLocalJsonClientHelper().setDelay(delay);
     }
 
     @Override

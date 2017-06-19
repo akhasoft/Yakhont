@@ -54,6 +54,8 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.util.Collections;
 import java.util.Date;
@@ -681,6 +683,12 @@ public class Core {
 
             prepareRunnable(runnable).run();
             return null;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static boolean checkType(@NonNull final Class responseType, @NonNull final Type type) {
+            return responseType.equals(type) || (responseType.isArray() && type instanceof GenericArrayType
+                    && responseType.getComponentType().equals(((GenericArrayType) type).getGenericComponentType()));
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")

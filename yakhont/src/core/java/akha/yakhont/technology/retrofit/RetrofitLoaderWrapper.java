@@ -19,27 +19,26 @@ package akha.yakhont.technology.retrofit;
 import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
-import akha.yakhont.Core.Utils;
-import akha.yakhont.CoreLogger;
-import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseLoader;
+import akha.yakhont.loader.BaseLoader.CoreLoadExtendedBuilder;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.Source;
-import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderExtendedWrapper;
 import akha.yakhont.technology.retrofit.Retrofit;
+import akha.yakhont.technology.retrofit.Retrofit.RetrofitAdapterWrapper;
 
 import android.annotation.TargetApi;
 import android.app.Fragment;
 import android.content.Context;
-import android.content.Loader;
 import android.os.Build;
 import android.support.annotation.IntRange;
+import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.util.AndroidException;
+import android.view.View;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
 import retrofit.Callback;
@@ -48,7 +47,7 @@ import retrofit.YakhontRestAdapter.YakhontCallback;
 import retrofit.client.Response;
 
 /**
- * Extends the {@link BaseResponseLoaderWrapper} class to provide Retrofit support.
+ * Extends the {@link BaseResponseLoaderExtendedWrapper} class to provide Retrofit support.
  *
  * @param <D>
  *        The type of data
@@ -56,13 +55,7 @@ import retrofit.client.Response;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
-public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderWrapper<Callback<D>, Response, Exception, D> {
-
-    private final LoaderFactory<BaseResponse<Response, Exception, D>>               mPreviousLoaderFactory;
-    private final int                                                               mTimeout;
-
-    private       Type                                                              mType;
-    private final Object                                                            mTypeLock   = new Object();
+public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<Callback<D>, Response, Exception, D> {
 
     /**
      * Initialises a newly created {@code RetrofitLoaderWrapper} object.
@@ -84,10 +77,11 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderWrapper<Callback
      */
     @SuppressWarnings("unused")
     public RetrofitLoaderWrapper(@NonNull final Context context,
-                                 @NonNull final Fragment fragment, @NonNull final Requester<Callback<D>> requester,
+                                 @NonNull final Fragment fragment,
+                                 @NonNull final Requester<Callback<D>> requester,
                                  @NonNull final String tableName, final String description) {
         this(context, fragment, null, requester, Core.TIMEOUT_CONNECTION, tableName, description,
-                new BaseConverter<D>(), Utils.getUriResolver());
+                BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver());
     }
 
     /**
@@ -123,87 +117,62 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderWrapper<Callback
     @SuppressWarnings("WeakerAccess")
     public RetrofitLoaderWrapper(@NonNull final Context context,
                                  @NonNull final Fragment fragment, final Integer loaderId,
-                                 @NonNull final Requester<Callback<D>> requester, @IntRange(from = 1) final int timeout,
-                                 @NonNull final String tableName, final String description, @NonNull final Converter<D> converter,
+                                 @NonNull final Requester<Callback<D>> requester,
+                                 @IntRange(from = 1) final int timeout,
+                                 @NonNull final String tableName, final String description,
+                                 @NonNull final Converter<D> converter,
                                  @NonNull final UriResolver uriResolver) {
         super(context, fragment, loaderId, requester, tableName, description, converter, uriResolver);
 
-        mPreviousLoaderFactory      = geLoaderFactory();
-        mTimeout                    = timeout;
+        @SuppressWarnings("unchecked")
+        final BaseLoader<Callback<D>, Response, Exception, D>[] baseLoader =
+                (BaseLoader<Callback<D>, Response, Exception, D>[]) new BaseLoader[1];
 
-        setLoaderFactory(new LoaderFactory<BaseResponse<Response, Exception, D>>() {
-            @NonNull
-            @Override
-            public Loader<BaseResponse<Response, Exception, D>> getLoader(final boolean merge) {
+        setLoaderParameters(baseLoader, timeout, mType != null ? new Callback<D>() {
+                    @Override
+                    public void success(final D result, final Response response) {
+                        onSuccess(result, response, baseLoader[0]);
+                    }
 
-                final Loader<BaseResponse<Response, Exception, D>> loader = mPreviousLoaderFactory.getLoader(merge);
+                    @Override
+                    public void failure(final RetrofitError error) {
+                        onError(error, baseLoader[0]);
+                    }
+                }: new YakhontCallback<D>() {
+                    @Override
+                    public boolean setType(final Type type) {
+                        synchronized (mTypeLock) {
+                            onSetType(type);
+                        }
+                        return false;
+                    }
 
-                if (loader instanceof BaseLoader) {
-                    
-                    @SuppressWarnings("unchecked")
-                    final BaseLoader<Callback<D>, Response, Exception, D> baseLoader =
-                            (BaseLoader<Callback<D>, Response, Exception, D>) loader;
+                    @Override
+                    public void success(final D result, final Response response) {
+                        onSuccess(result, response, baseLoader[0]);
+                    }
 
-                    baseLoader.setTimeout(mTimeout).setCallback(mType != null ? new Callback<D>() {
-                        @Override
-                        public void success(final D result, final Response response) {
-                            onSuccess(result, response, baseLoader);
-                        }
-                        @Override
-                        public void failure(final RetrofitError error) {
-                            onFailure(error, baseLoader);
-                        }
-                    }: new YakhontCallback<D>() {
-                        @Override
-                        public boolean setType(final Type type) {
-                            synchronized (mTypeLock) {
-                                onSetType(type);
-                            }
-                            return false;
-                        }
-                        @Override
-                        public void success(final D result, final Response response) {
-                            onSuccess(result, response, baseLoader);
-                        }
-                        @Override
-                        public void failure(final RetrofitError error) {
-                            onFailure(error, baseLoader);
-                        }
-                    });
-                } else
-                    CoreLogger.logWarning("callback not set");
-
-                return loader;
-            }
-        });
+                    @Override
+                    public void failure(final RetrofitError error) {
+                        onError(error, baseLoader[0]);
+                    }
+                });
     }
 
     private void onSuccess(final D result, final Response response, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
         loader.callbackHelper(true, new BaseResponse<Response, Exception, D>(
-                result, response, null, null, Source.NETWORK));
+                result, response, null, null, Source.NETWORK, null));
     }
 
-    private void onFailure(final RetrofitError error, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
+    private void onError(final RetrofitError error, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
         loader.callbackHelper(false, new BaseResponse<Response, Exception, D>(
-                null, null, null, new RetrofitException(error), Source.NETWORK));
+                null, null, null, new RetrofitException(error), Source.NETWORK, error));
     }
 
-    private void onSetType(final Type type) {
-        CoreLogger.log("set type to " + type);
-        mType = type;
-        if (mConverter.getType() == null) mConverter.setType(mType);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
-    public Type getType() {
-        synchronized (mTypeLock) {
-            if (mType == null) onSetType(super.getType());
-            if (mType == null) onSetType(getType(mRequester));
-            return mType;
-        }
+    protected Type getTypeHelper() {
+        return getType(mRequester);
     }
 
     private static <D> Type getType(@NonNull final Requester<Callback<D>> requester) {
@@ -217,34 +186,26 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderWrapper<Callback
             @Override public void success(final D result, final Response response) {}
             @Override public void failure(final RetrofitError error)               {}
         });
+
+        // in this special case it's not needed to wait for YakhontCallback.setType() to complete -
+        // everything goes in the same thread
         return typeHelper[0];
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Builder class for {@link RetrofitLoaderWrapper} objects.
+     * Builder class for {@link BaseResponseLoaderWrapper} objects. Creates the Retrofit-based ones.
      *
      * @param <D>
      *        The type of data
+     *
+     * @param <T>
+     *        The type of Retrofit API
      */
-    public static class RetrofitLoaderBuilder<D> extends BaseResponseLoaderBuilder<Callback<D>, Response, Exception, D> {
+    public static class RetrofitLoaderBuilder<D, T> extends BaseResponseLoaderExtendedBuilder<Callback<D>, Response, Exception, D, T> {
 
-        private Integer                                                                 mTimeout;
-
-        /**
-         * Initialises a newly created {@code RetrofitLoaderBuilder} object.
-         *
-         * @param fragment
-         *        The fragment
-         *
-         * @param requester
-         *        The requester
-         */
-        @SuppressWarnings("unused")
-        public RetrofitLoaderBuilder(@NonNull final Fragment fragment, @NonNull final Requester<Callback<D>> requester) {
-            super(fragment, requester);
-        }
+        private final Retrofit<T>                                                       mRetrofit;
 
         /**
          * Initialises a newly created {@code RetrofitLoaderBuilder} object.
@@ -253,71 +214,106 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderWrapper<Callback
          *        The fragment
          *
          * @param type
-         *        The data type; will be used to build {@link akha.yakhont.Core.Requester} which calls
-         *        the first method (from the API defined by the service interface, see {@link Retrofit#getRetrofitApi}) which handles that type
-         */
-        public RetrofitLoaderBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type) {
-            super(fragment, getRequester(type));
-            setType(type);
-        }
-
-        private static <D> Requester<Callback<D>> getRequester(@NonNull final Class<D> type) {
-            final Method method = Retrofit.getYakhontRestAdapter().findMethod(type);
-            CoreLogger.log(method == null ? Level.ERROR: Level.DEBUG, "for type " + type.getName() + " method == " + method);
-
-            return new Requester<Callback<D>>() {
-                @Override
-                public void makeRequest(@NonNull final Callback<D> callback) {
-                    try {
-                        if (method != null) method.invoke(Retrofit.getYakhontRestAdapter().getHandler(), callback);
-                    }
-                    catch (Throwable throwable) {
-                        CoreLogger.log("failed", throwable);
-                        throw throwable instanceof RuntimeException ? (RuntimeException) throwable: new RuntimeException(throwable);
-                    }
-                }
-            };
-        }
-
-        /**
-         * Sets timeout (in seconds).
+         *        The type of data
          *
-         * @param timeout
-         *        The timeout
-         *
-         * @return  This {@code RetrofitLoaderBuilder} object to allow for chaining of calls to set methods
+         * @param retrofit
+         *        The Retrofit component
          */
-        @NonNull
         @SuppressWarnings("unused")
-        public RetrofitLoaderBuilder<D> setTimeout(@IntRange(from = 1) final int timeout) {
-            mTimeout = timeout;
-            return this;
+        public RetrofitLoaderBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type,
+                                     @NonNull final Retrofit<T> retrofit) {
+            super(fragment, type);
+            mRetrofit = retrofit;
         }
 
-        /**
-         * Please refer to the base method description.
-         */
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        @Override
+        protected Requester<Callback<D>> getDefaultRequester() {
+            return getRequester(new RequesterHelper<Callback<D>, D, T>(mType) {
+                @Override
+                public void init() {
+                    mMethod  = mRetrofit.getYakhontRestAdapter().findMethod(mClass);
+                    mHandler = mRetrofit.getYakhontRestAdapter().getHandler();
+                }
+
+                @Override
+                public void request(@NonNull final Callback<D> callback) throws Exception {
+                    mMethod.invoke(mHandler, callback);
+                }
+            });
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        @Override
+        protected Type getTypeHelper() {
+            return RetrofitLoaderWrapper.getType(mRequester);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         @NonNull
         @Override
         protected RetrofitLoaderWrapper<D> createLoaderWrapper() {
-            return new RetrofitLoaderWrapper<>(getContext(), getFragment(), mLoaderId, mRequester,
-                    mTimeout == null ? Core.TIMEOUT_CONNECTION: mTimeout,
-                    getTableName(), mDescription, getConverter(), getUriResolver());
+            return new RetrofitLoaderWrapper<>(getContext(), getFragment(), mLoaderId, getRequester(),
+                    getTimeout(), getTableName(), mDescription, getConverter(), getUriResolver());
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Builder class for {@yakhont.link CoreLoad} objects. Creates the Retrofit-based ones.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @param <T>
+     *        The type of Retrofit API
+     */
+    public static class RetrofitCoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D> {
+
+        private final Retrofit<T>       mRetrofit;
+
+        /**
+         * Initialises a newly created {@code RetrofitCoreLoadBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param type
+         *        The type of data
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
+        @SuppressWarnings("unused")
+        public RetrofitCoreLoadBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type,
+                                       @NonNull final Retrofit<T> retrofit) {
+            super(fragment, type);
+            mRetrofit = retrofit;
+        }
+/*
+        / @exclude / @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+        public RetrofitCoreLoadBuilder(
+                @NonNull final CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D> src,
+                @NonNull final Retrofit<T> retrofit) {
+            super(src);
+            mRetrofit = retrofit;
+        }
+*/
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        @Override
+        protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
+                                               @NonNull final View list, @LayoutRes final int item) {
+            setAdapterWrapper(mFrom == null ? new RetrofitAdapterWrapper<D>(mFragment.getActivity(), item):
+                    new RetrofitAdapterWrapper<D>(mFragment.getActivity(), item, mFrom, mTo));
         }
 
         /**
          * Please refer to the base method description.
          */
         @Override
-        public Type getType() {
-            if (mType == null) {
-                final Type type = super.getType();
-                if (type == null)
-                    setType(RetrofitLoaderWrapper.getType(mRequester));
-                else
-                    mType = type;
-            }
-            return mType;
+        public CoreLoad create() {
+            return create(new RetrofitLoaderBuilder<>(mFragment, mType, mRetrofit));
         }
     }
 }

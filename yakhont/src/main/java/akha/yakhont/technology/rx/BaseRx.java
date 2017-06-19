@@ -210,6 +210,8 @@ public abstract class BaseRx<D> {
         return this;
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Provides a common async callback mechanism (for both RxJava and RxJava 2) to receive Rx push-based notifications.
      *
@@ -234,6 +236,8 @@ public abstract class BaseRx<D> {
          */
         void onError(Throwable throwable);
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Provides a common subscriber (for both RxJava and RxJava 2) to receive Rx push-based notifications.
@@ -289,6 +293,8 @@ public abstract class BaseRx<D> {
             CoreLogger.log("Rx: onCompleted");
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * The base component to implement both {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>} and
@@ -378,6 +384,8 @@ public abstract class BaseRx<D> {
             }
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Extends the {@link BaseRx} class to provide {@link Location} support. For example, in Activity:
@@ -515,19 +523,23 @@ public abstract class BaseRx<D> {
         }
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Extends the {@link BaseRx} class to provide {@link BaseResponse} support. For example, in Fragment:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
-     * import akha.yakhont.loader.BaseLoader;
-     * import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
+     * import akha.yakhont.technology.retrofit.Retrofit2;
+     * import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
+     * import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
      * import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
      *
      * import com.mypackage.model.MyData;
+     * import com.mypackage.retrofit.Retrofit2Api;
      *
      * public class MyFragment extends Fragment {
      *
-     *     private RetrofitRx&lt;MyData[]&gt; mRx;
+     *     private Retrofit2Rx&lt;MyData[]&gt; mRx;
      *
      *     &#064;Override
      *     public void onActivityCreated(Bundle savedInstanceState) {
@@ -535,7 +547,7 @@ public abstract class BaseRx<D> {
      *         ...
      *
      *         boolean useRxJava2 = true;
-     *         mRx = new RetrofitRx&lt;&gt;(useRxJava2);
+     *         mRx = new Retrofit2Rx&lt;&gt;(useRxJava2);
      *
      *         mRx.subscribeSimple(new SubscriberRx&lt;MyData[]&gt;() {
      *
@@ -545,7 +557,15 @@ public abstract class BaseRx<D> {
      *             }
      *         });
      *
-     *         BaseLoader.simpleInit(this, MyData[].class, mRx).startLoading();
+     *         new Retrofit2CoreLoadBuilder&lt;&gt;(this, MyData[].class, getRetrofitApi())
+     *             .setRx(mRx).create().startLoading();
+     *     }
+     *
+     *     private Retrofit2&lt;Retrofit2Api&gt; getRetrofitApi() {
+     *         // something like below but not exactly -
+     *         //   Retrofit2 object should be cached somewhere
+     *         // and don't forget to call Retrofit2.init()
+     *         return new Retrofit2&lt;&gt;();
      *     }
      *
      *     &#064;Override

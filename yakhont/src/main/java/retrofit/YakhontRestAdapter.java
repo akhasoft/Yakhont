@@ -16,9 +16,10 @@
 
 package retrofit;
 
+import akha.yakhont.Core.Utils;
+
 import android.support.annotation.NonNull;
 
-import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -61,11 +62,9 @@ public class YakhontRestAdapter<T> {
     }
 
     public Method findMethod(@NonNull final Class responseType) {
-        for (final Method method: mService.getMethods()) {
-            final Type type = getType(method);
-            if (type.equals(responseType) || (responseType.isArray() && type instanceof GenericArrayType
-                    && responseType.getComponentType().equals(((GenericArrayType) type).getGenericComponentType()))) return method;
-        }
+        for (final Method method: mService.getMethods())
+            if (Utils.checkType(responseType, getType(method)))
+                return method;
         return null;
     }
 

@@ -275,15 +275,25 @@ def makeFlavorSupport(boolean supportAdapter) {
     
     // don't modify
     String[] classes = [
-        'adapter.BaseSimpleCursorAdapter',                      'debug.BaseActivity',                       'debug.BaseDialogFragment',
-        'debug.BaseFragment',                                   'dialog.AlertDialogFragment',               'dialog.CommonDialogFragment',
-        'dialog.ProgressDialogFragment',                        'fragment.WorkerFragment',                  'lifecycle.BaseFragmentLifecycleProceed',
-        'loader.BaseLoader',                                    'loader.CacheLoader',                       'retrofit.RetrofitLoaderWrapper',
-        'wrapper.BaseLoaderWrapper',                            'wrapper.BaseResponseLoaderWrapper',        'BaseFragmentLifecycleProceed.BaseFragmentCallbacks',
-        'BaseFragmentLifecycleProceed.FragmentLifecycle',       'BaseLoader.ProgressWrapper',               'BaseLoaderWrapper.LoaderBuilder',
-        'BaseLoaderWrapper.SwipeRefreshWrapper',                'BaseResponseLoaderWrapper.BaseResponseLoaderBuilder',  
-        'BaseResponseLoaderWrapper.CoreLoad',                   'ProgressDialogFragment.ProgressLoaderDialogFragment',
-        'RetrofitLoaderWrapper.RetrofitLoaderBuilder',          'SwipeRefreshWrapper.FragmentData',         'WorkerFragment.WorkerFragmentCallbacks'
+        'adapter.BaseSimpleCursorAdapter'                             , 'debug.BaseActivity'                              ,
+        'debug.BaseDialogFragment'                                    , 'debug.BaseFragment'                              ,
+        'dialog.AlertDialogFragment'                                  , 'dialog.CommonDialogFragment'                     ,
+        'dialog.ProgressDialogFragment'                               ,
+        'fragment.WorkerFragment'                                     , 'lifecycle.BaseFragmentLifecycleProceed'          ,
+        'loader.BaseLoader'                                           , 'loader.CacheLoader'                              ,
+        'retrofit.RetrofitLoaderWrapper'                              , 'retrofit.Retrofit2LoaderWrapper'                 ,
+        'wrapper.BaseLoaderWrapper'                                   , 'wrapper.BaseResponseLoaderWrapper'               ,
+        'BaseLoader.CoreLoadBuilder'                                  , 'BaseLoader.CoreLoadExtendedBuilder'              ,
+        'BaseFragmentLifecycleProceed.BaseFragmentCallbacks'          , 'BaseFragmentLifecycleProceed.FragmentLifecycle'  ,
+        'BaseLoader.ProgressWrapper'                                  ,
+        'BaseLoaderWrapper.LoaderBuilder'                             , 'BaseLoaderWrapper.SwipeRefreshWrapper'           ,
+        'BaseResponseLoaderWrapper.BaseResponseLoaderBuilder'         , 'BaseResponseLoaderWrapper.CoreLoad'              ,
+        'BaseResponseLoaderWrapper.BaseResponseLoaderExtendedBuilder' ,
+        'BaseResponseLoaderWrapper.BaseResponseLoaderExtendedWrapper' ,
+        'ProgressDialogFragment.ProgressLoaderDialogFragment'         ,
+        'RetrofitLoaderWrapper.RetrofitLoaderBuilder'                 , 'RetrofitLoaderWrapper.RetrofitCoreLoadBuilder'   ,
+        'Retrofit2LoaderWrapper.Retrofit2LoaderBuilder'               , 'Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder' ,
+        'SwipeRefreshWrapper.FragmentData'                            , 'WorkerFragment.WorkerFragmentCallbacks'
     ]
 
     copy {

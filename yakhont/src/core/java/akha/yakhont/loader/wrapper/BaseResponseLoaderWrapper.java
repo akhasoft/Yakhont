@@ -16,13 +16,16 @@
 
 package akha.yakhont.loader.wrapper;
 
+import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.Mergeable;
+import akha.yakhont.loader.BaseLoader;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
@@ -38,11 +41,14 @@ import android.content.Loader;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
+import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.annotation.Size;
 import android.support.annotation.StringRes;
 import android.text.TextUtils;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Set;
@@ -246,6 +252,45 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         return foundLoader;
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected static <D> Converter<D> getDefaultConverter() {
+        return new BaseConverter<>();
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected static UriResolver getDefaultUriResolver() {
+        return Utils.getUriResolver();
+    }
+
+    @SuppressWarnings("unchecked")
+    private BaseLoader<C, R, E, D> getBaseLoader(@NonNull final Loader<BaseResponse<R, E, D>> loader) {
+        return (BaseLoader<C, R, E, D>) loader;
+    }
+
+    // should be called from ctor only
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected void setLoaderParameters(@NonNull @Size(value = 1) final BaseLoader<C, R, E, D>[] baseLoader,
+                                       final int timeout, @NonNull final C callback) {
+        final LoaderFactory<BaseResponse<R, E, D>> loaderFactory = geLoaderFactory();
+
+        setLoaderFactory(new LoaderFactory<BaseResponse<R, E, D>>() {
+            @NonNull
+            @Override
+            public Loader<BaseResponse<R, E, D>> getLoader(final boolean merge) {
+                final Loader<BaseResponse<R, E, D>> loader = loaderFactory.getLoader(merge);
+
+                if (loader instanceof BaseLoader) {
+                    baseLoader[0] = getBaseLoader(loader);
+                    baseLoader[0].setTimeout(timeout).setCallback(callback);
+                }
+                else
+                    CoreLogger.logWarning("callback not set");
+
+                return loader;
+            }
+        });
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -350,8 +395,9 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final WeakReference<Fragment>                                   mUiFragment;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final Requester<C>                                              mRequester;
+        protected       Requester<C>                                              mRequester;
 
         private         String                                                    mTableName;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -374,13 +420,25 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          *
          * @param fragment
          *        The fragment
+         */
+        @SuppressWarnings("unused")
+        public BaseResponseLoaderBuilder(@NonNull final Fragment fragment) {
+            mUiFragment         = new WeakReference<>(fragment);
+        }
+
+        /**
+         * Sets the requester.
          *
          * @param requester
          *        The requester
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          */
-        public BaseResponseLoaderBuilder(@NonNull final Fragment fragment, @NonNull final Requester<C> requester) {
-            mUiFragment         = new WeakReference<>(fragment);
+        @NonNull
+        @SuppressWarnings("UnusedReturnValue")
+        public BaseResponseLoaderBuilder<C, R, E, D> setRequester(@NonNull final Requester<C> requester) {
             mRequester          = requester;
+            return this;
         }
 
         /**
@@ -552,6 +610,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
                 public Loader<BaseResponse<R, E, D>> onCreateLoader(int id, Bundle args) {
                     return null;
                 }
+
                 @Override
                 public void onLoadFinished(Loader<BaseResponse<R, E, D>> loader, BaseResponse<R, E, D> data) {
                     if (data == null)
@@ -559,6 +618,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
                     else
                         loaderCallback.onLoadFinished(data.getResult(), data.getSource());
                 }
+
                 @Override
                 public void onLoaderReset(Loader<BaseResponse<R, E, D>> loader) {
                 }
@@ -588,7 +648,18 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         @NonNull
         protected BaseResponseLoaderWrapper<C, R, E, D> createLoaderWrapper() {
             return new BaseResponseLoaderWrapper<>(getContext(), getFragment(), mLoaderId,
-                    mRequester, getTableName(), mDescription, getConverter(), getUriResolver());
+                    getRequester(), getTableName(), mDescription, getConverter(), getUriResolver());
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected Requester<C> getDefaultRequester() {
+            CoreLogger.logError("the default requester is not defined");
+            return null;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected Requester<C> getRequester() {
+            return mRequester != null ? mRequester: getDefaultRequester();
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -666,20 +737,225 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         }
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Builder class for {@link BaseResponseLoaderWrapper} objects. Provides a convenient way to set the various fields of
+     * a {@link BaseResponseLoaderWrapper}. For the moment just contains some common code for Retrofit loaders builders.
+     *
+     * @param <C>
+     *        The type of callback
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @param <T>
+     *        The type of API
+     */
+    public static abstract class BaseResponseLoaderExtendedBuilder<C, R, E, D, T> extends BaseResponseLoaderBuilder<C, R, E, D> {
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Integer                                                   mTimeout;
+
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderExtendedBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param type
+         *        The type of data
+         */
+        @SuppressWarnings("unused")
+        public BaseResponseLoaderExtendedBuilder(@NonNull final Fragment fragment,
+                                                 @NonNull final Class<D> type) {
+            super(fragment);
+            setType(type);
+        }
+
+        /**
+         * Sets the request timeout (in seconds).
+         *
+         * @param timeout
+         *        The timeout
+         *
+         * @return  This {@code BaseResponseLoaderExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public BaseResponseLoaderExtendedBuilder<C, R, E, D, T> setTimeout(@IntRange(from = 1) final int timeout) {
+            mTimeout = timeout;
+            return this;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected int getTimeout() {
+            return mTimeout == null ? Core.TIMEOUT_CONNECTION: mTimeout;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected abstract Type getTypeHelper();
+
+        @Override
+        public Type getType() {
+            if (mType == null) {
+                final Type type = super.getType();
+                if (type == null)
+                    setType(getTypeHelper());
+                else
+                    mType = type;
+            }
+            return mType;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        protected static abstract class RequesterHelper<C, D, T> {
+
+            protected       Method                                                mMethod;
+            protected       T                                                     mHandler;
+            protected final Class<D>                                              mClass;
+
+            @SuppressWarnings({"unchecked", "WeakerAccess"})
+            public RequesterHelper(final Type type) {
+                mClass = (Class<D>) type;
+            }
+
+            protected abstract void init();
+
+            protected abstract void request(C callback) throws Exception;
+
+            private void requestWrapper(C callback) throws Exception {
+                if (mMethod != null) request(callback);
+            }
+
+            private void logMethod() {
+                CoreLogger.log(mMethod == null ? Level.ERROR: Level.DEBUG, "for type " +
+                        (mClass == null ? "null": mClass.getName()) + " method == " + mMethod);
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected Requester<C> getRequester(@NonNull final RequesterHelper<C, D, T> requesterHelper) {
+            requesterHelper.init();
+            requesterHelper.logMethod();
+
+            return new Requester<C>() {
+                @Override
+                public void makeRequest(@NonNull final C callback) {
+                    try {
+                        requesterHelper.requestWrapper(callback);
+                    }
+                    catch (Throwable throwable) {
+                        CoreLogger.log("failed", throwable);
+                        throw throwable instanceof RuntimeException ? (RuntimeException) throwable: new RuntimeException(throwable);
+                    }
+                }
+            };
+        }
+    }
+
+    /**
+     * Extends the {@link BaseResponseLoaderWrapper} class. For the moment just contains some common code for Retrofit wrappers.
+     *
+     * @param <C>
+     *        The type of callback
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data to load
+     */
+    public static abstract class BaseResponseLoaderExtendedWrapper<C, R, E, D> extends BaseResponseLoaderWrapper<C, R, E, D> {
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Type                                                      mType;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final Object                                                    mTypeLock   = new Object();
+
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderExtendedWrapper} object.
+         *
+         * @param context
+         *        The context
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param loaderId
+         *        The loader ID
+         *
+         * @param requester
+         *        The requester
+         *
+         * @param tableName
+         *        The name of the table in the database (to cache the loaded data)
+         *
+         * @param description
+         *        The data description
+         *
+         * @param converter
+         *        The converter
+         *
+         * @param uriResolver
+         *        The URI resolver
+         */
+        @SuppressWarnings("WeakerAccess")
+        public BaseResponseLoaderExtendedWrapper(@NonNull final Context context,
+                                                 @NonNull final Fragment fragment, final Integer loaderId, @NonNull final Requester<C> requester,
+                                                 @NonNull final String tableName, final String description, @NonNull final Converter<D> converter,
+                                                 @NonNull final UriResolver uriResolver) {
+            super(context, fragment, loaderId, requester, tableName, description, converter, uriResolver);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected void onSetType(final Type type) {
+            CoreLogger.log("set type to " + type);
+            mType = type;
+            if (mConverter.getType() == null) mConverter.setType(mType);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public Type getType() {
+            synchronized (mTypeLock) {
+                if (mType == null) onSetType(super.getType());
+                if (mType == null) onSetType(getTypeHelper());
+                return mType;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected abstract Type getTypeHelper();
+    }
+
     /**
      * The <code>CoreLoad</code> component is responsible for data loading. Usage example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
-     * import akha.yakhont.loader.BaseLoader;
+     * import akha.yakhont.Core.Requester;
      * import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
-     * import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.Requester;
-     * import akha.yakhont.technology.retrofit.Retrofit.RetrofitAdapterWrapper;
-     * import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
-     * import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitLoaderBuilder;
+     * import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+     * import akha.yakhont.technology.retrofit.Retrofit2;
+     * import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
+     * import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
      *
      * import com.mypackage.model.MyData;
+     * import com.mypackage.retrofit.Retrofit2Api;
      *
-     * import retrofit.Callback;
+     * import retrofit2.Call;
+     * import retrofit2.Callback;
      *
      * public class MyFragment extends Fragment {
      *
@@ -691,28 +967,41 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *         // SwipeRefreshLayout handling (optional)
      *         SwipeRefreshWrapper.register(this, R.id.swipeContainer);
      *
-     *         // String[] and int[] has the same meaning as in SimpleCursorAdapter constructor:
-     *         // data column names and view IDs
-     *         RetrofitAdapterWrapper&lt;MyData[]&gt; adapter = new RetrofitAdapterWrapper&lt;&gt;(getActivity(), 
-     *                 R.layout.list_item,
-     *                 new String[] {"name",    "age"},
-     *                 new int   [] {R.id.name, R.id.age});
+     *         // optional Rx component
+     *         Retrofit2Rx&lt;MyData[]&gt; rx = new Retrofit2Rx&lt;&gt;();
      *
-     *         ((ListView) getView().findViewById(R.id.list_view)).setAdapter(adapter.getAdapter());
+     *         CoreLoad coreLoad = new Retrofit2CoreLoadBuilder&lt;&gt;(
+     *                 this, MyData[].class, getRetrofitApi())
      *
-     *         RetrofitRx&lt;MyData[]&gt; rx = null;      // optional Rx component
+     *             // optional
+     *             .setRequester(new Requester&lt;Callback&lt;MyData[]&gt;&gt;() {
+     *                 &#064;Override
+     *                 public void makeRequest(Callback&lt;MyData[]&gt; callback) {
+     *                     // something like this
+     *                     Call&lt;MyData[]&gt; call = getRetrofitApi().data();
+     *                     call.enqueue(callback);
+     *                 }
+     *             })
      *
-     *         CoreLoad coreLoad = BaseLoader.getCoreLoad(this);
+     *             // optional
+     *             .setDataBinding(new String[] {"name",    "age"   },
+     *                             new int   [] {R.id.name, R.id.age})
      *
-     *         coreLoad.addLoader(adapter, rx, new RetrofitLoaderBuilder&lt;&gt;(this,
-     *                 new Requester&lt;Callback&lt;MyData[]&gt;&gt;() {
-     *                     &#064;Override                                             // data loading request
-     *                     public void makeRequest(Callback&lt;MyData[]&gt; callback) {
-     *                         MyActivity.getRetrofit().getRetrofitApi().data(callback); // or something
-     *                     }
-     *                 }));
+     *             // all 3 "set" methods below are optional too
+     *             .setListView(R.id.list_view)       // your list / grid view ID
+     *             .setListItem(R.layout.list_item)   // your list / grid view item layout
+     *             .setRx(rx)
+     *
+     *             .create();
      *
      *         coreLoad.startLoading();
+     *     }
+     *
+     *     private Retrofit2&lt;Retrofit2Api&gt; getRetrofitApi() {
+     *         // something like below but not exactly -
+     *         //   Retrofit2 object should be cached somewhere
+     *         // and don't forget to call Retrofit2.init()
+     *         return new Retrofit2&lt;&gt;();
      *     }
      * }
      * </pre>
@@ -750,8 +1039,8 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *
      * @see BaseLoaderWrapper
      * @see akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper
-     * @see akha.yakhont.technology.retrofit.Retrofit
-     * @see akha.yakhont.technology.retrofit.Retrofit.RetrofitRx
+     * @see akha.yakhont.technology.retrofit.Retrofit2
+     * @see akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx
      */
     public interface CoreLoad {
 

@@ -15,7 +15,7 @@
 -->
 
 <resources>
-    <style name="AppThemeCompat.Hack">
+    <style name="AppThemeCompat.Special">
         <item name="android:windowActionBar">true</item>
         <item name="android:windowNoTitle">false</item>
 
@@ -24,7 +24,7 @@
         <item name="android:textColorPrimary">@color/colorWindowTitle</item>
     </style>
 
-    <style name="AppThemeCompat.Splash.Hack">
+    <style name="AppThemeCompat.Splash.Special">
         <item name="android:windowActionBar">true</item>
         <item name="android:windowNoTitle">false</item>
 

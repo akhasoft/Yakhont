@@ -36,7 +36,8 @@ public class SplashActivity extends /* Activity */ android.support.v7.app.AppCom
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //noinspection ConstantConditions
-        setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat_Splash: R.style.AppThemeCompat_Splash_Hack);
+        setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat_Splash:
+                R.style.AppThemeCompat_Splash_Special);
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_splash);

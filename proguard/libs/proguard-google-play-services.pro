@@ -17,3 +17,9 @@
 
 -keepclassmembers class com.google.android.gms.dynamite.descriptors.com.google.android.gms.flags.ModuleDescriptor { *; }
 -dontnote com.google.android.gms.dynamite.DynamiteModule
+
+# added for library version 11.0.0
+-dontnote com.google.protobuf.ExtensionRegistry
+-dontnote com.google.protobuf.Extension
+-dontnote libcore.io.Memory
+-dontnote org.robolectric.Robolectric

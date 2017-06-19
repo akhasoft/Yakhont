@@ -19,18 +19,95 @@ package akha.yakhont.technology.retrofit;
 import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 
+import android.support.annotation.CallSuper;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
 import java.util.Map;
 
-// not completed
+/**
+ * The base component to work with {@link <a href="http://square.github.io/retrofit/">Retrofit</a>}.
+ * <p>
+ * Supports both {@link <a href="http://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>}
+ * and {@link <a href="http://square.github.io/retrofit/2.x/retrofit/">Retrofit 2</a>}.
+ * <p>
+ * For example, in Activity (or in Application):
+ *
+ * <p><pre style="background-color: silver; border: thin solid black;">
+ * import akha.yakhont.technology.retrofit.Retrofit2;
+ *
+ * private static Retrofit2&lt;MyRetrofitApi&gt; sRetrofit = new Retrofit2&lt;&gt;();
+ *
+ * &#064;Override
+ * protected void onCreate(Bundle savedInstanceState) {
+ *     super.onCreate(savedInstanceState);
+ *     ...
+ *     sRetrofit.init(MyRetrofitApi.class, "http://.../");
+ * }
+ *
+ * public static Retrofit2&lt;MyRetrofitApi&gt; getRetrofit() {
+ *     return sRetrofit;
+ * }
+ * </pre>
+ *
+ * Here the <code>MyRetrofitApi</code> may looks as follows:
+ *
+ * <p><pre style="background-color: silver; border: thin solid black;">
+ * import com.mypackage.model.MyData;
+ *
+ * import retrofit2.Call;
+ * import retrofit2.http.GET;
+ *
+ * public interface MyRetrofitApi {
+ *
+ *     &#064;GET("/data")
+ *     Call&lt;MyData[]&gt; data();
+ * }
+ * </pre>
+ *
+ * And the model class:
+ *
+ * <p><pre style="background-color: silver; border: thin solid black;">
+ * package com.mypackage.model;
+ *
+ * import com.google.gson.annotations.SerializedName;
+ *
+ * public class MyData {
+ *
+ *     &#064;SerializedName("name")
+ *     private String mName;
+ *
+ *     &#064;SerializedName("age")
+ *     private int mAge;
+ *
+ *     ...
+ * }
+ * </pre>
+ *
+ * To prevent model from obfuscation please add the following line to the proguard configuration file:
+ *
+ * <p><pre style="background-color: silver; border: thin solid black;">
+ * -keep class com.mypackage.model.** { *; }
+ * </pre>
+ *
+ * @param <T>
+ *        The Retrofit API type
+ *
+ * @param <B>
+ *        The Retrofit builder type
+ *
+ * @see Retrofit
+ * @see Retrofit2
+ *
+ * @author akha
+ */
+@SuppressWarnings("WeakerAccess")
 public abstract class BaseRetrofit<T, B> {
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected T                                     mRetrofitApi;
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected int                                   mConnectionTimeout;
 
     /**
@@ -40,9 +117,9 @@ public abstract class BaseRetrofit<T, B> {
     }
 
     /**
-     * Returns the API defined by the service interface.
+     * Returns the Retrofit API defined by the service interface.
      *
-     * @return  The API
+     * @return  The Retrofit API
      */
     public T getRetrofitApi() {
         return mRetrofitApi;
@@ -53,6 +130,7 @@ public abstract class BaseRetrofit<T, B> {
      *
      * @return  The connection timeout
      */
+    @SuppressWarnings("unused")
     public int getConnectionTimeout() {
         return mConnectionTimeout;
     }
@@ -66,6 +144,7 @@ public abstract class BaseRetrofit<T, B> {
      * @param retrofitBase
      *        The Retrofit API endpoint URL
      */
+    @SuppressWarnings("unused")
     public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
         init(service, retrofitBase, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, null);
     }
@@ -79,6 +158,7 @@ public abstract class BaseRetrofit<T, B> {
      * @param builder
      *        The RetrofitBuilder
      */
+    @SuppressWarnings("unused")
     public void init(@NonNull final Class<T> service, @NonNull final B builder) {
         init(service, builder, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION);
     }
@@ -121,6 +201,7 @@ public abstract class BaseRetrofit<T, B> {
      * @param readTimeout
      *        The read timeout (in seconds)
      */
+    @CallSuper
     protected void init(@NonNull final Class<T> service, @NonNull final B builder,
                         @IntRange(from = 1) final int connectTimeout,
                         @IntRange(from = 1) final int readTimeout) {
@@ -135,7 +216,8 @@ public abstract class BaseRetrofit<T, B> {
      * @param retrofitBase
      *        The service API endpoint URL
      *
-     * @return  The Retrofit Builder
+     * @return  The Retrofit builder
      */
+    @SuppressWarnings("unused")
     public abstract B getDefaultBuilder(@NonNull final String retrofitBase);
 }

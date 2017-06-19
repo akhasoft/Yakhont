@@ -17,7 +17,7 @@
 package akha.yakhont.technology.retrofit;
 
 import akha.yakhont.CoreLogger;
-import akha.yakhont.adapter.BaseCacheAdapter;
+import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
@@ -36,69 +36,16 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import retrofit.RequestInterceptor;
-import retrofit.RestAdapter;
+import retrofit.RestAdapter.Builder;
+import retrofit.RestAdapter.LogLevel;
 import retrofit.YakhontRestAdapter;
 import retrofit.android.AndroidLog;
 import retrofit.client.OkClient;
 import retrofit.client.Response;
 
 /**
- * The component to work with {@link <a href="http://square.github.io/retrofit/">Retrofit</a>} 1.x APIs. For example, in Activity (or in Application):
- *
- * <p><pre style="background-color: silver; border: thin solid black;">
- * private static Retrofit&lt;MyRetrofitApi&gt; sRetrofit = new Retrofit&lt;&gt;();
- *
- * &#064;Override
- * protected void onCreate(Bundle savedInstanceState) {
- *     super.onCreate(savedInstanceState);
- *     ...
- *     sRetrofit.init(MyRetrofitApi.class, "http://.../");
- * }
- *
- * public static Retrofit&lt;MyRetrofitApi&gt; getRetrofit() {
- *     return sRetrofit;
- * }
- * </pre>
- *
- * Here the <code>MyRetrofitApi</code> may looks as follows:
- *
- * <p><pre style="background-color: silver; border: thin solid black;">
- * import com.mypackage.model.MyData;
- *
- * import retrofit.Callback;
- * import retrofit.http.GET;
- *
- * public interface MyRetrofitApi {
- *
- *     &#064;GET("/data")
- *     void data(Callback&lt;MyData[]&gt; callback);
- * }
- * </pre>
- *
- * And the model class:
- *
- * <p><pre style="background-color: silver; border: thin solid black;">
- * package com.mypackage.model;
- *
- * import com.google.gson.annotations.SerializedName;
- *
- * public class MyData {
- *
- *     &#064;SerializedName("name")
- *     private String mName;
- *
- *     &#064;SerializedName("age")
- *     private int mAge;
- *
- *     ...
- * }
- * </pre>
- *
- * To prevent model from obfuscation please add the following line to the proguard configuration file:
- *
- * <p><pre style="background-color: silver; border: thin solid black;">
- * -keep class com.mypackage.model.** { *; }
- * </pre>
+ * The component to work with
+ * {@link <a href="http://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>} 1.x APIs.
  *
  * @param <T>
  *        The type of Retrofit API
@@ -108,21 +55,23 @@ import retrofit.client.Response;
  * @author akha
  */
 @SuppressWarnings("unused")
-public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
+public class Retrofit<T> extends BaseRetrofit<T, Builder> {
 
     private static final String                     LOG_RETROFIT_SUFFIX        = "-Retrofit";
 
-    private static YakhontRestAdapter               sYakhontRestAdapter;
+    private YakhontRestAdapter<T>                   mYakhontRestAdapter;
 
     /**
      * Initialises a newly created {@code Retrofit} object.
      */
+    @SuppressWarnings("unused")
     public Retrofit() {
+        CoreLogger.logWarning("please consider using Retrofit 2");
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static YakhontRestAdapter getYakhontRestAdapter() {
-        return sYakhontRestAdapter;
+    public YakhontRestAdapter<T> getYakhontRestAdapter() {
+        return mYakhontRestAdapter;
     }
 
     /**
@@ -146,22 +95,21 @@ public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
      * Please refer to the base method description.
      */
     @Override
-    public void init(@NonNull final Class<T> service, @NonNull final RestAdapter.Builder builder,
+    public void init(@NonNull final Class<T> service, @NonNull final Builder builder,
                      @IntRange(from = 1) final int connectTimeout,
                      @IntRange(from = 1) final int readTimeout) {
 
         super.init(service, builder, connectTimeout, readTimeout);
 
-        final YakhontRestAdapter<T> adapter     = new YakhontRestAdapter<>();
-        mRetrofitApi                            = adapter.create(service, builder.build());
-        sYakhontRestAdapter                     = adapter;
+        mYakhontRestAdapter     = new YakhontRestAdapter<>();
+        mRetrofitApi            = mYakhontRestAdapter.create(service, builder.build());
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public RestAdapter.Builder getDefaultBuilder(@NonNull final String retrofitBase) {
+    public Builder getDefaultBuilder(@NonNull final String retrofitBase) {
         return getDefaultBuilder(retrofitBase, null);
     }
 
@@ -176,14 +124,12 @@ public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
      *
      * @return  The Retrofit Builder
      */
-    public RestAdapter.Builder getDefaultBuilder(@NonNull  final String                 retrofitBase,
-                                                 @Nullable final Map<String, String>    headers) {
+    public Builder getDefaultBuilder(@NonNull  final String                 retrofitBase,
+                                     @Nullable final Map<String, String>    headers) {
 
-        final RestAdapter.Builder builder = new RestAdapter.Builder()
+        final Builder builder = new Builder()
                 .setLog(new AndroidLog(CoreLogger.getTag() + LOG_RETROFIT_SUFFIX))
-                .setLogLevel(CoreLogger.isFullInfo() ?
-                        RestAdapter.LogLevel.FULL:
-                        RestAdapter.LogLevel.NONE)
+                .setLogLevel(CoreLogger.isFullInfo() ? LogLevel.FULL: LogLevel.NONE)
                 .setEndpoint(retrofitBase);
 
         if (headers != null && !headers.isEmpty())
@@ -210,7 +156,8 @@ public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
 
         /**
          * Initialises a newly created {@code RetrofitAdapterWrapper} object. The data binding goes by default:
-         * cursor's column {@link android.provider.BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title etc.
+         * cursor's column {@link android.provider.BaseColumns#_ID _ID} binds to view with R.id._id,
+         * column "title" - to R.id.title etc.
          *
          * @param context
          *        The Context
@@ -246,7 +193,7 @@ public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
         }
 
         /**
-         * Initialises a newly created {@code ValuesCacheAdapterWrapper} object.
+         * Initialises a newly created {@code RetrofitAdapterWrapper} object.
          *
          * @param factory
          *        The BaseCacheAdapterFactory
@@ -267,7 +214,7 @@ public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
          *        The views that should display data in the "from" parameter
          */
         @SuppressWarnings("unused")
-        public RetrofitAdapterWrapper(@NonNull final BaseCacheAdapter.BaseCacheAdapterFactory<ContentValues, Response, Exception, D> factory,
+        public RetrofitAdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, Response, Exception, D> factory,
                                       @SuppressWarnings("SameParameterValue") final boolean compatible,
                                       @NonNull final Context context, @LayoutRes final int layout,
                                       @NonNull @Size(min = 1) final String[] from,
@@ -275,6 +222,8 @@ public class Retrofit<T> extends BaseRetrofit<T, RestAdapter.Builder> {
             super(factory, compatible, context, layout, from, to);
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Extends the {@link LoaderRx} class to provide Retrofit support.

@@ -1,14 +1,26 @@
+/*
+ * Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package akha.yakhont.demo.retrofit;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
-import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
 import java.util.ArrayList;
 
 import retrofit.client.Client;
@@ -18,90 +30,55 @@ import retrofit.client.Response;
 import retrofit.mime.TypedInput;
 
 /**
- * from https://gist.github.com/swanson/7dee3f3474e30fe8f15c
- 
- * @author Matt Swanson
+ * based on implementation of Matt Swanson
+ * (please refer to https://gist.github.com/swanson/7dee3f3474e30fe8f15c)
  */
-@SuppressLint("DefaultLocale")
 public class LocalJsonClient implements Client {
 
-    private final Context context;
+    private final LocalJsonClientHelper mLocalJsonClientHelper;
 
-    private String scenario = null;
-
-    private int delay;
-
-    public LocalJsonClient(Context ctx) {
-        this.context = ctx;
+    public LocalJsonClient(Context context) {
+        mLocalJsonClientHelper = new LocalJsonClientHelper(context);
     }
 
-    @SuppressWarnings("unused")
-    public void setScenario(String scenario) {
-        this.scenario = scenario;
-    }
-
-    @SuppressWarnings("SameParameterValue")
-    public void setDelay(int delay) {
-        this.delay = delay;
+    public LocalJsonClientHelper getLocalJsonClientHelper() {
+        return mLocalJsonClientHelper;
     }
 
     @Override
     public Response execute(Request request) throws IOException {
-        URL requestedUrl = new URL(request.getUrl());
-        String requestedMethod = request.getMethod();
-
-        String prefix = "";
-        if (this.scenario != null) {
-            prefix = scenario + "_";
-        }
-
-        String fileName = (prefix + requestedMethod + requestedUrl.getPath()).replace('/', '_');
-        fileName = fileName.toLowerCase();
-
-        int resourceId = context.getResources().getIdentifier(fileName, "raw", context.getPackageName());
-
-        if (resourceId == 0) {
-            Log.wtf("YourTag", "Could not find res/raw/" + fileName + ".json");
-            throw new IOException("Could not find res/raw/" + fileName + ".json");
-        }
-
-        InputStream inputStream = context.getResources().openRawResource(resourceId);
-
-        String mimeType = URLConnection.guessContentTypeFromStream(inputStream);
-        if (mimeType == null)
-            mimeType = "application/json";
-
-        if (delay > 0) SystemClock.sleep(delay);
-
-        TypedInput body = new TypedInputStream(mimeType, inputStream.available(), inputStream);
-
-        return new Response(request.getUrl(), 200, "Content from res/raw/" + fileName, new ArrayList<Header>(), body);
+        LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.getUrl(), request.getMethod());
+        return new Response(request.getUrl(), LocalJsonClientHelper.HTTP_CODE_OK, data.message(),
+                new ArrayList<Header>(), new TypedInputStream(data));
     }
 
     private static class TypedInputStream implements TypedInput {
-        private final String mimeType;
-        private final long length;
-        private final InputStream stream;
 
-        private TypedInputStream(String mimeType, long length, InputStream stream) {
-            this.mimeType = mimeType;
-            this.length = length;
-            this.stream = stream;
+        private final LocalJsonClientHelper.Data mData;
+
+        private TypedInputStream(LocalJsonClientHelper.Data data) {
+            mData = data;
         }
 
         @Override
         public String mimeType() {
-            return mimeType;
+            return mData.mimeType();
         }
 
         @Override
         public long length() {
-            return length;
+            try {
+                return mData.stream().available();
+            }
+            catch (IOException e) {
+                Log.e("LocalJsonClient", "error", e);
+                return 0;
+            }
         }
 
         @Override
         public InputStream in() throws IOException {
-            return stream;
+            return mData.stream();
         }
     }
 }

@@ -293,7 +293,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
         public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
             CoreLogger.log(addLoaderInfo("from cache"));
 
-            deliver(new BaseResponse<R, E, D>(mConverter.get(cursor), null, cursor, mError, Source.CACHE));
+            deliver(new BaseResponse<R, E, D>(mConverter.get(cursor), null, cursor, mError, Source.CACHE, null));
         }
 
         /**

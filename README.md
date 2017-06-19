@@ -23,7 +23,7 @@ Activities and Fragments (can be enabled even for 3rd-party components)
 All Activities and Fragments are supported: it's not necessary to derive them from any predefined
 ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 200 KB (except the _full_ version, which is 400 KB).
+The Yakhont AAR is about 250 KB (except the _full_ version, which is about 2 times bigger).
 
 Yakhont supports Android 2.3 and above (_core_ version requires Android 3.0 as a minimum).
 
@@ -90,6 +90,15 @@ to replace default configuration with yours (even if null).
 
 ProGuard directives are included in the Yakhont libraries. The Android Plugin for Gradle
 automatically appends these directives to your ProGuard configuration.
+
+Anyway, it's strongly advised also to keep your model and Retrofit API as follows
+(it's just an example from the Yakhont Demo, 
+please update it according to your application's packages names): 
+
+```
+-keep class akha.yakhont.demo.model.** { *; }
+-keep interface akha.yakhont.demo.retrofit.** { *; }
+```
 
 ## Build
 

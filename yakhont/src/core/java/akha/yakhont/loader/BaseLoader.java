@@ -18,18 +18,20 @@ package akha.yakhont.loader;
 
 import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
+import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
+import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.fragment.WorkerFragment;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
-import akha.yakhont.technology.retrofit.Retrofit.RetrofitAdapterWrapper;
-import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitLoaderBuilder;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.annotation.SuppressLint;
@@ -46,6 +48,7 @@ import android.support.annotation.IntRange;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.Size;
 import android.support.annotation.StringRes;
 import android.view.View;
 import android.widget.GridView;
@@ -295,20 +298,32 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mWaitForResponse.set(true);
         }
 
-        try {
-            CoreLogger.log(addLoaderInfo("makeRequest"));
-            makeRequest(mCallback);
-        }
-        catch (Exception e) {
-            CoreLogger.log(addLoaderInfo("failed"), e);
-
-            synchronized (mWaitLock) {
-                mWaitForResponse.set(true);
-            }
-            return;
-        }
-
         doProgressSafe(true);
+
+        Utils.runInBackground(true, new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    CoreLogger.log(addLoaderInfo("makeRequest"));
+                    makeRequest(mCallback);
+                }
+                catch (Exception exception) {
+                    CoreLogger.log(addLoaderInfo("failed"), exception);
+                    callbackHelper(false, wrapException(exception));
+                }
+            }
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    private BaseResponse<R, E, D> wrapException(@NonNull final Exception exception) {
+        try {
+            return new BaseResponse<>(null, null, null, (E) exception, Source.UNKNOWN, null);
+        }
+        catch (Exception internal) {
+            CoreLogger.log(addLoaderInfo("BaseResponse creation failed"), internal);
+            return new BaseResponse<>(null, null, null, null, Source.UNKNOWN, exception);
+        }
     }
 
     /**
@@ -689,6 +704,32 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
+     * Returns the {@code CoreLoad} component for the given fragment.
+     *
+     * @param fragment
+     *        The fragment
+     *
+     * @return  The {@code CoreLoad}
+     */
+    public static CoreLoad getCoreLoad(final Fragment fragment) {
+        return WorkerFragment.findInstance(fragment);
+    }
+
+    /**
+     * Returns the {@code CoreLoad} component for the given activity.
+     *
+     * @param activity
+     *        The activity
+     *
+     * @return  The {@code CoreLoad}
+     */
+    public static CoreLoad getCoreLoad(final Activity activity) {
+        return WorkerFragment.findInstance(activity);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
      * The <code>ProgressWrapper</code> class is intended to display a data loading progress to the user.
      */
     public static class ProgressWrapper {
@@ -758,545 +799,404 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
+     * Builder class for {@link CoreLoad} objects.
      *
-     * @param fragment
-     *        The fragment
+     * @param <R>
+     *        The type of network response
      *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
+     * @param <E>
+     *        The type of error (if any)
      *
      * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, Class)
-     * @see RetrofitLoaderBuilder
+     *        The type of data
      */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type) {
-        return simpleInit(fragment, type, null, null, null, null);
-    }
+    public static class CoreLoadBuilder<R, E, D> {
 
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param rx
-     *        The {@code RxLoader} component
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, Class)
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type, final LoaderRx rx) {
-        return simpleInit(fragment, type, rx, null, null, null);
-    }
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final Fragment                        mFragment;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected LoaderRx<R, E, D>                     mRx;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected LoaderBuilder<BaseResponse<R, E, D>>  mLoaderBuilder;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected ValuesCacheAdapterWrapper<R, E, D>    mAdapterWrapper;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected ViewBinder                            mViewBinder;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        @IdRes
+        protected int                                   mListView       = View.NO_ID;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        @LayoutRes
+        protected int                                   mLayoutItem     = Utils.NOT_VALID_RES_ID;
 
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, Class)
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type, final ViewBinder viewBinder) {
-        return simpleInit(fragment, type, null, null, null, viewBinder);
-    }
-
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param description
-     *        The data description
-     *
-     * @param loaderCallback
-     *        The loader callback (see {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()})
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, Class)
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type, final String description,
-                                          final LoaderCallback<D> loaderCallback) {
-        return simpleInit(fragment, type, null, description, loaderCallback, null);
-    }
-    
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param descriptionId
-     *        The resource ID of the data description
-     *
-     * @param loaderCallback
-     *        The loader callback (see {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()})
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, Class)
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type, @StringRes final int descriptionId,
-                                          final LoaderCallback<D> loaderCallback) {
-        return simpleInit(fragment, type, null, descriptionId, loaderCallback, null);
-    }
-    
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param rx
-     *        The {@code RxLoader} component
-     *
-     * @param description
-     *        The data description
-     *
-     * @param loaderCallback
-     *        The loader callback (see {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()})
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, Class)
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type,
-                                          final LoaderRx rx, final String description,
-                                          final LoaderCallback<D> loaderCallback, final ViewBinder viewBinder) {
-        return simpleInit(fragment, rx, getBuilder(fragment, type, Utils.NOT_VALID_RES_ID, description, loaderCallback), viewBinder);
-    }
-    
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param rx
-     *        The {@code RxLoader} component
-     *
-     * @param descriptionId
-     *        The resource ID of the data description
-     *
-     * @param loaderCallback
-     *        The loader callback (see {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()})
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, Class)
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final Class<D> type,
-                                          final LoaderRx rx, @StringRes final int descriptionId,
-                                          final LoaderCallback<D> loaderCallback, final ViewBinder viewBinder) {
-        return simpleInit(fragment, rx, getBuilder(fragment, type, descriptionId, null, loaderCallback), viewBinder);
-    }
-    
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param listView
-     *        The resource identifier of a {@link ListView} or {@link GridView}; if {@link View#NO_ID},
-     *        implementation looks for the first {@code ListView} (or {@code GridView}) in the fragment's root view
-     *
-     * @param listItem
-     *        The resource identifier of a layout file that defines the views to bind; if {@link akha.yakhont.Core.Utils#NOT_VALID_RES_ID},
-     *        implementation looks for the layout with the same name as listView's ID (if no ID, "grid" or "list" will be used as name),
-     *        e.g. in case of R.id.my_list it will look for R.layout.my_list (if not found, look for R.layout.my_list_item)
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings({"WeakerAccess", "unused"})
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment,
-                                          @SuppressWarnings("SameParameterValue") @IdRes     final int listView,
-                                          @SuppressWarnings("SameParameterValue") @LayoutRes final int listItem,
-                                          @NonNull final Class<D> type) {
-        return simpleInit(fragment, listView, listItem, getBuilder(fragment, type, Utils.NOT_VALID_RES_ID, null, null), null);
-    }
-
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param listView
-     *        The resource identifier of a {@link ListView} or {@link GridView}; if {@link View#NO_ID},
-     *        implementation looks for the first {@code ListView} (or {@code GridView}) in the fragment's root view
-     *
-     * @param listItem
-     *        The resource identifier of a layout file that defines the views to bind; if {@link akha.yakhont.Core.Utils#NOT_VALID_RES_ID},
-     *        implementation looks for the layout with the same name as listView's ID (if no ID, "grid" or "list" will be used as name),
-     *        e.g. in case of R.id.my_list it will look for R.layout.my_list (if not found, look for R.layout.my_list_item)
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param descriptionId
-     *        The resource ID of the data description
-     *
-     * @param loaderCallback
-     *        The loader callback (see {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()})
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings({"WeakerAccess", "unused"})
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment,
-                                          @SuppressWarnings("SameParameterValue") @IdRes     final int listView,
-                                          @SuppressWarnings("SameParameterValue") @LayoutRes final int listItem,
-                                          @NonNull final Class<D> type, @StringRes final int descriptionId,
-                                          final LoaderCallback<D> loaderCallback, final ViewBinder viewBinder) {
-        return simpleInit(fragment, listView, listItem, 
-                          getBuilder(fragment, type, descriptionId, null, loaderCallback), viewBinder);
-    }
-
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param listView
-     *        The resource identifier of a {@link ListView} or {@link GridView}; if {@link View#NO_ID},
-     *        implementation looks for the first {@code ListView} (or {@code GridView}) in the fragment's root view
-     *
-     * @param listItem
-     *        The resource identifier of a layout file that defines the views to bind; if {@link akha.yakhont.Core.Utils#NOT_VALID_RES_ID},
-     *        implementation looks for the layout with the same name as listView's ID (if no ID, "grid" or "list" will be used as name),
-     *        e.g. in case of R.id.my_list it will look for R.layout.my_list (if not found, look for R.layout.my_list_item)
-     *
-     * @param type
-     *        The data type; will be used to build {@link akha.yakhont.Core.Requester}
-     *        which calls the first method (from the API defined by the service interface,
-     *        see {@link akha.yakhont.technology.retrofit.Retrofit#getRetrofitApi}) which handles that type
-     *
-     * @param description
-     *        The data description
-     *
-     * @param loaderCallback
-     *        The loader callback (see {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()})
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see RetrofitLoaderBuilder
-     */
-    @SuppressWarnings({"WeakerAccess", "unused"})
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment,
-                                          @SuppressWarnings("SameParameterValue") @IdRes     final int listView,
-                                          @SuppressWarnings("SameParameterValue") @LayoutRes final int listItem,
-                                          @NonNull final Class<D> type, final String description,
-                                          final LoaderCallback<D> loaderCallback, final ViewBinder viewBinder) {
-        return simpleInit(fragment, listView, listItem, 
-                          getBuilder(fragment, type, Utils.NOT_VALID_RES_ID, description, loaderCallback), viewBinder);
-    }
-
-    private static <D> RetrofitLoaderBuilder<D> getBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type, 
-                                                           @StringRes final int descriptionId, final String description, 
-                                                           final LoaderCallback<D> loaderCallback) {
-        final RetrofitLoaderBuilder<D>                  builder = new RetrofitLoaderBuilder<>(fragment, type);
-        if (loaderCallback != null)                     builder.setLoaderCallback(loaderCallback);
-        if (descriptionId  != Utils.NOT_VALID_RES_ID)   builder.setDescription   (fragment.getString(descriptionId));
-        if (description    != null)                     builder.setDescription   (description);
-        return                                          builder;
-    }
-    
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param loaderBuilder
-     *        The {@code RetrofitLoaderBuilder}
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitLoaderBuilder,
-     * akha.yakhont.adapter.BaseCacheAdapter.ViewBinder)
-     */
-    @SuppressWarnings("unused")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, @NonNull final RetrofitLoaderBuilder<D> loaderBuilder) {
-        return simpleInit(fragment, null, loaderBuilder, null);
-    }
-
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param rx
-     *        The {@code RxLoader} component
-     *
-     * @param loaderBuilder
-     *        The {@code RetrofitLoaderBuilder}
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     *
-     * @see #simpleInit(Fragment, int, int, akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitLoaderBuilder,
-     * akha.yakhont.adapter.BaseCacheAdapter.ViewBinder)
-     */
-    @SuppressWarnings("WeakerAccess")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, final LoaderRx rx,
-                                          @NonNull final RetrofitLoaderBuilder<D> loaderBuilder, final ViewBinder viewBinder) {
-        return simpleInit(fragment, rx, View.NO_ID, Utils.NOT_VALID_RES_ID, loaderBuilder, viewBinder);
-    }
-
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param listView
-     *        The resource identifier of a {@link ListView} or {@link GridView}; if {@link View#NO_ID},
-     *        implementation looks for the first {@code ListView} (or {@code GridView}) in the fragment's root view
-     *
-     * @param listItem
-     *        The resource identifier of a layout file that defines the views to bind; if {@link akha.yakhont.Core.Utils#NOT_VALID_RES_ID},
-     *        implementation looks for the layout with the same name as listView's ID (if no ID, "grid" or "list" will be used as name),
-     *        e.g. in case of R.id.my_list it will look for R.layout.my_list (if not found, look for R.layout.my_list_item)
-     *
-     * @param loaderBuilder
-     *        The {@code RetrofitLoaderBuilder}
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     */
-    @SuppressWarnings("WeakerAccess")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment,
-                                          @SuppressWarnings("SameParameterValue") @IdRes     final int listView,
-                                          @SuppressWarnings("SameParameterValue") @LayoutRes final int listItem,
-                                          @NonNull final RetrofitLoaderBuilder<D> loaderBuilder, final ViewBinder viewBinder) {
-        return simpleInit(fragment, null, listView, listItem, loaderBuilder, viewBinder);
-    }
-
-    /**
-     * The helper method to initialize simple loading: one loader with auto generated ID, default SQL table name (for cache) etc.
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param rx
-     *        The {@code RxLoader} component
-     *
-     * @param listView
-     *        The resource identifier of a {@link ListView} or {@link GridView}; if {@link View#NO_ID},
-     *        implementation looks for the first {@code ListView} (or {@code GridView}) in the fragment's root view
-     *
-     * @param listItem
-     *        The resource identifier of a layout file that defines the views to bind; if {@link akha.yakhont.Core.Utils#NOT_VALID_RES_ID},
-     *        implementation looks for the layout with the same name as listView's ID (if no ID, "grid" or "list" will be used as name),
-     *        e.g. in case of R.id.my_list it will look for R.layout.my_list (if not found, look for R.layout.my_list_item)
-     *
-     * @param loaderBuilder
-     *        The {@code RetrofitLoaderBuilder}
-     *
-     * @param viewBinder
-     *        The {@code ViewBinder} for custom data binding
-     *
-     * @param <D>
-     *        The type of data to load
-     *
-     * @return  The {@code CoreLoad}
-     */
-    @SuppressWarnings("WeakerAccess")
-    public static <D> CoreLoad simpleInit(@NonNull final Fragment fragment, final LoaderRx rx,
-                                          @SuppressWarnings("SameParameterValue") @IdRes     final int listView,
-                                          @SuppressWarnings("SameParameterValue") @LayoutRes final int listItem,
-                                          @NonNull final RetrofitLoaderBuilder<D> loaderBuilder, final ViewBinder viewBinder) {
-        final CoreLoad coreLoad = getCoreLoad(fragment);
-        if (coreLoad == null) return null;
-
-        final View root = fragment.getView();
-        if (root == null) {
-            CoreLogger.log("The fragment's root view is null");
-            return null;
+        /**
+         * Initialises a newly created {@code CoreLoadBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         */
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder(@NonNull final Fragment fragment) {
+            mFragment = fragment;
+        }
+/*
+        / @exclude / @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected CoreLoadBuilder(@NonNull final CoreLoadBuilder<R, E, D> src) {
+            mFragment           = src.mFragment;
+            mRx                 = src.mRx;
+            mLoaderBuilder      = src.mLoaderBuilder;
+            mAdapterWrapper     = src.mAdapterWrapper;
+            mViewBinder         = src.mViewBinder;
+            mListView           = src.mListView;
+            mLayoutItem         = src.mLayoutItem;
+        }
+*/
+        /**
+         * Sets the Rx component.
+         *
+         * @param rx
+         *        The Rx component
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder<R, E, D> setRx(final LoaderRx<R, E, D> rx) {
+            mRx = rx;
+            return this;
         }
 
-        final View list = listView == View.NO_ID ? BaseCacheAdapter.findListView(root): root.findViewById(listView);
-        if (list == null) {
-            CoreLogger.log("view with id " + listView + " was not found");
-            return null;
+        /**
+         * Sets the loader builder component.
+         *
+         * @param loaderBuilder
+         *        The loader builder component
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("UnusedReturnValue")
+        public CoreLoadBuilder<R, E, D> setLoaderBuilder(final LoaderBuilder<BaseResponse<R, E, D>> loaderBuilder) {
+            mLoaderBuilder = loaderBuilder;
+            return this;
         }
 
-        int item = listItem;
-        if (item == Utils.NOT_VALID_RES_ID)
-            item = getItemLayout(fragment.getResources(), list, "layout", fragment.getActivity().getPackageName());
-
-        CoreLogger.log(item == Utils.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list view item: " + item);
-        if (item == Utils.NOT_VALID_RES_ID) return null;
-
-        final RetrofitAdapterWrapper<D> adapterWrapper = new RetrofitAdapterWrapper<>(fragment.getActivity(), item);
-        if (viewBinder != null) adapterWrapper.getAdapter().setAdapterViewBinder(viewBinder);
-
-        if      (list instanceof ListView)
-            ((ListView) list).setAdapter(adapterWrapper.getAdapter());
-        else if (list instanceof GridView)
-            ((GridView) list).setAdapter(adapterWrapper.getAdapter());
-        else {
-            CoreLogger.log("view with id " + listView + " should be instance of ListView or GridView");
-            return null;
+        /**
+         * Sets the adapter wrapper component.
+         *
+         * @param adapterWrapper
+         *        The adapter wrapper component
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings({"UnusedReturnValue", "unused"})
+        public CoreLoadBuilder<R, E, D> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
+            mAdapterWrapper = adapterWrapper;
+            return this;
         }
 
-        coreLoad.addLoader(adapterWrapper, rx, loaderBuilder);
-        return coreLoad;
+        /**
+         * Sets the view binder component.
+         *
+         * @param viewBinder
+         *        The view binder component
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder<R, E, D> setViewBinder(final ViewBinder viewBinder) {
+            mViewBinder = viewBinder;
+            return this;
+        }
+
+        /**
+         * Sets the list (or grid) view ID.
+         *
+         * @param listView
+         *        The list (or grid) view ID
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder<R, E, D> setListView(@IdRes final int listView) {
+            mListView = listView;
+            return this;
+        }
+
+        /**
+         * Sets the list (or grid) view layout item ID.
+         *
+         * @param layoutItem
+         *        The list (or grid) view layout item ID
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder<R, E, D> setListItem(@LayoutRes final int layoutItem) {
+            mLayoutItem = layoutItem;
+            return this;
+        }
+
+        @LayoutRes
+        @SuppressWarnings("SameParameterValue")
+        private int getItemLayout(@NonNull final Resources resources, @NonNull final View list,
+                                  @NonNull final String defType, @NonNull final String defPackage) {
+            final String name = list.getId() != View.NO_ID ? resources.getResourceEntryName(list.getId()):
+                    list instanceof GridView ? "grid": "list";
+            @LayoutRes final int id = resources.getIdentifier(name, defType, defPackage);
+            return id != Utils.NOT_VALID_RES_ID ? id:
+                    resources.getIdentifier(name + "_item", defType, defPackage);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters"})
+        protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
+                                               @NonNull final View list, @LayoutRes final int item) {
+        }
+
+        /**
+         * Creates a {@link CoreLoad} with the arguments supplied to this builder.
+         *
+         * @return  The newly created {@code CoreLoad} object
+         */
+        public CoreLoad create() {
+            if (mLoaderBuilder == null) {
+                CoreLogger.logError("The loader builder is null");
+                return null;
+            }
+
+            final CoreLoad coreLoad = getCoreLoad(mFragment);
+            if (coreLoad == null) return null;
+
+            final View root = mFragment.getView();
+            if (root == null) {
+                CoreLogger.logError("The fragment's root view is null");
+                return null;
+            }
+
+            final View list = mListView == View.NO_ID ?
+                    BaseCacheAdapter.findListView(root): root.findViewById(mListView);
+            if (list == null) {
+                CoreLogger.logError("view with id " + mListView + " was not found");
+                return null;
+            }
+
+            @LayoutRes
+            int item = mLayoutItem;
+            if (item == Utils.NOT_VALID_RES_ID)
+                item = getItemLayout(mFragment.getResources(), list, "layout", mFragment.getActivity().getPackageName());
+
+            CoreLogger.log(item == Utils.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list view item: " + item);
+            if (item == Utils.NOT_VALID_RES_ID) return null;
+
+            customizeAdapterWrapper(coreLoad, root, list, item);
+            if (mAdapterWrapper == null) {
+                CoreLogger.logError("The adapter wrapper is null");
+                return null;
+            }
+
+            if (mViewBinder != null) mAdapterWrapper.getAdapter().setAdapterViewBinder(mViewBinder);
+
+            if      (list instanceof ListView)
+                ((ListView) list).setAdapter(mAdapterWrapper.getAdapter());
+            else if (list instanceof GridView)
+                ((GridView) list).setAdapter(mAdapterWrapper.getAdapter());
+            else {
+                CoreLogger.logError("view with id " + mListView + " should be instance of ListView or GridView");
+                return null;
+            }
+
+            coreLoad.addLoader(mAdapterWrapper, mRx, mLoaderBuilder);
+
+            return coreLoad;
+        }
     }
 
-    @SuppressWarnings("SameParameterValue")
-    private static int getItemLayout(@NonNull final Resources resources,
-                                     @NonNull final View list, @NonNull final String defType, @NonNull final String defPackage) {
-        final String name = list.getId() != View.NO_ID ? resources.getResourceEntryName(list.getId()):
-                list instanceof GridView ? "grid": "list";
-        final int id = resources.getIdentifier(name, defType, defPackage);
-        return id != Utils.NOT_VALID_RES_ID ? id: resources.getIdentifier(name + "_item", defType, defPackage);
-    }
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Returns the {@code CoreLoad} component for the given fragment.
+     * Builder class for {@link CoreLoad} objects. For the moment just contains some common code
+     * for {@link BaseResponseLoaderBuilder} customization.
      *
-     * @param fragment
-     *        The fragment
+     * @param <C>
+     *        The type of callback
      *
-     * @return  The {@code CoreLoad}
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data
      */
-    public static CoreLoad getCoreLoad(final Fragment fragment) {
-        return WorkerFragment.findInstance(fragment);
-    }
+    public static abstract class CoreLoadExtendedBuilder<C, R, E, D> extends CoreLoadBuilder<R, E, D> {
 
-    /**
-     * Returns the {@code CoreLoad} component for the given activity.
-     *
-     * @param activity
-     *        The activity
-     *
-     * @return  The {@code CoreLoad}
-     */
-    public static CoreLoad getCoreLoad(final Activity activity) {
-        return WorkerFragment.findInstance(activity);
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final Class<D>                        mType;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Requester<C>                          mRequester;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected LoaderCallback<D>                     mLoaderCallback;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        @Size(min = 1)
+        protected String[]                              mFrom;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        @Size(min = 1)
+        protected int[]                                 mTo;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected String                                mDescription;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        @StringRes
+        protected int                                   mDescriptionId  = Utils.NOT_VALID_RES_ID;
+
+        /**
+         * Initialises a newly created {@code CoreLoadExtendedBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param type
+         *        The type of data
+         */
+        @SuppressWarnings("unused")
+        protected CoreLoadExtendedBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type) {
+            super(fragment);
+            mType = type;
+        }
+/*
+        / @exclude / @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected CoreLoadExtendedBuilder(@NonNull final CoreLoadExtendedBuilder<C, R, E, D> src) {
+            super(src);
+            mType               = src.mType;
+            mRequester          = src.mRequester;
+            mLoaderCallback     = src.mLoaderCallback;
+            mFrom               = src.mFrom;
+            mTo                 = src.mTo;
+            mDescription        = src.mDescription;
+            mDescriptionId      = src.mDescriptionId;
+        }
+*/
+        /**
+         * Sets the requester component.
+         *
+         * @param requester
+         *        The requester component
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D> setRequester(@NonNull final Requester<C> requester) {
+            mRequester = requester;
+            return this;
+        }
+
+        /**
+         * Sets the loader callback component.
+         *
+         * @param loaderCallback
+         *        The loader callback component
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
+            mLoaderCallback = loaderCallback;
+            return this;
+        }
+
+        /**
+         * Sets the adapter wrapper component.
+         *
+         * @param adapterWrapper
+         *        The adapter wrapper component
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
+            if (mAdapterWrapper != null)
+                CoreLogger.logWarning("The adapter wrapper is already set");
+            else
+                super.setAdapterWrapper(adapterWrapper);
+            return this;
+        }
+
+        /**
+         * Sets the data binding.
+         *
+         * @param from
+         *        The list of names representing the data to bind to the UI
+         *
+         * @param to
+         *        The views that should display data in the "from" parameter
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D> setDataBinding(@NonNull @Size(min = 1) final String[] from,
+                                                                  @NonNull @Size(min = 1) final    int[] to) {
+            mFrom = from;
+            mTo   = to;
+            return this;
+        }
+
+        /**
+         * Sets the data description.
+         *
+         * @param description
+         *        The data description
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D> setDescription(final String description) {
+            mDescription = description;
+            return this;
+        }
+
+        /**
+         * Sets the data description ID.
+         *
+         * @param descriptionId
+         *        The data description ID
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D> setDescriptionId(@StringRes final int descriptionId) {
+            mDescriptionId = descriptionId;
+            return this;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected CoreLoad create(@NonNull final BaseResponseLoaderBuilder<C, R, E, D> builder) {
+            if (mLoaderBuilder != null) {
+                CoreLogger.logWarning("The loader builder is already set");
+                return super.create();
+            }
+
+            if (mDescriptionId != Utils.NOT_VALID_RES_ID && mDescription != null)
+                CoreLogger.logWarning("Both description and description ID was set; description ID will be ignored");
+
+            if (mRequester      != null)                        builder.setRequester     (mRequester);
+            if (mLoaderCallback != null)                        builder.setLoaderCallback(mLoaderCallback);
+            if (mDescription    != null)                        builder.setDescription   (mDescription);
+            else if (mDescriptionId != Utils.NOT_VALID_RES_ID)  builder.setDescription   (mFragment.getString(mDescriptionId));
+
+            setLoaderBuilder(builder);
+            return super.create();
+        }
     }
 }
