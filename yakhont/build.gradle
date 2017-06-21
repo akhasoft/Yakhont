@@ -76,7 +76,7 @@ android {
         full        // core + support + debug classes for Activities and Fragments
     }
 
-    defaultPublishConfig        'fullRelease'
+    defaultPublishConfig        'supportRelease'
 
     lintOptions {
         abortOnError            false

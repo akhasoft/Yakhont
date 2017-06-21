@@ -38,6 +38,8 @@ import akha.yakhont.support.fragment.dialog.ProgressDialogFragment;
 // for using non-support version of library (android.app.Fragment etc.):
 // comment out akha.yakhont.support.fragment.* import above and uncomment one below
 
+// also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont-core' (or 'yakhont-full')
+
 // import akha.yakhont.fragment.dialog.ProgressDialogFragment;
 
 import android.annotation.SuppressLint;

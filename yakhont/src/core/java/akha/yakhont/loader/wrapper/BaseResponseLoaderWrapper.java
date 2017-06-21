@@ -652,7 +652,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected Requester<C> getDefaultRequester() {
+        public Requester<C> getDefaultRequester() {
             CoreLogger.logError("the default requester is not defined");
             return null;
         }
@@ -944,7 +944,6 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      * The <code>CoreLoad</code> component is responsible for data loading. Usage example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
-     * import akha.yakhont.Core.Requester;
      * import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
      * import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
      * import akha.yakhont.technology.retrofit.Retrofit2;
@@ -954,7 +953,6 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      * import com.mypackage.model.MyData;
      * import com.mypackage.retrofit.Retrofit2Api;
      *
-     * import retrofit2.Call;
      * import retrofit2.Callback;
      *
      * public class MyFragment extends Fragment {
@@ -970,18 +968,16 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *         // optional Rx component
      *         Retrofit2Rx&lt;MyData[]&gt; rx = new Retrofit2Rx&lt;&gt;();
      *
-     *         CoreLoad coreLoad = new Retrofit2CoreLoadBuilder&lt;&gt;(
-     *                 this, MyData[].class, getRetrofitApi())
+     *         CoreLoad coreLoad = new Retrofit2CoreLoadBuilder&lt;MyData[], Retrofit2Api&gt;(
+     *                 this, MyData[].class, getRetrofitApi()) {
      *
-     *             // optional
-     *             .setRequester(new Requester&lt;Callback&lt;MyData[]&gt;&gt;() {
-     *                 &#064;Override
-     *                 public void makeRequest(Callback&lt;MyData[]&gt; callback) {
-     *                     // something like this
-     *                     Call&lt;MyData[]&gt; call = getRetrofitApi().data();
-     *                     call.enqueue(callback);
+     *                     // optional
+     *                     &#064;Override
+     *                     public void makeRequest(Callback&lt;MyData[]&gt; callback) {
+     *                         // something like this
+     *                         getApi().data().enqueue(callback);
+     *                     }
      *                 }
-     *             })
      *
      *             // optional
      *             .setDataBinding(new String[] {"name",    "age"   },

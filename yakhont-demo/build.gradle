@@ -104,7 +104,7 @@ dependencies {
     compile  'io.reactivex.rxjava2:rxjava:2.1.0'                            // Rx
     compile  'io.reactivex:rxjava:1.3.0'
 
-    compile   name:'yakhont-full', ext:'aar'                                // Yakhont
+    compile   name:'yakhont-support', ext:'aar'                             // Yakhont
 // 'cause support sources doesn't exist and generated 'on the fly'
 //    compile  project(':yakhont')
 }

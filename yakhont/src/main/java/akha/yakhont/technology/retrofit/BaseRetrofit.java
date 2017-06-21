@@ -121,7 +121,7 @@ public abstract class BaseRetrofit<T, B> {
      *
      * @return  The Retrofit API
      */
-    public T getRetrofitApi() {
+    public T getApi() {
         return mRetrofitApi;
     }
 

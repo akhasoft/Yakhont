@@ -210,12 +210,12 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @Override
-        protected Requester<Callback<D>> getDefaultRequester() {
+        public Requester<Callback<D>> getDefaultRequester() {
             return getRequester(new RequesterHelper<Callback<D>, D, T>(mType) {
                 @Override
                 public void init() {
                     mMethod  = findMethod(mRetrofit.getService(), mClass);
-                    mHandler = mRetrofit.getRetrofitApi();
+                    mHandler = mRetrofit.getApi();
                 }
 
                 @Override
@@ -279,7 +279,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
      * @param <T>
      *        The type of Retrofit 2 API
      */
-    public static class Retrofit2CoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response<D>, Throwable, D> {
+    public static class Retrofit2CoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
 
         private final Retrofit2<T>      mRetrofit;
 
@@ -316,6 +316,14 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
                                                @NonNull final View list, @LayoutRes final int item) {
             setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<D>(mFragment.getActivity(), item):
                     new Retrofit2AdapterWrapper<D>(mFragment.getActivity(), item, mFrom, mTo));
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public T getApi() {
+            return mRetrofit.getApi();
         }
 
         /**

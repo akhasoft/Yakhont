@@ -228,7 +228,7 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @Override
-        protected Requester<Callback<D>> getDefaultRequester() {
+        public Requester<Callback<D>> getDefaultRequester() {
             return getRequester(new RequesterHelper<Callback<D>, D, T>(mType) {
                 @Override
                 public void init() {
@@ -269,7 +269,7 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
      * @param <T>
      *        The type of Retrofit API
      */
-    public static class RetrofitCoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D> {
+    public static class RetrofitCoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D, T> {
 
         private final Retrofit<T>       mRetrofit;
 
@@ -306,6 +306,14 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
                                                @NonNull final View list, @LayoutRes final int item) {
             setAdapterWrapper(mFrom == null ? new RetrofitAdapterWrapper<D>(mFragment.getActivity(), item):
                     new RetrofitAdapterWrapper<D>(mFragment.getActivity(), item, mFrom, mTo));
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public T getApi() {
+            return mRetrofit.getYakhontRestAdapter().getHandler();
         }
 
         /**

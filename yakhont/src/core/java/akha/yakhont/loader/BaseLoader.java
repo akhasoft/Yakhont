@@ -31,6 +31,7 @@ import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderBuilder;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderExtendedBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
@@ -1032,14 +1033,16 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      *
      * @param <D>
      *        The type of data
+     *
+     * @param <T>
+     *        The type of API
      */
-    public static abstract class CoreLoadExtendedBuilder<C, R, E, D> extends CoreLoadBuilder<R, E, D> {
+    public static abstract class CoreLoadExtendedBuilder<C, R, E, D, T> extends CoreLoadBuilder<R, E, D>
+            implements Requester<C>{
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final Class<D>                        mType;
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected Requester<C>                          mRequester;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected LoaderCallback<D>                     mLoaderCallback;
 
@@ -1055,6 +1058,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @StringRes
         protected int                                   mDescriptionId  = Utils.NOT_VALID_RES_ID;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Requester<C>                          mDefaultRequester;
 
         /**
          * Initialises a newly created {@code CoreLoadExtendedBuilder} object.
@@ -1075,7 +1081,6 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         protected CoreLoadExtendedBuilder(@NonNull final CoreLoadExtendedBuilder<C, R, E, D> src) {
             super(src);
             mType               = src.mType;
-            mRequester          = src.mRequester;
             mLoaderCallback     = src.mLoaderCallback;
             mFrom               = src.mFrom;
             mTo                 = src.mTo;
@@ -1083,21 +1088,6 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mDescriptionId      = src.mDescriptionId;
         }
 */
-        /**
-         * Sets the requester component.
-         *
-         * @param requester
-         *        The requester component
-         *
-         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
-         */
-        @NonNull
-        @SuppressWarnings("unused")
-        public CoreLoadExtendedBuilder<C, R, E, D> setRequester(@NonNull final Requester<C> requester) {
-            mRequester = requester;
-            return this;
-        }
-
         /**
          * Sets the loader callback component.
          *
@@ -1108,7 +1098,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings("unused")
-        public CoreLoadExtendedBuilder<C, R, E, D> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
             mLoaderCallback = loaderCallback;
             return this;
         }
@@ -1123,7 +1113,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        public CoreLoadExtendedBuilder<C, R, E, D> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
             if (mAdapterWrapper != null)
                 CoreLogger.logWarning("The adapter wrapper is already set");
             else
@@ -1143,8 +1133,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @SuppressWarnings("unused")
-        public CoreLoadExtendedBuilder<C, R, E, D> setDataBinding(@NonNull @Size(min = 1) final String[] from,
-                                                                  @NonNull @Size(min = 1) final    int[] to) {
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setDataBinding(@NonNull @Size(min = 1) final String[] from,
+                                                                     @NonNull @Size(min = 1) final    int[] to) {
             mFrom = from;
             mTo   = to;
             return this;
@@ -1160,7 +1150,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings("unused")
-        public CoreLoadExtendedBuilder<C, R, E, D> setDescription(final String description) {
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setDescription(final String description) {
             mDescription = description;
             return this;
         }
@@ -1175,12 +1165,34 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings("unused")
-        public CoreLoadExtendedBuilder<C, R, E, D> setDescriptionId(@StringRes final int descriptionId) {
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setDescriptionId(@StringRes final int descriptionId) {
             mDescriptionId = descriptionId;
             return this;
         }
 
+        /**
+         * Returns the API defined by the service interface (e.g. the Retrofit API).
+         *
+         * @return  The API
+         */
+        @SuppressWarnings("unused")
+        public abstract T getApi();
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public void makeRequest(@NonNull final C callback) {
+            mDefaultRequester.makeRequest(callback);
+        }
+
         /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected CoreLoad create(@NonNull final BaseResponseLoaderExtendedBuilder<C, R, E, D, T> builder) {
+            mDefaultRequester = builder.getDefaultRequester();
+            return create((BaseResponseLoaderBuilder<C, R, E, D>) builder);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected CoreLoad create(@NonNull final BaseResponseLoaderBuilder<C, R, E, D> builder) {
             if (mLoaderBuilder != null) {
                 CoreLogger.logWarning("The loader builder is already set");
@@ -1190,7 +1202,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             if (mDescriptionId != Utils.NOT_VALID_RES_ID && mDescription != null)
                 CoreLogger.logWarning("Both description and description ID was set; description ID will be ignored");
 
-            if (mRequester      != null)                        builder.setRequester     (mRequester);
+            builder.setRequester(this);
+
             if (mLoaderCallback != null)                        builder.setLoaderCallback(mLoaderCallback);
             if (mDescription    != null)                        builder.setDescription   (mDescription);
             else if (mDescriptionId != Utils.NOT_VALID_RES_ID)  builder.setDescription   (mFragment.getString(mDescriptionId));
