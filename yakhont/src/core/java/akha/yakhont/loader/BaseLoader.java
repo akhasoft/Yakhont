@@ -31,7 +31,6 @@ import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderBuilder;
-import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderExtendedBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
@@ -51,6 +50,7 @@ import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Size;
 import android.support.annotation.StringRes;
+import android.support.v7.widget.RecyclerView;
 import android.view.View;
 import android.widget.GridView;
 import android.widget.ListView;
@@ -825,10 +825,10 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         protected ViewBinder                            mViewBinder;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @IdRes
-        protected int                                   mListView       = View.NO_ID;
+        protected int                                   mListViewId     = View.NO_ID;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @LayoutRes
-        protected int                                   mLayoutItem     = Utils.NOT_VALID_RES_ID;
+        protected int                                   mLayoutItemId   = Utils.NOT_VALID_RES_ID;
 
         /**
          * Initialises a newly created {@code CoreLoadBuilder} object.
@@ -848,8 +848,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mLoaderBuilder      = src.mLoaderBuilder;
             mAdapterWrapper     = src.mAdapterWrapper;
             mViewBinder         = src.mViewBinder;
-            mListView           = src.mListView;
-            mLayoutItem         = src.mLayoutItem;
+            mListViewId         = src.mListViewId;
+            mLayoutItemId       = src.mLayoutItemId;
         }
 */
         /**
@@ -915,30 +915,30 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         /**
          * Sets the list (or grid) view ID.
          *
-         * @param listView
+         * @param listViewId
          *        The list (or grid) view ID
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
         @SuppressWarnings("unused")
-        public CoreLoadBuilder<R, E, D> setListView(@IdRes final int listView) {
-            mListView = listView;
+        public CoreLoadBuilder<R, E, D> setListView(@IdRes final int listViewId) {
+            mListViewId = listViewId;
             return this;
         }
 
         /**
          * Sets the list (or grid) view layout item ID.
          *
-         * @param layoutItem
+         * @param layoutItemId
          *        The list (or grid) view layout item ID
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
         @SuppressWarnings("unused")
-        public CoreLoadBuilder<R, E, D> setListItem(@LayoutRes final int layoutItem) {
-            mLayoutItem = layoutItem;
+        public CoreLoadBuilder<R, E, D> setListItem(@LayoutRes final int layoutItemId) {
+            mLayoutItemId = layoutItemId;
             return this;
         }
 
@@ -978,35 +978,38 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 return null;
             }
 
-            final View list = mListView == View.NO_ID ?
-                    BaseCacheAdapter.findListView(root): root.findViewById(mListView);
+            final View list = mListViewId == View.NO_ID ?
+                    BaseCacheAdapter.findListView(root): root.findViewById(mListViewId);
             if (list == null) {
-                CoreLogger.logError("view with id " + mListView + " was not found");
+                CoreLogger.logError("view with id " + mListViewId + " was not found");
                 return null;
             }
 
             @LayoutRes
-            int item = mLayoutItem;
-            if (item == Utils.NOT_VALID_RES_ID)
-                item = getItemLayout(mFragment.getResources(), list, "layout", mFragment.getActivity().getPackageName());
+            int itemId = mLayoutItemId;
+            if (itemId == Utils.NOT_VALID_RES_ID)
+                itemId = getItemLayout(mFragment.getResources(), list, "layout", mFragment.getActivity().getPackageName());
 
-            CoreLogger.log(item == Utils.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list view item: " + item);
-            if (item == Utils.NOT_VALID_RES_ID) return null;
+            CoreLogger.log(itemId == Utils.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list view item: " + itemId);
+            if (itemId == Utils.NOT_VALID_RES_ID) return null;
 
-            customizeAdapterWrapper(coreLoad, root, list, item);
+            customizeAdapterWrapper(coreLoad, root, list, itemId);
             if (mAdapterWrapper == null) {
                 CoreLogger.logError("The adapter wrapper is null");
                 return null;
             }
 
-            if (mViewBinder != null) mAdapterWrapper.getAdapter().setAdapterViewBinder(mViewBinder);
+            if (mViewBinder != null) mAdapterWrapper.setAdapterViewBinder(mViewBinder);
 
             if      (list instanceof ListView)
                 ((ListView) list).setAdapter(mAdapterWrapper.getAdapter());
             else if (list instanceof GridView)
                 ((GridView) list).setAdapter(mAdapterWrapper.getAdapter());
+            else if (list instanceof RecyclerView)
+                ((RecyclerView) list).setAdapter(mAdapterWrapper.getRecyclerViewAdapter());
             else {
-                CoreLogger.logError("view with id " + mListView + " should be instance of ListView or GridView");
+                CoreLogger.logError("view with id " + mListViewId +
+                        " should be instance of ListView, GridView or RecyclerView");
                 return null;
             }
 
@@ -1086,6 +1089,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mTo                 = src.mTo;
             mDescription        = src.mDescription;
             mDescriptionId      = src.mDescriptionId;
+            mDefaultRequester   = src.mDefaultRequester
         }
 */
         /**
@@ -1186,21 +1190,30 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mDefaultRequester.makeRequest(callback);
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected CoreLoad create(@NonNull final BaseResponseLoaderExtendedBuilder<C, R, E, D, T> builder) {
-            mDefaultRequester = builder.getDefaultRequester();
-            return create((BaseResponseLoaderBuilder<C, R, E, D>) builder);
+        @SuppressWarnings("unchecked")
+        private BaseResponseLoaderBuilder<C, R, E, D> getBuilder() {
+            if (mLoaderBuilder instanceof BaseResponseLoaderBuilder)
+                return (BaseResponseLoaderBuilder<C, R, E, D>) mLoaderBuilder;
+
+            CoreLogger.logWarning("The loader builder is not an instance of BaseResponseLoaderBuilder");
+            return null;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected CoreLoad create(@NonNull final BaseResponseLoaderBuilder<C, R, E, D> builder) {
+        protected CoreLoad create(BaseResponseLoaderBuilder<C, R, E, D> builder) {
             if (mLoaderBuilder != null) {
                 CoreLogger.logWarning("The loader builder is already set");
-                return super.create();
+                builder = getBuilder();
             }
+            else
+                setLoaderBuilder(builder);
+
+            if (builder == null) return super.create();
 
             if (mDescriptionId != Utils.NOT_VALID_RES_ID && mDescription != null)
                 CoreLogger.logWarning("Both description and description ID was set; description ID will be ignored");
+
+            mDefaultRequester = builder.getDefaultRequester();
 
             builder.setRequester(this);
 
@@ -1208,7 +1221,6 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             if (mDescription    != null)                        builder.setDescription   (mDescription);
             else if (mDescriptionId != Utils.NOT_VALID_RES_ID)  builder.setDescription   (mFragment.getString(mDescriptionId));
 
-            setLoaderBuilder(builder);
             return super.create();
         }
     }

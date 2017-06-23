@@ -76,7 +76,6 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         initGui(savedInstanceState);
@@ -154,6 +153,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     
     @SuppressWarnings("UnusedParameters")
     private boolean setViewValue(View view, Object data, String textRepresentation) {
+
         switch (view.getId()) {
 
             case R.id._id:

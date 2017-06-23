@@ -24,6 +24,9 @@ import akha.yakhont.adapter.BaseCacheAdapter.BaseArrayAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
+import akha.yakhont.adapter.BaseCacheAdapter.DataBinder;
+import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
+import akha.yakhont.adapter.BaseCacheAdapter.ViewInflater;
 import akha.yakhont.loader.BaseResponse;
 
 import android.content.ContentValues;
@@ -32,6 +35,8 @@ import android.provider.BaseColumns;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Size;
+import android.support.v7.widget.RecyclerView.ViewHolder;
+import android.view.ViewGroup;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,7 +58,8 @@ import java.util.LinkedHashSet;
  */
 public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D> {
 
-    private final BaseCacheAdapter<ContentValues, R, E, D>      mBaseCacheAdapter;
+    private BaseCacheAdapter <ContentValues, R, E, D>                   mBaseCacheAdapter;
+    private ContentValuesRecyclerViewAdapter<R, E, D>                   mBaseRecyclerViewAdapter;
 
     /**
      * Initialises a newly created {@code ValuesCacheAdapterWrapper} object. The data binding goes by default:
@@ -62,14 +68,15 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * @param context
      *        The Context
      *
-     * @param layout
+     * @param layoutId
      *        The resource identifier of a layout file that defines the views
      */
     @SuppressWarnings("WeakerAccess")
-    public ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layout) {
-        final LinkedHashSet<String> from = new LinkedHashSet<>();
-        final int[]                 to   = BaseCacheAdapter.getViewsBinding(context, layout, from);
-        mBaseCacheAdapter = to.length == 0 ? null: init(context, layout, from.toArray(new String[from.size()]), to);
+    public ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layoutId) {
+        final LinkedHashSet<String> fromSet = new LinkedHashSet<>();
+        final int[]                 to      = BaseCacheAdapter.getViewsBinding(context, layoutId, fromSet);
+        final String[]              from    = fromSet.toArray(new String[fromSet.size()]);
+        setBaseCacheAdapter(init(context, layoutId, from, to), context, layoutId, from, to);
     }
 
     /**
@@ -78,7 +85,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * @param context
      *        The Context
      *
-     * @param layout
+     * @param layoutId
      *        The resource identifier of a layout file that defines the views
      *
      * @param from
@@ -88,10 +95,10 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      *        The views that should display data in the "from" parameter
      */
     @SuppressWarnings("WeakerAccess")
-    public ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layout,
+    public ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
                                      @NonNull @Size(min = 1) final    int[] to) {
-        mBaseCacheAdapter = init(context, layout, from, to);
+        setBaseCacheAdapter(init(context, layoutId, from, to), context, layoutId, from, to);
     }
 
     /**
@@ -106,7 +113,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * @param context
      *        The Context
      *
-     * @param layout
+     * @param layoutId
      *        The resource identifier of a layout file that defines the views
      *
      * @param from
@@ -118,10 +125,10 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     @SuppressWarnings("WeakerAccess")
     public ValuesCacheAdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
                                      @SuppressWarnings("SameParameterValue") final boolean compatible,
-                                     @NonNull final Context context, @LayoutRes final int layout,
+                                     @NonNull final Context context, @LayoutRes final int layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
                                      @NonNull @Size(min = 1) final    int[] to) {
-        mBaseCacheAdapter = init(factory, compatible, context, layout, from, to);
+        setBaseCacheAdapter(init(factory, compatible, context, layoutId, from, to), context, layoutId, from, to);
     }
 
     private BaseCacheAdapter<ContentValues, R, E, D> init(@NonNull final Context context, @LayoutRes final int layout,
@@ -136,7 +143,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
                                                           @NonNull @Size(min = 1) final String[] from,
                                                           @NonNull @Size(min = 1) final    int[] to) {
         final BaseCacheAdapter<ContentValues, R, E, D> adapter = factory.getAdapter(context, layout, from, to,
-                new ValuesArrayAdapter(context, layout, from, to),
+                new BaseArrayAdapter<>(context, layout, getDataBinder(context, from, to)),
                 new ArrayConverter<ContentValues, R, E, D>() {
                     @Override
                     public Collection<ContentValues> convert(@NonNull final BaseResponse<R, E, D> baseResponse) {
@@ -150,6 +157,37 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
         return adapter;
     }
 
+    private void setBaseCacheAdapter(@NonNull final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter,
+                                     @NonNull final Context context, @LayoutRes final int layoutId,
+                                     @NonNull @Size(min = 1) final String[] from,
+                                     @NonNull @Size(min = 1) final int   [] to) {
+        mBaseCacheAdapter        = baseCacheAdapter;
+        mBaseRecyclerViewAdapter = new ContentValuesRecyclerViewAdapter<>(
+                context, layoutId, from, to, baseCacheAdapter);
+    }
+
+    private static DataBinder<ContentValues> getDataBinder(@NonNull final Context context,
+                                                           @NonNull @Size(min = 1) final String[] from,
+                                                           @NonNull @Size(min = 1) final int   [] to) {
+        return new DataBinder<ContentValues>(context, from, to) {
+            @Override
+            protected Object getValue(@NonNull ContentValues item, int index) {
+                return ValuesCacheAdapterWrapper.getValue(item, index, mFrom);
+            }
+        };
+    }
+
+    /**
+     * Registers the {@code ViewBinder} to use.
+     *
+     * @param viewBinder
+     *        The ViewBinder
+     */
+    public void setAdapterViewBinder(final ViewBinder viewBinder) {
+        getAdapter()            .setAdapterViewBinder(viewBinder);
+        getRecyclerViewAdapter().setAdapterViewBinder(viewBinder);
+    }
+
     /**
      * Returns the {@code BaseCacheAdapter} wrapped by this object.
      *
@@ -159,6 +197,17 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     @SuppressWarnings("unused")
     public BaseCacheAdapter<ContentValues, R, E, D> getAdapter() {
         return mBaseCacheAdapter;
+    }
+
+    /**
+     * Returns the {@code ContentValuesRecyclerViewAdapter} wrapped by this object.
+     *
+     * @return  The ContentValuesRecyclerViewAdapter
+     */
+    @NonNull
+    @SuppressWarnings("unused")
+    public ContentValuesRecyclerViewAdapter<R, E, D> getRecyclerViewAdapter() {
+        return mBaseRecyclerViewAdapter;
     }
 
     /**
@@ -186,26 +235,67 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
         return getAdapter().getCursorAdapter();
     }
 
-    @SuppressWarnings("unused")
-    private static class ValuesArrayAdapter extends BaseArrayAdapter<ContentValues> {
+    private static Object getValue(@NonNull final ContentValues item, final int index,
+                                   @NonNull @Size(min = 1) final String[] from) {
+        if (index >= from.length)          return null;
+        if (item.containsKey(from[index])) return item.get(from[index]);
 
-        private ValuesArrayAdapter(@NonNull final Context context, @LayoutRes final int layout,
-                                   @NonNull @Size(min = 1) final String[] from,
-                                   @NonNull @Size(min = 1) final    int[] to) {
-            super(context, layout, from, to);
+        CoreLogger.log(from[index].equals(BaseColumns._ID) ? Level.INFO: Level.WARNING,
+                from[index] + ": no such key", false);
+        return null;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * The {@link ContentValues}-based implementation of the {@link BaseRecyclerViewAdapter}.
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data in the adapter
+     */
+    public static class ContentValuesRecyclerViewAdapter<R, E, D>
+            extends BaseRecyclerViewAdapter<ContentValues, R, E, D, ViewHolder> {
+
+        private final           ViewInflater                    mViewInflater;
+
+        /**
+         * Initialises a newly created {@code ContentValuesRecyclerViewAdapter} object.
+         *
+         * @param context
+         *        The Context
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @param from
+         *        The list of names representing the data to bind to the UI
+         *
+         * @param to
+         *        The views that should display data in the "from" parameter
+         *
+         * @param baseCacheAdapter
+         *        The {@link BaseCacheAdapter} to wrap
+         */
+        public ContentValuesRecyclerViewAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+                                                @NonNull @Size(min = 1) final String[] from,
+                                                @NonNull @Size(min = 1) final int   [] to,
+                                                @NonNull final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter) {
+            super(baseCacheAdapter, getDataBinder(context, from, to));
+            mViewInflater = new ViewInflater(context, layoutId);
         }
 
         /**
          * Please refer to the base method description.
          */
         @Override
-        protected Object getValue(@NonNull final ContentValues item, final int index) {
-            if (index >= mFrom.length)          return null;
-            if (item.containsKey(mFrom[index])) return item.get(mFrom[index]);
-
-            CoreLogger.log(mFrom[index].equals(BaseColumns._ID) ? Level.INFO: Level.WARNING,
-                    mFrom[index] + ": no such key", false);
-            return null;
+        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+            return new ViewHolder(mViewInflater.inflate(parent)) {};
         }
     }
 }

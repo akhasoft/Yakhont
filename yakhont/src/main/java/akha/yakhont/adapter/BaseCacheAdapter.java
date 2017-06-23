@@ -34,6 +34,7 @@ import android.support.annotation.LayoutRes;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
 import android.support.annotation.Size;
+import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -435,7 +436,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         visitView(view, new ViewVisitor() {
             @Override
             public boolean handle(final View view) {
-                if (!(view instanceof AbsListView)) return false;
+                if (!(view instanceof AbsListView || view instanceof RecyclerView)) return false;
 
                 if (viewHelper[0] == null) viewHelper[0] = view;
                 return true;
@@ -852,48 +853,18 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The type of {@code BaseResponse} values
      */
     @SuppressWarnings("WeakerAccess")
-    public static abstract class BaseArrayAdapter<T> extends ArrayAdapter<T> {
+    public static class BaseArrayAdapter<T> extends ArrayAdapter<T> {
 
-        /** @exclude */
-        @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final         String[]                        mFrom;
-        /** @exclude */
-        @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final         int   []                        mTo;
+        private final           DataBinder<T>                   mDataBinder;
+        private final           ViewInflater                    mViewInflater;
 
-        private final           LayoutInflater                  mInflater;
-
-        @LayoutRes
-        private final           int                             mLayoutId;
-
-        private                 ViewBinder                      mViewBinder;
-
-        /**
-         * Initialises a newly created {@code BaseArrayAdapter} object.
-         *
-         * @param context
-         *        The Context
-         *
-         * @param layoutId
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @param from
-         *        The list of names representing the data to bind to the UI
-         *
-         * @param to
-         *        The views that should display data in the "from" parameter
-         */
-        @SuppressWarnings("WeakerAccess")
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         protected BaseArrayAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
-                                   @NonNull @Size(min = 1) final String[] from,
-                                   @NonNull @Size(min = 1) final int   [] to) {
+                                   @NonNull final DataBinder<T> dataBinder) {
             super(context, layoutId);
 
-            mFrom       = from;
-            mTo         = to;
-
-            mLayoutId   = layoutId;
-            mInflater   = LayoutInflater.from(context);
+            mDataBinder   = dataBinder;
+            mViewInflater = new ViewInflater(context, layoutId);
         }
 
         /**
@@ -903,18 +874,17 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @SuppressWarnings("unused")
         public ViewBinder getAdapterViewBinder() {
-            return mViewBinder;
+            return mDataBinder.getAdapterViewBinder();
         }
 
         /**
-         * Registers the {@code ViewBinder}. Most implementations should use {@link BaseCacheAdapter#setAdapterViewBinder} instead.
+         * Registers the {@code ViewBinder}. Most implementations should use {@link ValuesCacheAdapterWrapper#setAdapterViewBinder} instead.
          *
          * @param viewBinder
          *        The ViewBinder
          */
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public void setAdapterViewBinder(final ViewBinder viewBinder) {
-            mViewBinder = viewBinder;
+            mDataBinder.setAdapterViewBinder(viewBinder);
         }
 
         /**
@@ -923,9 +893,42 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         @NonNull
         @Override
         public View getView(int position, View convertView, @NonNull ViewGroup parent) {
-            final View mainView = convertView == null ? mInflater.inflate(mLayoutId, parent, false): convertView;
+            return mDataBinder.bind(position, getItem(position),
+                    convertView == null ? mViewInflater.inflate(parent): convertView);
+        }
+    }
 
-            final T item = getItem(position);
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static abstract class DataBinder<T> {
+
+        private   final         Context                         mContext;
+        private                 ViewBinder                      mViewBinder;
+
+        @SuppressWarnings("WeakerAccess")
+        protected final         String[]                        mFrom;
+        @SuppressWarnings("WeakerAccess")
+        protected final         int   []                        mTo;
+
+        public DataBinder(@NonNull final Context context,
+                          @NonNull @Size(min = 1) final String[] from,
+                          @NonNull @Size(min = 1) final int   [] to) {
+            mContext    = context;
+
+            mFrom       = from;
+            mTo         = to;
+        }
+
+        public ViewBinder getAdapterViewBinder() {
+            return mViewBinder;
+        }
+
+        public void setAdapterViewBinder(final ViewBinder viewBinder) {
+            mViewBinder = viewBinder;
+        }
+
+        public View bind(final int position, final T item, final View mainView) {
             if (item == null) {
                 CoreLogger.logError("item is null, position = " + position);
                 return mainView;
@@ -956,23 +959,31 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 ((TextView) view).setText(strValue);
 
             else if (view instanceof ImageView)
-                bindImageView(getContext(), (ImageView) view, value);
+                bindImageView(mContext, (ImageView) view, value);
 
             else
                 CoreLogger.logError("not supported view type, index = " + index);
         }
 
-        /**
-         * Gets value from the given item.
-         *
-         * @param item
-         *        The item
-         *
-         * @param index
-         *        The value's index
-         *
-         * @return  The item's value at the specified index
-         */
         protected abstract Object getValue(@NonNull final T item, final int index);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static class ViewInflater {
+
+        private final           LayoutInflater                  mInflater;
+        @LayoutRes
+        private final           int                             mLayoutId;
+
+        public ViewInflater(@NonNull final Context context, @LayoutRes final int layoutId) {
+            mLayoutId   = layoutId;
+            mInflater   = LayoutInflater.from(context);
+        }
+
+        public View inflate(final ViewGroup parent) {
+            return mInflater.inflate(mLayoutId, parent, false);
+        }
     }
 }
