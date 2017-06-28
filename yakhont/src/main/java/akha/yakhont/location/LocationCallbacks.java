@@ -673,8 +673,25 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @SuppressWarnings("unused")
     public static String toDms(final Location location) {
-        return location == null ? null: String.format(CoreLogger.getLocale(), "%s %s",
-                toDms(location.getLatitude(), false), toDms(location.getLongitude(), true));
+        return toDms(location, null);
+    }
+
+    /**
+     * Converts {@code Location} to the DMS format (e.g. 5°31′08″ N 87°04′18″ W).
+     *
+     * @param location
+     *        The {@code Location}
+     *
+     * @param defValue
+     *        The string to return if location is null
+     *
+     * @return  The location in the DMS format
+     */
+    @SuppressWarnings("unused")
+    public static String toDms(final Location location, final String defValue) {
+        return location == null ? defValue != null ? defValue: "N/A":
+                String.format(CoreLogger.getLocale(), "%s %s",
+                        toDms(location.getLatitude(), false), toDms(location.getLongitude(), true));
     }
 
     /**

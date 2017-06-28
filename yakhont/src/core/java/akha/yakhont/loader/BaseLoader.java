@@ -24,6 +24,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
+import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.fragment.WorkerFragment;
 import akha.yakhont.loader.BaseResponse;
@@ -51,6 +52,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Size;
 import android.support.annotation.StringRes;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.RecyclerView.ViewHolder;
 import android.view.View;
 import android.widget.GridView;
 import android.widget.ListView;
@@ -817,12 +819,17 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         protected final Fragment                        mFragment;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected LoaderRx<R, E, D>                     mRx;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected LoaderBuilder<BaseResponse<R, E, D>>  mLoaderBuilder;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ValuesCacheAdapterWrapper<R, E, D>    mAdapterWrapper;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ViewBinder                            mViewBinder;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected ViewHolderCreator<ViewHolder>         mViewHolderCreator;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @IdRes
         protected int                                   mListViewId     = View.NO_ID;
@@ -847,6 +854,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mRx                 = src.mRx;
             mLoaderBuilder      = src.mLoaderBuilder;
             mAdapterWrapper     = src.mAdapterWrapper;
+            mViewHolderCreator  = src.mViewHolderCreator;
             mViewBinder         = src.mViewBinder;
             mListViewId         = src.mListViewId;
             mLayoutItemId       = src.mLayoutItemId;
@@ -913,10 +921,28 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         }
 
         /**
-         * Sets the list (or grid) view ID.
+         * Sets the ViewHolder creator component.
+         *
+         * @param viewHolderCreator
+         *        The ViewHolder creator component
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder<R, E, D> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
+            mViewHolderCreator = viewHolderCreator;
+            return this;
+        }
+
+        /**
+         * Sets the {@link ListView}, {@link GridView} or {@link RecyclerView} ID.
+         * <p>
+         * If a view ID was not set, the implementation looks for the first {@link ListView}, {@link GridView} or
+         * {@link RecyclerView} in the fragment's root view.
          *
          * @param listViewId
-         *        The list (or grid) view ID
+         *        The resource identifier of a {@link ListView}, {@link GridView} or {@link RecyclerView}
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
@@ -928,10 +954,20 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         }
 
         /**
-         * Sets the list (or grid) view layout item ID.
+         * Sets the resource identifier of a layout file that defines the views to bind.
+         * <p>
+         * If a layout ID was not set, the following algorithm will be applied:
+         * <ul>
+         *   <li>find name of the list, which is the string representation of the list ID;
+         *     if the ID was not defined, "list", "grid" or "recycler" will be used
+         *   </li>
+         *   <li>look for the layout with ID == name + "_item";
+         *     if not found, look for the layout with ID == name
+         *   </li>
+         * </ul>
          *
          * @param layoutItemId
-         *        The list (or grid) view layout item ID
+         *        The resource identifier of a layout file that defines the views to bind
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
@@ -946,11 +982,12 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         @SuppressWarnings("SameParameterValue")
         private int getItemLayout(@NonNull final Resources resources, @NonNull final View list,
                                   @NonNull final String defType, @NonNull final String defPackage) {
+
             final String name = list.getId() != View.NO_ID ? resources.getResourceEntryName(list.getId()):
-                    list instanceof GridView ? "grid": "list";
-            @LayoutRes final int id = resources.getIdentifier(name, defType, defPackage);
-            return id != Utils.NOT_VALID_RES_ID ? id:
-                    resources.getIdentifier(name + "_item", defType, defPackage);
+                    list instanceof RecyclerView ? "recycler": list instanceof GridView ? "grid": "list";
+
+            @LayoutRes final int id = resources.getIdentifier(name + "_item", defType, defPackage);
+            return id != Utils.NOT_VALID_RES_ID ? id: resources.getIdentifier(name, defType, defPackage);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters"})
@@ -990,7 +1027,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             if (itemId == Utils.NOT_VALID_RES_ID)
                 itemId = getItemLayout(mFragment.getResources(), list, "layout", mFragment.getActivity().getPackageName());
 
-            CoreLogger.log(itemId == Utils.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list view item: " + itemId);
+            CoreLogger.log(itemId == Utils.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list item ID: " + itemId);
             if (itemId == Utils.NOT_VALID_RES_ID) return null;
 
             customizeAdapterWrapper(coreLoad, root, list, itemId);
@@ -1000,6 +1037,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             }
 
             if (mViewBinder != null) mAdapterWrapper.setAdapterViewBinder(mViewBinder);
+
+            if (mViewHolderCreator != null)
+                mAdapterWrapper.getRecyclerViewAdapter().setViewHolderCreator(mViewHolderCreator);
 
             if      (list instanceof ListView)
                 ((ListView) list).setAdapter(mAdapterWrapper.getAdapter());

@@ -394,7 +394,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *     public void onCreate() {
      *         super.onCreate();
      *         ...
-     *         Core.run(this);
+     *         Core.init(this);
      *
      *         BaseFragmentLifecycleProceed.register(new MyFragmentCallbacks());
      *         // OR

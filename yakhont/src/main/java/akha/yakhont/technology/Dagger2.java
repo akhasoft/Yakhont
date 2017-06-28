@@ -38,7 +38,7 @@ import javax.inject.Provider;
 
 /**
  * The {@link <a href="http://google.github.io/dagger/">Dagger 2</a>} component. Usage example (see also
- * {@link akha.yakhont.Core#run(android.app.Application, Boolean, Dagger2) Theme example} and
+ * {@link akha.yakhont.Core#init(android.app.Application, Boolean, Dagger2) Theme example} and
  * {@link UiModule#getToast(boolean) Toast example}):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
@@ -52,7 +52,7 @@ import javax.inject.Provider;
  *
  *     &#064;Override
  *     protected void onCreate(Bundle savedInstanceState) {
- *         Core.run(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
+ *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
  *
  *         super.onCreate(savedInstanceState);
  *         ...
@@ -249,7 +249,7 @@ public interface Dagger2 {
          *
          *     &#064;Override
          *     protected void onCreate(Bundle savedInstanceState) {
-         *         Core.run(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
+         *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
          *
          *         super.onCreate(savedInstanceState);
          *         ...

@@ -298,6 +298,7 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
 
         final PendingResult<Status> result = LocationServices.FusedLocationApi.requestLocationUpdates(
                 mClient, mLocationRequest, this, activity == null ? null: activity.getMainLooper());
+
         handleStatusResult("startLocationUpdates", result);
     }
 
@@ -375,10 +376,7 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
     public void onConnected(Bundle connectionHint) {
         CoreLogger.log("onConnected, mRequestingLocationUpdates: " + mRequestingLocationUpdates);
 
-        if (mCurrentLocation == null) {
-            setLocation(LocationServices.FusedLocationApi.getLastLocation(mClient));
-            mLastUpdateTime = lastUpdateTime();
-        }
+        onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));
 
         if (mRequestingLocationUpdates) startLocationUpdates(LocationCallbacks.getActivity());
     }

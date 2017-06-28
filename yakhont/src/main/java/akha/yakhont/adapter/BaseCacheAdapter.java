@@ -295,17 +295,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /**
      * Updates the adapter with a new data.
-     *
-     * @param baseResponse
-     *        The new data
-     */
-    @SuppressWarnings("unused")
-    public void update(@NonNull final BaseResponse<R, E, D> baseResponse) {
-        update(baseResponse, false);
-    }
-
-    /**
-     * Updates the adapter with a new data.
+     *  Most implementations should use {@link ValuesCacheAdapterWrapper#update} instead.
      *
      * @param data
      *        The new data
@@ -364,14 +354,10 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /**
      * Resets the array adapter.
+     *  Most implementations should use {@link ValuesCacheAdapterWrapper#resetArray} instead.
      */
     public void resetArray() {
-        Utils.postToMainLoop(new Runnable() {
-            @Override
-            public void run() {
-                mArrayAdapter.clear();
-            }
-        });
+        mArrayAdapter.clear();
     }
 
     /**
@@ -411,6 +397,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /**
      * Registers the {@code ViewBinder} to use.
+     * Most implementations should use {@link ValuesCacheAdapterWrapper#setAdapterViewBinder} instead.
      *
      * @param viewBinder
      *        The ViewBinder
@@ -452,8 +439,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                                         @NonNull final LinkedHashSet<String> set) {
         final Map<Integer, String>  map             = new LinkedHashMap<>();
         final Resources             resources       = context.getResources();
+        final ViewInflater          viewInflater    = new ViewInflater(context, layoutId);
 
-        visitView(LayoutInflater.from(context).inflate(layoutId, null, false), new ViewVisitor() {
+        visitView(viewInflater.inflate(null), new ViewVisitor() {
             @Override
             public boolean handle(final View view) {
                 final int id = view.getId();
@@ -536,8 +524,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public Object getItem(int position) {
-        return mBaseAdapter.getItem(position);
+    @SuppressWarnings("unchecked")
+    public T getItem(int position) {
+        return (T) mBaseAdapter.getItem(position);
     }
 
     /**
@@ -878,7 +867,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         }
 
         /**
-         * Registers the {@code ViewBinder}. Most implementations should use {@link ValuesCacheAdapterWrapper#setAdapterViewBinder} instead.
+         * Registers the {@code ViewBinder}.
+         * Most implementations should use {@link ValuesCacheAdapterWrapper#setAdapterViewBinder} instead.
          *
          * @param viewBinder
          *        The ViewBinder
@@ -980,10 +970,20 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         public ViewInflater(@NonNull final Context context, @LayoutRes final int layoutId) {
             mLayoutId   = layoutId;
             mInflater   = LayoutInflater.from(context);
+
+            if (mLayoutId == Utils.NOT_VALID_RES_ID)
+                CoreLogger.logError("item layout ID is not defined");
         }
 
         public View inflate(final ViewGroup parent) {
-            return mInflater.inflate(mLayoutId, parent, false);
+            return mLayoutId == Utils.NOT_VALID_RES_ID ? null:
+                    mInflater.inflate(mLayoutId, parent, false);
+        }
+
+        @SuppressWarnings("unused")
+        @LayoutRes
+        public int getLayoutId() {
+            return mLayoutId;
         }
     }
 }

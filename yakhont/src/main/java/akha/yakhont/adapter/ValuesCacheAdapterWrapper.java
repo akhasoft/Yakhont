@@ -16,6 +16,7 @@
 
 package akha.yakhont.adapter;
 
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
@@ -216,6 +217,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     @Override
     public void update(@NonNull final BaseResponse<R, E, D> data, final boolean isMerge) {
         getAdapter().update(data, isMerge);
+        mBaseRecyclerViewAdapter.notifyDataSetChanged();
     }
 
     /**
@@ -223,7 +225,13 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      */
     @Override
     public void resetArray() {
-        getAdapter().resetArray();
+        Utils.postToMainLoop(new Runnable() {
+            @Override
+            public void run() {
+                getAdapter().resetArray();
+                mBaseRecyclerViewAdapter.notifyDataSetChanged();
+            }
+        });
     }
 
     /**
@@ -286,7 +294,8 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
                                                 @NonNull @Size(min = 1) final String[] from,
                                                 @NonNull @Size(min = 1) final int   [] to,
                                                 @NonNull final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter) {
-            super(baseCacheAdapter, getDataBinder(context, from, to));
+            super(baseCacheAdapter, getDataBinder(context, from, to), layoutId);
+
             mViewInflater = new ViewInflater(context, layoutId);
         }
 
@@ -295,7 +304,9 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
          */
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            return new ViewHolder(mViewInflater.inflate(parent)) {};
+            return mViewHolderCreator != null ?
+                    super.onCreateViewHolder(parent, viewType):
+                    new ViewHolder(mViewInflater.inflate(parent)) {};
         }
     }
 }

@@ -15,20 +15,11 @@
 -->
 
 <resources>
-    <string name="app_name">Яхонт: демо</string>
+    <string name="app_name">Яхонт: демо (упрощенная версия)</string>
 
-    <string name="flag_force">Загрузка из кэша</string>
-    <string name="flag_merge">Добавить к уже загруженному</string>
-
-    <string name="btn_load">Начать загрузку</string>
-
-    <string name="table_desc_beers">лучшие сорта бельгийского пива</string>
     <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
-
-    <string name="db_id">DB ID: %s</string>
 
     <string name="location_msg">Местоположение: %s</string>
     <string name="location_msg_na">не определено</string>
 
-    <string name="info">В оформлении использованы работы художника Валерия Барыкина</string>
 </resources>

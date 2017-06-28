@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package akha.yakhont.demo.retrofit;
+package akha.yakhont.demosimple.retrofit;
 
-import android.content.Context;
 import android.util.Log;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -34,34 +32,43 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 import okio.ByteString;
 
-// for Retrofit 2
 public class LocalJsonClient2 extends OkHttpClient {
 
-    private final LocalJsonClientHelper mLocalJsonClientHelper;
+    private static final String[] DATA = new String[] {
+            "Duvel",
+            "Abbaye de Brogne",
+            "Chimay",
+            "Delirium Tremens",
+            "Gouden Carolus",
+            "Green Killer",
+            "Gulden Draak",
+            "Liefmans",
+            "Orval Trappist",
+            "Pauwel Kwak",
+            "Petrus",
+            "Rodenbach Grand Cru",
+            "Val-Dieu",
+            "Waterloo",
+            "Westmalle",
+            "Westvleteren",
+            "Wilderen Goud"
+    };
 
-    public LocalJsonClient2(Context context) {
-        mLocalJsonClientHelper = new LocalJsonClientHelper(context);
+    private static String getJson() {
+        StringBuilder builder = new StringBuilder("[");
+        for (String str: DATA)
+            builder.append("{\"title\":\"").append(str).append("\"},");
+        return builder.replace(builder.length() - 1, builder.length(), "]").toString();
     }
 
-    public LocalJsonClientHelper getLocalJsonClientHelper() {
-        return mLocalJsonClientHelper;
-    }
-
-    private Response execute(final Request request) throws IOException {
-        LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.url().toString(),
-                request.method());
-
-        InputStream stream = data.stream();
-        byte[] content = new byte[stream.available()];
-        //noinspection ResultOfMethodCallIgnored
-        stream.read(content);
-
+    private Response execute(final Request request) {
         return new Response.Builder()
-                .code(LocalJsonClientHelper.HTTP_CODE_OK)
+                .code(200)
                 .protocol(Protocol.HTTP_1_0)
                 .request(request)
-                .message(data.message())
-                .body(ResponseBody.create(MediaType.parse(data.mimeType()), content))
+                .message("")
+                .body(ResponseBody.create(MediaType.parse("application/json"),
+                        getJson().getBytes()))
                 .build();
     }
 

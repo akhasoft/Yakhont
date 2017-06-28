@@ -297,7 +297,8 @@ public class BaseResponse<R, E, D> {
 
             for (;;) {
                 for (int i = 0; i < mCursor.getColumnCount(); i++)
-                    builder.append(String.format(locale, "%s%s == %s", i == 0 ? "": ", ", mCursor.getColumnName(i), getString(mCursor, i)));
+                    builder.append(String.format(locale, "%s%s == %s", i == 0 ? "": ", ",
+                            mCursor.getColumnName(i), getString(mCursor, i)));
                 builder.append(newLine);
 
                 if (!mCursor.moveToNext()) break;

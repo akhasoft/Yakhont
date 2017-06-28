@@ -16,12 +16,16 @@
 
 package akha.yakhont.adapter;
 
+import akha.yakhont.Core.Utils;
+import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter.DataBinder;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 
+import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView.Adapter;
 import android.support.v7.widget.RecyclerView.ViewHolder;
+import android.view.ViewGroup;
 
 /**
  * This adapter is just a wrapper for the {@link BaseCacheAdapter}.
@@ -44,16 +48,55 @@ import android.support.v7.widget.RecyclerView.ViewHolder;
  * @author akha
  */
 @SuppressWarnings("WeakerAccess")
-public abstract class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder> extends Adapter<VH> {
+public class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder> extends Adapter<VH> {
 
-    private final BaseCacheAdapter<T, R, E, D>      mBaseCacheAdapter;
-    private final DataBinder      <T>               mDataBinder;
+    private final   BaseCacheAdapter<T, R, E, D>    mBaseCacheAdapter;
+    private final   DataBinder      <T>             mDataBinder;
+
+    protected       ViewHolderCreator<VH>           mViewHolderCreator;
+
+    @LayoutRes
+    protected final int                             mLayoutId;
+
+    /**
+     * Called when RecyclerView needs a new RecyclerView.ViewHolder of the given type to represent an item.
+     *
+     * @see Adapter#onCreateViewHolder
+     */
+    @SuppressWarnings("unused")
+    public interface ViewHolderCreator<VH extends ViewHolder> {
+
+        /**
+         * Called when RecyclerView needs a new RecyclerView.ViewHolder of the given type
+         * to represent an item.
+         *
+         * @param parent
+         *        The ViewGroup into which the new View will be added
+         *
+         * @param viewType
+         *        The view type of the new View
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @return  A new ViewHolder that holds a View of the given view type
+         */
+        VH onCreateViewHolder(ViewGroup parent, int viewType, @LayoutRes int layoutId);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public BaseRecyclerViewAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
+                                   @NonNull final DataBinder<T> dataBinder) {
+        this(baseCacheAdapter, dataBinder, Utils.NOT_VALID_RES_ID);
+    }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public BaseRecyclerViewAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
-                                   @NonNull final DataBinder<T> dataBinder) {
+                                   @NonNull final DataBinder<T> dataBinder,
+                                   @LayoutRes final int layoutId) {
         mBaseCacheAdapter = baseCacheAdapter;
         mDataBinder       = dataBinder;
+        mLayoutId         = layoutId;
     }
 
     /**
@@ -67,7 +110,8 @@ public abstract class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder>
     }
 
     /**
-     * Registers the {@code ViewBinder}. Most implementations should use {@link ValuesCacheAdapterWrapper#setAdapterViewBinder} instead.
+     * Registers the {@code ViewBinder}.
+     * Most implementations should use {@link ValuesCacheAdapterWrapper#setAdapterViewBinder} instead.
      *
      * @param viewBinder
      *        The ViewBinder
@@ -77,12 +121,44 @@ public abstract class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder>
     }
 
     /**
+     * Gets the registered {@code ViewHolderCreator} (if any).
+     *
+     * @return  Thee {@code ViewHolderCreator} or null
+     */
+    @SuppressWarnings("unused")
+    public ViewHolderCreator<VH> getViewHolderCreator() {
+        return mViewHolderCreator;
+    }
+
+    /**
+     * Registers the {@code ViewHolderCreator}.
+     *
+     * @param viewHolderCreator
+     *        The ViewHolderCreator
+     */
+    public void setViewHolderCreator(final ViewHolderCreator<VH> viewHolderCreator) {
+        mViewHolderCreator = viewHolderCreator;
+    }
+
+    /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("unchecked")
     @Override
     public void onBindViewHolder(VH holder, int position) {
-        mDataBinder.bind(position, (T) mBaseCacheAdapter.getItem(position), holder.itemView);
+        mDataBinder.bind(position, mBaseCacheAdapter.getItem(position), holder.itemView);
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public VH onCreateViewHolder(ViewGroup parent, int viewType) {
+        if (mViewHolderCreator == null)
+            CoreLogger.logError("please set ViewHolder creator via call to setViewHolderCreator()");
+        if (mLayoutId == Utils.NOT_VALID_RES_ID)
+            CoreLogger.logWarning("item layout ID is not defined");
+        return mViewHolderCreator == null ? null:
+                mViewHolderCreator.onCreateViewHolder(parent, viewType, mLayoutId);
     }
 
     /**

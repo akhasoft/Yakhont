@@ -984,8 +984,8 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *                             new int   [] {R.id.name, R.id.age})
      *
      *             // all 3 "set" methods below are optional too
-     *             .setListView(R.id.list_view)       // your list / grid view ID
-     *             .setListItem(R.layout.list_item)   // your list / grid view item layout
+     *             .setListView(R.id.list_view)       // list / grid / recycler view ID
+     *             .setListItem(R.layout.list_item)   // view item layout
      *             .setRx(rx)
      *
      *             .create();

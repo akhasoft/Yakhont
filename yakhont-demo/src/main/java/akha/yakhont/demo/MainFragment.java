@@ -38,7 +38,7 @@ import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2
 // for using non-support version of library (android.app.Fragment etc.):
 // comment out akha.yakhont.support.loader.* imports above and uncomment ones below
 
-// also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont-core' (or 'yakhont-full')
+// also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont' (or 'yakhont-full')
 
 /*
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
@@ -71,7 +71,6 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        super.onCreateView(inflater, container, savedInstanceState);
         return initGui(inflater, container);
     }
 

@@ -77,7 +77,7 @@ import java.util.zip.ZipOutputStream;
  * <p><pre style="background-color: silver; border: thin solid black;">
  * &#064;Override
  * protected void onCreate(Bundle savedInstanceState) {
- *     Core.run(getApplication());
+ *     Core.init(getApplication());
  *
  *     super.onCreate(savedInstanceState);
  *     ...
@@ -91,12 +91,12 @@ import java.util.zip.ZipOutputStream;
  * public void onCreate() {
  *     super.onCreate();
  *     ...
- *     Core.run(this);
+ *     Core.init(this);
  * }
  * </pre>
  *
- * @see #run(Application)
- * @see #run(Application, Boolean, Dagger2)
+ * @see #init(Application)
+ * @see #init(Application, Boolean, Dagger2)
  *
  * @author akha
  */
@@ -144,7 +144,7 @@ public class Core {
     /**
      *  The dialog API that are common to the whole library.
      *  Every custom dialog implementation which is intended to replace the default one should implement that interface.
-     *  See {@link #run(Application, Boolean, Dagger2)} and {@link Dagger2} for more details concerning custom dialogs.
+     *  See {@link #init(Application, Boolean, Dagger2)} and {@link Dagger2} for more details concerning custom dialogs.
      */
     public interface BaseDialog {
 
@@ -270,20 +270,20 @@ public class Core {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Activates the library.
+     * Initializes the library.
      *
      * @param application
      *        The Application
      *
-     * @return  {@code true} if library activation was successful, {@code false} otherwise (library is already activated)
+     * @return  {@code true} if library initialization was successful, {@code false} otherwise (library is already activated)
      */
     @SuppressWarnings("unused")
-    public static boolean run(@SuppressWarnings("SameParameterValue") @NonNull        final Application       application) {
-        return run(application, null, null);
+    public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application) {
+        return init(application, null, null);
     }
 
     /**
-     * Activates the library. Usage example:
+     * Initializes the library. Usage example:
      *
      * <pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.fragment.dialog.CommonDialogFragment;
@@ -296,7 +296,7 @@ public class Core {
      *
      *     &#064;Override
      *     protected void onCreate(Bundle savedInstanceState) {
-     *         Core.run(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
+     *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
      *
      *         super.onCreate(savedInstanceState);
      *         ...
@@ -328,17 +328,17 @@ public class Core {
      * @param dagger
      *        The Dagger2 component
      *
-     * @return  {@code true} if library activation was successful, {@code false} otherwise (library is already activated)
+     * @return  {@code true} if library initialization was successful, {@code false} otherwise (library is already activated)
      *
      * @see Dagger2
      */
     @SuppressWarnings("WeakerAccess")
-    public static boolean run(@SuppressWarnings("SameParameterValue") @NonNull        final Application       application,
-                              @SuppressWarnings("SameParameterValue")                 final Boolean           fullInfo,
-                              @SuppressWarnings("SameParameterValue")                 final Dagger2           dagger) {
+    public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application,
+                              @SuppressWarnings("SameParameterValue")           final Boolean     fullInfo,
+                              @SuppressWarnings("SameParameterValue")           final Dagger2     dagger) {
 
         if (sInstance != null) {
-            CoreLogger.logWarning("already done");
+            CoreLogger.logWarning("the Yakhont library initialization is already done");
             return false;
         }
         sInstance = new Core();

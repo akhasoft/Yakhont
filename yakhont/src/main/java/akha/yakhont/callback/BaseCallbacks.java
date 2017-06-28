@@ -511,8 +511,9 @@ public abstract class BaseCallbacks<T> {
 
                 if (condition != null && !condition.call()) return false;
 
-                if (!(isCreate != null && isCreate)) proceed = callbacks.proceed(object);
-                add(callbacks, proceed, object);    // it's possible to be registered after onCreate
+                // it's possible to be registered after onCreate
+                if (!(isCreate != null &&  isCreate)) proceed = callbacks.proceed(object);
+                if (!(isCreate != null && !isCreate)) add(callbacks, proceed, object);
 
                 return proceed;
             }

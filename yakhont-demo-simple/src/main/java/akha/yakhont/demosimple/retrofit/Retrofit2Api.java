@@ -14,4 +14,16 @@
  * limitations under the License.
  */
 
-include ':yakhont', ':yakhont-weaver', ':yakhont-demo', ':yakhont-demo-simple'
+package akha.yakhont.demosimple.retrofit;
+
+import akha.yakhont.demosimple.model.Beer;
+
+import retrofit2.Call;
+import retrofit2.http.GET;
+
+public interface Retrofit2Api {
+
+    @GET("/data")
+    @SuppressWarnings("unused")
+    Call<Beer[]> data();
+}

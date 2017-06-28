@@ -14,4 +14,21 @@
  * limitations under the License.
  */
 
-include ':yakhont', ':yakhont-weaver', ':yakhont-demo', ':yakhont-demo-simple'
+package akha.yakhont.demosimple.model;
+
+import com.google.gson.annotations.SerializedName;
+
+import java.util.Locale;
+
+@SuppressWarnings("unused")
+public class Beer {
+
+    @SerializedName("title")
+    @SuppressWarnings("unused")
+    private String mTitle;
+
+    @Override
+    public String toString() {
+        return String.format(Locale.getDefault(), "title: %s", mTitle);
+    }
+}

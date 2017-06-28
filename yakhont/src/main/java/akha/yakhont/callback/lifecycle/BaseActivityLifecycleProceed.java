@@ -494,7 +494,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      *     public void onCreate() {
      *         super.onCreate();
      *         ...
-     *         Core.run(this);
+     *         Core.init(this);
      *
      *         BaseActivityLifecycleProceed.register(new MyActivityCallbacks());
      *         // OR

@@ -27,6 +27,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.location.LocationCallbacks;
+import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.retrofit.Retrofit;
 import akha.yakhont.technology.retrofit.Retrofit2;
@@ -38,7 +39,7 @@ import akha.yakhont.support.fragment.dialog.ProgressDialogFragment;
 // for using non-support version of library (android.app.Fragment etc.):
 // comment out akha.yakhont.support.fragment.* import above and uncomment one below
 
-// also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont-core' (or 'yakhont-full')
+// also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont' (or 'yakhont-full')
 
 // import akha.yakhont.fragment.dialog.ProgressDialogFragment;
 
@@ -68,7 +69,7 @@ import java.util.Date;
 
 @CallbacksInherited(LocationCallbacks.class)
 public class MainActivity extends /* Activity */ android.support.v7.app.AppCompatActivity
-        implements LocationCallbacks.LocationListener /* optional */ {
+        implements LocationListener /* optional */ {
 
     // well, it's also possible to use all that stuff (1 and 2) simultaneously
     // but I wouldn't like to mess the demo with such kind of extravaganza
@@ -84,7 +85,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        Core.run(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger.create());
+        Core.init(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger.create());
 
         LocationCallbacks.allowAccessToLocation(true);      // suppress confirmation dialog
 
@@ -117,7 +118,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
             public void onClick(View view) {
                 Location location = getLocation();
                 Snackbar.make(view, getString(R.string.location_msg,
-                    location == null ? getString(R.string.location_msg_na): LocationCallbacks.toDms(location)), 
+                    LocationCallbacks.toDms(location, getString(R.string.location_msg_na))),
                     Snackbar.LENGTH_LONG).show();
             }
         });
@@ -181,7 +182,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     @Override
     public void onLocationChanged(Location location, Date date) {
-        Log.d("MainActivity", "onLocationChanged: " + location);
+        Log.w("MainActivity", "onLocationChanged: " + location);
     }
 
     public Retrofit <RetrofitApi>  getRetrofit() {
