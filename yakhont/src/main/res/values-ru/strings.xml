@@ -34,4 +34,12 @@
     <string name="yakhont_location_error"               >Ошибка при определении местоположения</string>
     <string name="yakhont_location_error_connection"    >@string/yakhont_location_error</string>
     <string name="yakhont_location_alert"               >Приложение запрашивает данные о Вашем текущем местоположении.</string>
+
+    <string name="yakhont_location_msg"                 >Местоположение: %s</string>
+    <string name="yakhont_location_msg_na"              >не определено</string>
+
+    <string name="yakhont_location_n"                   >с.ш.</string>
+    <string name="yakhont_location_s"                   >ю.ш.</string>
+    <string name="yakhont_location_w"                   >з.д.</string>
+    <string name="yakhont_location_e"                   >в.д.</string>
 </resources>

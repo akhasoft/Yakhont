@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!-- Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,7 +14,6 @@
      limitations under the License.
 -->
 
-<resources>
-    <string name="app_name"        >Яхонт: демо (упрощенная версия)</string>
-    <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
-</resources>
+<lint>
+    <issue id="IconLauncherShape" severity="ignore" />
+</lint>

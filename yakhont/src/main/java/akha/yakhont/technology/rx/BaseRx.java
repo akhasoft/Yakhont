@@ -18,6 +18,7 @@ package akha.yakhont.technology.rx;
 
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.location.LocationCallbacks;
 
@@ -173,10 +174,25 @@ public abstract class BaseRx<D> {
      * @param throwable
      *        The error
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "ThrowableResultOfMethodCallIgnored"})
     public void onError(final Throwable throwable) {
-        CoreLogger.log("Rx failed", throwable);
-        onResult(null, throwable);
+        CoreLogger.log(throwable == null ? Level.ERROR: Level.DEBUG, "Rx failed", throwable);
+        onResult(null, throwable == null ? getDefaultException(null): throwable);
+    }
+
+    /**
+     * Called by external components to indicate errors.
+     *
+     * @param error
+     *        The error
+     */
+    @SuppressWarnings("WeakerAccess")
+    public void onError(final String error) {
+        onError(getDefaultException(error));
+    }
+
+    private Exception getDefaultException(final String error) {
+        return new Exception(error == null ? "unknown error": error);
     }
 
     private void onResult(final D result, final Throwable throwable) {
@@ -591,6 +607,8 @@ public abstract class BaseRx<D> {
      */
     public static class LoaderRx<R, E, D> extends BaseRx<BaseResponse<R, E, D>> {
 
+        private static final boolean            DEFAULT_MODE_SINGLE = true;
+
         private BaseResponse<R, E, D>           mCached;
 
         /**
@@ -608,7 +626,21 @@ public abstract class BaseRx<D> {
          *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
          */
         public LoaderRx(final boolean isRx2) {
-            this(isRx2 ? new Rx2<BaseResponse<R, E, D>>(): new Rx<BaseResponse<R, E, D>>());
+            this(isRx2, DEFAULT_MODE_SINGLE);
+        }
+
+        /**
+         * Initialises a newly created {@code LoaderRx} object.
+         *
+         * @param isRx2
+         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
+         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         *
+         * @param isSingle
+         *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
+         */
+        public LoaderRx(final boolean isRx2, final boolean isSingle) {
+            this(isRx2 ? new Rx2<BaseResponse<R, E, D>>(): new Rx<BaseResponse<R, E, D>>(), isSingle);
         }
 
         /**
@@ -618,7 +650,7 @@ public abstract class BaseRx<D> {
          *        The {@link CommonRx} to use
          */
         public LoaderRx(final CommonRx<BaseResponse<R, E, D>> commonRx) {
-            this(commonRx, true);
+            this(commonRx, DEFAULT_MODE_SINGLE);
         }
 
         /**

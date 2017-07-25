@@ -13,10 +13,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-
 -allowaccessmodification
 
--keepattributes InnerClasses
+-dontwarn io.reactivex.**
+-dontwarn okhttp3.logging.**
+
+-dontnote rx.schedulers.**
+
+# uncomment if you don't need Location API
+# -dontwarn com.google.android.gms.**
+# -dontnote com.google.android.gms.**
+
 
 -keep class akha.yakhont.demosimple.BuildConfig { *; }
 

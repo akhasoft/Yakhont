@@ -46,6 +46,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.AnyRes;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 
@@ -96,6 +97,7 @@ import java.util.zip.ZipOutputStream;
  * </pre>
  *
  * @see #init(Application)
+ * @see #init(Application, boolean)
  * @see #init(Application, Boolean, Dagger2)
  *
  * @author akha
@@ -119,6 +121,7 @@ public class Core {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public enum RequestCodes {
+        LOCATION_CHECK_SETTINGS,
         LOCATION_CONNECTION_FAILED,
         LOCATION_ALERT,
         LOCATION_CLIENT,
@@ -217,11 +220,12 @@ public class Core {
     public interface Requester<C> {
 
         /**
-         * Starts an asynchronous load.
+         * Starts an asynchronous load (e.g. {@code getApi().data().enqueue(callback)}).
          *
          * @param callback
          *        The callback
          *
+         * @yakhont.see BaseResponseLoaderWrapper#CoreLoad CoreLoad
          * @yakhont.see BaseLoader#makeRequest(C) BaseLoader.makeRequest()
          */
         void makeRequest(C callback);
@@ -283,20 +287,40 @@ public class Core {
     }
 
     /**
+     * Initializes the library.
+     *
+     * @param application
+     *        The Application
+     *
+     * @param useGoogleLocationOldApi
+     *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
+     *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
+     *
+     * @return  {@code true} if library initialization was successful, {@code false} otherwise (library is already activated)
+     */
+    @SuppressWarnings("unused")
+    public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application,
+                               @SuppressWarnings("SameParameterValue")          final boolean     useGoogleLocationOldApi) {
+        return init(application, null, getDefaultDagger(useGoogleLocationOldApi));
+    }
+
+    /**
      * Initializes the library. Usage example:
      *
      * <pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.fragment.dialog.CommonDialogFragment;
+     * import akha.yakhont.location.LocationCallbacks.LocationClient;
      * import akha.yakhont.technology.Dagger2;
      *
      * import dagger.Component;
      * import dagger.Module;
+     * import dagger.Provides;
      *
      * public class MyActivity extends Activity {
      *
      *     &#064;Override
      *     protected void onCreate(Bundle savedInstanceState) {
-     *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
+     *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger.create());
      *
      *         super.onCreate(savedInstanceState);
      *         ...
@@ -304,8 +328,18 @@ public class Core {
      *
      *     // custom progress dialog theme example
      *
-     *     &#064;Component(modules = {Dagger2.LocationModule.class, MyUiModule.class})
+     *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class})
      *     interface MyDagger extends Dagger2 {
+     *     }
+     *
+     *     &#064;Module
+     *     static class MyLocationModule extends Dagger2.LocationModule {
+     *
+     *         &#064;Provides
+     *         LocationClient provideLocationClient() {
+     *             // return null if you don't need location API
+     *             return getLocationClient(false);
+     *         }
      *     }
      *
      *     &#064;Module
@@ -313,7 +347,8 @@ public class Core {
      *
      *         &#064;Override
      *         protected Core.BaseDialog getProgress() {
-     *             return ((CommonDialogFragment) super.getProgress()).setTheme(R.style.MyTheme);
+     *             return ((CommonDialogFragment) super.getProgress())
+     *                 .setTheme(R.style.MyTheme);
      *         }
      *     }
      * }
@@ -353,8 +388,16 @@ public class Core {
 
         registerCallbacks(application);
 
-        sDagger = dagger != null ? dagger: akha.yakhont.technology.DaggerDagger2_DefaultComponent.create();
+        sDagger = dagger != null ? dagger: getDefaultDagger(null);
+
         return true;
+    }
+
+    private static Dagger2 getDefaultDagger(final Boolean useGoogleLocationOldApi) {
+        return akha.yakhont.technology.DaggerDagger2_DefaultComponent
+                .builder()
+                .useGoogleLocationOldApi(useGoogleLocationOldApi == null ? false: useGoogleLocationOldApi)
+                .build();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -591,6 +634,7 @@ public class Core {
     public static class Utils {
 
         /** Not valid resource ID (the value is {@value}). */
+        @AnyRes
         public static final int                         NOT_VALID_RES_ID                = 0;
 
         private static final Handler                    sHandler                        = new Handler(Looper.getMainLooper());

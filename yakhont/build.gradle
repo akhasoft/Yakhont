@@ -111,7 +111,7 @@ dependencies {
 
     compile     "com.android.support:appcompat-v7:${libVerSupport}"         // Google
     compile     "com.android.support:recyclerview-v7:${libVerSupport}"
-    compile     "com.google.android.gms:play-services-location:11.0.1"
+    compile     "com.google.android.gms:play-services-location:11.0.2"
 
     fullCompile "com.android.support:design:${libVerSupport}"
     fullCompile "com.android.support:leanback-v17:${libVerSupport}"

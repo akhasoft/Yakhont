@@ -26,7 +26,8 @@ def getProperty = { String cfgKey, String envKey, String defValue ->
     String cfgProperty = cfgKey != null && project.hasProperty(cfgKey) ? project.property(cfgKey): null
 
     return locProperty != null ? locProperty: cfgProperty != null ? cfgProperty: envProperty != null ? envProperty:
-            defValue != null ? defValue: System.console().readLine('\n' + (envKey != null ? envKey: cfgKey) + ': ')
+            defValue != null ? defValue: System.console().readLine(
+                    System.getProperty('line.separator') + (envKey != null ? envKey: cfgKey) + ': ')
 }
 
 def getPropertyExt = { String key ->

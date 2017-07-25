@@ -34,4 +34,12 @@
     <string name="yakhont_location_error"               >Your location could not be determined</string>
     <string name="yakhont_location_error_connection"    >@string/yakhont_location_error</string>
     <string name="yakhont_location_alert"               >The application is about to use your location.</string>
+
+    <string name="yakhont_location_msg"                 >Location: %s</string>
+    <string name="yakhont_location_msg_na"              >N/A</string>
+
+    <string name="yakhont_location_n"                   >N</string>
+    <string name="yakhont_location_s"                   >S</string>
+    <string name="yakhont_location_w"                   >W</string>
+    <string name="yakhont_location_e"                   >E</string>
 </resources>

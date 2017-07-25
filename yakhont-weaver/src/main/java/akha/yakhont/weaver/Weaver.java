@@ -49,13 +49,16 @@ import javassist.NotFoundException;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class Weaver {
 
-    private static final String COMMENT = "#";
-    private static final String DELIMITER = " ";
-    private static final String EXCEPTION_NAME = "e";
+    private static final String COMMENT             = "#";
+    private static final String DELIMITER           = " ";
+    private static final String EXCEPTION_NAME      = "e";
 
-    private static final String DEF_CONFIG = "weaver.config";
+    private static final String DEF_CONFIG          = "weaver.config";
 
-    private static final Map<String, Map<String, Set<String>>> METHODS_TO_WEAVE = new LinkedHashMap<>();
+    private static final Map<String, Map<String, Set<String>>>
+                                METHODS_TO_WEAVE    = new LinkedHashMap<>();
+
+    private        final String mNewLine;
 
     private enum Actions {
         INSERT_BEFORE,
@@ -71,6 +74,7 @@ public class Weaver {
      * Initialises a newly created {@code Weaver} object.
      */
     public Weaver() {
+        mNewLine = System.getProperty("line.separator");
     }
 
     /**
@@ -125,25 +129,27 @@ public class Weaver {
         mClassPath     = classPath;
         mBootClassPath = bootClassPath;
 
-        log("\nclasspath:");
+        log(mNewLine + "classpath:");
         for (String token : classPath.split(File.pathSeparator)) log(token);
-        log("\nboot classpath:");
+        log(mNewLine + "boot classpath:");
         for (String token : bootClassPath.split(File.pathSeparator)) log(token);
 
-        log("\ncompiled classes dir: " + classesDir + "\n\napplication id: " + applicationId);
+        log(mNewLine + "compiled classes dir: " + classesDir + mNewLine + mNewLine +
+                "application id: " + applicationId);
 
         if (addConfig) parseConfig();
-        if (configFiles != null)
+        if (configFiles != null) {
             //noinspection ForLoopReplaceableByForEach
             for (int i = 0; i < configFiles.length; i++)
                 parseConfig(configFiles[i]);
+        }
         printConfig(METHODS_TO_WEAVE);
 
         searchClasses(new File(classesDir).listFiles());
     }
 
     private void parseConfig() throws IOException, CannotCompileException {
-        log("\n\nconfig file: default");
+        log(mNewLine + mNewLine + "config file: default");
         String line;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(
                 getClass().getClassLoader().getResourceAsStream(DEF_CONFIG)))) {
@@ -155,7 +161,7 @@ public class Weaver {
     private void parseConfig(String configFile) throws IOException, CannotCompileException {
         if (configFile == null) return;
         configFile = configFile.replace("\\", File.separator).replace("/", File.separator);
-        log("\n\nconfig file: " + configFile);
+        log(mNewLine + mNewLine + "config file: " + configFile);
 
         for (String line: Files.readAllLines(Paths.get(configFile), Charset.defaultCharset()))
             parseConfig(line, METHODS_TO_WEAVE);
@@ -218,9 +224,9 @@ public class Weaver {
 
     private void printConfig(Map<String, Map<String, Set<String>>> map) {
         for (String key: map.keySet()) {
-            log("\n--- " + key);
+            log(mNewLine + "--- " + key);
             for (String method: map.get(key).keySet()) {
-                log("\n   " + method);
+                log(mNewLine + "   " + method);
                 for (String methodData: map.get(key).get(method))
                     log("    action: " + getActionDescription(methodData) + ", code: '" + getCode(methodData) + "'");
             }
@@ -279,14 +285,14 @@ public class Weaver {
             if (clsSrc == null) throw new CannotCompileException("error - can not find class: " + className);
 
             if (clsDest.subclassOf(clsSrc)) {
-                log("\n--- class to weaving: " + destClassName + " (based on " + clsSrc.getName() + ")");
+                log(mNewLine + "--- class to weaving: " + destClassName + " (based on " + clsSrc.getName() + ")");
                 for (String methodName: METHODS_TO_WEAVE.get(className).keySet())
                     insertMethods(clsDest, clsSrc, methodName, pool);
             }
         }
         if (!clsDest.isModified()) return;
 
-        log("\nabout to write class " + clsDest.getName() + " to " + rootDir);
+        log(mNewLine + "about to write class " + clsDest.getName() + " to " + rootDir);
         clsDest.writeFile(rootDir.endsWith(File.separator) ? rootDir: rootDir + File.separator);
     }
 
@@ -306,7 +312,7 @@ public class Weaver {
                 }
 
                 if (methodDest != null) {
-                    log("\nmethod " + methodDest.getLongName() + " is already overridden; about to weave, action: " +
+                    log(mNewLine + "method " + methodDest.getLongName() + " is already overridden; about to weave, action: " +
                             getActionDescription(methodData) + ", code: " + getCode(methodData));
 
                     Actions action = getAction(methodData);
@@ -330,7 +336,7 @@ public class Weaver {
                 else {
                     String newMethod = newMethod(methodSrc, methodData, clsDest);
 
-                    log("\nabout to add method " + methodName + "\n method body: " + newMethod);
+                    log(mNewLine + "about to add method " + methodName + mNewLine + " method body: " + newMethod);
                     clsDest.addMethod(CtNewMethod.make(newMethod, clsDest));
                 }
             }

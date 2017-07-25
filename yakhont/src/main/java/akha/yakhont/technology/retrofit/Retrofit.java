@@ -254,6 +254,21 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
         /**
          * Initialises a newly created {@code RetrofitRx} object.
          *
+         * @param isRx2
+         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
+         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         *
+         * @param isSingle
+         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx}
+         *        either emits one value only or an error notification, {@code false} otherwise
+         */
+        public RetrofitRx(final boolean isRx2, final boolean isSingle) {
+            super(isRx2, isSingle);
+        }
+
+        /**
+         * Initialises a newly created {@code RetrofitRx} object.
+         *
          * @param commonRx
          *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
          */

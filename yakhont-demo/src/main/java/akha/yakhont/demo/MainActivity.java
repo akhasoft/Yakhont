@@ -26,7 +26,9 @@ import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.callback.annotation.CallbacksInherited;
+// import akha.yakhont.location.BaseGoogleLocationClient;
 import akha.yakhont.location.LocationCallbacks;
+import akha.yakhont.location.LocationCallbacks.LocationClient;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.retrofit.Retrofit;
@@ -64,6 +66,7 @@ import android.widget.Toast;
 
 import dagger.Component;
 import dagger.Module;
+import dagger.Provides;
 
 import java.util.Date;
 
@@ -71,10 +74,12 @@ import java.util.Date;
 public class MainActivity extends /* Activity */ android.support.v7.app.AppCompatActivity
         implements LocationListener /* optional */ {
 
-    // well, it's also possible to use all that stuff (1 and 2) simultaneously
+    // well, it's also possible to use all that stuff (versions 1 and 2) simultaneously
     // but I wouldn't like to mess the demo with such kind of extravaganza
     private static final boolean            USE_RETROFIT_2                  = true;
     private static final boolean            USE_RX_JAVA_2                   = true;
+
+    private static final boolean            USE_GOOGLE_LOCATION_OLD_API     = false;
 
     private       LocalJsonClient           mJsonClient;
     private       LocalJsonClient2          mJsonClient2;
@@ -112,13 +117,14 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
         initLocationRx();   // optional
 
+        // set location client parameters here (if necessary)
+//      ((BaseGoogleLocationClient) mLocationCallbacks.getLocationClient()).setLocationUpdatesParameters(...);
+
         //noinspection ConstantConditions
         findViewById(R.id.fab_location).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Location location = getLocation();
-                Snackbar.make(view, getString(R.string.location_msg,
-                    LocationCallbacks.toDms(location, getString(R.string.location_msg_na))),
+                Snackbar.make(view, LocationCallbacks.toDms(getLocation(), MainActivity.this),
                     Snackbar.LENGTH_LONG).show();
             }
         });
@@ -139,6 +145,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     /////////// Rx handling (optional)
 
+    @SuppressWarnings("FieldCanBeLocal")
     private       LocationCallbacks         mLocationCallbacks;
     private       LocationRx                mRx;
 
@@ -156,6 +163,11 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
             public void onNext(final Location location) {
                 Log.w("MainActivity", "LocationRx: " + location);
             }
+
+            @Override
+            public void onError(Throwable throwable) {
+                Log.e("MainActivity", "LocationRx: " + throwable);
+            }
         });
 
         // avoids terminating the application by calls to the Rx uncaught exception handler
@@ -163,15 +175,8 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         // it's not advised for intermediate libraries to change the global handlers behavior
         mRx.setErrorHandlerJustLog();
 
-        mLocationCallbacks.register(mRx);
-    }
-
-    @Override
-    protected void onDestroy() {
-        if (mRx                != null) mRx.cleanup();
-        if (mLocationCallbacks != null) mLocationCallbacks.unregister(mRx);
-
-        super.onDestroy();
+        // unsubscribe and unregister goes automatically
+        mLocationCallbacks.register(this, mRx);
     }
 
     private Location getLocation() {
@@ -215,13 +220,19 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     // custom progress dialog (with background image) example (using custom view R.layout.progress)
 
-    @Component(modules = {Dagger2.LocationModule.class, DemoUiModule.class})
-    @SuppressWarnings("unused")
+    @Component(modules = {DemoLocationModule.class, DemoUiModule.class})
     interface DemoDagger extends Dagger2 {
     }
 
     @Module
-    @SuppressWarnings("unused")
+    static class DemoLocationModule extends Dagger2.LocationModule {
+        @Provides
+        LocationClient provideLocationClient() {
+            return getLocationClient(USE_GOOGLE_LOCATION_OLD_API);
+        }
+    }
+
+    @Module
     static class DemoUiModule extends Dagger2.UiModule {
         @Override
         protected Core.BaseDialog getProgress() {

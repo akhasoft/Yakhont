@@ -27,8 +27,5 @@
 
     <string name="db_id">DB ID: %s</string>
 
-    <string name="location_msg">Location: %s</string>
-    <string name="location_msg_na">N/A</string>
-
     <string name="info">The pin-up works are by Valery Barykin</string>
 </resources>

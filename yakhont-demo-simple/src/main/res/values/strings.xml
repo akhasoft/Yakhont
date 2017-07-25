@@ -15,11 +15,6 @@
 -->
 
 <resources>
-    <string name="app_name">Yakhont Simple Demo</string>
-
+    <string name="app_name"        >Yakhont Simple Demo</string>
     <string name="list_title_beers">The Best Belgian Beers</string>
-
-    <string name="location_msg">Location: %s</string>
-    <string name="location_msg_na">N/A</string>
-
 </resources>

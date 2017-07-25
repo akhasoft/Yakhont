@@ -98,6 +98,8 @@ public class Bubbles {
     private static final Handler            sHandler                = new BubblesHandler();
     private static final AtomicBoolean      sIsCancel               = new AtomicBoolean();
 
+    private static final String             sNewLine                = System.getProperty("line.separator");
+
     private Bubbles() {
     }
 
@@ -207,7 +209,7 @@ public class Bubbles {
             setBackgroundDrawable(view, background);
 
         int idx = sFunTextOrder.get() * 2;
-        setText(view, String.format("%s\n%s", sFunText[idx], sFunText[idx + 1]), color);
+        setText(view, String.format("%s%s%s", sFunText[idx], sNewLine, sFunText[idx + 1]), color);
         view.setTypeface (sFunTypefaces.get(sFunTypefacesOrder.get()));
         view.setTextColor(color);
 
@@ -361,7 +363,7 @@ JavaVisitor$DelegatingJavaVisitor.visitMethodInvocation(JavaVisitor.java:1440)<-
         }        
 
         if (spannable == null) {
-            text = text.replace(target, "<b>" + target + "</b>").replace("\n", "<br>");
+            text = text.replace(target, "<b>" + target + "</b>").replace(sNewLine, "<br>");
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 @SuppressLint("InlinedApi") int flags = Html.FROM_HTML_MODE_LEGACY;
                 view.setText(Html.fromHtml(text, flags));

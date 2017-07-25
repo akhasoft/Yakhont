@@ -25,7 +25,10 @@ ones (with one exception - you will need it for lifecycle debug).
 
 The Yakhont AAR is about 250 KB (except the _full_ version, which is about 2 times bigger).
 
-Yakhont supports Android 2.3 and above (_core_ version requires Android 3.0 as a minimum).
+Yakhont supports Android 2.3 (API level 9) and above
+(_core_ version requires Android 3.0 (API level 11) as a minimum).
+
+**Note:** Location API requires Android 4.0 (API level 14).
 
 ## Demo
 

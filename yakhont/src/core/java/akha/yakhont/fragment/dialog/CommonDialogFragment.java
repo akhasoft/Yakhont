@@ -54,7 +54,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
 
     private   static final String       TAG                 = Utils.getTag(CommonDialogFragment.class);
 
-    private static final String         ARG_DIALOG_ERROR    = GoogleLocationClient.TAG + ".dialog_error";
+    private   static final String       ARG_DIALOG_ERROR    = TAG + ".dialog_error";
 
     /** The name of the entry in the bundle from which to retrieve the parent fragment reference. */
     @SuppressWarnings("WeakerAccess")

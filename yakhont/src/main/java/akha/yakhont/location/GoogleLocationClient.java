@@ -26,8 +26,8 @@ import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
 import android.app.Dialog;
-import android.content.IntentSender;
-import android.location.Location;
+import android.content.Intent;
+import android.content.IntentSender.SendIntentException;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 
@@ -39,132 +39,48 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
-import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
-
-import java.util.Date;
 
 import javax.inject.Provider;
 
 /**
- * The client to work with Google Play services location APIs.
+ * The client to work with {@link GoogleApiClient}-based Google Play Services Location API.
  *
  * @author akha
  */
-public class GoogleLocationClient implements LocationClient, ConnectionCallbacks, OnConnectionFailedListener, LocationListener {
+public class GoogleLocationClient extends BaseGoogleLocationClient implements ConnectionCallbacks, OnConnectionFailedListener {
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public  static final String                TAG                                  = Utils.getTag(GoogleLocationClient.class);
+    private static final String                ARG_RESOLVING_ERROR      = TAG + ".resolving_error";
+    private static final String                ARG_SYSTEM_ERROR_DIALOG  = TAG + ".system_error_dialog";
 
-    private static final String                ARG_REQUEST_UPDATES                  = TAG + ".request_updates";
-    private static final String                ARG_LOCATION                         = TAG + ".location";
-    private static final String                ARG_TIME                             = TAG + ".time";
-
-    private static final String                ARG_RESOLVING_ERROR                  = TAG + ".resolving_error";
-
-    // milliseconds
-    private static final int                   UPDATE_INTERVAL_HIGH_ACCURACY        = 10 * 1000;
-    private static final int                   UPDATE_INTERVAL_LOW_ACCURACY         = 60 * 1000;
-
-    private static final int                   REQUEST_CODE                         = Utils.getRequestCode(RequestCodes.LOCATION_CONNECTION_FAILED);
+    private static final int                   REQUEST_CODE             = Utils.getRequestCode(RequestCodes.LOCATION_CONNECTION_FAILED);
 
     private              Provider<BaseDialog>  mToast;
 
-    private              int                   mPriority, mInterval, mFastestInterval;
+    private              boolean               mWasPaused;
 
-    private              boolean               mRequestingLocationUpdates, mWasPaused;
-
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected            LocationCallbacks     mLocationCallbacks;
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected            GoogleApiClient       mClient;
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected            LocationRequest       mLocationRequest;
-
-    private              Location              mCurrentLocation;
-    private              Date                  mLastUpdateTime;
-
-    private              boolean               mResolvingError, mSystemErrorDialog  = true;
-    private   final      Object                mBuildLock                           = new Object();
+    private              boolean               mSystemErrorDialog       = true;
+    private              boolean               mResolvingError;
 
     /**
      * Initialises a newly created {@code GoogleLocationClient} object.
      */
     public GoogleLocationClient() {
+        CoreLogger.logWarning("please consider using new Google Location Services API");
     }
 
     /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public Location getCurrentLocation() {
-        return mCurrentLocation;
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public Date getLastUpdateTime() {
-        return mLastUpdateTime;
-    }
-
-    /**
-     * Sets the requesting location updates parameters.
+     *  Returns the Google Play Services Location API client.
      *
-     * @param requestingLocationUpdates
-     *        {@code true} for requesting location updates, {@code false} otherwise
-     *
-     * @param highAccuracy
-     *        {@code true} for high accuracy location updates, {@code false} otherwise
-     *
-     * @return  This {@code GoogleLocationClient} object, so that setters can be chained
-     */
-    @SuppressWarnings("SameParameterValue")
-    public GoogleLocationClient setRequestingLocationUpdates(final boolean requestingLocationUpdates, final boolean highAccuracy) {
-        mRequestingLocationUpdates  = requestingLocationUpdates;
-
-        mPriority                   = (highAccuracy) ? LocationRequest.PRIORITY_HIGH_ACCURACY: LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY;
-
-        mInterval                   = (highAccuracy) ? UPDATE_INTERVAL_HIGH_ACCURACY:          UPDATE_INTERVAL_LOW_ACCURACY;
-        mFastestInterval            =  mInterval / 2;
-
-        return this;
-     }
-
-    /**
-     * Sets the requesting location updates parameters.
-     *
-     * @param requestingLocationUpdates
-     *        {@code true} for requesting location updates, {@code false} otherwise
-     *
-     * @param priority
-     *        The priority of the request (use {@link LocationRequest} priority constants)
-     *
-     * @param interval
-     *        The desired interval for active location updates, in milliseconds
-     *
-     * @param fastestInterval
-     *        The fastest interval for location updates, in milliseconds
-     *
-     * @return  This {@code GoogleLocationClient} object, so that setters can be chained
+     * @return  This {@code GoogleApiClient}
      */
     @SuppressWarnings("unused")
-    public GoogleLocationClient setRequestingLocationUpdates(final boolean requestingLocationUpdates, final int priority,
-                                                             final int interval, final int fastestInterval) {
-        mRequestingLocationUpdates  = requestingLocationUpdates;
-
-        mPriority                   = priority;
-
-        mInterval                   = interval;
-        mFastestInterval            = fastestInterval;
-
-        return this;
+    public GoogleApiClient getClient() {
+        return mClient;
     }
 
     /**
@@ -182,48 +98,20 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
     }
 
     /**
-     * Please refer to the base method description.
+     * Clears resolving error.
      */
-    public void clearResolvingError() {
+    @SuppressWarnings("WeakerAccess")
+    protected void clearResolvingError() {
         mResolvingError = false;
     }
 
-    private void getFromBundle(final Bundle savedInstanceState) {
-        CoreLogger.log("getFromBundle");
-        if (savedInstanceState == null) return;
-
-        if (savedInstanceState.keySet().contains(ARG_REQUEST_UPDATES))
-            mRequestingLocationUpdates = savedInstanceState.getBoolean(ARG_REQUEST_UPDATES);
-
-        if (savedInstanceState.keySet().contains(ARG_LOCATION))
-            setLocation((Location) savedInstanceState.getParcelable(ARG_LOCATION));
-
-        if (savedInstanceState.keySet().contains(ARG_TIME))
-            mLastUpdateTime = (Date) savedInstanceState.getSerializable(ARG_TIME);
-
-        if (savedInstanceState.keySet().contains(ARG_RESOLVING_ERROR))
-            mResolvingError = savedInstanceState.getBoolean(ARG_RESOLVING_ERROR);
-    }
-
     /**
-     * Please refer to the base method description.
+     * Connects the client.
      */
-    @Override
-    public void onSaveInstanceState(Activity activity, Bundle savedInstanceState) {
-        savedInstanceState.putBoolean     (ARG_REQUEST_UPDATES, mRequestingLocationUpdates);
-        savedInstanceState.putParcelable  (ARG_LOCATION,        mCurrentLocation          );
-        savedInstanceState.putSerializable(ARG_TIME,            mLastUpdateTime           );
-        savedInstanceState.putBoolean     (ARG_RESOLVING_ERROR, mResolvingError           );
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public void connect() {
+    @SuppressWarnings("WeakerAccess")
+    protected void connect() {
         CoreLogger.log("connect: isConnecting() " + mClient.isConnecting() + ", isConnected() " + mClient.isConnected() +
                 ", mResolvingError " + mResolvingError);
-
         if (!mResolvingError && !mClient.isConnecting() && !mClient.isConnected()) mClient.connect();
     }
 
@@ -231,17 +119,36 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
      * Please refer to the base method description.
      */
     @Override
-    public void onCreate(Activity activity, Bundle savedInstanceState, LocationCallbacks locationCallbacks) {
+    public void onSaveInstanceState(Activity activity, Bundle savedInstanceState) {
+        super.onSaveInstanceState(activity, savedInstanceState);
 
+        savedInstanceState.putBoolean(ARG_RESOLVING_ERROR    , mResolvingError   );
+        savedInstanceState.putBoolean(ARG_SYSTEM_ERROR_DIALOG, mSystemErrorDialog);
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    protected void getFromBundle(final Bundle savedInstanceState) {
+        super.getFromBundle(savedInstanceState);
+        if (savedInstanceState == null) return;
+
+        if (savedInstanceState.keySet().contains              (ARG_RESOLVING_ERROR    ))
+            mResolvingError    = savedInstanceState.getBoolean(ARG_RESOLVING_ERROR    );
+        if (savedInstanceState.keySet().contains              (ARG_SYSTEM_ERROR_DIALOG))
+            mSystemErrorDialog = savedInstanceState.getBoolean(ARG_SYSTEM_ERROR_DIALOG);
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public void onCreate(Activity activity, Bundle savedInstanceState) {
         mWasPaused = false;
-
-        getFromBundle(savedInstanceState);
-
-        mLocationCallbacks = locationCallbacks;
-
         if (mToast == null) mToast = Core.getDagger().getToastLong();
 
-        buildClient(activity);
+        super.onCreate(activity, savedInstanceState);
     }
 
     /**
@@ -257,7 +164,7 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
      */
     @Override
     public void onResume(Activity activity) {
-        if (mWasPaused && mClient.isConnected() && mRequestingLocationUpdates) startLocationUpdates(activity);
+        if (mWasPaused && mClient.isConnected()) startLocationUpdates(activity);
     }
 
     /**
@@ -268,7 +175,7 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
         mWasPaused = true;
 
         // Stop location updates to save battery, but don't disconnect the GoogleApiClient object.
-        if (mClient.isConnected()) stopLocationUpdates();
+        if (mClient.isConnected()) stopLocationUpdates(activity);
     }
 
     /**
@@ -282,35 +189,29 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
     /**
      * Please refer to the base method description.
      */
-    @Override
-    public void onDestroy(Activity activity) {
-    }
-
-    /**
-     * Starts location updates.
-     *
-     * @param activity
-     *        The Activity
-     */
     @SuppressWarnings("WeakerAccess")
-    protected void startLocationUpdates(final Activity activity) {
-        CoreLogger.log("startLocationUpdates, LocationRequest: " + mLocationRequest);
+    @Override
+    protected void requestLocationUpdates(@NonNull final Activity        activity,
+                                          @NonNull final LocationRequest locationRequest) {
+        super.requestLocationUpdates(activity, locationRequest);
 
         final PendingResult<Status> result = LocationServices.FusedLocationApi.requestLocationUpdates(
-                mClient, mLocationRequest, this, activity == null ? null: activity.getMainLooper());
+                mClient, locationRequest, this, activity.getMainLooper());
 
-        handleStatusResult("startLocationUpdates", result);
+        handleStatusResult("requestLocationUpdates", result);
     }
 
     /**
-     * Stops location updates.
+     * Please refer to the base method description.
      */
     @SuppressWarnings("WeakerAccess")
-    protected void stopLocationUpdates() {
-        CoreLogger.log("stopLocationUpdates");
+    @Override
+    protected void stopLocationUpdates(final Activity activity) {
+        super.stopLocationUpdates(activity);
 
         final PendingResult<Status> result = LocationServices.FusedLocationApi.removeLocationUpdates(
                 mClient, this);
+
         handleStatusResult("stopLocationUpdates", result);
     }
 
@@ -330,43 +231,12 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
      * Please refer to the base method description.
      */
     @Override
-    public void onLocationChanged(Location location) {
-        setLocation(location);
-        mLastUpdateTime  = lastUpdateTime();
-
-        mLocationCallbacks.onLocationChanged(location, mLastUpdateTime);
-    }
-
-    private void setLocation(final Location location) {
-        CoreLogger.log("new location: " + location);
-
-        mCurrentLocation = location;
-    }
-
-    private Date lastUpdateTime() {
-        return new Date();
-    }
-
-    private void buildClient(@NonNull final Activity activity) {
-        CoreLogger.log("buildClient");
-
-        synchronized (mBuildLock) {
-            mClient = new GoogleApiClient.Builder(activity)
-                    .addConnectionCallbacks(this)
-                    .addOnConnectionFailedListener(this)
-                    .addApi(LocationServices.API)
-                    .build();
-
-            newLocationRequest();
-        }
-    }
-
-    private void newLocationRequest() {
-        mLocationRequest = new LocationRequest();
-
-        mLocationRequest.setInterval       (mInterval       );
-        mLocationRequest.setFastestInterval(mFastestInterval);
-        mLocationRequest.setPriority       (mPriority       );
+    protected void buildClient(@NonNull final Activity activity) {
+        mClient = new GoogleApiClient.Builder(activity)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .addApi(LocationServices.API)
+                .build();
     }
 
     /**
@@ -374,11 +244,10 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
      */
     @Override
     public void onConnected(Bundle connectionHint) {
-        CoreLogger.log("onConnected, mRequestingLocationUpdates: " + mRequestingLocationUpdates);
-
+        CoreLogger.log("onConnected");
         onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));
 
-        if (mRequestingLocationUpdates) startLocationUpdates(LocationCallbacks.getActivity());
+        startLocationUpdates(LocationCallbacks.getActivity());
     }
 
     /**
@@ -390,7 +259,6 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
 
         // The connection has been interrupted.
         // Disable any UI components that depend on Google APIs until onConnected() is called.
-
         clearResolvingError();
 
         connect();  // TODO: 11.09.2015
@@ -401,10 +269,15 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
      */
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult result) {
+        if (!onConnectionFailedHelper(result))
+            mLocationCallbacks.onLocationError(result.toString());
+    }
+
+    private boolean onConnectionFailedHelper(@NonNull ConnectionResult result) {
         CoreLogger.log("connection failed: error code " + result.getErrorCode() + ", result: " + result +
                 ", resolving error: " + mResolvingError + ", system error dialog: " + mSystemErrorDialog);
 
-        if (mResolvingError) return;
+        if (mResolvingError) return true;
 
         mResolvingError = true;
 
@@ -418,33 +291,57 @@ public class GoogleLocationClient implements LocationClient, ConnectionCallbacks
                         akha.yakhont.R.string.yakhont_location_error_connection));
 
                 clearResolvingError();
-                return;
+                return false;
             }
 
             if (activity != null) SupportHelper.showLocationErrorDialog(activity, result.getErrorCode());
-            return;
+            return false;
         }
 
         if (activity == null) {
             CoreLogger.logError("no startResolutionForResult");
-            return;
+            return false;
         }
 
         try {
             result.startResolutionForResult(activity, REQUEST_CODE);
         }
-        catch (IntentSender.SendIntentException e) {
+        catch (SendIntentException e) {
             CoreLogger.log("failed", e);
-
             clearResolvingError();
-
             connect();
         }
+        return true;
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static Dialog getErrorDialog(@NonNull final Activity activity,
-                                        final int errorCode, @SuppressWarnings("SameParameterValue") final int requestCode) {
+    public static Dialog getErrorDialog(@NonNull final Activity activity, final int errorCode,
+                                        @SuppressWarnings("SameParameterValue") final int requestCode) {
         return GoogleApiAvailability.getInstance().getErrorDialog(activity, errorCode, requestCode);
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public boolean onActivityResult(Activity activity, RequestCodes requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case LOCATION_CONNECTION_FAILED:
+                clearResolvingError();
+
+                if (resultCode == Activity.RESULT_OK)
+                    connect();
+                else
+                    CoreLogger.logWarning("unknown result code " + resultCode);
+                break;
+
+            case LOCATION_CLIENT:
+                clearResolvingError();
+                break;
+
+            default:
+                return false;
+        }
+        return true;
     }
 }

@@ -132,8 +132,6 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         mCoreLoad.setGoBackOnLoadingCanceled(!byUserRequest);
 
-        subscribeRx();      // optional
-
         mCoreLoad.startLoading(byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
             !byUserRequest, mCheckBoxMerge.isChecked(), false);
     }
@@ -193,39 +191,49 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     private RetrofitRx <Beer[]>         mRxRetrofit;
     private Retrofit2Rx<Beer[]>         mRxRetrofit2;
 
+    // unsubscribe goes automatically
+    @SuppressWarnings("ConstantConditions")
     private void initRx() {
-        if (getMainActivity().isRetrofit2())
-            mRxRetrofit2 = new Retrofit2Rx<>(getMainActivity().isRxJava2());
-        else
-            mRxRetrofit  = new RetrofitRx <>(getMainActivity().isRxJava2());
-    }
+        boolean singleRx = false;     // don't change
 
-    private void subscribeRx() {
-        unsubscribeRx();
+        if (getMainActivity().isRetrofit2()) {
+            mRxRetrofit2 = new Retrofit2Rx<>(getMainActivity().isRxJava2(), singleRx);
 
-        if (getMainActivity().isRetrofit2())
             mRxRetrofit2.subscribeSimple(new SubscriberRx<Beer[]>() {
                 @Override
-                public void onNext(final Beer[] data) {
+                public void onNext(Beer[] data) {
                     logRx("Retrofit2", data);
                 }
-            });
-        else
-            mRxRetrofit.subscribeSimple(new SubscriberRx<Beer[]>() {
+
                 @Override
-                public void onNext(final Beer[] data) {
-                    logRx("Retrofit", data);
+                public void onError(Throwable throwable) {
+                    logRx("Retrofit2", throwable);
                 }
             });
+        }
+        else {
+            mRxRetrofit = new RetrofitRx<>(getMainActivity().isRxJava2(), singleRx);
+
+            mRxRetrofit.subscribeSimple(new SubscriberRx<Beer[]>() {
+                @Override
+                public void onNext(Beer[] data) {
+                    logRx("Retrofit", data);
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    logRx("Retrofit", throwable);
+                }
+            });
+        }
     }
 
     private void logRx(String info, Beer[] data) {
         Log.w("MainFragment", "LoaderRx (" + info + "): onNext, data == " + Arrays.deepToString(data));
     }
 
-    private void unsubscribeRx() {
-        if (mRxRetrofit  != null) mRxRetrofit .cleanup();
-        if (mRxRetrofit2 != null) mRxRetrofit2.cleanup();
+    private void logRx(String info, Throwable throwable) {
+        Log.e("MainFragment", "LoaderRx (" + info + "): onError, error == " + throwable);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -255,12 +263,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     private void registerSwipeRefresh() {
         SwipeRefreshWrapper.register(MainFragment.this, new FragmentData(
-                MainFragment.this, R.id.swipeContainer, mCheckBoxForce.isChecked(), mCheckBoxMerge.isChecked(), new Runnable() {
-                    @Override
-                    public void run() {
-                        subscribeRx();
-                    }
-                }));
+                MainFragment.this, R.id.swipeContainer, mCheckBoxForce.isChecked(), mCheckBoxMerge.isChecked(), null));
     }
 
     // just a boilerplate code here
@@ -309,8 +312,6 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     public void onDestroyView() {
         mSlideShow.cleanUp();
         Bubbles.cleanUp();
-
-        unsubscribeRx();
 
         super.onDestroyView();
     }

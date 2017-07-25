@@ -53,7 +53,6 @@ public class MainActivity extends Activity implements LocationListener {
 
     @Override
     public void onLocationChanged(Location location, Date date) {
-        ((TextView) findViewById(R.id.location)).setText(getString(R.string.location_msg,
-                LocationCallbacks.toDms(location, getString(R.string.location_msg_na))));
+        ((TextView) findViewById(R.id.location)).setText(LocationCallbacks.toDms(location, this));
     }
 }

@@ -886,6 +886,16 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             return mDataBinder.bind(position, getItem(position),
                     convertView == null ? mViewInflater.inflate(parent): convertView);
         }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public String[] getFrom() {
+            return mDataBinder.mFrom;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public int[] getTo() {
+            return mDataBinder.mTo;
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

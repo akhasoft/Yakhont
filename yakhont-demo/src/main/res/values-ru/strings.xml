@@ -27,8 +27,5 @@
 
     <string name="db_id">DB ID: %s</string>
 
-    <string name="location_msg">Местоположение: %s</string>
-    <string name="location_msg_na">не определено</string>
-
     <string name="info">В оформлении использованы работы художника Валерия Барыкина</string>
 </resources>

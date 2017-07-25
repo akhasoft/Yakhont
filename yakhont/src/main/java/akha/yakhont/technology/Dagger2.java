@@ -22,6 +22,7 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.location.GoogleLocationClient;
+import akha.yakhont.location.GoogleLocationClientNew;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
@@ -29,7 +30,9 @@ import android.content.Context;
 import android.support.annotation.StringRes;
 import android.widget.Toast;
 
+import dagger.BindsInstance;
 import dagger.Component;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 
@@ -44,15 +47,23 @@ import javax.inject.Provider;
  * <p><pre style="background-color: silver; border: thin solid black;">
  * import akha.yakhont.Core;
  * import akha.yakhont.fragment.dialog.ProgressDialogFragment;
+ * import akha.yakhont.fragment.dialog.ProgressDialogFragment.ProgressLoaderDialogFragment;
+ * import akha.yakhont.location.LocationCallbacks.LocationClient;
  *
+ * import dagger.BindsInstance;
  * import dagger.Component;
  * import dagger.Module;
+ * import dagger.Provides;
  *
  * public class MyActivity extends Activity {
  *
  *     &#064;Override
  *     protected void onCreate(Bundle savedInstanceState) {
- *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
+ *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger
+ *             .builder()
+ *             .useGoogleLocationOldApi(false)
+ *             .build()
+ *         );
  *
  *         super.onCreate(savedInstanceState);
  *         ...
@@ -60,8 +71,24 @@ import javax.inject.Provider;
  *
  *     // custom progress dialog example (with custom view R.layout.progress)
  *
- *     &#064;Component(modules = {Dagger2.LocationModule.class, MyUiModule.class})
+ *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class})
  *     interface MyDagger extends Dagger2 {
+ *
+ *         &#064;Component.Builder
+ *         interface Builder {
+ *             &#064;BindsInstance
+ *             Builder useGoogleLocationOldApi(boolean useGoogleLocationOldApi);
+ *             MyDagger build();
+ *         }
+ *     }
+ *
+ *     &#064;Module
+ *     static class MyLocationModule extends Dagger2.LocationModule {
+ *
+ *         &#064;Provides
+ *         LocationClient provideLocationClient(boolean useGoogleLocationOldApi) {
+ *             return getLocationClient(useGoogleLocationOldApi);
+ *         }
  *     }
  *
  *     &#064;Module
@@ -73,7 +100,7 @@ import javax.inject.Provider;
  *         }
  *     }
  *
- *     public static class MyProgress extends ProgressDialogFragment.ProgressLoaderDialogFragment {
+ *     public static class MyProgress extends ProgressLoaderDialogFragment {
  *
  *         &#064;Override
  *         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -87,7 +114,8 @@ import javax.inject.Provider;
  *         }
  *
  *         public static MyProgress newInstance() {
- *             return (MyProgress) ProgressDialogFragment.newInstance(null, new MyProgress());
+ *             return (MyProgress) ProgressDialogFragment.newInstance(
+ *                 null, new MyProgress());
  *         }
  *     }
  * }
@@ -108,31 +136,35 @@ public interface Dagger2 {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_TOAST_LENGTH_SHORT           = "toast_short";
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Named(UI_ALERT_LOCATION)       Provider<BaseDialog>        getAlertLocation();
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Named(UI_ALERT_PROGRESS)       Provider<BaseDialog>        getAlertProgress();
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Named(UI_PROGRESS)             Provider<BaseDialog>        getProgress();
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Named(UI_TOAST_LENGTH_LONG)    Provider<BaseDialog>        getToastLong();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    @Named(UI_TOAST_LENGTH_SHORT)   Provider<BaseDialog>        getToastShort();
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     @Component(modules = {LocationModule.class, UiModule.class})
     interface DefaultComponent extends Dagger2 {
+        @Component.Builder
+        interface Builder {
+            @BindsInstance
+            Builder useGoogleLocationOldApi(boolean useGoogleLocationOldApi);
+            DefaultComponent build();
+        }
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    LocationClient getLocationClient();
-
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_ALERT_LOCATION)       Provider<BaseDialog> getAlertLocation();   
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_ALERT_PROGRESS)       Provider<BaseDialog> getAlertProgress();   
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_PROGRESS)             Provider<BaseDialog> getProgress();
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_TOAST_LENGTH_LONG)    Provider<BaseDialog> getToastLong(); 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    @Named(UI_TOAST_LENGTH_SHORT)   Provider<BaseDialog> getToastShort();
+    Lazy<LocationClient> getLocationClient();
 
     /**
      * The location client component.
      */
     @Module
-    @SuppressWarnings("unused")
     class LocationModule {
 
         /**
@@ -141,20 +173,24 @@ public interface Dagger2 {
         public LocationModule() {
         }
 
-        /** @exclude */
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides
-        @SuppressWarnings({"JavaDoc", "unused"})
-        public LocationClient provideLocationClient() {
-            return getLocationClient();
+        LocationClient provideLocationClient(boolean useGoogleLocationOldApi) {
+            return getLocationClient(useGoogleLocationOldApi);
         }
 
         /**
          * Creates new instance of the location client.
          *
+         * @param oldApi
+         *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
+         *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
+         *
          * @return  The location client
          */
-        protected LocationClient getLocationClient() {
-            return new GoogleLocationClient().setRequestingLocationUpdates(true, false);
+        @SuppressWarnings("WeakerAccess")
+        protected LocationClient getLocationClient(final boolean oldApi) {
+            return oldApi ? new GoogleLocationClient(): new GoogleLocationClientNew();
         }
     }
 
@@ -171,16 +207,14 @@ public interface Dagger2 {
         public UiModule() {
         }
 
-        /** @exclude */
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_LOCATION)
-        @SuppressWarnings({"JavaDoc", "unused"})
         public BaseDialog provideLocationAlert() {
             return getAlert(akha.yakhont.R.string.yakhont_location_alert, Utils.getRequestCode(RequestCodes.LOCATION_ALERT), false);
         }
 
-        /** @exclude */
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PROGRESS)
-        @SuppressWarnings({"JavaDoc", "unused"})
         public BaseDialog provideProgressAlert() {
             return getAlert(akha.yakhont.R.string.yakhont_loader_alert,   Utils.getRequestCode(RequestCodes.PROGRESS_ALERT),  true);
         }
@@ -203,9 +237,8 @@ public interface Dagger2 {
             return SupportHelper.getAlert(resId, requestCode, yesNo);
         }
 
-        /** @exclude */
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_PROGRESS)
-        @SuppressWarnings({"JavaDoc", "unused"})
         public BaseDialog provideProgress() {
             return getProgress();
         }
@@ -219,16 +252,14 @@ public interface Dagger2 {
             return SupportHelper.getProgress();
         }
 
-        /** @exclude */
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_LONG)
-        @SuppressWarnings({"JavaDoc", "unused"})
         public BaseDialog provideLongToast() {
             return getToast(true);
         }
 
-        /** @exclude */
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_SHORT)
-        @SuppressWarnings({"JavaDoc", "unused"})
         public BaseDialog provideShortToast() {
             return getToast(false);
         }
@@ -239,24 +270,36 @@ public interface Dagger2 {
          *
          * <pre style="background-color: silver; border: thin solid black;">
          * import akha.yakhont.Core;
+         * import akha.yakhont.location.LocationCallbacks.LocationClient;
          *
          * import android.support.design.widget.Snackbar;
          *
          * import dagger.Component;
          * import dagger.Module;
+         * import dagger.Provides;
          *
          * public class MyActivity extends Activity {
          *
          *     &#064;Override
          *     protected void onCreate(Bundle savedInstanceState) {
-         *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger.create());
+         *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger.create());
          *
          *         super.onCreate(savedInstanceState);
          *         ...
          *     }
          *
-         *     &#064;Component(modules = {Dagger2.LocationModule.class, MyUiModule.class})
+         *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class})
          *     interface MyDagger extends Dagger2 {
+         *     }
+         *
+         *     &#064;Module
+         *     static class MyLocationModule extends Dagger2.LocationModule {
+         *
+         *         &#064;Provides
+         *         LocationClient provideLocationClient() {
+         *             // return null if you don't need location API
+         *             return getLocationClient(false);
+         *         }
          *     }
          *
          *     &#064;Module
@@ -279,7 +322,8 @@ public interface Dagger2 {
          *         &#064;Override
          *         public boolean start(Context context, String text) {
          *             Snackbar.make(getMyView((Activity) context), text,
-         *                     mDurationLong ? Snackbar.LENGTH_LONG: Snackbar.LENGTH_SHORT).show();
+         *                     mDurationLong ? Snackbar.LENGTH_LONG: Snackbar.LENGTH_SHORT)
+         *                     .show();
          *             return true;
          *         }
          *

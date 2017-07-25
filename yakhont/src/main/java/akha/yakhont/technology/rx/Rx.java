@@ -262,9 +262,10 @@ public class Rx<D> extends CommonRx<D> {
      *
      * @return  The converted subscriber
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "unchecked"})
     public SafeSubscriber<? super D> getSafeSubscriber(final Subscriber<? super D> subscriber) {
-        return new SafeSubscriber<>(subscriber);
+        return subscriber instanceof SafeSubscriber ?
+                (SafeSubscriber<D>) subscriber: new SafeSubscriber<>(subscriber);
     }
 
     /**
