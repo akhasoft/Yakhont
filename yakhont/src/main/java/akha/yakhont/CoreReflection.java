@@ -145,7 +145,7 @@ public class CoreReflection {
         try {
             return method.invoke(object, args);
         }
-        catch (IllegalAccessException    e) {          // should never happen
+        catch (IllegalAccessException e) {          // should never happen
             CoreLogger.log(method.getName(), e);
         }
         finally {

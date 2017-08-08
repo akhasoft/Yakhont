@@ -412,7 +412,7 @@ public final class CorePermissions implements ConfigurationChangedListener {
 
     @SuppressWarnings("unchecked")
     private static Set<Integer> getIdsHelper(@NonNull final View view) {
-        return (Set<Integer>) view.getTag(akha.yakhont.R.id.yakhont_permissions_object_ids);
+        return (Set<Integer>) view.getTag(akha.yakhont.R.id.yakhont_permissions_view_ids);
     }
 
     private static void runOnGranted(final Runnable callback) {
@@ -626,7 +626,7 @@ public final class CorePermissions implements ConfigurationChangedListener {
             final View baseView = Utils.getView(activity);
             if (!checkView(baseView)) return false;
 
-            final int key = akha.yakhont.R.id.yakhont_permissions_object_ids;
+            final int key = akha.yakhont.R.id.yakhont_permissions_view_ids;
             if (baseView.getTag(key) == null) baseView.setTag(key, Utils.<Integer>newSet());
 
             final Set<Integer> viewIds = getIds(activity);
