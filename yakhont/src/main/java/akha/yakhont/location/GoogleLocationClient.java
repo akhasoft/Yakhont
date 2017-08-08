@@ -84,7 +84,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     }
 
     /**
-     * Sets the "show system error dialog" flag.
+     * Sets the "show system error dialog" flag. The default value is {@code true}.
      *
      * @param systemErrorDialog
      *        {@code true} to display system error dialog, {@code false} otherwise
@@ -195,10 +195,14 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
                                           @NonNull final LocationRequest locationRequest) {
         super.requestLocationUpdates(activity, locationRequest);
 
-        final PendingResult<Status> result = LocationServices.FusedLocationApi.requestLocationUpdates(
-                mClient, locationRequest, this, activity.getMainLooper());
-
-        handleStatusResult("requestLocationUpdates", result);
+        try {
+            final PendingResult<Status> result = LocationServices.FusedLocationApi.requestLocationUpdates(
+                    mClient, locationRequest, this, activity.getMainLooper());
+            handleStatusResult("requestLocationUpdates", result);
+        }
+        catch (SecurityException exception) {   // should never happen
+            CoreLogger.log("failed", exception);
+        }
     }
 
     /**
@@ -245,7 +249,12 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     @Override
     public void onConnected(Bundle connectionHint) {
         CoreLogger.log("onConnected");
-        onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));
+        try {
+            onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));
+        }
+        catch (SecurityException exception) {   // should never happen
+            CoreLogger.log("failed", exception);
+        }
 
         startLocationUpdates(LocationCallbacks.getActivity());
     }
@@ -288,7 +297,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         if (!result.hasResolution()) {
             if (!mSystemErrorDialog) {
                 if (activity != null) mToast.get().start(activity, activity.getString(
-                        akha.yakhont.R.string.yakhont_location_error_connection));
+                        akha.yakhont.R.string.yakhont_location_error_connection), null);
 
                 clearResolvingError();
                 return false;

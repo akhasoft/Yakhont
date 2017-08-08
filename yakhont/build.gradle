@@ -57,7 +57,7 @@ android {
     defaultConfig {
         minSdkVersion            9
         //noinspection OldTargetApi
-        targetSdkVersion        21
+        targetSdkVersion        23      // for lower values permissions dialogs will not be shown
         versionCode        verCode
         versionName        verName
     }
@@ -111,7 +111,7 @@ dependencies {
 
     compile     "com.android.support:appcompat-v7:${libVerSupport}"         // Google
     compile     "com.android.support:recyclerview-v7:${libVerSupport}"
-    compile     "com.google.android.gms:play-services-location:11.0.2"
+    compile     "com.google.android.gms:play-services-location:11.0.4"
 
     fullCompile "com.android.support:design:${libVerSupport}"
     fullCompile "com.android.support:leanback-v17:${libVerSupport}"

@@ -795,7 +795,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             if (fragment == null)
                 CoreLogger.logError("fragment == null");
             else
-                mToast.get().start(fragment.getActivity(), text);
+                mToast.get().start(fragment.getActivity(), text, null);
         }
     }
 
@@ -816,7 +816,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     public static class CoreLoadBuilder<R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final Fragment                        mFragment;
+        protected final WeakReference<Fragment>         mFragment;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected LoaderRx<R, E, D>                     mRx;
 
@@ -832,10 +832,10 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @IdRes
-        protected int                                   mListViewId     = View.NO_ID;
+        protected int                                   mListViewId     = Core.NOT_VALID_VIEW_ID;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @LayoutRes
-        protected int                                   mLayoutItemId   = Utils.NOT_VALID_RES_ID;
+        protected int                                   mLayoutItemId   = Core.NOT_VALID_RES_ID;
 
         /**
          * Initialises a newly created {@code CoreLoadBuilder} object.
@@ -845,7 +845,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @SuppressWarnings("unused")
         public CoreLoadBuilder(@NonNull final Fragment fragment) {
-            mFragment = fragment;
+            mFragment = new WeakReference<>(fragment);
         }
 /*
         / @exclude / @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -983,11 +983,11 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         private int getItemLayout(@NonNull final Resources resources, @NonNull final View list,
                                   @NonNull final String defType, @NonNull final String defPackage) {
 
-            final String name = list.getId() != View.NO_ID ? resources.getResourceEntryName(list.getId()):
+            final String name = list.getId() != Core.NOT_VALID_VIEW_ID ? resources.getResourceEntryName(list.getId()):
                     list instanceof RecyclerView ? "recycler": list instanceof GridView ? "grid": "list";
 
             @LayoutRes final int id = resources.getIdentifier(name + "_item", defType, defPackage);
-            return id != Utils.NOT_VALID_RES_ID ? id: resources.getIdentifier(name, defType, defPackage);
+            return id != Core.NOT_VALID_RES_ID ? id: resources.getIdentifier(name, defType, defPackage);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters"})
@@ -1006,16 +1006,22 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 return null;
             }
 
-            final CoreLoad coreLoad = getCoreLoad(mFragment);
+            final Fragment fragment = mFragment.get();
+            if (fragment == null) {
+                CoreLogger.logError("The fragment is null");
+                return null;
+            }
+
+            final CoreLoad coreLoad = getCoreLoad(fragment);
             if (coreLoad == null) return null;
 
-            final View root = mFragment.getView();
+            final View root = fragment.getView();
             if (root == null) {
                 CoreLogger.logError("The fragment's root view is null");
                 return null;
             }
 
-            final View list = mListViewId == View.NO_ID ?
+            final View list = mListViewId == Core.NOT_VALID_VIEW_ID ?
                     BaseCacheAdapter.findListView(root): root.findViewById(mListViewId);
             if (list == null) {
                 CoreLogger.logError("view with id " + mListViewId + " was not found");
@@ -1024,11 +1030,11 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
             @LayoutRes
             int itemId = mLayoutItemId;
-            if (itemId == Utils.NOT_VALID_RES_ID)
-                itemId = getItemLayout(mFragment.getResources(), list, "layout", mFragment.getActivity().getPackageName());
+            if (itemId == Core.NOT_VALID_RES_ID)
+                itemId = getItemLayout(fragment.getResources(), list, "layout", fragment.getActivity().getPackageName());
 
-            CoreLogger.log(itemId == Utils.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list item ID: " + itemId);
-            if (itemId == Utils.NOT_VALID_RES_ID) return null;
+            CoreLogger.log(itemId == Core.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list item ID: " + itemId);
+            if (itemId == Core.NOT_VALID_RES_ID) return null;
 
             customizeAdapterWrapper(coreLoad, root, list, itemId);
             if (mAdapterWrapper == null) {
@@ -1100,7 +1106,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         protected String                                mDescription;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @StringRes
-        protected int                                   mDescriptionId  = Utils.NOT_VALID_RES_ID;
+        protected int                                   mDescriptionId  = Core.NOT_VALID_RES_ID;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Requester<C>                          mDefaultRequester;
@@ -1241,6 +1247,12 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected CoreLoad create(BaseResponseLoaderBuilder<C, R, E, D> builder) {
+            final Fragment fragment = mFragment.get();
+            if (fragment == null) {
+                CoreLogger.logError("The fragment is null");
+                return null;
+            }
+
             if (mLoaderBuilder != null) {
                 CoreLogger.logWarning("The loader builder is already set");
                 builder = getBuilder();
@@ -1250,7 +1262,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
             if (builder == null) return super.create();
 
-            if (mDescriptionId != Utils.NOT_VALID_RES_ID && mDescription != null)
+            if (mDescriptionId != Core.NOT_VALID_RES_ID && mDescription != null)
                 CoreLogger.logWarning("Both description and description ID was set; description ID will be ignored");
 
             mDefaultRequester = builder.getDefaultRequester();
@@ -1259,7 +1271,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
             if (mLoaderCallback != null)                        builder.setLoaderCallback(mLoaderCallback);
             if (mDescription    != null)                        builder.setDescription   (mDescription);
-            else if (mDescriptionId != Utils.NOT_VALID_RES_ID)  builder.setDescription   (mFragment.getString(mDescriptionId));
+            else if (mDescriptionId != Core.NOT_VALID_RES_ID)   builder.setDescription   (fragment.getString(mDescriptionId));
 
             return super.create();
         }

@@ -36,7 +36,7 @@ public class LocalJsonClientHelper {
 
     private final Context   mContext;
     private String          mScenario;
-    private int             mDelay;
+    private int             mEmulatedNetworkDelay;
 
     public LocalJsonClientHelper(Context context) {
         mContext = context;
@@ -46,8 +46,8 @@ public class LocalJsonClientHelper {
         mScenario = scenario;
     }
 
-    public void setDelay(int delay) {
-        mDelay = delay;
+    public void setEmulatedNetworkDelay(int delay) {
+        mEmulatedNetworkDelay = delay;
     }
 
     public Data execute(String url, String method) throws IOException {
@@ -71,7 +71,7 @@ public class LocalJsonClientHelper {
         String mimeType = URLConnection.guessContentTypeFromStream(inputStream);
         if (mimeType == null) mimeType = "application/json";
 
-        if (mDelay > 0) SystemClock.sleep(mDelay);
+        if (mEmulatedNetworkDelay > 0) SystemClock.sleep(mEmulatedNetworkDelay);
 
         return new Data(mimeType, "Content from res/raw/" + fileName, inputStream);
     }

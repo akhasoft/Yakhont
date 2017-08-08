@@ -21,7 +21,7 @@ import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 
 import android.app.Activity;
-import android.content.Context;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -36,7 +36,7 @@ public class SupportHelper {                    // full
     private SupportHelper() {
     }
     
-    public static boolean isSupportMode(final Context context) {
+    public static boolean isSupportMode(final Activity context) {
         return context instanceof FragmentActivity;
     }
     
@@ -66,7 +66,8 @@ public class SupportHelper {                    // full
             akha.yakhont    .loader.BaseLoader.enableLoaderManagerDebugLogging(enable);
     }
     
-    public static BaseCursorAdapter getBaseCursorAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+    public static BaseCursorAdapter getBaseCursorAdapter(@NonNull final Activity context,
+                                                         @LayoutRes final int layoutId,
                                                          @NonNull @Size(min = 1) final String[]          from,
                                                          @NonNull @Size(min = 1) final    int[]          to) {
         if (isSupportMode(context))
@@ -139,28 +140,28 @@ public class SupportHelper {                    // full
         }
         
         @Override
-        public boolean start(final Context context, final String text) {
-            mDialog = isSupportMode(context)                          ?
+        public boolean start(final Activity context, final String text, final Intent data) {
+            mDialog = isSupportMode(context)                           ?
                 akha.yakhont.support.fragment.dialog.CommonDialogFragment.getDaggerAlert(mResId, mRequestCode, mYesNo):
                         
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
                     akha.yakhont    .fragment.dialog.CommonDialogFragment.getDaggerAlert(mResId, mRequestCode, mYesNo): null;
                             
-            return super.start(context, text);
+            return super.start(context, text, data);
         }
     }
 
     private static class ProgressFull extends BaseFull {
 
         @Override
-        public boolean start(final Context context, final String text) {
-            mDialog = isSupportMode(context)                          ?
+        public boolean start(final Activity context, final String text, final Intent data) {
+            mDialog = isSupportMode(context)                           ?
                 akha.yakhont.support.fragment.dialog.CommonDialogFragment.getDaggerProgress():
             
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB ?
                     akha.yakhont    .fragment.dialog.CommonDialogFragment.getDaggerProgress(): null;
                                               
-            return super.start(context, text);
+            return super.start(context, text, data);
         }
     }
 
@@ -169,9 +170,9 @@ public class SupportHelper {                    // full
         protected BaseDialog        mDialog;
 
         @Override
-        public boolean start(final Context context, final String text) {
+        public boolean start(final Activity context, final String text, final Intent data) {
             if (mDialog == null) CoreLogger.logError("start: mDialog == null");
-            return mDialog == null ? false: mDialog.start(context, text);
+            return mDialog == null ? false: mDialog.start(context, text, data);
         }
 
         @Override

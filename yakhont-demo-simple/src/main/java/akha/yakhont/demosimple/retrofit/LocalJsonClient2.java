@@ -16,6 +16,7 @@
 
 package akha.yakhont.demosimple.retrofit;
 
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.IOException;
@@ -54,6 +55,8 @@ public class LocalJsonClient2 extends OkHttpClient {
             "Wilderen Goud"
     };
 
+    private int mEmulatedNetworkDelay;
+
     private static String getJson() {
         StringBuilder builder = new StringBuilder("[");
         for (String str: DATA)
@@ -61,7 +64,15 @@ public class LocalJsonClient2 extends OkHttpClient {
         return builder.replace(builder.length() - 1, builder.length(), "]").toString();
     }
 
+    @SuppressWarnings("unused")
+    public LocalJsonClient2 setEmulatedNetworkDelay(int delay) {
+        mEmulatedNetworkDelay = delay;
+        return this;
+    }
+
     private Response execute(final Request request) {
+        if (mEmulatedNetworkDelay > 0) SystemClock.sleep(mEmulatedNetworkDelay);
+
         return new Response.Builder()
                 .code(200)
                 .protocol(Protocol.HTTP_1_0)

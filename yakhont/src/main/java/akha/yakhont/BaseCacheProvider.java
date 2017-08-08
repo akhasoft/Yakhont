@@ -276,6 +276,7 @@ public class BaseCacheProvider extends ContentProvider {
                     public void run() {
                         for (final ContentValues values: bulkValues)
                             insert(uri, values, true, bulkValues);
+                        CoreLogger.log("bulkInsert completed");
                     }
                 });
                 return bulkValues.length;
@@ -397,7 +398,7 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     /**
-     * Checks whether the given column exists.
+     * Checks whether the given column exists or not.
      *
      * @param tableName
      *        The table name

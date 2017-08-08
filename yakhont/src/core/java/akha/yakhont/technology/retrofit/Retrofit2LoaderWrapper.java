@@ -314,8 +314,8 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         @Override
         protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
                                                @NonNull final View list, @LayoutRes final int item) {
-            setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<D>(mFragment.getActivity(), item):
-                    new Retrofit2AdapterWrapper<D>(mFragment.getActivity(), item, mFrom, mTo));
+            setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item):
+                    new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item, mFrom, mTo));
         }
 
         /**
@@ -331,7 +331,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          */
         @Override
         public CoreLoad create() {
-            return create(new Retrofit2LoaderBuilder<>(mFragment, mType, mRetrofit));
+            return create(new Retrofit2LoaderBuilder<>(mFragment.get(), mType, mRetrofit));
         }
     }
 }

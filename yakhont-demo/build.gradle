@@ -40,7 +40,7 @@ android {
         applicationId           'akha.yakhont.demo'
         minSdkVersion           14
         //noinspection OldTargetApi
-        targetSdkVersion        21
+        targetSdkVersion        23      // for lower values permissions dialogs will not be shown
         versionCode            10100
         versionName           '1.1'
 
@@ -95,7 +95,7 @@ dependencies {
 
     compile  "com.android.support:appcompat-v7:${libVerSupport}"            // Google
     compile  "com.android.support:design:${libVerSupport}"
-    compile  "com.google.android.gms:play-services-location:11.0.2"
+    compile  "com.google.android.gms:play-services-location:11.0.4"
 
     compile  "com.squareup.retrofit2:retrofit:2.3.0"                        // Retrofit
     compile  "com.squareup.retrofit2:converter-gson:2.3.0"

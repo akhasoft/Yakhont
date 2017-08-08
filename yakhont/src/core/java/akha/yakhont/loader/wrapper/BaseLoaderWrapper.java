@@ -16,6 +16,7 @@
 
 package akha.yakhont.loader.wrapper;
 
+import akha.yakhont.Core;
 import akha.yakhont.Core.ConfigurableLoader;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
@@ -729,13 +730,13 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
         private static void onPauseOrResume(@NonNull final Fragment fragment, final @IdRes int resId, final boolean resume) {
             final Collection<FragmentData> fragmentData = sFragmentData.get(fragment);
             if (fragmentData == null) {
-                if (resId != Utils.NOT_VALID_RES_ID) CoreLogger.logError("data not found for fragment " + fragment);
+                if (resId != Core.NOT_VALID_RES_ID) CoreLogger.logError("data not found for fragment " + fragment);
                 return;
             }
 
             CoreLogger.log("subject to call by weaver");
             for (final FragmentData data: fragmentData) {
-                if (resId != Utils.NOT_VALID_RES_ID && resId != data.mResId) continue;
+                if (resId != Core.NOT_VALID_RES_ID && resId != data.mResId) continue;
 
                 if (resume)
                     onResume(fragment, data.mView, data.mResId);
@@ -752,7 +753,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
          */
         @SuppressWarnings("unused")
         public static void onResume(@NonNull final Fragment fragment) {
-            onPauseOrResume(fragment, Utils.NOT_VALID_RES_ID, true);
+            onPauseOrResume(fragment, Core.NOT_VALID_RES_ID, true);
         }
 
         /**
@@ -844,7 +845,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
          */
         @SuppressWarnings("unused")
         public static void onPause(@NonNull final Fragment fragment) {
-            onPauseOrResume(fragment, Utils.NOT_VALID_RES_ID, false);
+            onPauseOrResume(fragment, Core.NOT_VALID_RES_ID, false);
         }
 
         /**

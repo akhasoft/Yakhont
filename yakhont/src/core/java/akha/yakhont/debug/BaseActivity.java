@@ -567,7 +567,8 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @CallSuper
     @Override
     public void onTrimMemory(int level) {
-        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", level " + level, false);
+        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", level " +
+                Utils.getOnTrimMemoryLevelString(level), false);
 
         super.onTrimMemory(level);
     }

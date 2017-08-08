@@ -39,6 +39,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
@@ -47,8 +48,11 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.annotation.AnyRes;
+import android.support.annotation.IdRes;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.view.View;
+import android.view.Window;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -56,6 +60,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.GenericArrayType;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.util.Collections;
@@ -104,13 +109,19 @@ import java.util.zip.ZipOutputStream;
  */
 public class Core {
 
+    /** Not valid resource ID (the value is {@value}). */
+    @AnyRes
+    public  static final int                            NOT_VALID_RES_ID            = 0;
+
+    /** Not valid View ID (the value is {@value}). */
+    @IdRes
+    public  static final int                            NOT_VALID_VIEW_ID           = View.NO_ID;
+
     private static final String                         BASE_URI                    = "content://%s.provider";
     @SuppressWarnings("unused")
     private static final String                         LOG_TAG_FORMAT              = "%s-v.%d-%d-%s";
 
     private static final String                         PREFERENCES_NAME            = "BasePreferences";
-
-    private static final RequestCodes[]                 REQUEST_CODES_VALUES        = RequestCodes.values();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IntRange(from = 1) public  static final int        TIMEOUT_CONNECTION          = 20;   // seconds
@@ -119,13 +130,22 @@ public class Core {
 
     @IntRange(from = 0) private static final int        TIMEOUT_NETWORK_MONITOR     =  3;   // seconds
 
+    // use my birthday as the offset... why not?
+    private static final int                            REQUEST_CODES_OFFSET        = 19631201;
+    private static final short                          REQUEST_CODES_OFFSET_SHORT  = 11263;
+
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public enum RequestCodes {
+        UNKNOWN,
         LOCATION_CHECK_SETTINGS,
         LOCATION_CONNECTION_FAILED,
         LOCATION_ALERT,
         LOCATION_CLIENT,
-        PROGRESS_ALERT
+        LOCATION_INTENT,
+        PROGRESS_ALERT,
+        PERMISSIONS_ALERT,
+        PERMISSIONS_RATIONALE_ALERT,
+        PERMISSIONS_DENIED_ALERT
     }
 
     /**
@@ -155,14 +175,17 @@ public class Core {
          * Starts dialog.
          *
          * @param context
-         *        The Context
+         *        The Activity
          *
          * @param text
          *        The text to display
          *
+         * @param data
+         *        The additional data to send to {@link Activity#onActivityResult Activity.onActivityResult()}
+         *
          * @return  {@code true} if dialog was started successfully, {@code false} otherwise
          */
-        boolean start(Context context, String text);
+        boolean start(Activity context, String text, Intent data);
 
         /**
          * Stops dialog.
@@ -378,6 +401,8 @@ public class Core {
         }
         sInstance = new Core();
 
+        sDagger = dagger != null ? dagger: getDefaultDagger(null);
+
         Init.logging(application,
                 fullInfo == null ? Utils.isDebugMode(application.getPackageName()): fullInfo);
         Init.allRemaining(application);
@@ -387,8 +412,6 @@ public class Core {
         CoreLogger.log("support "       + sSupport);
 
         registerCallbacks(application);
-
-        sDagger = dagger != null ? dagger: getDefaultDagger(null);
 
         return true;
     }
@@ -453,8 +476,8 @@ public class Core {
      * @return  {@code true} if registration was successful, {@code false} otherwise
      */
     @SuppressWarnings("UnusedReturnValue")
-    public static boolean register(@NonNull final ConfigurationChangedListener listener) {
-        return sAppCallbacksListeners.add(listener);
+    public static boolean register(final ConfigurationChangedListener listener) {
+        return registerHelper(listener, true);
     }
 
     /**
@@ -466,12 +489,25 @@ public class Core {
      * @return  {@code true} if component removing was successful, {@code false} otherwise
      */
     @SuppressWarnings("UnusedReturnValue")
-    public static boolean unregister(@NonNull final ConfigurationChangedListener listener) {
-        return sAppCallbacksListeners.remove(listener);
+    public static boolean unregister(final ConfigurationChangedListener listener) {
+        return registerHelper(listener, false);
     }
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused"})
+    private static boolean registerHelper(final ConfigurationChangedListener listener,
+                                          final boolean add) {
+        if (listener == null) {
+            CoreLogger.logError("listener == null");
+            return false;
+        }
+        final boolean result = add ?
+                sAppCallbacksListeners.add(listener): sAppCallbacksListeners.remove(listener);
+
+        CoreLogger.log(result ? Level.DEBUG: Level.WARNING,
+                "result: " + result + ", listener: " + listener);
+        return result;
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void onApplicationConfigurationChanged(final Configuration newConfig) {
         if (sAppCallbacks == null) return;
 
@@ -493,7 +529,12 @@ public class Core {
                 notifyListener(new Runnable() {
                     @Override
                     public void run() {
-                        listener.onChangedConfiguration(newConfig);
+                        try {
+                            listener.onChangedConfiguration(newConfig);
+                        }
+                        catch (Exception e) {
+                            CoreLogger.log("onConfigurationChanged failed, listener: " + listener);
+                        }
                     }
                 });
         }
@@ -514,7 +555,7 @@ public class Core {
              */
             @Override
             public void onTrimMemory(int level) {
-                CoreLogger.logWarning("level " + level);
+                CoreLogger.logWarning("level " + Utils.getOnTrimMemoryLevelString(level));
             }
         }
     }
@@ -633,11 +674,6 @@ public class Core {
      */
     public static class Utils {
 
-        /** Not valid resource ID (the value is {@value}). */
-        @AnyRes
-        public static final int                         NOT_VALID_RES_ID                = 0;
-
-        private static final Handler                    sHandler                        = new Handler(Looper.getMainLooper());
         private static       UriResolver                sUriResolver                    = new UriResolver() {
             @Override
             public Uri getUri(@NonNull final String tableName) {
@@ -645,18 +681,21 @@ public class Core {
             }
         };
 
+        private static final ThreadPostHelper           sThreadPostHelper               = new ThreadPostHelper   ();
+        private static final RequestCodesHandler        sRequestCodesHandler            = new RequestCodesHandler();
+
         private Utils() {
         }
 
         /**
-         * Returns handler for the application's main looper.
+         * Returns handler for the application's main thread.
          *
          * @return  The Handler
          */
         @NonNull
         @SuppressWarnings("unused")
-        public static Handler getHandlerMainLooper() {
-            return sHandler;
+        public static Handler getHandlerMainThread() {
+            return sThreadPostHelper.mHandler;
         }
 
         /**
@@ -666,7 +705,7 @@ public class Core {
          *        The Runnable that will be executed
          */
         public static void postToMainLoop(@NonNull final Runnable runnable) {
-            sHandler.post(prepareRunnable(runnable));
+            sThreadPostHelper.postToMainLoop(runnable);
         }
 
         /**
@@ -680,21 +719,7 @@ public class Core {
          */
         @SuppressWarnings("unused")
         public static void postToMainLoop(final long delay, @NonNull final Runnable runnable) {
-            sHandler.postDelayed(prepareRunnable(runnable), delay);
-        }
-
-        private static Runnable prepareRunnable(@NonNull final Runnable runnable) {
-            return new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        runnable.run();
-                    }
-                    catch (Exception e) {
-                        CoreLogger.log(Level.WARNING, "failed", e);
-                    }
-                }
-            };
+            sThreadPostHelper.postToMainLoop(delay, runnable);
         }
 
         /**
@@ -703,30 +728,19 @@ public class Core {
          * @return  The main thread flag
          */
         public static boolean isCurrentThreadMain() {
-            return Thread.currentThread() == sHandler.getLooper().getThread();
+            return sThreadPostHelper.isCurrentThreadMain();
         }
 
         /** @exclude */
         @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
         public static Thread runInBackground(@NonNull final Runnable runnable) {
-            return runInBackground(false, runnable);
+            return sThreadPostHelper.runInBackground(runnable);
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
         public static Thread runInBackground(@SuppressWarnings("SameParameterValue") final boolean forceNewThread,
                                              @NonNull final Runnable runnable) {
-            if (forceNewThread || isCurrentThreadMain()) {
-                CoreLogger.log("about to run in new thread, forceNewThread " + forceNewThread);
-                final Thread thread = new Thread(prepareRunnable(runnable));
-
-                thread.start();
-                return thread;
-            }
-
-            CoreLogger.log("about to run in current thread");
-
-            prepareRunnable(runnable).run();
-            return null;
+            return sThreadPostHelper.runInBackground(forceNewThread, runnable);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -740,14 +754,25 @@ public class Core {
             return contextWrapper.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
         }
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        public static int getInvertedColor(int color) {
+            return Color.rgb(255 - Color.red(color), 255 - Color.green(color), 255 - Color.blue(color));
+        }
+
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static int getRequestCode(RequestCodes requestCode) {
-            return requestCode.ordinal();
+        public static int getRequestCode(@NonNull final RequestCodes requestCode) {
+            return sRequestCodesHandler.getRequestCode(requestCode);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "SameParameterValue"})
+        public static int getRequestCode(@NonNull final RequestCodes requestCode,
+                                         @NonNull final Activity     activity) {
+            return sRequestCodesHandler.getRequestCode(requestCode, activity);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static RequestCodes getRequestCode(int requestCode) {
-            return REQUEST_CODES_VALUES[requestCode];
+            return sRequestCodesHandler.getRequestCode(requestCode);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -812,41 +837,100 @@ public class Core {
             if (!resources.getBoolean(akha.yakhont.R.bool.yakhont_landscape))
                 return Orientation.PORTRAIT;
             else
-                return resources.getBoolean(akha.yakhont.R.bool.yakhont_portrait) ? Orientation.UNSPECIFIED: Orientation.LANDSCAPE;
+                return resources.getBoolean(akha.yakhont.R.bool.yakhont_portrait) ?
+                        Orientation.UNSPECIFIED: Orientation.LANDSCAPE;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getDialogInterfaceString(final int which) {
-            String meaning = "unknown";
             switch (which) {
                 case DialogInterface.BUTTON_POSITIVE:
-                    meaning = "DialogInterface.BUTTON_POSITIVE";
-                    break;
+                    return "DialogInterface.BUTTON_POSITIVE";
                 case DialogInterface.BUTTON_NEGATIVE:
-                    meaning = "DialogInterface.BUTTON_NEGATIVE";
-                    break;
+                    return "DialogInterface.BUTTON_NEGATIVE";
                 case DialogInterface.BUTTON_NEUTRAL:
-                    meaning = "DialogInterface.BUTTON_NEUTRAL";
-                    break;
+                    return "DialogInterface.BUTTON_NEUTRAL";
+                default:
+                    return "unknown DialogInterface result: " + which;
             }
-            return meaning;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getActivityResultString(final int result) {
-            String meaning = "unknown";
             switch (result) {
                 case Activity.RESULT_OK:
-                    meaning = "Activity.RESULT_OK";
-                    break;
+                    return "Activity.RESULT_OK";
                 case Activity.RESULT_CANCELED:
-                    meaning = "Activity.RESULT_CANCELED";
-                    break;
+                    return "Activity.RESULT_CANCELED";
                 case Activity.RESULT_FIRST_USER:
-                    meaning = "Activity.RESULT_FIRST_USER";
-                    break;
+                    return "Activity.RESULT_FIRST_USER";
+                default:
+                    return "unknown Activity result: " + result;
             }
-            return meaning;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static String getOnTrimMemoryLevelString(final int level) {
+            switch (level) {
+                case ComponentCallbacks2.TRIM_MEMORY_COMPLETE:
+                    return "ComponentCallbacks2.TRIM_MEMORY_COMPLETE";
+                case ComponentCallbacks2.TRIM_MEMORY_MODERATE:
+                    return "ComponentCallbacks2.TRIM_MEMORY_MODERATE";
+                case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND:
+                    return "ComponentCallbacks2.TRIM_MEMORY_BACKGROUND";
+                case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN:
+                    return "ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN";
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL:
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL";
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW:
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW";
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE:
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE";
+                default:
+                    return "unknown OnTrimMemory() level: " + level;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void onActivityResult(@NonNull final String prefix, @NonNull final Activity activity,
+                                            final int requestCode, final int resultCode, final Intent data) {
+            CoreLogger.log(prefix + ".onActivityResult: subject to call by weaver");
+            CoreLogger.log("activity   : " + getActivityName(activity));
+            CoreLogger.log("requestCode: " + requestCode + " " + getRequestCode(requestCode).name());
+            CoreLogger.log("resultCode : " + resultCode  + " " + getActivityResultString(resultCode));
+            CoreLogger.log("intent     : " + data);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static View getView(final Activity activity) {
+            return getView(activity, NOT_VALID_VIEW_ID);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static View getView(final Activity activity, @IdRes final int viewId) {
+            if (activity == null) {
+                CoreLogger.logError("activity == null");
+                return null;
+            }
+            if (viewId != NOT_VALID_VIEW_ID) {
+                final View view = activity.findViewById(viewId);
+                if (view == null)
+                    CoreLogger.logError("can not find view with ID " + viewId);
+                return view;
+            }
+            View view = activity.findViewById(android.R.id.content);
+            if (view == null) {
+                CoreLogger.logWarning("android.R.id.content not found, getWindow().getDecorView() will be used");
+                CoreLogger.logWarning("Note that calling this function \"locks in\" various " +
+                        "characteristics of the window that can not, from this point forward, be changed");
+                final Window window = activity.getWindow();
+                if (window == null)
+                    CoreLogger.logError("window == null");
+                view = window == null ? null: window.getDecorView();
+            }
+            if (view == null)
+                CoreLogger.logError("can not find View for Activity " + activity);
+            return view;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1015,17 +1099,22 @@ public class Core {
         public static boolean isDebugMode(@NonNull final String packageName) {
             synchronized (sDebugLock) {
                 if (sDebug == null) {
-                    boolean debug = false;
-                    try {
-                        debug = (Boolean) CoreReflection.getField(Class.forName(packageName + ".BuildConfig"), "DEBUG");
-                    }
-                    catch (ClassNotFoundException e) {
-                        CoreLogger.log(Level.INFO, "failed", e);
-                    }
-                    //noinspection UnnecessaryBoxing
-                    sDebug = Boolean.valueOf(debug);
+                    final Boolean debug = (Boolean) getBuildConfigField(packageName, "DEBUG");
+                    sDebug = debug != null ? debug: false;
                 }
                 return sDebug;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static Object getBuildConfigField(@NonNull final String packageName,
+                                                 @NonNull final String fieldName) {
+            try {
+                return CoreReflection.getField(Class.forName(packageName + ".BuildConfig"), fieldName);
+            }
+            catch (ClassNotFoundException e) {
+                CoreLogger.log(Level.INFO, "failed", e);
+                return null;
             }
         }
 
@@ -1047,6 +1136,109 @@ public class Core {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <K, V> Map<K, V> newMap() {       // temp solution
             return Collections.synchronizedMap(new LinkedHashMap<K, V>());
+        }
+
+        private static class RequestCodesHandler {
+
+            private static final RequestCodes[]         REQUEST_CODES_VALUES            = RequestCodes.values();
+
+            private int getRequestCode(@NonNull final RequestCodes requestCode) {
+                return getRequestCode(requestCode, REQUEST_CODES_OFFSET);
+            }
+
+            private int getRequestCode(@NonNull final RequestCodes requestCode, final int offset) {
+                return requestCode.ordinal() + offset;
+            }
+
+            private Exception checkRequestCode(final int requestCode, final Activity activity, final Method method) {
+                try {
+                    CoreReflection.invoke(activity, method, requestCode);
+                    return null;
+                }
+                catch (Exception exception) {
+                    CoreLogger.log(Level.WARNING, "failed", exception);
+                    return exception;
+                }
+            }
+
+            private int getRequestCode(@NonNull final RequestCodes requestCode, @NonNull final Activity activity) {
+                int result = getRequestCode(requestCode);
+
+                final Method method = CoreReflection.findMethod(activity,
+                        "validateRequestPermissionsRequestCode", int.class);
+                if (method                                     == null) return result;
+                //noinspection ThrowableResultOfMethodCallIgnored
+                if (checkRequestCode(result, activity, method) == null) return result;
+
+                result = getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
+                final Exception exception = checkRequestCode(result, activity, method);
+                if (exception                                  == null) return result;
+
+                CoreLogger.log("failed", exception);
+                return result;
+            }
+
+            private RequestCodes getRequestCode(int requestCode) {
+                final RequestCodes code = getRequestCode(requestCode, REQUEST_CODES_OFFSET);
+                return !code.equals(RequestCodes.UNKNOWN) ? code:
+                        getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
+            }
+
+            private RequestCodes getRequestCode(int requestCode, final int offset) {
+                requestCode -= offset;
+                return requestCode < 0 || requestCode >= REQUEST_CODES_VALUES.length ?
+                        RequestCodes.UNKNOWN: REQUEST_CODES_VALUES[requestCode];
+            }
+        }
+
+        private static class ThreadPostHelper {
+
+            private final Handler                       mHandler                        = new Handler(Looper.getMainLooper());
+
+            private void postToMainLoop(@NonNull final Runnable runnable) {
+                mHandler.post(prepareRunnable(runnable));
+            }
+
+            private void postToMainLoop(final long delay, @NonNull final Runnable runnable) {
+                mHandler.postDelayed(prepareRunnable(runnable), delay);
+            }
+
+            private Runnable prepareRunnable(@NonNull final Runnable runnable) {
+                return new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            runnable.run();
+                        }
+                        catch (Exception e) {
+                            CoreLogger.log(Level.WARNING, "failed", e);
+                        }
+                    }
+                };
+            }
+
+            private boolean isCurrentThreadMain() {
+                return Thread.currentThread() == mHandler.getLooper().getThread();
+            }
+
+            private Thread runInBackground(@NonNull final Runnable runnable) {
+                return runInBackground(false, runnable);
+            }
+
+            private Thread runInBackground(@SuppressWarnings("SameParameterValue") final boolean forceNewThread,
+                                           @NonNull final Runnable runnable) {
+                if (forceNewThread || isCurrentThreadMain()) {
+                    CoreLogger.log("about to run in new thread, forceNewThread " + forceNewThread);
+                    final Thread thread = new Thread(prepareRunnable(runnable));
+
+                    thread.start();
+                    return thread;
+                }
+                CoreLogger.log("about to run in current thread");
+
+                prepareRunnable(runnable).run();
+                return null;
+            }
         }
     }
 }

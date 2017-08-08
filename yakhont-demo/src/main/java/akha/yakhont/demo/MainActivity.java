@@ -23,6 +23,7 @@ import akha.yakhont.demo.retrofit.Retrofit2Api;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 
 import akha.yakhont.Core;
+import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.callback.annotation.CallbacksInherited;
@@ -207,9 +208,9 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     public void setNetworkDelay(@SuppressWarnings("SameParameterValue") int delay) {
         if (isRetrofit2())
-            mJsonClient2.getLocalJsonClientHelper().setDelay(delay);
+            mJsonClient2.getLocalJsonClientHelper().setEmulatedNetworkDelay(delay);
         else
-            mJsonClient .getLocalJsonClientHelper().setDelay(delay);
+            mJsonClient .getLocalJsonClientHelper().setEmulatedNetworkDelay(delay);
     }
 
     @Override
@@ -235,7 +236,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     @Module
     static class DemoUiModule extends Dagger2.UiModule {
         @Override
-        protected Core.BaseDialog getProgress() {
+        protected BaseDialog getProgress() {
             return DemoProgress.newInstance();
         }
     }

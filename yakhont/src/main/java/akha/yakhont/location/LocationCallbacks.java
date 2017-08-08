@@ -23,11 +23,13 @@ import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.CorePermissions;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 import akha.yakhont.technology.rx.BaseRx.LocationRx;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -114,7 +116,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected        Provider<BaseDialog>                           mToastProvider;
-
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected        Provider<BaseDialog>                           mAlertProvider;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -386,17 +387,37 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     }
 
     private void onCreatedHelper(@NonNull final Activity activity, final Bundle savedInstanceState,
-                                 final boolean fromDialog) {
-        CoreLogger.log("LocationClient.onCreate()");
+                                 boolean fromDialog) {
+        if (!isAccessToLocationAllowed()) return;
 
-        final LocationClient locationClient = getLocationClient();
-        if (locationClient != null)
-            locationClient.onCreate(activity, savedInstanceState);
+        final String          permission        = Manifest.permission.ACCESS_FINE_LOCATION;
+        final boolean         granted           = CorePermissions.check(activity, permission);
 
-        if (!fromDialog) return;
+        if (!granted)         sAccessToLocation = false;
 
-        onActivityStarted(activity);
-        onActivityResumed(activity);
+        if (!fromDialog) fromDialog   = !granted;
+        final boolean fromDialogFinal = fromDialog;
+
+        final boolean result = new CorePermissions.RequestBuilder(activity, permission)
+                .setOnGranted(new Runnable() {
+                    @Override
+                    public void run() {
+                        CoreLogger.log("LocationClient.onCreate()");
+
+                        sAccessToLocation = true;
+
+                        final LocationClient locationClient = getLocationClient();
+                        if (locationClient != null)
+                            locationClient.onCreate(activity, savedInstanceState);
+
+                        if (!fromDialogFinal) return;
+
+                        onActivityStarted(activity);
+                        onActivityResumed(activity);
+                    }
+                })
+                .request();
+        CoreLogger.log(permission + " request result: " + (result ? "already granted": "not granted yet"));
     }
 
     /**
@@ -404,6 +425,8 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivitySaveInstanceState(@NonNull final Activity activity, final Bundle outState) {
+        if (!isAccessToLocationAllowed()) return;
+
         final LocationClient locationClient = getLocationClient();
         if (locationClient != null) locationClient.onSaveInstanceState(activity, outState);
     }
@@ -691,14 +714,14 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         final boolean decision = resultCode == Activity.RESULT_OK;
         sAccessToLocation = decision;
 
-        if (decision) onCreatedHelper(activity, null, true);
-
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 Utils.getPreferences(activity).edit().putBoolean(ARG_DECISION, decision).apply();
             }
         });
+
+        if (decision) onCreatedHelper(activity, null, true);
     }
 
     /**
@@ -716,11 +739,11 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected boolean showConfirmationDialog(@NonNull final Activity activity) {
         if (mAlert != null)
-            CoreLogger.logError("alert dialog already exist");
+            CoreLogger.logError("alert dialog is already exists");
 
         mAlert = mAlertProvider.get();
 
-        final boolean result = mAlert.start(activity, null);
+        final boolean result = mAlert.start(activity, null, null);
         if (!result)
             CoreLogger.logError("can not start alert dialog");
 
@@ -831,19 +854,20 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     }
 
     /**
-     * Called by the Yakhont Weaver. See {@code Activity#onActivityResult Activity.onActivityResult()}.
+     * Called by the Yakhont Weaver. See {@link Activity#onActivityResult Activity.onActivityResult()}.
      */
     @SuppressWarnings({"UnusedParameters", "unused"})
-    public static void onActivityResult(@NonNull final Activity activity, final int requestCode, final int resultCode, final Intent data) {
+    public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
+                                        final int resultCode, final Intent data) {
+        Utils.onActivityResult("LocationCallbacks", activity, requestCode, resultCode, data);
 
         final LocationCallbacks locationCallbacks = getLocationCallbacks(activity);
-        if (locationCallbacks == null) return;
+        if (locationCallbacks == null) {
+            CoreLogger.log("nothing to do");
+            return;
+        }
 
         // it's not needed to call proceed(activity) 'cause the check is already done - when activity was added to collection
-
-        CoreLogger.log("subject to call by weaver: activity " + Utils.getActivityName(activity) +
-                ", requestCode " + requestCode + ", resultCode " + resultCode +
-                " " + Utils.getActivityResultString(resultCode));
 
         final LocationClient locationClient = locationCallbacks.getLocationClient();
         if (locationClient == null) return;
@@ -883,6 +907,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         CoreLogger.log("failed", exception);
 
         locationCallbacks.mToastProvider.get().start(activity, activity.getString(
-                akha.yakhont.R.string.yakhont_location_error));
+                akha.yakhont.R.string.yakhont_location_error), null);
     }
 }

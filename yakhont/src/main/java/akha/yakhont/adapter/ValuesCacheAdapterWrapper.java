@@ -30,6 +30,7 @@ import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewInflater;
 import akha.yakhont.loader.BaseResponse;
 
+import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
 import android.provider.BaseColumns;
@@ -67,13 +68,13 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * cursor's column {@link BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title etc.
      *
      * @param context
-     *        The Context
+     *        The Activity
      *
      * @param layoutId
      *        The resource identifier of a layout file that defines the views
      */
     @SuppressWarnings("WeakerAccess")
-    public ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layoutId) {
+    public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId) {
         this(ValuesCacheAdapterWrapper.<R, E, D>init(context, layoutId), context, layoutId);
     }
 
@@ -81,7 +82,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * Initialises a newly created {@code ValuesCacheAdapterWrapper} object.
      *
      * @param context
-     *        The Context
+     *        The Activity
      *
      * @param layoutId
      *        The resource identifier of a layout file that defines the views
@@ -93,7 +94,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      *        The views that should display data in the "from" parameter
      */
     @SuppressWarnings("WeakerAccess")
-    public ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layoutId,
+    public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
                                      @NonNull @Size(min = 1) final    int[] to) {
         this(ValuesCacheAdapterWrapper.<R, E, D>init(context, layoutId, from, to), context, layoutId);
@@ -109,7 +110,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      *        The support flag for the BaseCacheAdapterFactory
      *
      * @param context
-     *        The Context
+     *        The Activity
      *
      * @param layoutId
      *        The resource identifier of a layout file that defines the views
@@ -123,7 +124,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     @SuppressWarnings("WeakerAccess")
     public ValuesCacheAdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
                                      @SuppressWarnings("SameParameterValue") final boolean compatible,
-                                     @NonNull final Context context, @LayoutRes final int layoutId,
+                                     @NonNull final Activity context, @LayoutRes final int layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
                                      @NonNull @Size(min = 1) final    int[] to) {
         this(init(factory, compatible, context, layoutId, from, to), context, layoutId);
@@ -138,7 +139,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     }
 
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
-            @NonNull final Context context, @LayoutRes final int layoutId) {
+            @NonNull final Activity context, @LayoutRes final int layoutId) {
         final LinkedHashSet<String> fromSet = new LinkedHashSet<>();
         final int[]                 to      = BaseCacheAdapter.getViewsBinding(context, layoutId, fromSet);
         final String[]              from    = fromSet.toArray(new String[fromSet.size()]);
@@ -146,7 +147,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     }
 
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
-            @NonNull final Context context, @LayoutRes final int layout,
+            @NonNull final Activity context, @LayoutRes final int layout,
             @NonNull @Size(min = 1) final String[] from,
             @NonNull @Size(min = 1) final    int[] to) {
         return init(new BaseCacheAdapterFactory<ContentValues, R, E, D>(), SupportHelper.isSupportMode(context), context, layout, from, to);
@@ -155,7 +156,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
             @NonNull final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
             @SuppressWarnings("SameParameterValue") final boolean compatible,
-            @NonNull final Context context, @LayoutRes final int layout,
+            @NonNull final Activity context, @LayoutRes final int layout,
             @NonNull @Size(min = 1) final String[] from,
             @NonNull @Size(min = 1) final    int[] to) {
 

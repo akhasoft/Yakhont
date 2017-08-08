@@ -40,7 +40,7 @@ android {
         applicationId           'akha.yakhont.demosimple'
         minSdkVersion           14
         //noinspection OldTargetApi
-        targetSdkVersion        21
+        targetSdkVersion        23      // for lower values permissions dialogs will not be shown
         versionCode            10000
         versionName           '1.0'
 
@@ -88,7 +88,7 @@ dependencies {
     compile  "com.android.support:recyclerview-v7:${libVerSupport}"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
-    compile  "com.google.android.gms:play-services-location:11.0.2"
+    compile  "com.google.android.gms:play-services-location:11.0.4"
 
     compile  "com.squareup.retrofit2:retrofit:2.3.0"                        // Retrofit
     compile  "com.squareup.retrofit2:converter-gson:2.3.0"

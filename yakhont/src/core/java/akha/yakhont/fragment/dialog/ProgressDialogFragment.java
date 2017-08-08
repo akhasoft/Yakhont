@@ -59,10 +59,10 @@ public class ProgressDialogFragment extends CommonDialogFragment {
     private static final int            REQUEST_CODE_ALERT  = Utils.getRequestCode(RequestCodes.PROGRESS_ALERT);
 
     private Provider<BaseDialog>        mAlertProvider;
+    private BaseDialog                  mAlert;
 
     @SuppressWarnings("unused")
     private boolean                     mConfirmation       = true;
-    private BaseDialog                  mAlert;
     private Boolean                     mCancelled;
 
     /**
@@ -181,6 +181,8 @@ public class ProgressDialogFragment extends CommonDialogFragment {
     public void onCancel(DialogInterface dialog) {
         super.onCancel(dialog);      // just for logging
 
+        CoreLogger.log("mConfirmation " + mConfirmation);
+
         if (!mConfirmation) {
             cancel();
             return;
@@ -202,7 +204,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
             }
         }
 
-        if (mAlert.start(getDialogActivity(), null)) return;
+        if (mAlert.start(getDialogActivity(), null, null)) return;
 
         CoreLogger.logError("can not start alert dialog");
         cancel();
@@ -212,7 +214,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
      * Please refer to the base method description.
      */
     @Override
-    protected boolean startDialog() {
+    protected boolean startDialog(final Intent data) {
         final FragmentManager fragmentManager = getDialogFragmentManager();
         if (fragmentManager == null) return false;
 
@@ -243,7 +245,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
 
         dismiss();
 
-        // dismiss() does the same but sometimes with wrong FragmentManager
+        // dismiss() does the same but it seems sometimes with wrong FragmentManager
         try {
             fragmentManager.beginTransaction().remove(this).commit();
         }

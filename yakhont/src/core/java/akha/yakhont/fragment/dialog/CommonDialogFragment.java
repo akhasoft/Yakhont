@@ -18,6 +18,7 @@ package akha.yakhont.fragment.dialog;
 
 import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
+import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
@@ -32,8 +33,8 @@ import android.app.Dialog;
 import android.app.DialogFragment;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -140,8 +141,8 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
      * Please refer to the base method description.
      */
     @Override
-    public boolean start(final Context context, final String text) {
-        setDialogActivity((Activity) context);
+    public boolean start(final Activity context, final String text, final Intent data) {
+        setDialogActivity(context);
 
         if (text != null) {
             final Bundle arguments = getArguments();
@@ -149,7 +150,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
             setArguments(arguments);
         }
 
-        final boolean result = startDialog();
+        final boolean result = startDialog(data);
 
         CoreLogger.log(result ? CoreLogger.Level.DEBUG : CoreLogger.Level.ERROR, "start = " + result);
         return result;
@@ -160,7 +161,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
      *
      * @return  {@code true} if dialog was started successfully, {@code false} otherwise
      */
-    protected abstract boolean startDialog();
+    protected abstract boolean startDialog(final Intent data);
 
     /**
      * Please refer to the base method description.
@@ -195,7 +196,13 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static BaseDialog getDaggerAlert(@StringRes final int resId, final int requestCode, final Boolean yesNo) {
-        return AlertDialogFragment.newInstance(resId, requestCode, yesNo);
+        final AlertDialogFragment alert = AlertDialogFragment.newInstance(resId, requestCode, yesNo);
+
+        // see comments in AlertDialogFragment
+        if (requestCode == Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT))
+            alert.mSupportFragmentManagerHack = true;
+
+        return alert;
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")

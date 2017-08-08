@@ -31,6 +31,12 @@
     <string name="yakhont_alert_yes"                    >Yes</string>
     <string name="yakhont_alert_no"                     >No</string>
 
+    <string name="yakhont_permission_alert"             >%s permission is needed.</string>
+    <string name="yakhont_permissions_alert"            >%s permissions are needed.</string>
+
+    <string name="yakhont_permission_denied_alert"      >Permission was denied, press OK to check application settings.</string>
+    <string name="yakhont_permissions_denied_alert"     >Permissions were denied, press OK to check application settings.</string>
+
     <string name="yakhont_location_error"               >Your location could not be determined</string>
     <string name="yakhont_location_error_connection"    >@string/yakhont_location_error</string>
     <string name="yakhont_location_alert"               >The application is about to use your location.</string>

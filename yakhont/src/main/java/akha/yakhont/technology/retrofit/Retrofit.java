@@ -22,8 +22,8 @@ import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
+import android.app.Activity;
 import android.content.ContentValues;
-import android.content.Context;
 import android.support.annotation.IntRange;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
@@ -160,13 +160,13 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
          * column "title" - to R.id.title etc.
          *
          * @param context
-         *        The Context
+         *        The Activity
          *
          * @param layout
          *        The resource identifier of a layout file that defines the views
          */
         @SuppressWarnings("unused")
-        public RetrofitAdapterWrapper(@NonNull final Context context, @LayoutRes final int layout) {
+        public RetrofitAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layout) {
             super(context, layout);
         }
 
@@ -174,7 +174,7 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
          * Initialises a newly created {@code RetrofitAdapterWrapper} object.
          *
          * @param context
-         *        The Context
+         *        The Activity
          *
          * @param layout
          *        The resource identifier of a layout file that defines the views
@@ -186,7 +186,7 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
          *        The views that should display data in the "from" parameter
          */
         @SuppressWarnings("unused")
-        public RetrofitAdapterWrapper(@NonNull final Context context, @LayoutRes final int layout,
+        public RetrofitAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layout,
                                       @NonNull @Size(min = 1) final String[] from,
                                       @NonNull @Size(min = 1) final    int[] to) {
             super(context, layout, from, to);
@@ -202,7 +202,7 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
          *        The support flag for the BaseCacheAdapterFactory
          *
          * @param context
-         *        The Context
+         *        The Activity
          *
          * @param layout
          *        The resource identifier of a layout file that defines the views
@@ -216,7 +216,7 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
         @SuppressWarnings("unused")
         public RetrofitAdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, Response, Exception, D> factory,
                                       @SuppressWarnings("SameParameterValue") final boolean compatible,
-                                      @NonNull final Context context, @LayoutRes final int layout,
+                                      @NonNull final Activity context, @LayoutRes final int layout,
                                       @NonNull @Size(min = 1) final String[] from,
                                       @NonNull @Size(min = 1) final    int[] to) {
             super(factory, compatible, context, layout, from, to);

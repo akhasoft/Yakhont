@@ -18,6 +18,8 @@ package akha.yakhont.demo.gui;
 
 import akha.yakhont.demo.R;
 
+import akha.yakhont.Core;
+
 import android.animation.Animator;
 import android.animation.FloatEvaluator;
 import android.animation.ObjectAnimator;
@@ -199,7 +201,7 @@ public class Bubbles {
         final TextView view = (TextView) sLayoutInflater.inflate(R.layout.bubbles_text_view, null);
 
         int backgroundColor = sFunColors.getColor(sFunColorsOrder.get(), Color.TRANSPARENT /* just stub */ );
-        int color = getInvertedColor(backgroundColor);
+        int color = Core.Utils.getInvertedColor(backgroundColor);
 
         ShapeDrawable background = new ShapeDrawable(new OvalShape());
         background.getPaint().setColor(backgroundColor);
@@ -262,7 +264,6 @@ public class Bubbles {
 
         view.setLeft(0);
         view.setTop (0);
-//        ValueAnimator mainAnimator = ValueAnimator.ofFloat(0, 1);
         ValueAnimator mainAnimator = ValueAnimator.ofInt(0, sDisplayMetrics.heightPixels);
         mainAnimator.setDuration(DURATION_MAX * 1000);
         mainAnimator.setInterpolator(new AccelerateInterpolator());
@@ -271,7 +272,6 @@ public class Bubbles {
             @Override
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
                 int value = (Integer) valueAnimator.getAnimatedValue();
-//                view.setTranslationY(sDisplayMetrics.heightPixels * value);
                 view.setTranslationY(value);
             }
         });
@@ -339,10 +339,6 @@ JavaVisitor$DelegatingJavaVisitor.visitMethodInvocation(JavaVisitor.java:1440)<-
             animator.start();
     }
 
-    private static int getInvertedColor(int color) {
-        return Color.rgb(255 - Color.red(color), 255 - Color.green(color), 255 - Color.blue(color));
-    }
-    
     private static void setText(TextView view, String text, int color) {
         String target = "YAKHONT";
         text          = text.replace("Yakhont", target);

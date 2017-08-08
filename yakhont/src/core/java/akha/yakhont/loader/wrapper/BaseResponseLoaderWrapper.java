@@ -1070,9 +1070,11 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          *
          * @param isGoBackOnLoadingCanceled
          *        The value to set
+         *
+         * @return  This {@code CoreLoad} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("SameParameterValue")
-        void setGoBackOnLoadingCanceled(boolean isGoBackOnLoadingCanceled);
+        @SuppressWarnings({"SameParameterValue", "UnusedReturnValue"})
+        CoreLoad setGoBackOnLoadingCanceled(boolean isGoBackOnLoadingCanceled);
 
         /**
          * Adds loader to the collection of {@link BaseLoaderWrapper loaders} associated with the given {@code CoreLoad} component.

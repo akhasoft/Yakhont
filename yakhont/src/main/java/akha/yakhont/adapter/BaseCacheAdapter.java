@@ -16,7 +16,7 @@
 
 package akha.yakhont.adapter;
 
-import akha.yakhont.Core.Utils;
+import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
@@ -25,6 +25,7 @@ import akha.yakhont.loader.BaseResponse.Source;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -211,7 +212,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Initialises a newly created {@code BaseCacheAdapter} object.
      *
      * @param context
-     *        The Context
+     *        The Activity
      *
      * @param layoutId
      *        The resource identifier of a layout file that defines the views
@@ -229,7 +230,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The ArrayConverter
      */
     @SuppressWarnings("WeakerAccess")
-    public BaseCacheAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+    public BaseCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                             @NonNull @Size(min = 1) final String[]          from,
                             @NonNull @Size(min = 1) final    int[]          to,
                             @NonNull final BaseArrayAdapter<T>              arrayAdapter,
@@ -445,7 +446,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             @Override
             public boolean handle(final View view) {
                 final int id = view.getId();
-                if (id != View.NO_ID && view.getVisibility() == View.VISIBLE
+                if (id != Core.NOT_VALID_VIEW_ID && view.getVisibility() == View.VISIBLE
                         && (view instanceof TextView || view instanceof ImageView))
                     map.put(id, resources.getResourceEntryName(id));
                 return false;
@@ -619,7 +620,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Initialises a newly created {@code ApiMCacheAdapter} object.
          *
          * @param context
-         *        The Context
+         *        The Activity
          *
          * @param layoutId
          *        The resource identifier of a layout file that defines the views
@@ -636,7 +637,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param converter
          *        The ArrayConverter
          */
-        public ApiMCacheAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+        public ApiMCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                 @NonNull @Size(min = 1) final String[]          from,
                                 @NonNull @Size(min = 1) final    int[]          to,
                                 @NonNull final BaseArrayAdapter<T>              arrayAdapter,
@@ -692,7 +693,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Initialises a newly created {@code SupportCacheAdapter} object.
          *
          * @param context
-         *        The Context
+         *        The Activity
          *
          * @param layoutId
          *        The resource identifier of a layout file that defines the views
@@ -709,7 +710,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param converter
          *        The ArrayConverter
          */
-        public SupportCacheAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+        public SupportCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                    @NonNull @Size(min = 1) final String[]        from,
                                    @NonNull @Size(min = 1) final    int[]        to,
                                    @NonNull final BaseArrayAdapter<T>            arrayAdapter,
@@ -775,7 +776,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Returns a new {@code BaseCacheAdapter} instance.
          *
          * @param context
-         *        The Context
+         *        The Activity
          *
          * @param layoutId
          *        The resource identifier of a layout file that defines the views
@@ -798,7 +799,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @return  The {@code BaseCacheAdapter} instance
          */
         @SuppressLint("ObsoleteSdkInt")
-        public BaseCacheAdapter<T, R, E, D> getAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+        public BaseCacheAdapter<T, R, E, D> getAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                                        @NonNull @Size(min = 1) final String[]         from,
                                                        @NonNull @Size(min = 1) final    int[]         to,
                                                        @NonNull final BaseArrayAdapter<T>             arrayAdapter,
@@ -981,12 +982,12 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             mLayoutId   = layoutId;
             mInflater   = LayoutInflater.from(context);
 
-            if (mLayoutId == Utils.NOT_VALID_RES_ID)
+            if (mLayoutId == Core.NOT_VALID_RES_ID)
                 CoreLogger.logError("item layout ID is not defined");
         }
 
         public View inflate(final ViewGroup parent) {
-            return mLayoutId == Utils.NOT_VALID_RES_ID ? null:
+            return mLayoutId == Core.NOT_VALID_RES_ID ? null:
                     mInflater.inflate(mLayoutId, parent, false);
         }
 

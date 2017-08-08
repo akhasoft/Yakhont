@@ -57,9 +57,9 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     @SuppressWarnings("WeakerAccess")
     public  static final String INTENT_DEFAULT_ACTION = "akha.yakhont.location.GoogleLocationClientNew.ACTION_GET_LOCATION";
 
-    /** The default pending intent request code (the value is {@value}). */
+    /** The default pending intent request code. */
     @SuppressWarnings("WeakerAccess")
-    public  static final int    INTENT_DEFAULT_CODE   = 0;
+    public  static final int    INTENT_DEFAULT_CODE   = Utils.getRequestCode(RequestCodes.LOCATION_INTENT);
 
     private static final String ARG_REQUEST_UPDATES   = TAG + ".request_location_updates";
     private static final String ARG_RUN_UPDATES       = TAG + ".run_location_updates";
@@ -123,7 +123,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
 
     /**
      * Sets the flag indicating whether the location updates should be run from
-     * {@link #startSettingsUpdates(Activity)} or not.
+     * {@link #startSettingsUpdates(Activity)} or not. The default value is {@code true}.
      *
      * @param value
      *        {@code true} for run location updates, {@code false} otherwise
@@ -192,22 +192,27 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     protected void buildClient(@NonNull final Activity activity) {
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(activity);
 
-        mFusedLocationClient.getLastLocation()
-                .addOnCompleteListener(activity, new OnCompleteListener<Location>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Location> task) {
-                        log(task);
-                        if (task.isSuccessful())
-                            onLocationChanged(task.getResult());
-                        else
-                            taskOnFailure(task.getException());
-                    }
-                }).addOnFailureListener(activity, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        taskOnFailure(exception);
-                    }
-                });
+        try {
+            mFusedLocationClient.getLastLocation()
+                    .addOnCompleteListener(activity, new OnCompleteListener<Location>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Location> task) {
+                            log(task);
+                            if (task.isSuccessful())
+                                onLocationChanged(task.getResult());
+                            else
+                                taskOnFailure(task.getException());
+                        }
+                    }).addOnFailureListener(activity, new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            taskOnFailure(exception);
+                        }
+                    });
+        }
+        catch (SecurityException exception) {   // should never happen
+            CoreLogger.log("failed", exception);
+        }
 
         mSettingsClient = LocationServices.getSettingsClient(activity);
 
@@ -248,7 +253,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         logException(exception);
     }
 
-    private LocationSettingsRequest createNewLocationSettingsRequest() {
+    @SuppressWarnings("WeakerAccess")
+    protected LocationSettingsRequest createNewLocationSettingsRequest() {
         return new LocationSettingsRequest.Builder()
                 .addLocationRequest(createNewLocationRequest())
                 .build();
@@ -279,17 +285,24 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                 .addOnFailureListener(activity, new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception exception) {
-                        if (checkLocationSettingsOnFailure(activity, exception)) return;
-
-                        if (mRunLocationUpdates) {
-                            mRequestLocationUpdates = false;
-                            mLocationCallbacks.onLocationError(exception);
-                        }
+                        if (!checkLocationSettingsOnFailure(activity, exception))
+                            onLocationError(exception, null);
                     }
                 });
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    private void onLocationError(final Exception exception, final String error) {
+        if (!mRunLocationUpdates) return;
+
+        mRequestLocationUpdates = false;
+
+        if (exception != null)
+            mLocationCallbacks.onLocationError(exception);
+        else
+            mLocationCallbacks.onLocationError(error);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "BooleanMethodIsAlwaysInverted"})
     protected boolean checkLocationSettingsOnFailure(final Activity activity, @NonNull Exception exception) {
         logException(exception);
 
@@ -350,11 +363,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                         final String info = "User choose not to make required location settings changes";
                         CoreLogger.logWarning(info);
 
-                        if (mRunLocationUpdates) {
-                            mRequestLocationUpdates = false;
-                            mLocationCallbacks.onLocationError(info);
-                        }
-
+                        onLocationError(null, info);
                         break;
 
                     default:
@@ -567,20 +576,27 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     protected void requestLocationUpdates(@NonNull final Activity         activity,
                                           @NonNull final LocationRequest  locationRequest,
                                           @NonNull final LocationCallback locationCallback) {
-        mFusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, activity.getMainLooper())
-                .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        log(task);
-                    }
-                })
-                .addOnFailureListener(activity, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        taskOnFailure(exception);
-                        mLocationCallbacks.onLocationError(exception);
-                    }
-                });
+        try {
+            mFusedLocationClient.requestLocationUpdates(locationRequest,
+                    locationCallback, activity.getMainLooper())
+
+                    .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            log(task);
+                        }
+                    })
+                    .addOnFailureListener(activity, new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            taskOnFailure(exception);
+                            mLocationCallbacks.onLocationError(exception);
+                        }
+                    });
+        }
+        catch (SecurityException exception) {   // should never happen
+            CoreLogger.log("failed", exception);
+        }
     }
 
     /**
@@ -599,20 +615,25 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     protected void requestLocationUpdates(@NonNull final Activity        activity,
                                           @NonNull final LocationRequest locationRequest,
                                           @NonNull final PendingIntent   pendingIntent) {
-        mFusedLocationClient.requestLocationUpdates(locationRequest, pendingIntent)
-                .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        log(task);
-                    }
-                })
-                .addOnFailureListener(activity, new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception exception) {
-                        taskOnFailure(exception);
-                        mLocationCallbacks.onLocationError(exception);
-                    }
-                });
+        try {
+            mFusedLocationClient.requestLocationUpdates(locationRequest, pendingIntent)
+                    .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            log(task);
+                        }
+                    })
+                    .addOnFailureListener(activity, new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            taskOnFailure(exception);
+                            mLocationCallbacks.onLocationError(exception);
+                        }
+                    });
+        }
+        catch (SecurityException exception) {   // should never happen
+            CoreLogger.log("failed", exception);
+        }
     }
 
     /**

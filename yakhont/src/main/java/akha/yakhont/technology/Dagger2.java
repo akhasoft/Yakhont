@@ -26,7 +26,7 @@ import akha.yakhont.location.GoogleLocationClientNew;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
-import android.content.Context;
+import android.content.Intent;
 import android.support.annotation.StringRes;
 import android.widget.Toast;
 
@@ -130,6 +130,10 @@ public interface Dagger2 {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_ALERT_PROGRESS               = "alert_progress";
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    String      UI_ALERT_PERMISSION             = "alert_permission";
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    String      UI_ALERT_PERMISSION_DENIED      = "alert_permission_denied";
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_PROGRESS                     = "progress";
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_TOAST_LENGTH_LONG            = "toast_long";
@@ -137,15 +141,19 @@ public interface Dagger2 {
     String      UI_TOAST_LENGTH_SHORT           = "toast_short";
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_ALERT_LOCATION)       Provider<BaseDialog>        getAlertLocation();
+    @Named(UI_ALERT_LOCATION)          Provider<BaseDialog>     getAlertLocation();
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_ALERT_PROGRESS)       Provider<BaseDialog>        getAlertProgress();
+    @Named(UI_ALERT_PROGRESS)          Provider<BaseDialog>     getAlertProgress();
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_PROGRESS)             Provider<BaseDialog>        getProgress();
+    @Named(UI_ALERT_PERMISSION)        Provider<BaseDialog>     getAlertPermission();
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_TOAST_LENGTH_LONG)    Provider<BaseDialog>        getToastLong();
+    @Named(UI_ALERT_PERMISSION_DENIED) Provider<BaseDialog>     getAlertPermissionDenied();
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Named(UI_PROGRESS)                Provider<BaseDialog>     getProgress();
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Named(UI_TOAST_LENGTH_LONG)       Provider<BaseDialog>     getToastLong();
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    @Named(UI_TOAST_LENGTH_SHORT)   Provider<BaseDialog>        getToastShort();
+    @Named(UI_TOAST_LENGTH_SHORT)      Provider<BaseDialog>     getToastShort();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     @Component(modules = {LocationModule.class, UiModule.class})
@@ -210,13 +218,29 @@ public interface Dagger2 {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_LOCATION)
         public BaseDialog provideLocationAlert() {
-            return getAlert(akha.yakhont.R.string.yakhont_location_alert, Utils.getRequestCode(RequestCodes.LOCATION_ALERT), false);
+            return getAlert(akha.yakhont.R.string.yakhont_location_alert,
+                    Utils.getRequestCode(RequestCodes.LOCATION_ALERT), false);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PROGRESS)
         public BaseDialog provideProgressAlert() {
-            return getAlert(akha.yakhont.R.string.yakhont_loader_alert,   Utils.getRequestCode(RequestCodes.PROGRESS_ALERT),  true);
+            return getAlert(akha.yakhont.R.string.yakhont_loader_alert,
+                    Utils.getRequestCode(RequestCodes.PROGRESS_ALERT), true);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        @Provides @Named(UI_ALERT_PERMISSION)
+        public BaseDialog providePermissionAlert() {
+            return getAlert(akha.yakhont.R.string.yakhont_permission_alert,
+                    Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT), false);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        @Provides @Named(UI_ALERT_PERMISSION_DENIED)
+        public BaseDialog providePermissionDeniedAlert() {
+            return getAlert(akha.yakhont.R.string.yakhont_permission_denied_alert,
+                    Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT), false);
         }
 
         /**
@@ -359,7 +383,7 @@ class BaseToast implements BaseDialog {
     }
 
     @Override
-    public boolean start(final Context context, final String text) {
+    public boolean start(final Activity context, final String text, Intent data) {
         try {
             if (context != null) {
                 Toast.makeText(context, text, mDurationLong ? Toast.LENGTH_LONG: Toast.LENGTH_SHORT).show();

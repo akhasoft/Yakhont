@@ -57,6 +57,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
 
     private   static final String  ARG_LOCATION                         = TAG + ".location";
     private   static final String  ARG_TIME                             = TAG + ".time";
+    private   static final String  ARG_UNIQUE_UPDATES                   = TAG + ".unique_updates";
 
     // milliseconds
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -71,6 +72,8 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     protected       Location            mCurrentLocation;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected       Date                mLastUpdateTime;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected       boolean             mUniqueUpdates                  = true;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected       int                 mPriority;
@@ -101,6 +104,18 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      */
     @SuppressWarnings("WeakerAccess")
     protected BaseGoogleLocationClient() {
+    }
+
+    /**
+     * Sets the flag indicating whether the location updates callbacks should be called
+     * for changed values only. The default value is {@code true}.
+     *
+     * @param value
+     *        {@code true} for changed values only location updates, {@code false} otherwise
+     */
+    @SuppressWarnings("unused")
+    public void setUniqueUpdates(final boolean value) {
+        mUniqueUpdates = value;
     }
 
     /**
@@ -153,6 +168,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
 
         savedInstanceState.putParcelable  (ARG_LOCATION                     , mCurrentLocation     );
         savedInstanceState.putSerializable(ARG_TIME                         , mLastUpdateTime      );
+        savedInstanceState.putBoolean     (ARG_UNIQUE_UPDATES               , mUniqueUpdates       );
     }
 
     /**
@@ -360,22 +376,33 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
         if (savedInstanceState.keySet().contains               (ARG_REQUEST_SMALLEST_DISPLACEMENT))
             mSmallestDisplacement = savedInstanceState.getFloat(ARG_REQUEST_SMALLEST_DISPLACEMENT);
 
-        if (savedInstanceState.keySet().contains                       (ARG_LOCATION))
-            setLocation((Location) savedInstanceState.getParcelable    (ARG_LOCATION));
-        if (savedInstanceState.keySet().contains                       (ARG_TIME    ))
-            mLastUpdateTime = (Date) savedInstanceState.getSerializable(ARG_TIME    );
+        if (savedInstanceState.keySet().contains                       (ARG_LOCATION      ))
+            setLocation((Location)   savedInstanceState.getParcelable  (ARG_LOCATION      ));
+        if (savedInstanceState.keySet().contains                       (ARG_TIME          ))
+            mLastUpdateTime = (Date) savedInstanceState.getSerializable(ARG_TIME          );
+        if (savedInstanceState.keySet().contains                       (ARG_UNIQUE_UPDATES))
+            mUniqueUpdates  =        savedInstanceState.getBoolean     (ARG_UNIQUE_UPDATES);
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public void onLocationChanged(Location location) {
-        CoreLogger.log("new location is null");
-        if (location == null) return;
+    public void onLocationChanged(final Location location) {
+        if (location == null) {
+            CoreLogger.log("new location is null");
+            return;
+        }
+
+        final boolean changed = mCurrentLocation == null                  ||
+                location.getLatitude()  != mCurrentLocation.getLatitude() ||
+                location.getLongitude() != mCurrentLocation.getLongitude();
+        CoreLogger.log("location changed: " + changed);
 
         setLocation(location);
         mLastUpdateTime = lastUpdateTime();
+
+        if (mUniqueUpdates && !changed) return;
 
         mLocationCallbacks.onLocationChanged(location, mLastUpdateTime);
     }

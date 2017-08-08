@@ -100,8 +100,8 @@ public class CoreReflection {
      *          please refer to the exception description
      */
     @SuppressWarnings("WeakerAccess")
-    public static Object invoke(@NonNull final Object object, @NonNull final String methodName, final Object... args)
-            throws InvocationTargetException {
+    public static Object invoke(@NonNull final Object object, @NonNull final String methodName,
+                                final Object... args) throws InvocationTargetException {
 
         final Class[] classes = new Class[args == null ? 0: args.length];
         for (int i = 0; i < classes.length; i++)
@@ -129,8 +129,8 @@ public class CoreReflection {
      *          please refer to the exception description
      */
     @SuppressWarnings("WeakerAccess")
-    public static Object invoke(final Object object, final Method method, final Object... args)
-            throws InvocationTargetException {
+    public static Object invoke(final Object object, final Method method,
+                                final Object... args) throws InvocationTargetException {
 
         checkForNull(method, "method == null");
 
@@ -145,7 +145,7 @@ public class CoreReflection {
         try {
             return method.invoke(object, args);
         }
-        catch (IllegalAccessException e) {          // should never happen
+        catch (IllegalAccessException    e) {          // should never happen
             CoreLogger.log(method.getName(), e);
         }
         finally {

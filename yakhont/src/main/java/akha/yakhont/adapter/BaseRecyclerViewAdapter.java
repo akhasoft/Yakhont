@@ -16,7 +16,7 @@
 
 package akha.yakhont.adapter;
 
-import akha.yakhont.Core.Utils;
+import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter.DataBinder;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
@@ -87,7 +87,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder> extends 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public BaseRecyclerViewAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
                                    @NonNull final DataBinder<T> dataBinder) {
-        this(baseCacheAdapter, dataBinder, Utils.NOT_VALID_RES_ID);
+        this(baseCacheAdapter, dataBinder, Core.NOT_VALID_RES_ID);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -155,7 +155,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder> extends 
     public VH onCreateViewHolder(ViewGroup parent, int viewType) {
         if (mViewHolderCreator == null)
             CoreLogger.logError("please set ViewHolder creator via call to setViewHolderCreator()");
-        if (mLayoutId == Utils.NOT_VALID_RES_ID)
+        if (mLayoutId == Core.NOT_VALID_RES_ID)
             CoreLogger.logWarning("item layout ID is not defined");
         return mViewHolderCreator == null ? null:
                 mViewHolderCreator.onCreateViewHolder(parent, viewType, mLayoutId);

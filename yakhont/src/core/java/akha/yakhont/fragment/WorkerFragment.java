@@ -493,8 +493,9 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public void setGoBackOnLoadingCanceled(final boolean isGoBackOnLoadingCanceled) {
+    public CoreLoad setGoBackOnLoadingCanceled(final boolean isGoBackOnLoadingCanceled) {
         mGoBackOnLoadingCanceled.set(isGoBackOnLoadingCanceled);
+        return this;
     }
 
     // normally loading starts 'cause of initialization of a new fragment
@@ -555,7 +556,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
 
             mProgressDialog = mProgressProvider.get();
 
-            if (!mProgressDialog.start(WorkerFragment.this.getActivity(), text)) {
+            if (!mProgressDialog.start(WorkerFragment.this.getActivity(), text, null)) {
                 CoreLogger.logError("can not start progress dialog");
                 mProgressDialog = null;
             }

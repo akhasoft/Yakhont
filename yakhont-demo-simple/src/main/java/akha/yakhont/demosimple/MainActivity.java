@@ -47,8 +47,9 @@ public class MainActivity extends Activity implements LocationListener {
         setContentView(R.layout.activity_main);
 
         // local JSON client, so URL doesn't matter
+        // uncomment network delay emulation for the progress dialog etc.
         sRetrofit2.init(Retrofit2Api.class, sRetrofit2.getDefaultBuilder("http://localhost/")
-                .client(new LocalJsonClient2()));
+                .client(new LocalJsonClient2() /* .setEmulatedNetworkDelay(2000) */ ));
     }
 
     @Override

@@ -24,13 +24,13 @@ import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -55,8 +55,8 @@ public class Weaver {
 
     private static final String DEF_CONFIG          = "weaver.config";
 
-    private static final Map<String, Map<String, Set<String>>>
-                                METHODS_TO_WEAVE    = new LinkedHashMap<>();
+    private        final Map<String, Map<String, List<String>>>
+                                mMethodsToWeave     = new LinkedHashMap<>();
 
     private        final String mNewLine;
 
@@ -84,7 +84,12 @@ public class Weaver {
      */
     @SuppressWarnings("WeakerAccess")
     protected void log(String message) {
-        if (mDebug) System.out.println(message);
+        log(!mDebug, message);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected void log(boolean silent, String message) {
+        if (!silent) System.out.println(message);
     }
 
     /**
@@ -129,6 +134,8 @@ public class Weaver {
         mClassPath     = classPath;
         mBootClassPath = bootClassPath;
 
+        mMethodsToWeave.clear();
+
         log(mNewLine + "classpath:");
         for (String token : classPath.split(File.pathSeparator)) log(token);
         log(mNewLine + "boot classpath:");
@@ -143,7 +150,7 @@ public class Weaver {
             for (int i = 0; i < configFiles.length; i++)
                 parseConfig(configFiles[i]);
         }
-        printConfig(METHODS_TO_WEAVE);
+        printConfig(mMethodsToWeave);
 
         searchClasses(new File(classesDir).listFiles());
     }
@@ -154,7 +161,7 @@ public class Weaver {
         try (BufferedReader in = new BufferedReader(new InputStreamReader(
                 getClass().getClassLoader().getResourceAsStream(DEF_CONFIG)))) {
             while ((line = in.readLine()) != null)
-                parseConfig(line, METHODS_TO_WEAVE);
+                parseConfig(line, mMethodsToWeave);
         }
     }
 
@@ -164,7 +171,7 @@ public class Weaver {
         log(mNewLine + mNewLine + "config file: " + configFile);
 
         for (String line: Files.readAllLines(Paths.get(configFile), Charset.defaultCharset()))
-            parseConfig(line, METHODS_TO_WEAVE);
+            parseConfig(line, mMethodsToWeave);
     }
 
     /**
@@ -180,7 +187,7 @@ public class Weaver {
      *          please refer to the exception description
      */
     @SuppressWarnings({"WeakerAccess", "SameParameterValue"})
-    protected void parseConfig(String line, Map<String, Map<String, Set<String>>> map) throws CannotCompileException {
+    protected void parseConfig(String line, Map<String, Map<String, List<String>>> map) throws CannotCompileException {
         int idx = line.indexOf(COMMENT);
         if (idx >= 0) line = line.substring(0, idx);
 
@@ -213,16 +220,16 @@ public class Weaver {
         String  className = tokens.get(0).substring(0, tokens.get(0).length() - methodName.length() - 1);
 
         if (!map.containsKey(className))        //noinspection Convert2Diamond
-            map.put(className, new LinkedHashMap<String, Set<String>>());
-        Map<String, Set<String>> classMap = map.get(className);
+            map.put(className, new LinkedHashMap<String, List<String>>());
+        Map<String, List<String>> classMap = map.get(className);
 
         if (!classMap.containsKey(methodName))  //noinspection Convert2Diamond
-            classMap.put(methodName, new LinkedHashSet<String>());
+            classMap.put(methodName, new ArrayList<String>());
         classMap.get(methodName).add(
                 action.ordinal() + actionToken + DELIMITER + removeExtraSpaces(tokens.get(2)));
     }
 
-    private void printConfig(Map<String, Map<String, Set<String>>> map) {
+    private void printConfig(Map<String, Map<String, List<String>>> map) {
         for (String key: map.keySet()) {
             log(mNewLine + "--- " + key);
             for (String method: map.get(key).keySet()) {
@@ -280,13 +287,13 @@ public class Weaver {
         CtClass clsDest = pool.get(destClassName);
         if (!clsDest.getPackageName().startsWith(mApplicationId)) return;
 
-        for (String className: METHODS_TO_WEAVE.keySet()) {
+        for (String className: mMethodsToWeave.keySet()) {
             CtClass clsSrc = pool.getOrNull(className);
             if (clsSrc == null) throw new CannotCompileException("error - can not find class: " + className);
 
             if (clsDest.subclassOf(clsSrc)) {
                 log(mNewLine + "--- class to weaving: " + destClassName + " (based on " + clsSrc.getName() + ")");
-                for (String methodName: METHODS_TO_WEAVE.get(className).keySet())
+                for (String methodName: mMethodsToWeave.get(className).keySet())
                     insertMethods(clsDest, clsSrc, methodName, pool);
             }
         }
@@ -297,8 +304,10 @@ public class Weaver {
     }
 
     private void insertMethods(CtClass clsDest, CtClass clsSrc, String methodName, ClassPool pool) throws NotFoundException, CannotCompileException {
-
-        for (String methodData: METHODS_TO_WEAVE.get(clsSrc.getName()).get(methodName)) {
+        List<String> methodData = mMethodsToWeave.get(clsSrc.getName()).get(methodName);
+        for (int i = methodData.size() - 1; i >= 0; i--) {
+            if (Collections.frequency(methodData, methodData.get(i)) > 1)
+                log(false, "warning - duplicated entries for method " + methodName + ": " + methodData.get(i));
             int idx = methodName.indexOf("(");
 
             for (CtMethod methodSrc: clsSrc.getDeclaredMethods(idx < 0 ? methodName: methodName.substring(0, idx))) {
@@ -313,28 +322,29 @@ public class Weaver {
 
                 if (methodDest != null) {
                     log(mNewLine + "method " + methodDest.getLongName() + " is already overridden; about to weave, action: " +
-                            getActionDescription(methodData) + ", code: " + getCode(methodData));
+                            getActionDescription(methodData.get(i)) + ", code: " + getCode(methodData.get(i)));
 
-                    Actions action = getAction(methodData);
+                    Actions action = getAction(methodData.get(i));
                     switch (action) {
                         case INSERT_BEFORE:
-                            methodDest.insertBefore(getCode(methodData));
+                            methodDest.insertBefore(getCode(methodData.get(i)));
                             break;
                         case INSERT_AFTER:
-                            methodDest.insertAfter(getCode(methodData));
+                            methodDest.insertAfter(getCode(methodData.get(i)));
                             break;
                         case INSERT_AFTER_FINALLY:
-                            methodDest.insertAfter(getCode(methodData), true);
+                            methodDest.insertAfter(getCode(methodData.get(i)), true);
                             break;
                         case CATCH:
-                            methodDest.addCatch(getCode(methodData), pool.get(getActionDescriptionRaw(methodData)), "$" + EXCEPTION_NAME);
+                            methodDest.addCatch(getCode(methodData.get(i)),
+                                    pool.get(getActionDescriptionRaw(methodData.get(i))), "$" + EXCEPTION_NAME);
                             break;
                         default:        // should never happen
                             throw new CannotCompileException("error - unknown action: " + action);
                     }
                 }
                 else {
-                    String newMethod = newMethod(methodSrc, methodData, clsDest);
+                    String newMethod = newMethod(methodSrc, methodData.get(i), clsDest);
 
                     log(mNewLine + "about to add method " + methodName + mNewLine + " method body: " + newMethod);
                     clsDest.addMethod(CtNewMethod.make(newMethod, clsDest));

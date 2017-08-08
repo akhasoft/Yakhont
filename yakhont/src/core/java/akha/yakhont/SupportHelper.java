@@ -29,7 +29,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.LayoutRes;
@@ -44,7 +43,7 @@ public class SupportHelper {                    // core
     }
     
     @SuppressWarnings({"SameReturnValue", "UnusedParameters"})
-    public static boolean isSupportMode(final Context context) {
+    public static boolean isSupportMode(final Activity context) {
         return false;
     }
     
@@ -61,7 +60,7 @@ public class SupportHelper {                    // core
         BaseLoader.enableLoaderManagerDebugLogging(enable);
     }
     
-    public static BaseCursorAdapter getBaseCursorAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+    public static BaseCursorAdapter getBaseCursorAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                                          @NonNull @Size(min = 1) final String[]          from,
                                                          @NonNull @Size(min = 1) final    int[]          to) {
         return new BaseSimpleCursorAdapter(context, layoutId, from, to);

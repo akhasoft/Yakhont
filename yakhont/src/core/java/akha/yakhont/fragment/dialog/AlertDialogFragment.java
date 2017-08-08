@@ -19,6 +19,7 @@ package akha.yakhont.fragment.dialog;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
+import akha.yakhont.SupportHelper;
 // import akha.yakhont.debug.BaseActivity;
 
 import android.annotation.SuppressLint;
@@ -31,6 +32,7 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -58,6 +60,11 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
     @StringRes private static final int     RES_ID_NO           = akha.yakhont.R.string.yakhont_alert_no;
 
     private int                             mTransactionId;
+    private Intent                          mIntent;
+
+    // it's a hack so method is not needed - public field is enough
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public boolean                          mSupportFragmentManagerHack;
 
     /**
      * Initialises a newly created {@code AlertDialogFragment} object.
@@ -220,10 +227,11 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
      *        The integer result code
      */
     protected void callback(final int result) {
-        CoreLogger.log("result " + result + " " + Utils.getActivityResultString(result));
+        CoreLogger.log("result == " + result + " " + Utils.getActivityResultString(result) +
+                ", intent == " + mIntent);
 
         final Fragment target = getTargetFragment();
-        CoreLogger.log("target = " + target);
+        CoreLogger.log("target == " + target);
 
         if (target != null) {
             target.onActivityResult(getTargetRequestCode(), result, null);
@@ -243,19 +251,27 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
             return;
         }
 */
-        CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, result, null);
+        CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, result, mIntent);
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    protected boolean startDialog() {
+    protected boolean startDialog(final Intent data) {
+        mIntent = data;
+
         final FragmentManager fragmentManager = getDialogFragmentManager();
         if (fragmentManager == null) return false;
 
+        // well, it's a hack... maybe some day I will find another way to overcome SupportFragmentManager
+        CoreLogger.log("mSupportFragmentManagerHack == " + mSupportFragmentManagerHack);
+        //noinspection ConstantConditions
+        if (mSupportFragmentManagerHack && SupportHelper.isSupportMode(getActivity()))
+            CoreReflection.invokeSafe(fragmentManager, "noteStateNotSaved");
+
         final Fragment parent = fragmentManager.getFragment(getArguments(), CommonDialogFragment.ARG_PARENT);
-        CoreLogger.log("parent = " + parent);
+        CoreLogger.log("parent == " + parent);
 
         final FragmentTransaction transaction = fragmentManager.beginTransaction();
 

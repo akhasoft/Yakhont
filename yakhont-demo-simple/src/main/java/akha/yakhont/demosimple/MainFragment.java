@@ -43,6 +43,9 @@ public class MainFragment extends Fragment {
                 .setLayoutManager(new LinearLayoutManager(getActivity()));
 
         new Retrofit2CoreLoadBuilder<>(this, Beer[].class, MainActivity.sRetrofit2)
-                .create().startLoading();
+                .create()
+                // uncomment to stay in application if user cancelled data loading
+//              .setGoBackOnLoadingCanceled(false)
+                .startLoading();
     }
 }

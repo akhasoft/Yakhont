@@ -26,7 +26,6 @@ import akha.yakhont.support.fragment.dialog.CommonDialogFragment;
 import akha.yakhont.support.loader.BaseLoader;
 
 import android.app.Activity;
-import android.content.Context;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.LayoutRes;
@@ -43,7 +42,7 @@ public class SupportHelper {                    // support
     }
 
     @SuppressWarnings({"SameReturnValue", "UnusedParameters"})
-    public static boolean isSupportMode(final Context context) {
+    public static boolean isSupportMode(final Activity context) {
         return true;
     }
 
@@ -60,7 +59,7 @@ public class SupportHelper {                    // support
         BaseLoader.enableLoaderManagerDebugLogging(enable);
     }
     
-    public static BaseCursorAdapter getBaseCursorAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
+    public static BaseCursorAdapter getBaseCursorAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                                          @NonNull @Size(min = 1) final String[]          from,
                                                          @NonNull @Size(min = 1) final    int[]          to) {
         if (BaseSimpleCursorAdapter.isSupport() || Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
