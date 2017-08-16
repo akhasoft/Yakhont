@@ -17,6 +17,7 @@
 package akha.yakhont.adapter;
 
 import akha.yakhont.Core;
+import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
@@ -419,20 +420,12 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static View findListView(@NonNull final View view) {
-        final View[] viewHelper = new View[1];
-
-        visitView(view, new ViewVisitor() {
+        return ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
             @Override
             public boolean handle(final View view) {
-                if (!(view instanceof AbsListView || view instanceof RecyclerView)) return false;
-
-                if (viewHelper[0] == null) viewHelper[0] = view;
-                return true;
+                return view instanceof AbsListView || view instanceof RecyclerView;
             }
         });
-
-        CoreLogger.log(viewHelper[0] == null ? Level.ERROR: Level.DEBUG, "list view: " + viewHelper[0]);
-        return viewHelper[0];
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -442,14 +435,16 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         final Resources             resources       = context.getResources();
         final ViewInflater          viewInflater    = new ViewInflater(context, layoutId);
 
-        visitView(viewInflater.inflate(null), new ViewVisitor() {
+        ViewHelper.visitView(viewInflater.inflate(null), new ViewHelper.ViewVisitor() {
             @Override
             public boolean handle(final View view) {
                 final int id = view.getId();
                 if (id != Core.NOT_VALID_VIEW_ID && view.getVisibility() == View.VISIBLE
                         && (view instanceof TextView || view instanceof ImageView))
                     map.put(id, resources.getResourceEntryName(id));
-                return false;
+
+                // force to handle all views
+                return !ViewHelper.VIEW_FOUND;
             }
         });
 
@@ -462,21 +457,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             CoreLogger.log("views binding: added " + entry.getValue());
         }
         return ids;
-    }
-
-    private static boolean visitView(@NonNull final View view, @NonNull final ViewVisitor visitor) {
-        if (visitor.handle(view))
-            return true;
-        if (view instanceof ViewGroup) {
-            final ViewGroup viewGroup = (ViewGroup) view;
-            for (int i = 0; i < viewGroup.getChildCount(); i++)
-                if (visitView(viewGroup.getChildAt(i), visitor)) return true;
-        }
-        return false;
-    }
-
-    private interface ViewVisitor {
-        boolean handle(View view);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

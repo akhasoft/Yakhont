@@ -271,7 +271,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     @CallSuper
     @Override
     public void onLowMemory() {
-        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+        CoreLogger.log(Utils.getOnLowMemoryLevel(), getDebugMessage(), false);
 
         super.onLowMemory();
     }
@@ -356,13 +356,13 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @CallSuper                                                                                  //YakhontPreprocessor:removeInFlavor
-    @Override                                                                                   //YakhontPreprocessor:removeInFlavor
-    public void onTrimMemory(int level) {                                                       //YakhontPreprocessor:removeInFlavor
-        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", level " + level, false);         //YakhontPreprocessor:removeInFlavor
+    @CallSuper                                                                                                                                  //YakhontPreprocessor:removeInFlavor
+    @Override                                                                                                                                   //YakhontPreprocessor:removeInFlavor
+    public void onTrimMemory(int level) {                                                                                                       //YakhontPreprocessor:removeInFlavor
+        CoreLogger.log(Utils.getOnTrimMemoryLevel(level), getDebugMessage() + ", level " + Utils.getOnTrimMemoryLevelString(level), false);     //YakhontPreprocessor:removeInFlavor
 
-        super.onTrimMemory(level);                                                              //YakhontPreprocessor:removeInFlavor
-    }                                                                                           //YakhontPreprocessor:removeInFlavor
+        super.onTrimMemory(level);                                                                                                              //YakhontPreprocessor:removeInFlavor
+    }                                                                                                                                           //YakhontPreprocessor:removeInFlavor
 
     /**
      * Please refer to the base method description.

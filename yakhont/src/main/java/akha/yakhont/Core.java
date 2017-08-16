@@ -51,8 +51,11 @@ import android.support.annotation.AnyRes;
 import android.support.annotation.IdRes;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.Toast;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -102,7 +105,7 @@ import java.util.zip.ZipOutputStream;
  * </pre>
  *
  * @see #init(Application)
- * @see #init(Application, boolean)
+ * @see #init(Application, boolean, boolean, boolean)
  * @see #init(Application, Boolean, Dagger2)
  *
  * @author akha
@@ -319,12 +322,20 @@ public class Core {
      *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
      *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
      *
+     * @param useSnackbarIsoAlert
+     *        {@code true} for using {@link Snackbar} instead of dialog alert
+     *
+     * @param useSnackbarIsoToast
+     *        {@code true} for using {@link Snackbar} instead of {@link Toast}
+     *
      * @return  {@code true} if library initialization was successful, {@code false} otherwise (library is already activated)
      */
     @SuppressWarnings("unused")
-    public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application,
-                               @SuppressWarnings("SameParameterValue")          final boolean     useGoogleLocationOldApi) {
-        return init(application, null, getDefaultDagger(useGoogleLocationOldApi));
+    public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application            ,
+                               @SuppressWarnings("SameParameterValue")          final boolean     useGoogleLocationOldApi,
+                               @SuppressWarnings("SameParameterValue")          final boolean     useSnackbarIsoAlert    ,
+                               @SuppressWarnings("SameParameterValue")          final boolean     useSnackbarIsoToast) {
+        return init(application, null, getDefaultDagger(useGoogleLocationOldApi, useSnackbarIsoAlert, useSnackbarIsoToast));
     }
 
     /**
@@ -335,6 +346,7 @@ public class Core {
      * import akha.yakhont.location.LocationCallbacks.LocationClient;
      * import akha.yakhont.technology.Dagger2;
      *
+     * import dagger.BindsInstance;
      * import dagger.Component;
      * import dagger.Module;
      * import dagger.Provides;
@@ -343,7 +355,11 @@ public class Core {
      *
      *     &#064;Override
      *     protected void onCreate(Bundle savedInstanceState) {
-     *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger.create());
+     *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger
+     *             .builder()
+     *             .parameters(Dagger2.Parameters.create())
+     *             .build()
+     *         );
      *
      *         super.onCreate(savedInstanceState);
      *         ...
@@ -353,15 +369,22 @@ public class Core {
      *
      *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class})
      *     interface MyDagger extends Dagger2 {
+     *
+     *         &#064;Component.Builder
+     *         interface Builder {
+     *             &#064;BindsInstance
+     *             Builder parameters(Dagger2.Parameters parameters);
+     *             MyDagger build();
+     *         }
      *     }
      *
      *     &#064;Module
      *     static class MyLocationModule extends Dagger2.LocationModule {
      *
      *         &#064;Provides
-     *         LocationClient provideLocationClient() {
+     *         LocationClient provideLocationClient(Dagger2.Parameters parameters) {
      *             // return null if you don't need location API
-     *             return getLocationClient(false);
+     *             return getLocationClient(getFlagLocation(parameters));
      *         }
      *     }
      *
@@ -401,7 +424,7 @@ public class Core {
         }
         sInstance = new Core();
 
-        sDagger = dagger != null ? dagger: getDefaultDagger(null);
+        sDagger = dagger != null ? dagger: getDefaultDagger();
 
         Init.logging(application,
                 fullInfo == null ? Utils.isDebugMode(application.getPackageName()): fullInfo);
@@ -416,10 +439,20 @@ public class Core {
         return true;
     }
 
-    private static Dagger2 getDefaultDagger(final Boolean useGoogleLocationOldApi) {
+    private static Dagger2 getDefaultDagger(final boolean useGoogleLocationOldApi,
+                                            final boolean useSnackbarIsoAlert,
+                                            final boolean useSnackbarIsoToast) {
         return akha.yakhont.technology.DaggerDagger2_DefaultComponent
                 .builder()
-                .useGoogleLocationOldApi(useGoogleLocationOldApi == null ? false: useGoogleLocationOldApi)
+                .parameters(Dagger2.Parameters.create(
+                        useGoogleLocationOldApi, useSnackbarIsoAlert, useSnackbarIsoToast))
+                .build();
+    }
+
+    private static Dagger2 getDefaultDagger() {
+        return akha.yakhont.technology.DaggerDagger2_DefaultComponent
+                .builder()
+                .parameters(Dagger2.Parameters.create())
                 .build();
     }
 
@@ -544,7 +577,7 @@ public class Core {
          */
         @Override
         public void onLowMemory() {
-            CoreLogger.logWarning("low memory");
+            CoreLogger.log(Utils.getOnLowMemoryLevel(), "low memory");
         }
 
         @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
@@ -555,7 +588,8 @@ public class Core {
              */
             @Override
             public void onTrimMemory(int level) {
-                CoreLogger.logWarning("level " + Utils.getOnTrimMemoryLevelString(level));
+                CoreLogger.log(Utils.getOnTrimMemoryLevel(level),
+                        "level " + Utils.getOnTrimMemoryLevelString(level));
             }
         }
     }
@@ -844,57 +878,87 @@ public class Core {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getDialogInterfaceString(final int which) {
             switch (which) {
-                case DialogInterface.BUTTON_POSITIVE:
-                    return "DialogInterface.BUTTON_POSITIVE";
-                case DialogInterface.BUTTON_NEGATIVE:
-                    return "DialogInterface.BUTTON_NEGATIVE";
-                case DialogInterface.BUTTON_NEUTRAL:
-                    return "DialogInterface.BUTTON_NEUTRAL";
-                default:
-                    return "unknown DialogInterface result: " + which;
+                case        DialogInterface.BUTTON_POSITIVE                   :
+                    return "DialogInterface.BUTTON_POSITIVE"                  ;
+                case        DialogInterface.BUTTON_NEGATIVE                   :
+                    return "DialogInterface.BUTTON_NEGATIVE"                  ;
+                case        DialogInterface.BUTTON_NEUTRAL                    :
+                    return "DialogInterface.BUTTON_NEUTRAL"                   ;
+                default                                                       :
+                    return "unknown DialogInterface result: " + which         ;
             }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getActivityResultString(final int result) {
             switch (result) {
-                case Activity.RESULT_OK:
-                    return "Activity.RESULT_OK";
-                case Activity.RESULT_CANCELED:
-                    return "Activity.RESULT_CANCELED";
-                case Activity.RESULT_FIRST_USER:
-                    return "Activity.RESULT_FIRST_USER";
-                default:
-                    return "unknown Activity result: " + result;
+                case        Activity.RESULT_OK                                :
+                    return "Activity.RESULT_OK"                               ;
+                case        Activity.RESULT_CANCELED                          :
+                    return "Activity.RESULT_CANCELED"                         ;
+                case        Activity.RESULT_FIRST_USER                        :
+                    return "Activity.RESULT_FIRST_USER"                       ;
+                default                                                       :
+                    return "unknown Activity result: " + result               ;
             }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getOnTrimMemoryLevelString(final int level) {
             switch (level) {
-                case ComponentCallbacks2.TRIM_MEMORY_COMPLETE:
-                    return "ComponentCallbacks2.TRIM_MEMORY_COMPLETE";
-                case ComponentCallbacks2.TRIM_MEMORY_MODERATE:
-                    return "ComponentCallbacks2.TRIM_MEMORY_MODERATE";
-                case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND:
-                    return "ComponentCallbacks2.TRIM_MEMORY_BACKGROUND";
-                case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN:
-                    return "ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN";
-                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL:
-                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL";
-                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW:
-                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW";
-                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE:
-                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE";
-                default:
-                    return "unknown OnTrimMemory() level: " + level;
+                case        ComponentCallbacks2.TRIM_MEMORY_COMPLETE          :
+                    return "ComponentCallbacks2.TRIM_MEMORY_COMPLETE"         ;
+                case        ComponentCallbacks2.TRIM_MEMORY_MODERATE          :
+                    return "ComponentCallbacks2.TRIM_MEMORY_MODERATE"         ;
+                case        ComponentCallbacks2.TRIM_MEMORY_BACKGROUND        :
+                    return "ComponentCallbacks2.TRIM_MEMORY_BACKGROUND"       ;
+                case        ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN         :
+                    return "ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN"        ;
+                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL  :
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL" ;
+                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW       :
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW"      ;
+                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE  :
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE" ;
+                default                                                       :
+                    return "unknown OnTrimMemory() level: " + level           ;
             }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static Level getOnTrimMemoryLevel(final int level) {
+            switch (level) {
+                case ComponentCallbacks2.TRIM_MEMORY_COMPLETE                 :
+                    return Level.ERROR                                        ;
+                case ComponentCallbacks2.TRIM_MEMORY_MODERATE                 :
+                    return Level.WARNING                                      ;
+                case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND               :
+                case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN                :
+                    return Level.INFO                                         ;
+
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL         :
+                    return Level.ERROR                                        ;
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW              :
+                    return Level.WARNING                                      ;
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE         :
+                    return Level.INFO                                         ;
+
+                // unknown level
+                default                                                       :
+                    return Level.ERROR                                        ;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "SameReturnValue"})
+        public static Level getOnLowMemoryLevel() {
+            return Level.WARNING                                              ;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static void onActivityResult(@NonNull final String prefix, @NonNull final Activity activity,
                                             final int requestCode, final int resultCode, final Intent data) {
-            CoreLogger.log(prefix + ".onActivityResult: subject to call by weaver");
+            CoreLogger.log((prefix.isEmpty() ? "": prefix + ".") + "onActivityResult" +
+                    (prefix.isEmpty() ? "": ": subject to call by weaver"));
             CoreLogger.log("activity   : " + getActivityName(activity));
             CoreLogger.log("requestCode: " + requestCode + " " + getRequestCode(requestCode).name());
             CoreLogger.log("resultCode : " + resultCode  + " " + getActivityResultString(resultCode));
@@ -902,35 +966,16 @@ public class Core {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static View getView(final Activity activity) {
-            return getView(activity, NOT_VALID_VIEW_ID);
+        public static void onActivityResult(@NonNull final Activity activity,
+                                            final int requestCode, final int resultCode, final Intent data) {
+            onActivityResult("", activity, requestCode, resultCode, data);
+/*
+        if (activity instanceof BaseActivity) {
+            ((BaseActivity) activity).onActivityResult(requestCode, resultCode, data);
+            return;
         }
-
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static View getView(final Activity activity, @IdRes final int viewId) {
-            if (activity == null) {
-                CoreLogger.logError("activity == null");
-                return null;
-            }
-            if (viewId != NOT_VALID_VIEW_ID) {
-                final View view = activity.findViewById(viewId);
-                if (view == null)
-                    CoreLogger.logError("can not find view with ID " + viewId);
-                return view;
-            }
-            View view = activity.findViewById(android.R.id.content);
-            if (view == null) {
-                CoreLogger.logWarning("android.R.id.content not found, getWindow().getDecorView() will be used");
-                CoreLogger.logWarning("Note that calling this function \"locks in\" various " +
-                        "characteristics of the window that can not, from this point forward, be changed");
-                final Window window = activity.getWindow();
-                if (window == null)
-                    CoreLogger.logError("window == null");
-                view = window == null ? null: window.getDecorView();
-            }
-            if (view == null)
-                CoreLogger.logError("can not find View for Activity " + activity);
-            return view;
+*/
+            CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, resultCode, data);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1238,6 +1283,85 @@ public class Core {
 
                 prepareRunnable(runnable).run();
                 return null;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static class ViewHelper {
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public  static final boolean                VIEW_FOUND                      = true;
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public interface ViewVisitor {
+                boolean handle(View view);
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static boolean visitView(@NonNull final View        parentView,
+                                            @NonNull final ViewVisitor visitor) {
+                if (visitor.handle(parentView))
+                    return true;
+
+                if (parentView instanceof ViewGroup) {
+                    final ViewGroup viewGroup = (ViewGroup) parentView;
+                    for (int i = 0; i < viewGroup.getChildCount(); i++)
+                        if (visitView(viewGroup.getChildAt(i), visitor)) return true;
+                }
+                return false;
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static View findView(@NonNull final View        parentView,
+                                        @NonNull final ViewVisitor visitor) {
+                final View[] viewHelper = new View[1];
+
+                visitView(parentView, new ViewVisitor() {
+                    @Override
+                    public boolean handle(final View view) {
+                        final boolean found = visitor.handle(view);
+                        if (found && viewHelper[0] == null) viewHelper[0] = view;
+                        return found;
+                    }
+                });
+
+                CoreLogger.log(viewHelper[0] == null ? Level.ERROR: Level.DEBUG,
+                        "result of find view: " + viewHelper[0]);
+                return viewHelper[0];
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static View getView(final Activity activity) {
+                return getView(activity, NOT_VALID_VIEW_ID);
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static View getView(final Activity activity, @IdRes final int viewId) {
+                if (activity == null) {
+                    CoreLogger.logError("activity == null");
+                    return null;
+                }
+                if (viewId != NOT_VALID_VIEW_ID) {
+                    final View view = activity.findViewById(viewId);
+                    if (view == null)
+                        CoreLogger.logError("can not find view with ID " + viewId);
+                    return view;
+                }
+
+                View view = activity.findViewById(android.R.id.content);
+                if (view == null) {
+                    CoreLogger.logWarning("android.R.id.content not found, getWindow().getDecorView() will be used");
+                    CoreLogger.logWarning("Note that calling this function \"locks in\" various " +
+                            "characteristics of the window that can not, from this point forward, be changed");
+                    final Window window = activity.getWindow();
+                    if (window == null)
+                        CoreLogger.logError("window == null");
+                    view = window == null ? null: window.getDecorView();
+                }
+                if (view == null)
+                    CoreLogger.logError("can not find View for Activity " + activity);
+
+                return view;
             }
         }
     }

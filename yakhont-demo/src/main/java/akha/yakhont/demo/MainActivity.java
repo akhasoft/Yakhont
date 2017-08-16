@@ -65,6 +65,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import dagger.BindsInstance;
 import dagger.Component;
 import dagger.Module;
 import dagger.Provides;
@@ -82,6 +83,9 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     private static final boolean            USE_GOOGLE_LOCATION_OLD_API     = false;
 
+    private static final boolean            USE_SNACKBAR_ISO_ALERT          = false;
+    private static final boolean            USE_SNACKBAR_ISO_TOAST          = false;
+
     private       LocalJsonClient           mJsonClient;
     private       LocalJsonClient2          mJsonClient2;
 
@@ -91,7 +95,11 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        Core.init(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger.create());
+        Core.init(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger
+                .builder()
+                .parameters(Dagger2.Parameters.create(USE_GOOGLE_LOCATION_OLD_API,
+                        USE_SNACKBAR_ISO_ALERT, USE_SNACKBAR_ISO_TOAST))
+                .build());
 
         LocationCallbacks.allowAccessToLocation(true);      // suppress confirmation dialog
 
@@ -223,13 +231,19 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     @Component(modules = {DemoLocationModule.class, DemoUiModule.class})
     interface DemoDagger extends Dagger2 {
+        @Component.Builder
+        interface Builder {
+            @BindsInstance
+            Builder parameters(Dagger2.Parameters parameters);
+            DemoDagger build();
+        }
     }
 
     @Module
     static class DemoLocationModule extends Dagger2.LocationModule {
         @Provides
-        LocationClient provideLocationClient() {
-            return getLocationClient(USE_GOOGLE_LOCATION_OLD_API);
+        LocationClient provideLocationClient(Dagger2.Parameters parameters) {
+            return getLocationClient(getFlagLocation(parameters));
         }
     }
 

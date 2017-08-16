@@ -709,8 +709,19 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         CoreLogger.log("resultCode " + resultCode);
 
         mAlert = null;
-        if (resultCode == Activity.RESULT_CANCELED) return;
 
+        switch (resultCode) {
+            case Activity.RESULT_CANCELED:
+                return;
+            case Activity.RESULT_OK:
+            case Activity.RESULT_FIRST_USER:
+                break;
+            default:
+                CoreLogger.logWarning("unknown result code " + resultCode);
+                break;
+        }
+
+        // in case of Snackbar decision is always true
         final boolean decision = resultCode == Activity.RESULT_OK;
         sAccessToLocation = decision;
 

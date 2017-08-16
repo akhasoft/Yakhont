@@ -20,7 +20,6 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.SupportHelper;
-// import akha.yakhont.debug.BaseActivity;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -215,7 +214,7 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
     public void onClick(DialogInterface dialog, int which) {
         CoreLogger.log("which " + which + " " + Utils.getDialogInterfaceString(which));
 
-        callback(which == DialogInterface.BUTTON_POSITIVE ? Activity.RESULT_OK : Activity.RESULT_FIRST_USER);
+        callback(which == DialogInterface.BUTTON_POSITIVE ? Activity.RESULT_OK: Activity.RESULT_FIRST_USER);
         stop();
     }
 
@@ -234,7 +233,7 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
         CoreLogger.log("target == " + target);
 
         if (target != null) {
-            target.onActivityResult(getTargetRequestCode(), result, null);
+            target.onActivityResult(getTargetRequestCode(), result, mIntent);
             return;
         }
 
@@ -245,13 +244,8 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
             CoreLogger.logError("activity == null");
             return;
         }
-/*
-        if (activity instanceof BaseActivity) {
-            ((BaseActivity) activity).onActivityResult(requestCode, result, null);
-            return;
-        }
-*/
-        CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, result, mIntent);
+
+        Utils.onActivityResult(activity, requestCode, result, mIntent);
     }
 
     /**

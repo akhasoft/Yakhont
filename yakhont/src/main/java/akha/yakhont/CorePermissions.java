@@ -20,6 +20,7 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.ConfigurationChangedListener;
 import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger.Level;
 
 import android.app.Activity;
@@ -62,23 +63,28 @@ import javax.inject.Provider;
  *
  * @author akha
  */
-public final class CorePermissions implements ConfigurationChangedListener {
+public class CorePermissions implements ConfigurationChangedListener {
 
     private static final String TAG                    = Utils.getTag(CorePermissions.class);
     private static final String ARG_PERMISSIONS        = TAG + ".permissions";
     private static final String ARG_VIEW_ID            = TAG + ".view_id";
 
-    private       Runnable               mOnDenied;
-    private       Runnable               mOnGranted;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected     Runnable               mOnDenied;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected     Runnable               mOnGranted;
 
     private final Provider<BaseDialog>   mAlertProvider, mAlertDeniedProvider;
     private       BaseDialog             mAlert, mAlertDenied;
 
-    private       int                    mRequestCode;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected     int                    mRequestCode;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IdRes
-    private       int                    mViewId;
+    protected     int                    mViewId;
 
-    private PermissionsNamesTranslator   mPermissionsNamesTranslator;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected PermissionsNamesTranslator mPermissionsNamesTranslator;
 
     /**
      * This class can be used to customize the visual representation of permissions.
@@ -97,7 +103,8 @@ public final class CorePermissions implements ConfigurationChangedListener {
         String getDisplayNames(String[] permissions);
     }
 
-    private CorePermissions() {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected CorePermissions() {
         mAlertProvider          = Core.getDagger().getAlertPermission();
         mAlertDeniedProvider    = Core.getDagger().getAlertPermissionDenied();
     }
@@ -112,14 +119,16 @@ public final class CorePermissions implements ConfigurationChangedListener {
         mAlertDenied = null;
     }
 
-    private static boolean checkData(final Context context, final String permission) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static boolean checkData(final Context context, final String permission) {
         if (context    == null) CoreLogger.logError("context == null");
         if (permission == null) CoreLogger.logError("permission == null");
         return context != null && permission != null;
     }
 
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private static boolean checkData(final Activity activity, final String[] permissions) {
+    /** @exclude */
+    @SuppressWarnings({"JavaDoc", "WeakerAccess", "BooleanMethodIsAlwaysInverted"})
+    protected static boolean checkData(final Activity activity, final String[] permissions) {
         if (permissions == null) {
             CoreLogger.logError("permissions == null");
             return false;
@@ -134,7 +143,8 @@ public final class CorePermissions implements ConfigurationChangedListener {
         return true;
     }
 
-    private static String[] check(final Activity activity, final String[] permissions) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static String[] check(final Activity activity, final String[] permissions) {
         final ArrayList<String> list = new ArrayList<>();
         for (final String permission: permissions)
             if (!check(activity, permission))
@@ -147,15 +157,17 @@ public final class CorePermissions implements ConfigurationChangedListener {
         return list.size() == 0 ? null: list.toArray(new String[list.size()]);
     }
 
-    @SuppressWarnings("SameReturnValue")
-    private boolean requestWrapper(final Activity activity, final String[] permissions) {
+    /** @exclude */
+    @SuppressWarnings({"JavaDoc", "WeakerAccess", "SameReturnValue"})
+    protected boolean requestWrapper(final Activity activity, final String[] permissions) {
         CoreLogger.log("about to request permissions: " + Arrays.deepToString(permissions));
 
         ActivityCompat.requestPermissions(activity, permissions, mRequestCode);
         return false;
     }
 
-    private boolean requestHandler(final Activity activity, String[] permissions) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected boolean requestHandler(final Activity activity, String[] permissions) {
 
         boolean shouldProvideRationale = false;
         for (final String permission: permissions)
@@ -247,30 +259,47 @@ public final class CorePermissions implements ConfigurationChangedListener {
             case PERMISSIONS_RATIONALE_ALERT:
                 corePermissions.mAlert = null;
 
-                if (resultCode != Activity.RESULT_OK) {
-                    runOnDenied(corePermissions.mOnDenied);
-                    break;
-                }
+                switch (resultCode) {
+                    case Activity.RESULT_OK:
+                        corePermissions.requestWrapper(activity, data.getStringArrayExtra(ARG_PERMISSIONS));
+                        return;
 
-                corePermissions.requestWrapper(activity, data.getStringArrayExtra(ARG_PERMISSIONS));
-                return;
+                    default:    // fall through
+                        CoreLogger.logWarning("unknown result code " + resultCode);
+
+                    case Activity.RESULT_CANCELED:
+                    case Activity.RESULT_FIRST_USER:
+                        runOnDenied(corePermissions.mOnDenied);
+                        break;
+                }
+                break;
 
             case PERMISSIONS_DENIED_ALERT:
                 corePermissions.mAlertDenied = null;
 
-                if (resultCode != Activity.RESULT_OK) break;
+                switch (resultCode) {
+                    case Activity.RESULT_OK:
+                        final String applicationId = (String) Utils.getBuildConfigField(
+                                activity.getApplication().getPackageName(), "APPLICATION_ID");
+                        if (applicationId == null) {
+                            CoreLogger.logError("can't find BuildConfig.APPLICATION_ID");
+                            break;
+                        }
 
-                final String applicationId = (String) Utils.getBuildConfigField(
-                        activity.getApplication().getPackageName(), "APPLICATION_ID");
-                if (applicationId == null) {
-                    CoreLogger.logError("can't find BuildConfig.APPLICATION_ID");
-                    break;
+                        activity.startActivity(new Intent()
+                                .setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                .setData(Uri.fromParts("package", applicationId, null))
+                                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                        break;
+
+                    case Activity.RESULT_CANCELED:
+                    case Activity.RESULT_FIRST_USER:
+                        break;
+
+                    default:
+                        CoreLogger.logWarning("unknown result code " + resultCode);
+                        break;
                 }
-
-                activity.startActivity(new Intent()
-                        .setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                        .setData(Uri.fromParts("package", applicationId, null))
-                        .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
                 break;
 
             default:
@@ -308,9 +337,10 @@ public final class CorePermissions implements ConfigurationChangedListener {
             onRequestHelper(activity, permissions, grantResults, corePermissions);
     }
 
-    private static void onRequestHelper(final Activity activity,
-                                        final String[] permissions, final int[] grantResults,
-                                        @NonNull final CorePermissions corePermissions) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static void onRequestHelper(final Activity activity,
+                                          final String[] permissions, final int[] grantResults,
+                                          @NonNull final CorePermissions corePermissions) {
         Boolean result = onRequestHandler(activity, permissions, grantResults, corePermissions);
         if (result == null)
             result = false;
@@ -320,8 +350,9 @@ public final class CorePermissions implements ConfigurationChangedListener {
         if (!result) runOnDenied(corePermissions.mOnDenied);
     }
 
-    private static CorePermissions getCorePermissions(final Activity activity, @IdRes final int viewId) {
-        final View view = Utils.getView(activity, viewId);
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static CorePermissions getCorePermissions(final Activity activity, @IdRes final int viewId) {
+        final View view = ViewHelper.getView(activity, viewId);
         final CorePermissions result = view == null ? null:
                 (CorePermissions) view.getTag(akha.yakhont.R.id.yakhont_permissions_object);
 
@@ -329,9 +360,10 @@ public final class CorePermissions implements ConfigurationChangedListener {
         return result;
     }
 
-    private static Boolean onRequestHandler(final Activity activity,
-                                            final String[] permissions, final int[] grantResults,
-                                            @NonNull final CorePermissions corePermissions) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static Boolean onRequestHandler(final Activity activity,
+                                              final String[] permissions, final int[] grantResults,
+                                              @NonNull final CorePermissions corePermissions) {
         if (grantResults == null) {
             CoreLogger.logError("grantResults == null");
             return false;
@@ -392,13 +424,14 @@ public final class CorePermissions implements ConfigurationChangedListener {
         return null;
     }
 
-    private static Set<Integer> getIds(final Activity activity) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static Set<Integer> getIds(final Activity activity) {
         if (activity == null) {
             CoreLogger.logError("activity == null");
             return null;
         }
 
-        final View view = Utils.getView(activity);
+        final View view = ViewHelper.getView(activity);
         if (view == null) {
             CoreLogger.logError("view == null");
             return null;
@@ -415,15 +448,18 @@ public final class CorePermissions implements ConfigurationChangedListener {
         return (Set<Integer>) view.getTag(akha.yakhont.R.id.yakhont_permissions_view_ids);
     }
 
-    private static void runOnGranted(final Runnable callback) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static void runOnGranted(final Runnable callback) {
         runCallback(callback, false);
     }
 
-    private static void runOnDenied(final Runnable callback) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static void runOnDenied(final Runnable callback) {
         runCallback(callback, true);
     }
 
-    private static void runCallback(final Runnable callback, final boolean denied) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static void runCallback(final Runnable callback, final boolean denied) {
         CoreLogger.log(!denied && callback == null ? Level.WARNING: Level.DEBUG,
                 (denied ? "onDenied": "onGranted") + " == " + callback);
         if (callback != null) callback.run();
@@ -436,20 +472,27 @@ public final class CorePermissions implements ConfigurationChangedListener {
      */
     public static class RequestBuilder {
 
-        private final WeakReference<Activity>       mActivity;
-        private final String[]                      mPermissions;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final WeakReference<Activity>     mActivity;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final String[]                    mPermissions;
 
-        private       boolean                       mUseRationale   = true;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       boolean                     mUseRationale   = true;
 
-        private       Runnable                      mOnDenied;
-        private       Runnable                      mOnGranted;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Runnable                    mOnDenied;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Runnable                    mOnGranted;
 
-        private       PermissionsNamesTranslator    mPermissionsNamesTranslator;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       PermissionsNamesTranslator  mPermissionsNamesTranslator;
 
-        private       Integer                       mRequestCode;
-
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Integer                     mRequestCode;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @IdRes
-        private       int                           mViewId         = Core.NOT_VALID_VIEW_ID;
+        protected       int                         mViewId         = Core.NOT_VALID_VIEW_ID;
 
         /**
          * Initialises a newly created {@code RequestBuilder} object.
@@ -576,7 +619,13 @@ public final class CorePermissions implements ConfigurationChangedListener {
             return result;
         }
 
-        private boolean requestHelper() {
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected CorePermissions createCorePermissions() {
+            return new CorePermissions();
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected boolean requestHelper() {
             final Activity activity = mActivity.get();
             if (activity == null) {
                 CoreLogger.logError("The activity is null");
@@ -585,7 +634,7 @@ public final class CorePermissions implements ConfigurationChangedListener {
                 return false;
             }
 
-            final CorePermissions corePermissions = new CorePermissions();
+            final CorePermissions corePermissions = createCorePermissions();
 
             corePermissions.mOnDenied                   = mOnDenied;
             corePermissions.mOnGranted                  = mOnGranted;
@@ -618,12 +667,13 @@ public final class CorePermissions implements ConfigurationChangedListener {
                     corePermissions.requestHandler(activity, permissions);
         }
 
-        private boolean setupView(@NonNull final Activity        activity,
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected boolean setupView(@NonNull final Activity        activity,
                                   @NonNull final CorePermissions corePermissions) {
-            final View view = Utils.getView(activity, mViewId);
+            final View view = ViewHelper.getView(activity, mViewId);
             if (!checkView(view)) return false;
 
-            final View baseView = Utils.getView(activity);
+            final View baseView = ViewHelper.getView(activity);
             if (!checkView(baseView)) return false;
 
             final int key = akha.yakhont.R.id.yakhont_permissions_view_ids;

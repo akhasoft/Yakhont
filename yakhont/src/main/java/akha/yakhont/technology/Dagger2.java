@@ -16,9 +16,11 @@
 
 package akha.yakhont.technology;
 
+import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.location.GoogleLocationClient;
@@ -27,8 +29,15 @@ import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.support.annotation.IdRes;
 import android.support.annotation.StringRes;
+import android.support.design.widget.BaseTransientBottomBar;
+import android.support.design.widget.Snackbar;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Toast;
+
+import java.lang.ref.WeakReference;
 
 import dagger.BindsInstance;
 import dagger.Component;
@@ -41,14 +50,14 @@ import javax.inject.Provider;
 
 /**
  * The {@link <a href="http://google.github.io/dagger/">Dagger 2</a>} component. Usage example (see also
- * {@link akha.yakhont.Core#init(android.app.Application, Boolean, Dagger2) Theme example} and
- * {@link UiModule#getToast(boolean) Toast example}):
+ * {@link akha.yakhont.Core#init(android.app.Application, Boolean, Dagger2) Theme example}):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * import akha.yakhont.Core;
  * import akha.yakhont.fragment.dialog.ProgressDialogFragment;
  * import akha.yakhont.fragment.dialog.ProgressDialogFragment.ProgressLoaderDialogFragment;
  * import akha.yakhont.location.LocationCallbacks.LocationClient;
+ * import akha.yakhont.technology.Dagger2;
  *
  * import dagger.BindsInstance;
  * import dagger.Component;
@@ -59,9 +68,9 @@ import javax.inject.Provider;
  *
  *     &#064;Override
  *     protected void onCreate(Bundle savedInstanceState) {
- *         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMyActivity_MyDagger
+ *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger
  *             .builder()
- *             .useGoogleLocationOldApi(false)
+ *             .parameters(Dagger2.Parameters.create())
  *             .build()
  *         );
  *
@@ -77,7 +86,7 @@ import javax.inject.Provider;
  *         &#064;Component.Builder
  *         interface Builder {
  *             &#064;BindsInstance
- *             Builder useGoogleLocationOldApi(boolean useGoogleLocationOldApi);
+ *             Builder parameters(Dagger2.Parameters parameters);
  *             MyDagger build();
  *         }
  *     }
@@ -86,8 +95,8 @@ import javax.inject.Provider;
  *     static class MyLocationModule extends Dagger2.LocationModule {
  *
  *         &#064;Provides
- *         LocationClient provideLocationClient(boolean useGoogleLocationOldApi) {
- *             return getLocationClient(useGoogleLocationOldApi);
+ *         LocationClient provideLocationClient(Dagger2.Parameters parameters) {
+ *             return getLocationClient(getFlagLocation(parameters));
  *         }
  *     }
  *
@@ -161,13 +170,69 @@ public interface Dagger2 {
         @Component.Builder
         interface Builder {
             @BindsInstance
-            Builder useGoogleLocationOldApi(boolean useGoogleLocationOldApi);
+            Builder parameters(Parameters parameters);
             DefaultComponent build();
         }
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     Lazy<LocationClient> getLocationClient();
+
+    /**
+     * The parameters defined at run-time.
+     */
+    class Parameters {
+
+        private static final int     VALUE_LOCATION   = 1;
+        private static final int     VALUE_ALERT      = 2;
+        private static final int     VALUE_TOAST      = 4;
+
+        private        final int     mData;
+
+        private Parameters(final int data) {
+            mData = data;
+        }
+
+        private boolean get(final int value) {
+            return (mData & value) == value;
+        }
+
+        /**
+         * Creates new {@code Parameters} object.
+         *
+         * @param useGoogleLocationOldApi
+         *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
+         *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
+         *
+         * @param useSnackbarIsoAlert
+         *        {@code true} for using {@link Snackbar} instead of dialog alert
+         *
+         * @param useSnackbarIsoToast
+         *        {@code true} for using {@link Snackbar} instead of {@link Toast}
+         *
+         * @return  The {@code Parameters} object
+         */
+        public static Parameters create(final boolean useGoogleLocationOldApi,
+                                        final boolean useSnackbarIsoAlert    ,
+                                        final boolean useSnackbarIsoToast) {
+            int flags = 0;
+
+            if (useGoogleLocationOldApi) flags |= VALUE_LOCATION;
+            if (useSnackbarIsoAlert    ) flags |= VALUE_ALERT   ;
+            if (useSnackbarIsoToast    ) flags |= VALUE_TOAST   ;
+
+            return new Parameters(flags);
+        }
+
+        /**
+         * Creates new {@code Parameters} object with default settings.
+         *
+         * @return  The {@code Parameters} object
+         */
+        public static Parameters create() {
+            return create(false, false, false);
+        }
+    }
 
     /**
      * The location client component.
@@ -183,8 +248,8 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides
-        LocationClient provideLocationClient(boolean useGoogleLocationOldApi) {
-            return getLocationClient(useGoogleLocationOldApi);
+        LocationClient provideLocationClient(Parameters parameters) {
+            return getLocationClient(getFlagLocation(parameters));
         }
 
         /**
@@ -199,6 +264,19 @@ public interface Dagger2 {
         @SuppressWarnings("WeakerAccess")
         protected LocationClient getLocationClient(final boolean oldApi) {
             return oldApi ? new GoogleLocationClient(): new GoogleLocationClientNew();
+        }
+
+        /**
+         * Gets the {@code oldApi} flag (please refer to {@link #getLocationClient} method).
+         *
+         * @param parameters
+         *        The {@code Parameters} object
+         *
+         * @return  The {@code oldApi} flag
+         */
+        @SuppressWarnings("WeakerAccess")
+        protected boolean getFlagLocation(final Parameters parameters) {
+            return parameters.get(Parameters.VALUE_LOCATION);
         }
     }
 
@@ -217,34 +295,38 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_LOCATION)
-        public BaseDialog provideLocationAlert() {
-            return getAlert(akha.yakhont.R.string.yakhont_location_alert,
+        public BaseDialog provideLocationAlert(Parameters parameters) {
+            return getAlert(getFlagAlert(parameters), akha.yakhont.R.string.yakhont_location_alert,
                     Utils.getRequestCode(RequestCodes.LOCATION_ALERT), false);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PROGRESS)
-        public BaseDialog provideProgressAlert() {
-            return getAlert(akha.yakhont.R.string.yakhont_loader_alert,
+        public BaseDialog provideProgressAlert(Parameters parameters) {
+            return getAlert(false /* maybe subject to change */,
+                    akha.yakhont.R.string.yakhont_loader_alert,
                     Utils.getRequestCode(RequestCodes.PROGRESS_ALERT), true);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION)
-        public BaseDialog providePermissionAlert() {
-            return getAlert(akha.yakhont.R.string.yakhont_permission_alert,
+        public BaseDialog providePermissionAlert(Parameters parameters) {
+            return getAlert(getFlagAlert(parameters), akha.yakhont.R.string.yakhont_permission_alert,
                     Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT), false);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION_DENIED)
-        public BaseDialog providePermissionDeniedAlert() {
-            return getAlert(akha.yakhont.R.string.yakhont_permission_denied_alert,
+        public BaseDialog providePermissionDeniedAlert(Parameters parameters) {
+            return getAlert(getFlagAlert(parameters), akha.yakhont.R.string.yakhont_permission_denied_alert,
                     Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT), false);
         }
 
         /**
          * Creates new instance of the alert dialog.
+         *
+         * @param useSnackbarIsoAlert
+         *        {@code true} for using {@link Snackbar} instead of dialog alert
          *
          * @param resId
          *        The resource ID of the dialog message's text
@@ -257,8 +339,39 @@ public interface Dagger2 {
          *
          * @return  The alert dialog
          */
-        protected BaseDialog getAlert(@StringRes final int resId, final int requestCode, final Boolean yesNo) {
-            return SupportHelper.getAlert(resId, requestCode, yesNo);
+        protected BaseDialog getAlert(final boolean useSnackbarIsoAlert, @StringRes final int resId,
+                                      final int requestCode, final Boolean yesNo) {
+            return useSnackbarIsoAlert ?
+                    new BaseSnackbar(null, requestCode)
+                            .setString(resId)
+                            .setActionString(yesNo ?
+                                    akha.yakhont.R.string.yakhont_alert_yes:
+                                    akha.yakhont.R.string.yakhont_alert_ok):
+                    SupportHelper.getAlert(resId, requestCode, yesNo);
+        }
+
+        /**
+         * Gets the {@code useSnackbarIsoAlert} flag (please refer to {@link #getAlert} method).
+         *
+         * @param parameters
+         *        The {@code Parameters} object
+         *
+         * @return  The {@code useSnackbarIsoAlert} flag
+         */
+        protected boolean getFlagAlert(final Parameters parameters) {
+            return parameters.get(Parameters.VALUE_ALERT);
+        }
+
+        /**
+         * Gets the {@code useSnackbarIsoToast} flag (please refer to {@link #getToast} method).
+         *
+         * @param parameters
+         *        The {@code Parameters} object
+         *
+         * @return  The {@code useSnackbarIsoToast} flag
+         */
+        protected boolean getFlagToast(final Parameters parameters) {
+            return parameters.get(Parameters.VALUE_TOAST);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -278,99 +391,259 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_LONG)
-        public BaseDialog provideLongToast() {
-            return getToast(true);
+        public BaseDialog provideLongToast(Parameters parameters) {
+            return getToast(getFlagToast(parameters), true);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_SHORT)
-        public BaseDialog provideShortToast() {
-            return getToast(false);
+        public BaseDialog provideShortToast(Parameters parameters) {
+            return getToast(getFlagToast(parameters), false);
         }
 
         /**
-         * Creates new instance of a quick little text notification (using {@link Toast}). The
-         * {@link <a href="http://developer.android.com/reference/android/support/design/widget/Snackbar.html">Snackbar</a>} example:
+         * Creates new instance of a quick little text notification
+         * (using {@link Toast} or {@link Snackbar}).
          *
-         * <pre style="background-color: silver; border: thin solid black;">
-         * import akha.yakhont.Core;
-         * import akha.yakhont.location.LocationCallbacks.LocationClient;
-         *
-         * import android.support.design.widget.Snackbar;
-         *
-         * import dagger.Component;
-         * import dagger.Module;
-         * import dagger.Provides;
-         *
-         * public class MyActivity extends Activity {
-         *
-         *     &#064;Override
-         *     protected void onCreate(Bundle savedInstanceState) {
-         *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger.create());
-         *
-         *         super.onCreate(savedInstanceState);
-         *         ...
-         *     }
-         *
-         *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class})
-         *     interface MyDagger extends Dagger2 {
-         *     }
-         *
-         *     &#064;Module
-         *     static class MyLocationModule extends Dagger2.LocationModule {
-         *
-         *         &#064;Provides
-         *         LocationClient provideLocationClient() {
-         *             // return null if you don't need location API
-         *             return getLocationClient(false);
-         *         }
-         *     }
-         *
-         *     &#064;Module
-         *     static class MyUiModule extends Dagger2.UiModule {
-         *
-         *         &#064;Override
-         *         protected Core.BaseDialog getToast(boolean durationLong) {
-         *             return new MySnackbar(durationLong);
-         *         }
-         *     }
-         *
-         *     public static class MySnackbar implements Core.BaseDialog {
-         *
-         *         private final boolean mDurationLong;
-         *
-         *         public MySnackbar(boolean durationLong) {
-         *             mDurationLong = durationLong;
-         *         }
-         *
-         *         &#064;Override
-         *         public boolean start(Context context, String text) {
-         *             Snackbar.make(getMyView((Activity) context), text,
-         *                     mDurationLong ? Snackbar.LENGTH_LONG: Snackbar.LENGTH_SHORT)
-         *                     .show();
-         *             return true;
-         *         }
-         *
-         *         private View getMyView(Activity activity) {
-         *             // your code here - something like "return activity.findViewById(...);"
-         *         }
-         *
-         *         &#064;Override
-         *         public boolean stop() {
-         *             return true;
-         *         }
-         *     }
-         * }
-         * </pre>
+         * @param useSnackbarIsoToast
+         *        {@code true} for using {@link Snackbar} instead of {@link Toast}
          *
          * @param durationLong
          *        {@code true} to display the text notification for a long period of time, {@code false} otherwise
          *
-         * @return  The text notification
+         * @return  {@link Toast} or {@link Snackbar}
          */
-        protected BaseDialog getToast(final boolean durationLong) {
-            return new BaseToast(durationLong);
+        protected BaseDialog getToast(final boolean useSnackbarIsoToast, final boolean durationLong) {
+            return useSnackbarIsoToast ?
+                    new BaseSnackbar(durationLong, null): new BaseToast(durationLong);
         }
+    }
+}
+
+class BaseSnackbar implements BaseDialog {
+
+    @IdRes
+    private final int                       mListViewId;
+    private       Integer                   mDuration;
+
+    @StringRes
+    private       int                       mStringId           = Core.NOT_VALID_RES_ID;
+    private       String                    mString;
+
+    @StringRes
+    private       int                       mActionStringId     = Core.NOT_VALID_RES_ID;
+    private       String                    mActionString;
+
+    private       View.OnClickListener      mListener;
+    private final Integer                   mRequestCode;
+
+    private       WeakReference<Activity>   mActivity;
+    private       Intent                    mIntent;
+
+    private       WeakReference<Snackbar>   mSnackbar;
+    private       boolean                   mShown;
+
+    @SuppressWarnings("unused")
+    BaseSnackbar(final Boolean durationLong, final Integer requestCode) {
+        this(Core.NOT_VALID_VIEW_ID, durationLong, requestCode);
+    }
+
+    @SuppressWarnings({"WeakerAccess", "unused"})
+    BaseSnackbar(@SuppressWarnings("SameParameterValue") @IdRes final int listViewId,
+                 final Boolean durationLong, final Integer requestCode) {
+
+        mListViewId  = listViewId;
+        mRequestCode = requestCode;
+
+        if (durationLong != null)
+            mDuration = durationLong ? Snackbar.LENGTH_LONG: Snackbar.LENGTH_SHORT;
+    }
+
+    public BaseSnackbar setString(@StringRes final int stringId) {
+        mStringId = stringId;
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    public BaseSnackbar setString(final String string) {
+        mString = string;
+        return this;
+    }
+
+    public BaseSnackbar setActionString(@StringRes final int actionStringId) {
+        mActionStringId = actionStringId;
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    public BaseSnackbar setActionString(final String actionString) {
+        mActionString = actionString;
+        return this;
+    }
+
+    @SuppressWarnings("unused")
+    public BaseSnackbar setActionListener(final View.OnClickListener listener) {
+        mListener = listener;
+        return this;
+    }
+
+    private void onActivityResult(final int resultCode) {
+        final Activity activity = mActivity.get();
+        if (activity == null)
+            CoreLogger.logError("activity == null");
+        else
+            Utils.onActivityResult(activity, mRequestCode, resultCode, mIntent);
+    }
+
+    @Override
+    public boolean start(final Activity activity, final String text, final Intent data) {
+        if (activity == null) {
+            CoreLogger.logError("activity == null");
+            return false;
+        }
+        try {
+            mActivity   = new WeakReference<>(activity);
+            mIntent     = data;
+
+            return start(text);
+        }
+        catch (Exception e) {
+            CoreLogger.log("failed", e);
+            return false;
+        }
+    }
+
+    private boolean start(final String text) {
+        final Activity activity = mActivity.get();
+        if (activity == null) {
+            CoreLogger.logError("activity == null");
+            return false;
+        }
+
+        final View view = getView(activity);
+        if (view == null) return false;
+
+        if (mRequestCode != null) {
+            if (mListener != null)
+                CoreLogger.logError("listener is already defined, request code will be ignored");
+            else
+                mListener = new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        onActivityResult(Activity.RESULT_OK);
+                    }
+                };
+        }
+
+        if (mDuration == null) {
+            if (mListener != null)
+                mDuration = Snackbar.LENGTH_INDEFINITE;
+            else {
+                CoreLogger.logError("duration is not defined, set to LENGTH_LONG");
+                mDuration = Snackbar.LENGTH_LONG;
+            }
+        }
+
+        String                                      realText = text;
+        if (realText == null)                       realText = mString;
+        if (realText == null &&
+                mStringId != Core.NOT_VALID_RES_ID) realText = activity.getString(mStringId);
+        if (realText == null) {
+            CoreLogger.logError("text is not defined");
+            return false;
+        }
+
+        if (mSnackbar != null && mSnackbar.get() != null)
+            CoreLogger.logError("Snackbar != null");
+
+        final Snackbar snackbar = Snackbar.make(view, realText, mDuration);
+
+        if (mListener != null) {
+            if (mActionStringId != Core.NOT_VALID_RES_ID && mActionString != null)
+                CoreLogger.logWarning("Both action string and action string ID were set; action string ID will be ignored");
+
+            if (mActionString != null)
+                snackbar.setAction(mActionString, mListener);
+            else {
+                if (mActionStringId == Core.NOT_VALID_RES_ID)
+                    CoreLogger.logError("neither action string nor action string ID were not defined");
+                else
+                    snackbar.setAction(mActionStringId, mListener);
+            }
+        }
+
+        snackbar.addCallback(new BaseTransientBottomBar.BaseCallback<Snackbar>() {
+            @Override
+            public void onDismissed(final Snackbar transientBottomBar, final int event) {
+                super.onDismissed(transientBottomBar, event);
+
+                mShown    = false;
+                mSnackbar = null;
+
+                switch (event) {
+                    case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_ACTION     :
+                        // nothing to do
+                        break;
+
+                    case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_CONSECUTIVE:
+                    case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_MANUAL     :
+                    case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_SWIPE      :
+                    case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_TIMEOUT    :
+                        if (mRequestCode != null) onActivityResult(Activity.RESULT_CANCELED);
+                        break;
+
+                    default:
+                        CoreLogger.logError("unknown BaseTransientBottomBar.BaseCallback event: " + event);
+                        break;
+                }
+            }
+
+            @Override
+            public void onShown(final Snackbar transientBottomBar) {
+                super.onShown(transientBottomBar);
+
+                mShown = true;
+            }
+        });
+
+        mSnackbar = new WeakReference<>(snackbar);
+
+        snackbar.show();
+
+        return true;
+    }
+
+    private View getView(final Activity activity) {
+        View view = ViewHelper.getView(activity, mListViewId);
+
+        if (view != null) {
+            final View viewTmp = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
+                @Override
+                public boolean handle(final View view) {
+                    return !(view instanceof ViewGroup);
+                }
+            });
+            if (viewTmp != null) view = viewTmp;
+        }
+        if (view == null)
+            CoreLogger.logError("view == null");
+
+        return view;
+    }
+
+    @Override
+    public boolean stop() {
+        if (!mShown) return true;
+
+        if (mSnackbar == null || mSnackbar.get() == null) {
+            CoreLogger.logError("Snackbar == null");
+            return false;
+        }
+
+        mSnackbar.get().dismiss();
+        mSnackbar = null;
+
+        return true;
     }
 }
 
@@ -383,13 +656,14 @@ class BaseToast implements BaseDialog {
     }
 
     @Override
-    public boolean start(final Activity context, final String text, Intent data) {
+    public boolean start(final Activity activity, final String text, final Intent data) {
         try {
-            if (context != null) {
-                Toast.makeText(context, text, mDurationLong ? Toast.LENGTH_LONG: Toast.LENGTH_SHORT).show();
+            if (activity != null) {
+                Toast.makeText(activity, text,
+                        mDurationLong ? Toast.LENGTH_LONG: Toast.LENGTH_SHORT).show();
                 return true;
             }
-            CoreLogger.logError("context == null");
+            CoreLogger.logError("activity == null");
         }
         catch (Exception e) {
             CoreLogger.log("failed", e);

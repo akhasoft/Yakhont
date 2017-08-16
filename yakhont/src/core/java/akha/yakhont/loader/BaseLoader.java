@@ -1263,7 +1263,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             if (builder == null) return super.create();
 
             if (mDescriptionId != Core.NOT_VALID_RES_ID && mDescription != null)
-                CoreLogger.logWarning("Both description and description ID was set; description ID will be ignored");
+                CoreLogger.logWarning("Both description and description ID were set; description ID will be ignored");
 
             mDefaultRequester = builder.getDefaultRequester();
 

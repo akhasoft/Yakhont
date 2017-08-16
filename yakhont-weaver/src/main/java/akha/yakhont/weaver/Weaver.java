@@ -49,9 +49,10 @@ import javassist.NotFoundException;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class Weaver {
 
-    private static final String COMMENT             = "#";
-    private static final String DELIMITER           = " ";
-    private static final String EXCEPTION_NAME      = "e";
+    private static final String COMMENT             = "#" ;
+    private static final String DELIMITER           = " " ;
+    private static final String EXCEPTION_NAME      = "e" ;
+    private static final String IGNORE_SIGNATURE    = "()";
 
     private static final String DEF_CONFIG          = "weaver.config";
 
@@ -308,9 +309,16 @@ public class Weaver {
         for (int i = methodData.size() - 1; i >= 0; i--) {
             if (Collections.frequency(methodData, methodData.get(i)) > 1)
                 log(false, "warning - duplicated entries for method " + methodName + ": " + methodData.get(i));
-            int idx = methodName.indexOf("(");
 
-            for (CtMethod methodSrc: clsSrc.getDeclaredMethods(idx < 0 ? methodName: methodName.substring(0, idx))) {
+            int idx = methodName.indexOf("(");
+            CtMethod[] methods = clsSrc.getDeclaredMethods(idx < 0 ? methodName: methodName.substring(0, idx));
+
+            boolean ignoreSignature = methodName.endsWith(IGNORE_SIGNATURE);
+            if (ignoreSignature) idx = -1;
+            if (methods.length > 1 && idx < 0 && !ignoreSignature)
+                log(false, "warning - there're several methods " + methodName + ", please specify signature or use " + IGNORE_SIGNATURE);
+
+            for (CtMethod methodSrc: methods) {
                 if (idx >= 0 && !methodSrc.getSignature().startsWith(methodName.substring(idx))) continue;
 
                 CtMethod methodDest = null;

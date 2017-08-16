@@ -21,7 +21,6 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.CoreReflection;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.debug.BaseDialogFragment;
 import akha.yakhont.location.GoogleLocationClient;
@@ -254,7 +253,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
         @Override
         public void onDismiss(DialogInterface dialog) {
             super.onDismiss(dialog);
-            CoreReflection.invokeSafe(mActivity, "onActivityResult", REQUEST_CODE, 0 /* ignored */, null);
+            Utils.onActivityResult(mActivity, REQUEST_CODE, Activity.RESULT_CANCELED /* ignored */, null);
         }
     }
 }

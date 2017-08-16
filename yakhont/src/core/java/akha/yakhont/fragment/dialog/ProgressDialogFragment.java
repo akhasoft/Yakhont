@@ -270,8 +270,17 @@ public class ProgressDialogFragment extends CommonDialogFragment {
             return;
         }
 
-        if (resultCode == Activity.RESULT_OK)
-            mCancelled = true;
+        switch (resultCode) {
+            case Activity.RESULT_OK:
+                mCancelled = true;
+                break;
+            case Activity.RESULT_CANCELED:
+            case Activity.RESULT_FIRST_USER:
+                break;
+            default:
+                CoreLogger.logWarning("unknown result code " + resultCode);
+                break;
+        }
     }
 
     /**

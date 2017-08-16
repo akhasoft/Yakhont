@@ -338,10 +338,19 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
             case LOCATION_CONNECTION_FAILED:
                 clearResolvingError();
 
-                if (resultCode == Activity.RESULT_OK)
-                    connect();
-                else
-                    CoreLogger.logWarning("unknown result code " + resultCode);
+                switch (resultCode) {
+                    case Activity.RESULT_OK:
+                        connect();
+                        break;
+                    case Activity.RESULT_CANCELED:
+                        break;
+                    case Activity.RESULT_FIRST_USER:
+                        CoreLogger.logWarning("unexpected result code " + resultCode);
+                        break;
+                    default:
+                        CoreLogger.logWarning("unknown result code " + resultCode);
+                        break;
+                }
                 break;
 
             case LOCATION_CLIENT:

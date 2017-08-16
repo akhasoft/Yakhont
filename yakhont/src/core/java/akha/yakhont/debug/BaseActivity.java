@@ -291,7 +291,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @CallSuper
     @Override
     public void onLowMemory() {
-        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+        CoreLogger.log(Utils.getOnLowMemoryLevel(), getDebugMessage(), false);
 
         super.onLowMemory();
     }
@@ -567,7 +567,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @CallSuper
     @Override
     public void onTrimMemory(int level) {
-        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", level " +
+        CoreLogger.log(Utils.getOnTrimMemoryLevel(level), getDebugMessage() + ", level " +
                 Utils.getOnTrimMemoryLevelString(level), false);
 
         super.onTrimMemory(level);

@@ -57,7 +57,7 @@ android {
     defaultConfig {
         minSdkVersion            9
         //noinspection OldTargetApi
-        targetSdkVersion        23      // for lower values permissions dialogs will not be shown
+        targetSdkVersion        23
         versionCode        verCode
         versionName        verName
     }
@@ -110,10 +110,10 @@ dependencies {
     provided    "javax.annotation:jsr250-api:1.0"
 
     compile     "com.android.support:appcompat-v7:${libVerSupport}"         // Google
+    compile     "com.android.support:design:${libVerSupport}"
     compile     "com.android.support:recyclerview-v7:${libVerSupport}"
     compile     "com.google.android.gms:play-services-location:11.0.4"
 
-    fullCompile "com.android.support:design:${libVerSupport}"
     fullCompile "com.android.support:leanback-v17:${libVerSupport}"
     fullCompile "com.android.support:mediarouter-v7:${libVerSupport}"
     fullCompile "com.android.support:preference-v14:${libVerSupport}"

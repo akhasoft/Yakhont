@@ -275,7 +275,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
 
         if (!isGoBackOnLoadingCanceled()) return;
 
-        CoreLogger.logWarning("isGoBackOnLoadingCanceled");
+        CoreLogger.logWarning("isGoBackOnLoadingCanceled: about to call Activity.onBackPressed()");
 
         Utils.postToMainLoop(new Runnable() {
             @Override

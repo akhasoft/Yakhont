@@ -359,6 +359,9 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                         CoreLogger.log("User agreed to make required location settings changes");
                         break;
 
+                    case Activity.RESULT_FIRST_USER:    // fall through
+                        CoreLogger.logWarning("unexpected result code: Activity.RESULT_FIRST_USER");
+
                     case Activity.RESULT_CANCELED:
                         final String info = "User choose not to make required location settings changes";
                         CoreLogger.logWarning(info);
