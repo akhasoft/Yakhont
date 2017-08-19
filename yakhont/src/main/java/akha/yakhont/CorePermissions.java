@@ -58,7 +58,7 @@ import javax.inject.Provider;
  *             // your code here, e.g. requestLocationUpdates()
  *         }
  *     })
- * .request();
+ *     .request();
  * </pre>
  *
  * @author akha
@@ -235,7 +235,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /**
-     * Called by the Yakhont Weaver. See {@link Activity#onActivityResult Activity.onActivityResult()}.
+     * Called by the Yakhont Weaver. Please refer to {@link Activity#onActivityResult Activity.onActivityResult()}.
      */
     @SuppressWarnings({"UnusedParameters", "unused"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
@@ -311,7 +311,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /**
-     * Called by the Yakhont Weaver. See {@link Activity#onRequestPermissionsResult Activity.onRequestPermissionsResult()}.
+     * Called by the Yakhont Weaver. Please refer to {@link Activity#onRequestPermissionsResult Activity.onRequestPermissionsResult()}.
      */
     @SuppressWarnings("unused")
     public static void onRequestPermissionsResult(final Activity activity, final int requestCode,

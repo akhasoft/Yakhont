@@ -20,6 +20,11 @@ import akha.yakhont.demosimple.model.Beer;
 
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 
+// use import below for support Fragments (android.support.v4.app.Fragment etc.)
+// import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
+
+// also, don't forget to change in build.gradle 'yakhont' to 'yakhont-support' (or 'yakhont-full')
+
 import android.app.Fragment;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;

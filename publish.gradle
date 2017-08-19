@@ -144,8 +144,13 @@ def getLocProperty = { String key, String addKey ->
     }
 }
 
-def javadocTitle = { String title ->
+def javadocWindowTitle = { String title ->
     return title.capitalize() + ' ' + getPropertyExt('publishedVersion') + ' API'
+}
+
+def javadocTitle = { String title ->
+    return '<table border="0"><tr><td><img src="logo.png"></td><td>&nbsp;' +
+            javadocWindowTitle(title) + '</td</tr></table>'
 }
 
 def javadocConfig = { options, addKey ->
@@ -157,8 +162,8 @@ def javadocConfig = { options, addKey ->
 
     options.setLinks            linkList + 'http://docs.oracle.com/javase/8/docs/api/'
 
-    options.docTitle            javadocTitle(getPropertyExt('publishedArtifactId'))
-    options.windowTitle         javadocTitle(getPropertyExt('publishedArtifactId'))
+    options.docTitle            javadocTitle      (getPropertyExt('publishedArtifactId'))
+    options.windowTitle         javadocWindowTitle(getPropertyExt('publishedArtifactId'))
 
     options.noTimestamp         true
     
@@ -295,8 +300,8 @@ if (isAndroidApp || isAndroidLib) {
                 options {
                     setLinksOffline     linkOfflineList
 
-                    docTitle            javadocTitle(flavorArtifactId)
-                    windowTitle         javadocTitle(flavorArtifactId)
+                    docTitle            javadocTitle      (flavorArtifactId)
+                    windowTitle         javadocWindowTitle(flavorArtifactId)
                 }
 
                 failOnError     = false

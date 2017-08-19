@@ -1,7 +1,16 @@
-# Yakhont: high-level Android components for data loading, location and lifecycle callbacks
+<table width="100%" border="0">
+    <tr>
+        <td align="left">Яхонт делает невозможное</td>
+        <td><img src="https://akhasoft.github.io/yakhont/library/core/logo.png"></td>
+        <td align="right">Yakhont - break limits now</td>
+    </tr>
+</table>
+
+# Yakhont: high-level Android components for data loading, location, lifecycle callbacks and more
 
 Yakhont is an Android high-level library offering developer-defined callbacks,
-loader wrappers, cache, location-awareness, lifecycle debug classes, advanced logging and more.
+loader wrappers, cache, location-awareness, permissions handling, lifecycle debug classes, 
+advanced logging and many more helpful developer-oriented issues.
 
 It extends the [Application.ActivityLifecycleCallbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks.html)
 approach to support your own callbacks creation, that allows to customize handling of
@@ -13,6 +22,16 @@ you away from things like loaders management, data binding and caching, progress
 (fully customizable), errors handling and low-level threading;
 don't miss the swipe refresh and Rx support too.
 
+In short, the data loader features are:
+- fully asynchronous 
+- forced timeout 
+- transparent cache
+- both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and [RxJava 2](https://github.com/ReactiveX/RxJava) support
+- both [Retrofit](http://square.github.io/retrofit/1.x/retrofit/) and [Retrofit 2](http://square.github.io/retrofit/2.x/retrofit/) support
+- swipe-to-refresh
+- device orientation changing support
+- fully customizable GUI progress (via Dagger 2) 
+
 Other features includes:
 - out-of-the-box location awareness: just annotate your Activity and you're done
 - self-configurable transparent cache which adjusts database structure 'on the fly'
@@ -23,7 +42,7 @@ Activities and Fragments (can be enabled even for 3rd-party components)
 All Activities and Fragments are supported: it's not necessary to derive them from any predefined
 ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 250 KB (except the _full_ version, which is about 2 times bigger).
+The Yakhont AAR is about 300 KB (except the _full_ version, which is about 500 KB).
 
 Yakhont supports Android 2.3 (API level 9) and above
 (_core_ version requires Android 3.0 (API level 11) as a minimum).
@@ -32,7 +51,8 @@ Yakhont supports Android 2.3 (API level 9) and above
 
 ## Demo
 
-Demo application is available [here](https://akhasoft.github.io/yakhont/yakhont-demo.apk).
+Demo applications are available [here](https://akhasoft.github.io/yakhont/yakhont-demo.apk) and
+[here (simplified version)](https://akhasoft.github.io/yakhont/yakhont-demo-simple.apk).
 
 ## Versions
 
@@ -119,6 +139,7 @@ To do a clean build, issue the following commands:
 $ ./gradlew --configure-on-demand yakhont-weaver:clean yakhont-weaver:build
 $ ./gradlew --configure-on-demand yakhont:clean yakhont:build
 $ ./gradlew --configure-on-demand yakhont-demo:clean yakhont-demo:build
+$ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:build
 ```
 
 **Note:** you may need to update your Android SDK before building.

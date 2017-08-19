@@ -261,7 +261,7 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Builder class for {@yakhont.link CoreLoad} objects. Creates the Retrofit-based ones.
+     * Builder class for {@yakhont.link BaseResponseLoaderWrapper.CoreLoad} objects. Creates the Retrofit-based ones.
      *
      * @param <D>
      *        The type of data
