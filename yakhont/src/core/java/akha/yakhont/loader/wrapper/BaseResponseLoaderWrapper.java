@@ -20,6 +20,7 @@ import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
@@ -148,11 +149,15 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         });
     }
 
-    private static String adjustTableName(@NonNull final String tableName) {
+    private static String adjustTableName(@NonNull String tableName) {
         if (tableName.trim().length() == 0) {
             CoreLogger.logError("empty table name");
             return "";
         }
+
+        if (tableName.startsWith("[L") && tableName.endsWith(";"))
+            tableName = tableName.substring(2, tableName.length() - 1);
+
         final String name = Utils.replaceSpecialChars(tableName);
         return name.length() > MAX_TABLE_NAME_LENGTH ? name.substring(MAX_TABLE_NAME_LENGTH - name.length(), name.length()): name;
     }
@@ -482,7 +487,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public BaseResponseLoaderBuilder<C, R, E, D> setLoaderId(final int loaderId) {
             mLoaderId           = loaderId;
             return this;
@@ -544,7 +549,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public BaseResponseLoaderBuilder<C, R, E, D> setUriResolver(@NonNull final UriResolver uriResolver) {
             mUriResolver        = uriResolver;
             return this;
@@ -574,7 +579,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public BaseResponseLoaderBuilder<C, R, E, D> setLoaderFactory(@NonNull final LoaderFactory<BaseResponse<R, E, D>> loaderFactory) {
             mLoaderFactory      = loaderFactory;
             return this;
@@ -717,7 +722,10 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          */
         @SuppressWarnings("unused")
         public String getTableName() {
-            if (TextUtils.isEmpty(mTableName)) setTableName(getTypeName());
+            if (TextUtils.isEmpty(mTableName)) {
+                final Type type = TypeHelper.getParameterizedOrGenericComponentType(getType());
+                setTableName(type == null ? "": type instanceof Class ? ((Class) type).getName(): type.toString());
+            }
             if (TextUtils.isEmpty(mTableName)) CoreLogger.logError("empty table name");
             return mTableName;
         }
@@ -729,11 +737,6 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          */
         public Type getType() {
             return mType != null ? mType: mConverter != null ? mConverter.getType(): null;
-        }
-
-        private String getTypeName() {
-            final Type type = getType();
-            return type == null ? "": type instanceof Class ? ((Class) type).getName(): type.toString();
         }
     }
 
@@ -774,7 +777,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          */
         @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder(@NonNull final Fragment fragment,
-                                                 @NonNull final Class<D> type) {
+                                                 @NonNull final Type type) {
             super(fragment);
             setType(type);
         }
@@ -815,15 +818,15 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        protected static abstract class RequesterHelper<C, D, T> {
+        protected static abstract class RequesterHelper<C, T> {
 
             protected       Method                                                mMethod;
             protected       T                                                     mHandler;
-            protected final Class<D>                                              mClass;
+            private   final Type                                                  mTypeResponse;
 
             @SuppressWarnings({"unchecked", "WeakerAccess"})
             public RequesterHelper(final Type type) {
-                mClass = (Class<D>) type;
+                mTypeResponse = type;
             }
 
             protected abstract void init();
@@ -831,19 +834,20 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
             protected abstract void request(C callback) throws Exception;
 
             private void requestWrapper(C callback) throws Exception {
-                if (mMethod != null) request(callback);
+                logMethod();
+                if (mMethod == null) throw new RuntimeException("method == null");
+                request(callback);
             }
 
             private void logMethod() {
-                CoreLogger.log(mMethod == null ? Level.ERROR: Level.DEBUG, "for type " +
-                        (mClass == null ? "null": mClass.getName()) + " method == " + mMethod);
+                CoreLogger.log(mMethod == null ? Level.ERROR: Level.DEBUG, "for type " + (mTypeResponse == null ? "null":
+                        mTypeResponse instanceof Class ? ((Class) mTypeResponse).getName(): mTypeResponse) + " method == " + mMethod);
             }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected Requester<C> getRequester(@NonNull final RequesterHelper<C, D, T> requesterHelper) {
+        protected Requester<C> getRequester(@NonNull final RequesterHelper<C, T> requesterHelper) {
             requesterHelper.init();
-            requesterHelper.logMethod();
 
             return new Requester<C>() {
                 @Override

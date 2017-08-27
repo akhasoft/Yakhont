@@ -16,7 +16,8 @@
 
 package retrofit;
 
-import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.TypeHelper;
+import akha.yakhont.CoreReflection;
 
 import android.support.annotation.NonNull;
 
@@ -53,7 +54,7 @@ public class YakhontRestAdapter<T> {
             final boolean notInvoke = (!method.getDeclaringClass().equals(Object.class)
                     && args != null && args.length > 0 && args[args.length - 1] instanceof YakhontCallback)
                     && ((YakhontCallback) args[args.length - 1]).setType(getType(method));
-            return notInvoke ? null: method.invoke(mHandler, args);
+            return notInvoke ? null: CoreReflection.invoke(mHandler, method, args);
         }
     }
 
@@ -61,9 +62,9 @@ public class YakhontRestAdapter<T> {
         return RestAdapter.getMethodInfo(mMethodInfoCache, method).responseObjectType;
     }
 
-    public Method findMethod(@NonNull final Class responseType) {
+    public Method findMethod(@NonNull final Type typeResponse) {
         for (final Method method: mService.getMethods())
-            if (Utils.checkType(responseType, getType(method)))
+            if (TypeHelper.checkType(typeResponse, getType(method)))
                 return method;
         return null;
     }

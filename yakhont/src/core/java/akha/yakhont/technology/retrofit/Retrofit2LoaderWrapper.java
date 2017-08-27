@@ -19,8 +19,9 @@ package akha.yakhont.technology.retrofit;
 import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
-import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseLoader;
 import akha.yakhont.loader.BaseLoader.CoreLoadExtendedBuilder;
 import akha.yakhont.loader.BaseResponse;
@@ -40,8 +41,9 @@ import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.view.View;
 
+import com.google.gson.reflect.TypeToken;
+
 import java.lang.reflect.Method;
-import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 
 import okhttp3.ResponseBody;
@@ -202,7 +204,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          *        The Retrofit2 component
          */
         @SuppressWarnings("unused")
-        public Retrofit2LoaderBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type,
+        public Retrofit2LoaderBuilder(@NonNull final Fragment fragment, @NonNull final Type type,
                                       @NonNull final Retrofit2<T> retrofit) {
             super(fragment, type);
             mRetrofit = retrofit;
@@ -211,18 +213,21 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @Override
         public Requester<Callback<D>> getDefaultRequester() {
-            return getRequester(new RequesterHelper<Callback<D>, D, T>(mType) {
+            return getRequester(new RequesterHelper<Callback<D>, T>(mType) {
                 @Override
                 public void init() {
-                    mMethod  = findMethod(mRetrofit.getService(), mClass);
+                    mMethod  = findMethod(mRetrofit.getService(), mType);
                     mHandler = mRetrofit.getApi();
                 }
 
                 @Override
                 public void request(Callback<D> callback) throws Exception {
                     @SuppressWarnings("unchecked")
-                    final Call<D> call = (Call<D>) mMethod.invoke(mHandler);
-                    call.enqueue(callback);
+                    final Call<D> call = (Call<D>) CoreReflection.invoke(mHandler, mMethod);
+                    if (call == null)
+                        throw new Exception("call == null");
+                    else
+                        call.enqueue(callback);
                 }
             });
         }
@@ -246,25 +251,20 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
 
         @SuppressWarnings("unchecked")
         private Method findMethod() {
-            return findMethod(mRetrofit.getService(), (Class<D>) mType);
+            return findMethod(mRetrofit.getService(), mType);
         }
 
-        private static <D, T> Method findMethod(@NonNull final Class<T> service, @NonNull final Class<D> responseType) {
+        private static <D, T> Method findMethod(@NonNull final Class<T> service,
+                                                @NonNull final Type     typeResponse) {
             for (final Method method: service.getMethods())
-                if (Utils.checkType(responseType, getType(method)))
+                if (TypeHelper.checkType(typeResponse, getType(method)))
                     return method;
             return null;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static Type getType(final Method method) {
-            if (method == null) return null;
-
-            final Type type = method.getGenericReturnType();
-            if (type instanceof ParameterizedType)
-                return ((ParameterizedType) type).getActualTypeArguments()[0];
-
-            return type;
+            return TypeHelper.getParameterizedType(method == null ? null: method.getGenericReturnType());
         }
     }
 
@@ -297,6 +297,44 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          */
         @SuppressWarnings("unused")
         public Retrofit2CoreLoadBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type,
+                                        @NonNull final Retrofit2<T> retrofit) {
+            this(fragment, (Type) type, retrofit);
+        }
+
+        /**
+         * Initialises a newly created {@code Retrofit2CoreLoadBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param type
+         *        The type of data; for generic {@link java.util.Collection} types please use {@link TypeToken}
+         *
+         * @param retrofit
+         *        The Retrofit2 component
+         */
+        @SuppressWarnings("unused")
+        public Retrofit2CoreLoadBuilder(@NonNull final Fragment fragment, @NonNull final Type type,
+                                        @NonNull final Retrofit2<T> retrofit) {
+            super(fragment, type);
+            mRetrofit = retrofit;
+        }
+
+        /**
+         * Initialises a newly created {@code Retrofit2CoreLoadBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param type
+         *        The type of data; intended to use with generic {@link java.util.Collection} types,
+         *        e.g. {@code new com.google.gson.reflect.TypeToken<List<MyData>>() {}}
+         *
+         * @param retrofit
+         *        The Retrofit2 component
+         */
+        @SuppressWarnings("unused")
+        public Retrofit2CoreLoadBuilder(@NonNull final Fragment fragment, @NonNull final TypeToken type,
                                         @NonNull final Retrofit2<T> retrofit) {
             super(fragment, type);
             mRetrofit = retrofit;
@@ -331,7 +369,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          */
         @Override
         public CoreLoad create() {
-            return create(new Retrofit2LoaderBuilder<>(mFragment.get(), mType, mRetrofit));
+            return create(new Retrofit2LoaderBuilder<D, T>(mFragment.get(), mType, mRetrofit));
         }
     }
 }

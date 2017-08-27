@@ -55,9 +55,8 @@ import android.widget.ThemedSpinnerAdapter;
 import com.squareup.picasso.Picasso;
 
 import java.util.Collection;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  *  The {@link android.widget.Adapter Adapter} which was designed for {@yakhont.link CacheLoader}.
@@ -190,10 +189,13 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     @SuppressWarnings("unused")
     public interface ViewBinder {
 
+        /** To use as a {@link #setViewValue} return type (the value is {@value}). */
+        boolean VIEW_BOUND = true;
+
         /**
          * Binds the value to the specified view.
-         * When binding is handled by this {@code ViewBinder}, this method must return {@code true}.
-         * If this method returns {@code false}, {@code BaseCacheAdapter} will attempts to handle the binding on its own.
+         * When binding is handled by this {@code ViewBinder}, this method must return {@link #VIEW_BOUND};
+         * otherwise, {@code BaseCacheAdapter} will attempts to handle the binding on its own.
          *
          * @param view
          *        The view to bind the data to
@@ -430,8 +432,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static int[] getViewsBinding(@NonNull final Context context, @LayoutRes final int layoutId,
-                                        @NonNull final LinkedHashSet<String> set) {
-        final Map<Integer, String>  map             = new LinkedHashMap<>();
+                                        @NonNull final Set<String> set) {
+        final Map<Integer, String>  map             = Core.Utils.newMap();
         final Resources             resources       = context.getResources();
         final ViewInflater          viewInflater    = new ViewInflater(context, layoutId);
 
@@ -917,10 +919,17 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
             for (int i = 0; i < mTo.length; i++) {
                 final View view = mainView.findViewById(mTo[i]);
-                if (view != null)
-                    setViewValue(view, item, i);
-                else
+                if (view == null) {
                     CoreLogger.logError("view not found, index = " + i);
+                    continue;
+                }
+
+                try {
+                    setViewValue(view, item, i);
+                }
+                catch (Exception exception) {
+                    CoreLogger.log("setViewValue failed", exception);
+                }
             }
 
             return mainView;

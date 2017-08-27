@@ -44,8 +44,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -218,7 +216,7 @@ public class BaseCacheProvider extends ContentProvider {
     private Set<String> getKeySet(@NonNull final ContentValues values) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) return values.keySet();
 
-        final Set<String> set = new LinkedHashSet<>();
+        final Set<String> set = Utils.newSet();
         for (final Map.Entry<String, Object> entry: values.valueSet())
             set.add(entry.getKey());
         return set;
@@ -237,7 +235,7 @@ public class BaseCacheProvider extends ContentProvider {
      */
     protected Map<String, CreateTableScriptBuilder.DataType> getColumns(@NonNull final String tableName,
                                                                         @NonNull final ContentValues[] bulkValues) {
-        final Map<String, CreateTableScriptBuilder.DataType> columns = new LinkedHashMap<>();
+        final Map<String, CreateTableScriptBuilder.DataType> columns = Utils.newMap();
 
         for (final ContentValues values: bulkValues) {
             for (final String key: getKeySet(values))

@@ -64,18 +64,22 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.text.DateFormat;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.WeakHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -778,12 +782,6 @@ public class Core {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static boolean checkType(@NonNull final Class responseType, @NonNull final Type type) {
-            return responseType.equals(type) || (responseType.isArray() && type instanceof GenericArrayType
-                    && responseType.getComponentType().equals(((GenericArrayType) type).getGenericComponentType()));
-        }
-
-        /** @exclude */ @SuppressWarnings("JavaDoc")
         public static SharedPreferences getPreferences(@NonNull final ContextWrapper contextWrapper) {
             return contextWrapper.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
         }
@@ -1173,13 +1171,20 @@ public class Core {
             return Collections.synchronizedMap(new WeakHashMap<K, V>());
         }
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        public static <E> List<E> newList() {           // temp solution
+            return new CopyOnWriteArrayList<>();
+        }
+
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <E> Set<E> newSet() {             // temp solution
+            // order should be kept
             return Collections.synchronizedSet(new LinkedHashSet<E>());
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <K, V> Map<K, V> newMap() {       // temp solution
+            // order should be kept
             return Collections.synchronizedMap(new LinkedHashMap<K, V>());
         }
 
@@ -1362,6 +1367,62 @@ public class Core {
                     CoreLogger.logError("can not find View for Activity " + activity);
 
                 return view;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static class TypeHelper {
+
+            public static Type getParameterizedType(final Type type) {
+                return type instanceof ParameterizedType ?
+                        ((ParameterizedType) type).getActualTypeArguments()[0]: type;
+            }
+
+            public static Type getGenericComponentType(final Type type) {
+                return type instanceof GenericArrayType ?
+                        ((GenericArrayType) type).getGenericComponentType(): type;
+            }
+
+            public static Type getParameterizedOrGenericComponentType(final Type type) {
+                final Type genericArrayType = getGenericComponentType(type);
+                return type != null && !type.equals(genericArrayType) ? genericArrayType: getParameterizedType(type);
+            }
+
+            public static boolean isCollection(final Type type) {
+                final Type typeRaw = getParameterizedRawType(type);
+                CoreLogger.log("typeRaw: " + typeRaw);
+                return typeRaw instanceof Class && Collection.class.isAssignableFrom((Class) typeRaw);
+            }
+
+            public static boolean checkType(@NonNull final Type typeResponse,
+                                            @NonNull final Type typeMethod) {
+                CoreLogger.log("typeResponse: " + typeResponse);
+                CoreLogger.log("typeMethod  : " + typeMethod  );
+
+                if (typeResponse instanceof Class) {
+                    final Class classResponse = (Class) typeResponse;
+                    final boolean result = typeResponse.equals(typeMethod) ||
+                            (classResponse.isArray() && typeMethod instanceof GenericArrayType
+                                    && classResponse.getComponentType().equals(getGenericComponentType(typeMethod)));
+                    if (result) return true;
+                }
+
+                if (!checkParameterizedRawTypes(typeResponse, typeMethod))      return false;
+                if (!isCollection(typeMethod))                                  return false;
+
+                final Type type = getParameterizedType(typeResponse);
+                CoreLogger.log("type to check: " + type);
+
+                return type != null && type.equals(getParameterizedType(typeMethod));
+            }
+
+            private static boolean checkParameterizedRawTypes(final Type typeResponse, final Type typeMethod) {
+                final Type type = getParameterizedRawType(typeResponse);
+                return type != null && type.equals(getParameterizedRawType(typeMethod));
+            }
+
+            private static Type getParameterizedRawType(final Type type) {
+                return type instanceof ParameterizedType ? ((ParameterizedType) type).getRawType(): null;
             }
         }
     }

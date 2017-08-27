@@ -112,8 +112,7 @@ dependencies {
 }
 
 android.variantFilter { variant ->
-    //noinspection ChangeToOperator
-    if (variant.buildType.name.equals('release')) {     // or 'debug'; weaver can't handle both release and debug at the same time
+    if (variant.buildType.name == 'release') {     // or 'debug'; weaver can't handle both release and debug at the same time
         variant.setIgnore(true);
     }
 }

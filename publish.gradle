@@ -149,7 +149,7 @@ def javadocWindowTitle = { String title ->
 }
 
 def javadocTitle = { String title ->
-    return '<table border="0"><tr><td><img src="logo.png"></td><td>&nbsp;' +
+    return '<table border="0"><tr><td><img src="logo.png" alt=""></td><td>&nbsp;' +
             javadocWindowTitle(title) + '</td</tr></table>'
 }
 

@@ -19,6 +19,7 @@ package akha.yakhont.technology.retrofit;
 import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseLoader;
 import akha.yakhont.loader.BaseLoader.CoreLoadExtendedBuilder;
 import akha.yakhont.loader.BaseResponse;
@@ -38,6 +39,8 @@ import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.util.AndroidException;
 import android.view.View;
+
+import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 
@@ -220,7 +223,7 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
          *        The Retrofit component
          */
         @SuppressWarnings("unused")
-        public RetrofitLoaderBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type,
+        public RetrofitLoaderBuilder(@NonNull final Fragment fragment, @NonNull final Type type,
                                      @NonNull final Retrofit<T> retrofit) {
             super(fragment, type);
             mRetrofit = retrofit;
@@ -229,16 +232,16 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @Override
         public Requester<Callback<D>> getDefaultRequester() {
-            return getRequester(new RequesterHelper<Callback<D>, D, T>(mType) {
+            return getRequester(new RequesterHelper<Callback<D>, T>(mType) {
                 @Override
                 public void init() {
-                    mMethod  = mRetrofit.getYakhontRestAdapter().findMethod(mClass);
+                    mMethod  = mRetrofit.getYakhontRestAdapter().findMethod(mType);
                     mHandler = mRetrofit.getYakhontRestAdapter().getHandler();
                 }
 
                 @Override
                 public void request(@NonNull final Callback<D> callback) throws Exception {
-                    mMethod.invoke(mHandler, callback);
+                    CoreReflection.invoke(mHandler, mMethod, callback);
                 }
             });
         }
@@ -288,6 +291,44 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
         @SuppressWarnings("unused")
         public RetrofitCoreLoadBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type,
                                        @NonNull final Retrofit<T> retrofit) {
+            this(fragment, (Type) type, retrofit);
+        }
+
+        /**
+         * Initialises a newly created {@code RetrofitCoreLoadBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param type
+         *        The type of data; for generic {@link java.util.Collection} types please use {@link TypeToken}
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
+        @SuppressWarnings("unused")
+        public RetrofitCoreLoadBuilder(@NonNull final Fragment fragment, @NonNull final Type type,
+                                       @NonNull final Retrofit<T> retrofit) {
+            super(fragment, type);
+            mRetrofit = retrofit;
+        }
+
+        /**
+         * Initialises a newly created {@code RetrofitCoreLoadBuilder} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param type
+         *        The type of data; intended to use with generic {@link java.util.Collection} types,
+         *        e.g. {@code new com.google.gson.reflect.TypeToken<List<MyData>>() {}}
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
+        @SuppressWarnings("unused")
+        public RetrofitCoreLoadBuilder(@NonNull final Fragment fragment, @NonNull final TypeToken type,
+                                       @NonNull final Retrofit<T> retrofit) {
             super(fragment, type);
             mRetrofit = retrofit;
         }
@@ -321,7 +362,7 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
          */
         @Override
         public CoreLoad create() {
-            return create(new RetrofitLoaderBuilder<>(mFragment.get(), mType, mRetrofit));
+            return create(new RetrofitLoaderBuilder<D, T>(mFragment.get(), mType, mRetrofit));
         }
     }
 }

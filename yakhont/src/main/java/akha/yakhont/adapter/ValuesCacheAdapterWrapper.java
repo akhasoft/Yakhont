@@ -42,7 +42,7 @@ import android.view.ViewGroup;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.LinkedHashSet;
+import java.util.Set;
 
 /**
  * The wrapper for {@link BaseCacheAdapter}.
@@ -140,7 +140,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
 
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
             @NonNull final Activity context, @LayoutRes final int layoutId) {
-        final LinkedHashSet<String> fromSet = new LinkedHashSet<>();
+        final Set<String>           fromSet = Utils.newSet();
         final int[]                 to      = BaseCacheAdapter.getViewsBinding(context, layoutId, fromSet);
         final String[]              from    = fromSet.toArray(new String[fromSet.size()]);
         return init(context, layoutId, from, to);

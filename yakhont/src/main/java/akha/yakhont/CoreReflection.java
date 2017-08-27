@@ -147,13 +147,12 @@ public class CoreReflection {
         }
         catch (IllegalAccessException e) {          // should never happen
             CoreLogger.log(method.getName(), e);
+            return null;
         }
         finally {
             if (!accessible) //noinspection ThrowFromFinallyBlock
                 method.setAccessible(false);
         }
-
-        return null;
     }
 
     /**

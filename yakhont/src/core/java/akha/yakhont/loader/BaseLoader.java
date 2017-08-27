@@ -19,6 +19,7 @@ package akha.yakhont.loader;
 import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.Requester;
+import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
@@ -28,9 +29,11 @@ import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.fragment.WorkerFragment;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderFactory;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
@@ -57,7 +60,10 @@ import android.view.View;
 import android.widget.GridView;
 import android.widget.ListView;
 
+import com.google.gson.reflect.TypeToken;
+
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -311,7 +317,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                     makeRequest(mCallback);
                 }
                 catch (Exception exception) {
-                    CoreLogger.log(addLoaderInfo("failed"), exception);
+                    CoreLogger.log(addLoaderInfo("makeRequest failed"), exception);
                     callbackHelper(false, wrapException(exception));
                 }
             }
@@ -323,8 +329,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         try {
             return new BaseResponse<>(null, null, null, (E) exception, Source.UNKNOWN, null);
         }
-        catch (Exception internal) {
-            CoreLogger.log(addLoaderInfo("BaseResponse creation failed"), internal);
+        catch (Exception internalException) {
+            CoreLogger.log(addLoaderInfo("BaseResponse creation failed"), internalException);
             return new BaseResponse<>(null, null, null, null, Source.UNKNOWN, exception);
         }
     }
@@ -1090,7 +1096,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             implements Requester<C>{
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final Class<D>                        mType;
+        protected final Type                            mType;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected LoaderCallback<D>                     mLoaderCallback;
@@ -1111,6 +1117,34 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Requester<C>                          mDefaultRequester;
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Converter<D>                          mConverter;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected String                                mTableName;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Integer                               mLoaderId;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected UriResolver                           mUriResolver;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected LoaderFactory<BaseResponse<R, E, D>>  mLoaderFactory;
+
+        /**
+         * Initialises a newly created {@code CoreLoadExtendedBuilder} object.
+         *
+         * @param fragment
+         *        The type of data; for generic {@link java.util.Collection} types please use {@link TypeToken}
+         *
+         * @param type
+         *        The type of data
+         */
+        @SuppressWarnings("unused")
+        protected CoreLoadExtendedBuilder(@NonNull final Fragment fragment, @NonNull final Type type) {
+            super(fragment);
+            mType = type;
+        }
+
         /**
          * Initialises a newly created {@code CoreLoadExtendedBuilder} object.
          *
@@ -1118,16 +1152,16 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          *        The fragment
          *
          * @param type
-         *        The type of data
+         *        The type of data; intended to use with generic {@link java.util.Collection} types,
+         *        e.g. {@code new com.google.gson.reflect.TypeToken<List<MyData>>() {}}
          */
         @SuppressWarnings("unused")
-        protected CoreLoadExtendedBuilder(@NonNull final Fragment fragment, @NonNull final Class<D> type) {
-            super(fragment);
-            mType = type;
+        protected CoreLoadExtendedBuilder(@NonNull final Fragment fragment, @NonNull final TypeToken type) {
+            this(fragment, type.getType());
         }
 /*
         / @exclude / @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected CoreLoadExtendedBuilder(@NonNull final CoreLoadExtendedBuilder<C, R, E, D> src) {
+        protected CoreLoadExtendedBuilder(@NonNull final CoreLoadExtendedBuilder<C, R, E, D, T> src) {
             super(src);
             mType               = src.mType;
             mLoaderCallback     = src.mLoaderCallback;
@@ -1136,6 +1170,11 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mDescription        = src.mDescription;
             mDescriptionId      = src.mDescriptionId;
             mDefaultRequester   = src.mDefaultRequester
+            mConverter          = src.mConverter;
+            mTableName          = src.mTableName;
+            mLoaderId           = src.mLoaderId;
+            mUriResolver        = src.mUriResolver;
+            mLoaderFactory      = src.mLoaderFactory;
         }
 */
         /**
@@ -1221,6 +1260,81 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         }
 
         /**
+         * Sets the converter.
+         *
+         * @param converter
+         *        The converter
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setConverter(@NonNull final Converter<D> converter) {
+            mConverter = converter;
+            return this;
+        }
+
+        /**
+         * Sets the table name.
+         *
+         * @param tableName
+         *        The name of the table in the database (to cache the loaded data)
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setTableName(@NonNull final String tableName) {
+            mTableName = tableName;
+            return this;
+        }
+
+        /**
+         * Sets the loader ID.
+         *
+         * @param loaderId
+         *        The loader ID
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderId(final int loaderId) {
+            mLoaderId = loaderId;
+            return this;
+        }
+
+        /**
+         * Sets the URI resolver.
+         *
+         * @param uriResolver
+         *        The URI resolver
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setUriResolver(@NonNull final UriResolver uriResolver) {
+            mUriResolver = uriResolver;
+            return this;
+        }
+
+        /**
+         * Sets the loader factory.
+         *
+         * @param loaderFactory
+         *        The loader factory
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderFactory(@NonNull final LoaderFactory<BaseResponse<R, E, D>> loaderFactory) {
+            mLoaderFactory = loaderFactory;
+            return this;
+        }
+
+        /**
          * Returns the API defined by the service interface (e.g. the Retrofit API).
          *
          * @return  The API
@@ -1269,9 +1383,15 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
             builder.setRequester(this);
 
-            if (mLoaderCallback != null)                        builder.setLoaderCallback(mLoaderCallback);
-            if (mDescription    != null)                        builder.setDescription   (mDescription);
+            if (mLoaderCallback != null)                        builder.setLoaderCallback(mLoaderCallback                   );
+            if (mDescription    != null)                        builder.setDescription   (mDescription                      );
             else if (mDescriptionId != Core.NOT_VALID_RES_ID)   builder.setDescription   (fragment.getString(mDescriptionId));
+
+            if (mConverter      != null)                        builder.setConverter     (mConverter                        );
+            if (mTableName      != null)                        builder.setTableName     (mTableName                        );
+            if (mLoaderId       != null)                        builder.setLoaderId      (mLoaderId                         );
+            if (mUriResolver    != null)                        builder.setUriResolver   (mUriResolver                      );
+            if (mLoaderFactory  != null)                        builder.setLoaderFactory (mLoaderFactory                    );
 
             return super.create();
         }

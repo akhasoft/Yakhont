@@ -16,6 +16,8 @@
 
 package akha.yakhont.loader;
 
+import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.loader.BaseResponse.Converter;
 
@@ -37,8 +39,8 @@ import com.google.gson.JsonParser;
 import java.io.Reader;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Type;
-import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The data converter.
@@ -50,15 +52,21 @@ import java.util.Map;
  */
 public class BaseConverter<D> implements Converter<D> {
 
-    private static final    Gson                sGson           = new GsonBuilder().serializeNulls().create();
-    private static final    Object              sGsonLock       = new Object();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static final  Gson                sGson           = new GsonBuilder().serializeNulls().create();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static final  Object              sGsonLock       = new Object();
 
-    private        final    JsonParser          mJsonParser     = new JsonParser();
-    private        final    Object              mParserLock     = new Object();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected        final  JsonParser          mJsonParser     = new JsonParser();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected        final  Object              mParserLock     = new Object();
 
-    private                 Type                mType;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected               Type                mType;
 
-    private interface Visitor {
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected interface Visitor {
         @SuppressWarnings("UnusedParameters")
         void init(JsonObject jsonObject);
         void add (String key, String value);
@@ -74,7 +82,7 @@ public class BaseConverter<D> implements Converter<D> {
      * Please refer to the base method description.
      */
     @Override
-    public Converter<D> setType(Type type) {
+    public Converter<D> setType(final Type type) {
         CoreLogger.log("set type to " + type);
         mType = type;
 
@@ -133,18 +141,26 @@ public class BaseConverter<D> implements Converter<D> {
             }
         }
         catch (Exception e) {
-            CoreLogger.log("failed, jsonElement = " + jsonElement, e);
+            CoreLogger.log("failed, jsonElement == " + jsonElement, e);
         }
 
         return result;
     }
 
-    private JsonElement getJsonElement(final Cursor cursor) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected boolean isArray() {
+        final Type type = getType();
+        return type instanceof GenericArrayType || TypeHelper.isCollection(type) ||
+                (type instanceof Class && ((Class) type).isArray());
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected JsonElement getJsonElement(final Cursor cursor) {
         if (cursor == null)           return null;
         if (!cursor.moveToFirst())    return null;
 
-        final Type type = getType();
-        final boolean isArray = type instanceof GenericArrayType || (type instanceof Class && ((Class) type).isArray());
+        final boolean isArray = isArray();
+        CoreLogger.log("isArray == " + isArray);
 
         final JsonArray jsonArray = new JsonArray();
         for (;;) {
@@ -203,7 +219,8 @@ public class BaseConverter<D> implements Converter<D> {
         return ((ContentValuesVisitor) accept(new ContentValuesVisitor(), jsonElement)).getResult();
     }
 
-    private Visitor accept(@NonNull final Visitor visitor, final JsonElement jsonElement) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Visitor accept(@NonNull final Visitor visitor, final JsonElement jsonElement) {
         if (jsonElement == null) return visitor;
 
         if (jsonElement.isJsonObject())
@@ -216,13 +233,15 @@ public class BaseConverter<D> implements Converter<D> {
         return visitor;
     }
 
-    private Visitor accept(@NonNull final Visitor visitor, @NonNull final JsonObject jsonObject) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Visitor accept(@NonNull final Visitor visitor, @NonNull final JsonObject jsonObject) {
         visitor.init(jsonObject);
         add(visitor, jsonObject);
         return visitor;
     }
 
-    private Visitor accept(@NonNull final Visitor visitor, @NonNull final JsonArray jsonArray) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Visitor accept(@NonNull final Visitor visitor, @NonNull final JsonArray jsonArray) {
         for (int i = 0; i < jsonArray.size(); i++) {
             if (jsonArray.get(i).isJsonNull())
                 continue;
@@ -238,7 +257,8 @@ public class BaseConverter<D> implements Converter<D> {
         return visitor;
     }
 
-    private void add(@NonNull final Visitor visitor, @NonNull final JsonObject jsonObject) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected void add(@NonNull final Visitor visitor, @NonNull final JsonObject jsonObject) {
         for (final Map.Entry<String, JsonElement> entry: jsonObject.entrySet()) {
             final String      key         = entry.getKey();
             final JsonElement jsonElement = entry.getValue();
@@ -262,9 +282,10 @@ public class BaseConverter<D> implements Converter<D> {
         }
     }
 
-    private class ContentValuesVisitor implements Visitor {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public class ContentValuesVisitor implements Visitor {
 
-        private final       LinkedHashSet<ContentValues>    mResult             = new LinkedHashSet<>();
+        private final       Set<ContentValues>              mResult             = Utils.newSet();
         private             ContentValues                   mContentValues;
 
         @NonNull
@@ -289,8 +310,8 @@ public class BaseConverter<D> implements Converter<D> {
         }
     }
 
-    @SuppressWarnings("unused")
-    private class CursorVisitor implements Visitor {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public class CursorVisitor implements Visitor {
 
         private             MatrixCursor                    mCursor;
         private             MatrixCursor.RowBuilder         mBuilder;
@@ -316,7 +337,7 @@ public class BaseConverter<D> implements Converter<D> {
 
         @NonNull
         private MatrixCursor getCursor(@NonNull final JsonObject jsonObject) {
-            final LinkedHashSet<String> columns = new LinkedHashSet<>();
+            final Set<String> columns = Utils.newSet();
             columns.add(BaseColumns._ID);
 
             for (final Map.Entry<String, JsonElement> entry: jsonObject.entrySet())

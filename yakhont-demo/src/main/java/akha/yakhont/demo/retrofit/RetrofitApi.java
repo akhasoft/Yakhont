@@ -18,6 +18,8 @@ package akha.yakhont.demo.retrofit;
 
 import akha.yakhont.demo.model.Beer;
 
+import java.util.List;
+
 import retrofit.Callback;
 import retrofit.http.GET;
 
@@ -26,5 +28,5 @@ public interface RetrofitApi {
 
     @GET("/data")
     @SuppressWarnings("unused")
-    void data(Callback<Beer[]> callback);
+    void data(Callback<List<Beer>> callback);
 }
