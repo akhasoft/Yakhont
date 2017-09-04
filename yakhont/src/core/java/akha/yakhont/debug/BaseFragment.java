@@ -459,7 +459,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
                     adjustMeasuredView(measuredView);                                           //YakhontPreprocessor:removeInGenerated
                 }                                                                               //YakhontPreprocessor:removeInGenerated
                 catch (Exception e) {                                                           //YakhontPreprocessor:removeInGenerated
-                    CoreLogger.log("failed", e);                                                //YakhontPreprocessor:removeInGenerated
+                    CoreLogger.log("onGlobalLayout failed", e);                                 //YakhontPreprocessor:removeInGenerated
                 }                                                                               //YakhontPreprocessor:removeInGenerated
                 finally {                                                                       //YakhontPreprocessor:removeInGenerated
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)                //YakhontPreprocessor:removeInGenerated

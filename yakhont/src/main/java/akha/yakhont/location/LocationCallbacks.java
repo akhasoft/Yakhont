@@ -27,6 +27,7 @@ import akha.yakhont.CorePermissions;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
+import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.CurrentActivityHelper;
 import akha.yakhont.technology.rx.BaseRx.LocationRx;
 
 import android.Manifest;
@@ -41,7 +42,6 @@ import android.support.annotation.NonNull;
 
 import dagger.Lazy;
 
-import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
@@ -53,7 +53,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.inject.Provider;
 
@@ -92,7 +91,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     private   static final int                                      DELAY               = 750;    //ms
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static final AtomicReference<WeakReference<Activity>> sActivity           = new AtomicReference<>();
+    protected static final CurrentActivityHelper                    sActivity           = new CurrentActivityHelper();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected        Lazy<LocationClient>                           mLocationClient;
@@ -354,7 +353,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
                 try {
                     runnable.run();
                 } catch (Exception e) {
-                    CoreLogger.log("failed " + lifecycle, e);
+                    CoreLogger.log("addTaskNotSync failed " + lifecycle, e);
                 }
             }
         }, DELAY, TimeUnit.MILLISECONDS));
@@ -458,7 +457,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivityStarted(@NonNull final Activity activity) {
-        sActivity.set(new WeakReference<>(activity));
+        sActivity.set(activity);
 
         if (isAccessToLocationAllowed() && mStartStopCounter.incrementAndGet() == 1)
 
@@ -480,7 +479,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivityResumed(@NonNull final Activity activity) {
-        sActivity.set(new WeakReference<>(activity));
+        sActivity.set(activity);
 
         if (isAccessToLocationAllowed() && mPauseResumeCounter.incrementAndGet() == 1)
 
@@ -542,7 +541,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivityDestroyed(@NonNull final Activity activity) {
-        if (sActivity.get().get() == activity) sActivity.set(new WeakReference<Activity>(null));
+        sActivity.clear(activity);
 
         if (isAccessToLocationAllowed() && getProceeded().size() == 0)
 
@@ -571,10 +570,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static Activity getActivity() {
-        final Activity activity = sActivity.get().get();
-        if (activity == null)
-            CoreLogger.logError("activity == null");
-        return activity;
+        return sActivity.get();
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -915,7 +911,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
         // it's not needed to call proceed(activity) 'cause the check is already done - when activity was added to collection
 
-        CoreLogger.log("failed", exception);
+        CoreLogger.log("startActivityForResultExceptionHandler failed", exception);
 
         locationCallbacks.mToastProvider.get().start(activity, activity.getString(
                 akha.yakhont.R.string.yakhont_location_error), null);

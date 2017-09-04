@@ -16,6 +16,8 @@
 
 package akha.yakhont.technology.retrofit;
 
+import akha.yakhont.Core;
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
@@ -31,9 +33,14 @@ import android.support.annotation.Nullable;
 import android.support.annotation.Size;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import okhttp3.Cookie;
+import okhttp3.CookieJar;
+import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -84,6 +91,104 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
                      @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
                      @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers) {
 
+        init(service, retrofitBase, connectTimeout, readTimeout, headers, null);
+    }
+
+    /**
+     * Initialises Retrofit client.
+     *
+     * @param service
+     *        The service interface
+     *
+     * @param retrofitBase
+     *        The Retrofit API endpoint URL
+     *
+     * @param connectTimeout
+     *        The connection timeout (in seconds)
+     *
+     * @param readTimeout
+     *        The read timeout (in seconds)
+     *
+     * @param headers
+     *        The optional HTTP headers (or null)
+     *
+     * @param cookies
+     *        The optional cookies (or null)
+     */
+    @SuppressWarnings("WeakerAccess")
+    public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
+                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
+                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
+                     @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers,
+                     @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> cookies) {
+
+        init(service, getDefaultBuilder(retrofitBase).client(getDefaultOkHttpClientBuilder(
+                connectTimeout, readTimeout, headers, cookies).build()),
+                connectTimeout, readTimeout);
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @SuppressWarnings("WeakerAccess")
+    @Override
+    public void init(@NonNull final Class<T> service, @NonNull final Builder builder,
+                     @IntRange(from = 1) final int connectTimeout,
+                     @IntRange(from = 1) final int readTimeout) {
+
+        super.init(service, builder, connectTimeout, readTimeout);
+
+        mService = service;
+
+        final Retrofit retrofit = builder.build();
+        mRetrofitApi = retrofit.create(service);
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Builder getDefaultBuilder(@NonNull final String retrofitBase) {
+        return new Builder()
+                .addConverterFactory(GsonConverterFactory.create())
+                .baseUrl(retrofitBase);
+    }
+
+    /**
+     * Returns the default {@code OkHttpClient} builder.
+     *
+     * @return  The {@code OkHttpClient} builder
+     */
+    @SuppressWarnings("unused")
+    public OkHttpClient.Builder getDefaultOkHttpClientBuilder() {
+        return getDefaultOkHttpClientBuilder(
+                Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, null, null);
+    }
+
+    /**
+     * Returns the default {@code OkHttpClient} builder.
+     *
+     * @param connectTimeout
+     *        The connection timeout (in seconds)
+     *
+     * @param readTimeout
+     *        The read timeout (in seconds)
+     *
+     * @param headers
+     *        The optional HTTP headers (or null)
+     *
+     * @param cookies
+     *        The optional cookies (or null)
+     *
+     * @return  The {@code OkHttpClient} builder
+     */
+    @SuppressWarnings("WeakerAccess")
+    public OkHttpClient.Builder getDefaultOkHttpClientBuilder(
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
+            @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers,
+            @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> cookies) {
+
         final OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(connectTimeout, TimeUnit.SECONDS)
                 .readTimeout   (readTimeout,    TimeUnit.SECONDS);
@@ -107,33 +212,68 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
                 }
             });
 
-        init(service, getDefaultBuilder(retrofitBase).client(builder.build()),
-                connectTimeout, readTimeout);
+        if (cookies != null && !cookies.isEmpty())
+            builder.cookieJar(new CookieJar() {
+
+                private final Map<HttpUrl, List<Cookie>> mCookieStore = Utils.newMap();
+
+                @Override
+                public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                    mCookieStore.put(url, cookies);
+                }
+
+                @Override
+                public List<Cookie> loadForRequest(HttpUrl url) {
+                    List<Cookie> list = mCookieStore.get(url);
+                    list = list != null ? new ArrayList<>(list): new ArrayList<Cookie>();
+
+                    for (final String name: cookies.keySet())
+                        setCookie(name, cookies.get(name), list, url);
+
+                    return list;
+                }
+            });
+
+        return builder;
+    }
+
+    private void setCookie(final String name, final String value,
+                           final List<Cookie> cookies, final HttpUrl url) {
+        try {
+            final Cookie cookie = createCookie(name, value, url);
+
+            for (int i = cookies.size() - 1; i >= 0; i--)
+                if (cookies.get(i).name().equalsIgnoreCase(name))
+                    cookies.remove(i);
+
+            cookies.add(cookie);
+        }
+        catch (Exception exception) {
+            CoreLogger.log("setCookie failed", exception);
+        }
     }
 
     /**
-     * Please refer to the base method description.
+     * Creates a cookie.
+     *
+     * @param name
+     *        The name
+     *
+     * @param value
+     *        The value
+     *
+     * @param url
+     *        The url
+     **
+     * @return  The cookie
      */
     @SuppressWarnings("WeakerAccess")
-    @Override
-    public void init(@NonNull final Class<T> service, @NonNull final Builder builder,
-                     @IntRange(from = 1) final int connectTimeout,
-                     @IntRange(from = 1) final int readTimeout) {
-        super.init(service, builder, connectTimeout, readTimeout);
-
-        mService = service;
-        final Retrofit retrofit = builder.build();
-        mRetrofitApi = retrofit.create(service);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public Builder getDefaultBuilder(@NonNull final String retrofitBase) {
-        return new Builder()
-                .addConverterFactory(GsonConverterFactory.create())
-                .baseUrl(retrofitBase);
+    protected Cookie createCookie(final String name, final String value, final HttpUrl url) {
+        return new Cookie.Builder()
+                .domain(url.host())
+                .name(name)
+                .value(value)
+                .build();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

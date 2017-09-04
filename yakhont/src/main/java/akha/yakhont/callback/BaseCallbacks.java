@@ -518,7 +518,7 @@ public abstract class BaseCallbacks<T> {
                 return proceed;
             }
             catch (Exception e) {
-                CoreLogger.log("failed", e);
+                CoreLogger.log("proceed failed", e);
                 return false;
             }
         }
@@ -646,7 +646,7 @@ public abstract class BaseCallbacks<T> {
                     runnable.run();
                 }
                 catch (Exception e) {
-                    CoreLogger.log("failed", e);
+                    CoreLogger.log("apply failed", e);
                 }
         }
     }

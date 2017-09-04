@@ -211,7 +211,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                     });
         }
         catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("failed", exception);
+            CoreLogger.log("buildClient failed", exception);
         }
 
         mSettingsClient = LocationServices.getSettingsClient(activity);
@@ -598,7 +598,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                     });
         }
         catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("failed", exception);
+            CoreLogger.log("requestLocationUpdates failed", exception);
         }
     }
 
@@ -635,7 +635,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                     });
         }
         catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("failed", exception);
+            CoreLogger.log("requestLocationUpdates failed", exception);
         }
     }
 

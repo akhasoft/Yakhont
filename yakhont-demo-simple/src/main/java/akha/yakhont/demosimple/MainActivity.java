@@ -50,6 +50,9 @@ public class MainActivity extends Activity implements LocationListener {
         // uncomment network delay emulation for the progress dialog etc.
         sRetrofit2.init(Retrofit2Api.class, sRetrofit2.getDefaultBuilder("http://localhost/")
                 .client(new LocalJsonClient2() /* .setEmulatedNetworkDelay(2000) */ ));
+
+        // for normal HTTP requests you can use something like this
+//      sRetrofit2.init(Retrofit2Api.class, "http://...");
     }
 
     @Override

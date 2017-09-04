@@ -16,7 +16,6 @@
 
 package akha.yakhont.demo;
 
-import akha.yakhont.demo.gui.Utils;
 import akha.yakhont.demo.retrofit.LocalJsonClient;
 import akha.yakhont.demo.retrofit.LocalJsonClient2;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
@@ -24,6 +23,7 @@ import akha.yakhont.demo.retrofit.RetrofitApi;
 
 import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.callback.annotation.CallbacksInherited;
@@ -56,14 +56,12 @@ import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import dagger.BindsInstance;
 import dagger.Component;
@@ -124,6 +122,9 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         else
             mRetrofit .init(RetrofitApi.class,  mRetrofit .getDefaultBuilder(url).setClient(mJsonClient));
 
+        // for normal HTTP requests you can use something like this
+//      mRetrofit2.init(Retrofit2Api.class, url);
+
         initLocationRx();   // optional
 
         // set location client parameters here (if necessary)
@@ -133,8 +134,8 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         findViewById(R.id.fab_location).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, LocationCallbacks.toDms(getLocation(), MainActivity.this),
-                    Snackbar.LENGTH_LONG).show();
+                Utils.showSnackbar(LocationCallbacks.toDms(getLocation(), MainActivity.this),
+                        Utils.SHOW_DURATION_LONG);
             }
         });
 
@@ -142,7 +143,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         findViewById(R.id.fab_info).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Toast.makeText(MainActivity.this, getString(R.string.info), Toast.LENGTH_LONG).show();
+                Utils.showToast(R.string.info, Utils.SHOW_DURATION_LONG);
             }
         });
     }
@@ -275,8 +276,9 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
                 activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
                 
                 Resources resources     = activity.getResources();
-                sBackground             = new BitmapDrawable(resources, Utils.decodeBitmap(
-                    resources, R.drawable.img_progress, dm.heightPixels, dm.widthPixels));
+                sBackground             = new BitmapDrawable(resources,
+                        akha.yakhont.demo.gui.Utils.decodeBitmap(
+                                resources, R.drawable.img_progress, dm.heightPixels, dm.widthPixels));
             }
             ((ImageView) view.findViewById(R.id.progress_background)).setImageDrawable(sBackground);
 
@@ -287,7 +289,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         @SuppressWarnings("unused")
         public void onCancel(DialogInterface dialog) {  // makes sense only if confirmation dialog switched off (see below)
             super.onCancel(dialog);
-            Toast.makeText(getActivity(), getString(R.string.yakhont_loader_cancelled), Toast.LENGTH_SHORT).show();
+            Utils.showToast(R.string.yakhont_loader_cancelled, !Utils.SHOW_DURATION_LONG);
         }
 
         public static DemoProgress newInstance() {

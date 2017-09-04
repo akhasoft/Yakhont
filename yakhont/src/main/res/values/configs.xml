@@ -17,4 +17,6 @@
 <resources>
     <bool name="yakhont_portrait">true</bool>
     <bool name="yakhont_landscape">false</bool>
+
+    <item name="yakhont_default_view_id" type="id">@android:id/content</item>
 </resources>

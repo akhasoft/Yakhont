@@ -24,7 +24,6 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.debug.BaseDialogFragment;
 import akha.yakhont.location.GoogleLocationClient;
-import akha.yakhont.location.LocationCallbacks;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -189,7 +188,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
             super.dismiss();
         }
         catch (Exception e) {
-            CoreLogger.log("failed", e);
+            CoreLogger.log("dismiss failed", e);
         }
     }
 
@@ -245,7 +244,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
             final int errorCode = getArguments().getInt(ARG_DIALOG_ERROR);
             CoreLogger.log("error code: " + errorCode);
 
-            mActivity = LocationCallbacks.getActivity();
+            mActivity = Utils.getCurrentActivity();
 
             return GoogleLocationClient.getErrorDialog(mActivity, errorCode, REQUEST_CODE);
         }

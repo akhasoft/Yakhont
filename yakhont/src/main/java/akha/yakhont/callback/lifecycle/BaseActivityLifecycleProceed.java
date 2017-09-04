@@ -33,12 +33,14 @@ import android.support.annotation.NonNull;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 
+import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Extends the {@link BaseLifecycleProceed} class to provide the {@link Activity} lifecycle support.
@@ -58,11 +60,22 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     private static final AtomicInteger                      sStarted                    = new AtomicInteger();
     private static final AtomicInteger                      sStopped                    = new AtomicInteger();
 
+    private static final CurrentActivityHelper              sActivity                   = new CurrentActivityHelper();
+
     /**
      * Initialises a newly created {@code BaseActivityLifecycleProceed} object.
      */
     @SuppressWarnings("WeakerAccess")
     public BaseActivityLifecycleProceed() {
+    }
+
+    /**
+     * Returns the current {@code Activity} (if any).
+     *
+     * @return  The current {@code Activity} (or null)
+     */
+    public static Activity getCurrentActivity() {
+        return sActivity.get();
     }
 
     private static String getActivityName(@NonNull final Activity activity) {
@@ -185,6 +198,16 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      */
     @SuppressWarnings("WeakerAccess")
     protected static void apply(@NonNull final ActivityLifecycle lifeCycle, @NonNull final Activity activity, final Bundle state) {
+
+        switch (lifeCycle) {
+            case STARTED:
+            case RESUMED:
+                sActivity.set(activity);
+                break;
+            case DESTROYED:
+                sActivity.clear(activity);
+                break;
+        }
 
         final Boolean created;
         switch (lifeCycle) {
@@ -614,6 +637,43 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
                     CoreLogger.logError("unknown orientation " + orientation.name());
                     break;
             }
+        }
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static class CurrentActivityHelper {
+
+        private final AtomicReference<WeakReference<Activity>>
+                                                            mActivity                   = new AtomicReference<>();
+
+        private void setActivity(final Activity activity) {
+            mActivity.set(new WeakReference<>(activity));
+        }
+
+        public void set(final Activity activity) {
+            if (!check(activity)) return;
+            if (get(true) != activity) setActivity(activity);
+        }
+
+        public void clear(final Activity activity) {
+            if (!check(activity)) return;
+            if (get(true) == activity) setActivity(null);
+        }
+
+        public Activity get() {
+            return get(false);
+        }
+
+        private Activity get(final boolean silent) {
+            final WeakReference<Activity> weakReference = mActivity.get();
+            final Activity activity = weakReference == null ? null: weakReference.get();
+            if (!silent) check(activity);
+            return activity;
+        }
+
+        private boolean check(final Activity activity) {
+            if (activity == null) CoreLogger.logError("activity == null");
+            return activity != null;
         }
     }
 }

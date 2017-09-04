@@ -51,7 +51,9 @@ import android.support.annotation.AnyRes;
 import android.support.annotation.IdRes;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
+import android.util.TypedValue;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -62,6 +64,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.lang.ref.WeakReference;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
@@ -117,12 +120,10 @@ import java.util.zip.ZipOutputStream;
 public class Core {
 
     /** Not valid resource ID (the value is {@value}). */
-    @AnyRes
-    public  static final int                            NOT_VALID_RES_ID            = 0;
+    @AnyRes public static final int                     NOT_VALID_RES_ID            = 0;
 
     /** Not valid View ID (the value is {@value}). */
-    @IdRes
-    public  static final int                            NOT_VALID_VIEW_ID           = View.NO_ID;
+    @IdRes public static final int                      NOT_VALID_VIEW_ID           = View.NO_ID;
 
     private static final String                         BASE_URI                    = "content://%s.provider";
     @SuppressWarnings("unused")
@@ -168,8 +169,9 @@ public class Core {
     }
 
     private static       Core                           sInstance;
-    private static       Dagger2                        sDagger;
     private static       boolean                        sSupport;
+    private static       WeakReference<Application>     sApplication;
+    private static       Dagger2                        sDagger;
 
     /**
      *  The dialog API that are common to the whole library.
@@ -428,6 +430,8 @@ public class Core {
         }
         sInstance = new Core();
 
+        sApplication = new WeakReference<>(application);
+
         sDagger = dagger != null ? dagger: getDefaultDagger();
 
         Init.logging(application,
@@ -446,17 +450,18 @@ public class Core {
     private static Dagger2 getDefaultDagger(final boolean useGoogleLocationOldApi,
                                             final boolean useSnackbarIsoAlert,
                                             final boolean useSnackbarIsoToast) {
-        return akha.yakhont.technology.DaggerDagger2_DefaultComponent
-                .builder()
-                .parameters(Dagger2.Parameters.create(
-                        useGoogleLocationOldApi, useSnackbarIsoAlert, useSnackbarIsoToast))
-                .build();
+        return getDefaultDagger(Dagger2.Parameters.create(
+                useGoogleLocationOldApi, useSnackbarIsoAlert, useSnackbarIsoToast));
     }
 
     private static Dagger2 getDefaultDagger() {
+        return getDefaultDagger(Dagger2.Parameters.create());
+    }
+
+    private static Dagger2 getDefaultDagger(final Dagger2.Parameters parameters) {
         return akha.yakhont.technology.DaggerDagger2_DefaultComponent
                 .builder()
-                .parameters(Dagger2.Parameters.create())
+                .parameters(parameters)
                 .build();
     }
 
@@ -608,7 +613,7 @@ public class Core {
                 runnable.run();
             }
             catch (Exception e) {
-                CoreLogger.log("failed", e);
+                CoreLogger.log("notifyListener failed", e);
             }
         }
     }
@@ -712,6 +717,10 @@ public class Core {
      */
     public static class Utils {
 
+        /** To use with {@link #showToast(String, boolean)} etc. The value is {@value}. */
+        @SuppressWarnings("unused")
+        public static final  boolean                    SHOW_DURATION_LONG              = true;
+
         private static       UriResolver                sUriResolver                    = new UriResolver() {
             @Override
             public Uri getUri(@NonNull final String tableName) {
@@ -723,6 +732,101 @@ public class Core {
         private static final RequestCodesHandler        sRequestCodesHandler            = new RequestCodesHandler();
 
         private Utils() {
+        }
+
+        /**
+         * Returns the current {@code Application}.
+         *
+         * @return  The current {@code Application}
+         */
+        @SuppressWarnings("unused")
+        public static Application getApplication() {
+            return sApplication == null ? null: sApplication.get();
+        }
+
+        /**
+         * Returns the current {@code Activity} (if any).
+         *
+         * @return  The current {@code Activity} (or null)
+         */
+        @SuppressWarnings("unused")
+        public static Activity getCurrentActivity() {
+            return BaseActivityLifecycleProceed.getCurrentActivity();
+        }
+
+        /**
+         * Returns the default {@code View} of the given {@code Activity}.
+         * The default View Id is stored in the resources ({@code yakhont_default_view_id})
+         * and for the moment is {@link android.R.id#content android.R.id.content}.
+         *
+         * @param activity
+         *        The Activity
+         *
+         * @return  The default View (or null)
+         */
+        @SuppressWarnings("unused")
+        public static View getDefaultView(final Activity activity) {
+            return ViewHelper.getView(activity);
+        }
+
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param text
+         *        The text to show
+         *
+         * @param durationLong
+         *        {@link #SHOW_DURATION_LONG} for using {@link Toast#LENGTH_LONG},
+         *        !{@link #SHOW_DURATION_LONG} for {@link Toast#LENGTH_SHORT}
+         */
+        @SuppressWarnings("unused")
+        public static void showToast(final String text, final boolean durationLong) {
+            Dagger2.UiModule.showToast(text, durationLong);
+        }
+
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param resId
+         *        The resource ID of the string resource to show
+         *
+         * @param durationLong
+         *        {@link #SHOW_DURATION_LONG} for using {@link Toast#LENGTH_LONG},
+         *        !{@link #SHOW_DURATION_LONG} for {@link Toast#LENGTH_SHORT}
+         */
+        @SuppressWarnings("unused")
+        public static void showToast(@StringRes final int resId, final boolean durationLong) {
+            Dagger2.UiModule.showToast(resId, durationLong);
+        }
+
+        /**
+         * Shows {@link Snackbar} using default {@code View} of the current {@code Activity}.
+         *
+         * @param text
+         *        The text to show
+         *
+         * @param durationLong
+         *        {@link #SHOW_DURATION_LONG} for using {@link Snackbar#LENGTH_LONG},
+         *        !{@link #SHOW_DURATION_LONG} for {@link Snackbar#LENGTH_SHORT}
+         */
+        @SuppressWarnings("unused")
+        public static void showSnackbar(final String text, final boolean durationLong) {
+            Dagger2.UiModule.showSnackbar(text, durationLong);
+        }
+
+        /**
+         * Shows {@link Snackbar} using default {@code View} of the current {@code Activity}.
+         *
+         * @param resId
+         *        The resource ID of the string resource to show
+         *
+         * @param durationLong
+         *        {@link #SHOW_DURATION_LONG} for using {@link Snackbar#LENGTH_LONG},
+         *        !{@link #SHOW_DURATION_LONG} for {@link Snackbar#LENGTH_SHORT}
+         */
+        @SuppressWarnings("unused")
+        public static void showSnackbar(@StringRes final int resId, final boolean durationLong) {
+            Dagger2.UiModule.showSnackbar(resId, durationLong);
         }
 
         /**
@@ -1156,7 +1260,7 @@ public class Core {
                 return CoreReflection.getField(Class.forName(packageName + ".BuildConfig"), fieldName);
             }
             catch (ClassNotFoundException e) {
-                CoreLogger.log(Level.INFO, "failed", e);
+                CoreLogger.log(Level.INFO, "getBuildConfigField failed", e);
                 return null;
             }
         }
@@ -1206,7 +1310,7 @@ public class Core {
                     return null;
                 }
                 catch (Exception exception) {
-                    CoreLogger.log(Level.WARNING, "failed", exception);
+                    CoreLogger.log(Level.WARNING, "checkRequestCode failed", exception);
                     return exception;
                 }
             }
@@ -1224,7 +1328,7 @@ public class Core {
                 final Exception exception = checkRequestCode(result, activity, method);
                 if (exception                                  == null) return result;
 
-                CoreLogger.log("failed", exception);
+                CoreLogger.log("getRequestCode failed", exception);
                 return result;
             }
 
@@ -1261,7 +1365,7 @@ public class Core {
                             runnable.run();
                         }
                         catch (Exception e) {
-                            CoreLogger.log(Level.WARNING, "failed", e);
+                            CoreLogger.log(Level.WARNING, "prepareRunnable failed", e);
                         }
                     }
                 };
@@ -1295,7 +1399,7 @@ public class Core {
         public static class ViewHelper {
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            public  static final boolean                VIEW_FOUND                      = true;
+            public static final boolean                 VIEW_FOUND                      = true;
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public interface ViewVisitor {
@@ -1353,20 +1457,35 @@ public class Core {
                     return view;
                 }
 
-                View view = activity.findViewById(android.R.id.content);
+                final Resources resources = activity.getResources();
+                @IdRes final int defaultViewId = getViewId(resources);
+
+                final String defaultViewName = resources.getResourceName(defaultViewId);
+                CoreLogger.log("default view is " + defaultViewName);
+
+                View view = activity.findViewById(defaultViewId);
                 if (view == null) {
-                    CoreLogger.logWarning("android.R.id.content not found, getWindow().getDecorView() will be used");
+                    CoreLogger.logWarning(defaultViewName + " not found, getWindow().getDecorView() will be used");
                     CoreLogger.logWarning("Note that calling this function \"locks in\" various " +
                             "characteristics of the window that can not, from this point forward, be changed");
+
                     final Window window = activity.getWindow();
-                    if (window == null)
-                        CoreLogger.logError("window == null");
+                    if (window == null) CoreLogger.logError("window == null");
+
                     view = window == null ? null: window.getDecorView();
                 }
                 if (view == null)
                     CoreLogger.logError("can not find View for Activity " + activity);
 
                 return view;
+            }
+
+            @IdRes
+            private static int getViewId(final Resources resources) {
+                // return android.R.id.content;
+                final TypedValue typedValue = new TypedValue();
+                resources.getValue(akha.yakhont.R.id.yakhont_default_view_id, typedValue, true);
+                return typedValue.resourceId;
             }
         }
 

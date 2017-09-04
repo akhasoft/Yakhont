@@ -516,7 +516,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
             requestLocationUpdates(activity, createNewLocationRequest());
         }
         catch (Exception exception) {
-            CoreLogger.log("failed", exception);
+            CoreLogger.log("startLocationUpdates failed", exception);
         }
     }
 

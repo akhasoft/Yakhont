@@ -201,7 +201,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
             handleStatusResult("requestLocationUpdates", result);
         }
         catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("failed", exception);
+            CoreLogger.log("requestLocationUpdates failed", exception);
         }
     }
 
@@ -253,7 +253,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
             onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));
         }
         catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("failed", exception);
+            CoreLogger.log("onConnected failed", exception);
         }
 
         startLocationUpdates(LocationCallbacks.getActivity());
@@ -316,7 +316,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
             result.startResolutionForResult(activity, REQUEST_CODE);
         }
         catch (SendIntentException e) {
-            CoreLogger.log("failed", e);
+            CoreLogger.log("startResolutionForResult failed", e);
             clearResolvingError();
             connect();
         }

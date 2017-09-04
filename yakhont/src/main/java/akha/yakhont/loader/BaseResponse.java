@@ -349,7 +349,7 @@ public class BaseResponse<R, E, D> {
             return cursor.getString(columnIndex);
         }
         catch (Exception e) {
-            CoreLogger.log(Level.ERROR, "failed", e);
+            CoreLogger.log(Level.ERROR, "getData failed", e);
             return e;
         }
     }

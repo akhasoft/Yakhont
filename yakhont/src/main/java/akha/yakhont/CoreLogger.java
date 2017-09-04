@@ -17,7 +17,6 @@
 package akha.yakhont;
 
 import akha.yakhont.Core.Utils;
-import akha.yakhont.location.LocationCallbacks;
 
 import android.app.Activity;
 import android.content.Context;
@@ -388,8 +387,7 @@ public class CoreLogger {
         if (isNotLog(level)) return;
 
         if (throwable == null)
-            throwable = showStack && isFullInfo() ? new RuntimeException(
-                    "this is not a real exception - just a stack trace"): null;
+            throwable = showStack && isFullInfo() ? new RuntimeException("CoreLogger stack trace"): null;
 
         final String tag = getTag(), data = addMethodInfo(level, str, stackTraceElement);
 
@@ -705,11 +703,8 @@ public class CoreLogger {
                 return;
             }
 
-            final Activity activity = LocationCallbacks.getActivity();
-            if (activity == null) {
-                logError("activity == null");
-                return;
-            }
+            final Activity activity = Utils.getCurrentActivity();
+            if (activity == null) return;
 
             final File tmpDir    = Utils.getTmpDir(context);
             final String suffix  = Utils.getTmpFileSuffix();

@@ -78,6 +78,16 @@ public class BaseConverter<D> implements Converter<D> {
     public BaseConverter() {
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "SameReturnValue"})
+    protected Gson getGson() {
+        return sGson;
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected JsonParser getJsonParser() {
+        return mJsonParser;
+    }
+
     /**
      * Please refer to the base method description.
      */
@@ -119,7 +129,7 @@ public class BaseConverter<D> implements Converter<D> {
 
         synchronized (sGsonLock) {
             //noinspection ConstantConditions
-            return sGson.toJsonTree(src, getType());
+            return getGson().toJsonTree(src, getType());
         }
     }
 
@@ -137,7 +147,7 @@ public class BaseConverter<D> implements Converter<D> {
                 return result;
 
             synchronized (sGsonLock) {
-                result = sGson.fromJson(jsonElement, getType());
+                result = getGson().fromJson(jsonElement, getType());
             }
         }
         catch (Exception e) {
@@ -171,7 +181,7 @@ public class BaseConverter<D> implements Converter<D> {
                     value = value.trim();
                     if (value.startsWith("[") || value.startsWith("{")) {
                         synchronized (mParserLock) {
-                            jsonObject.add(name, mJsonParser.parse(value));
+                            jsonObject.add(name, getJsonParser().parse(value));
                         }
                         continue;
                     }
@@ -203,11 +213,11 @@ public class BaseConverter<D> implements Converter<D> {
         JsonElement jsonElement = null;
         try {
             synchronized (mParserLock) {
-                jsonElement = mJsonParser.parse(reader);
+                jsonElement = getJsonParser().parse(reader);
             }
         }
         catch (Exception e) {
-            CoreLogger.log("failed", e);
+            CoreLogger.log("getCursor failed", e);
         }
         return getCursor(jsonElement);
     }

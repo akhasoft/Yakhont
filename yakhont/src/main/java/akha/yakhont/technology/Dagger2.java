@@ -28,11 +28,13 @@ import akha.yakhont.location.GoogleLocationClientNew;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.IdRes;
 import android.support.annotation.StringRes;
 import android.support.design.widget.BaseTransientBottomBar;
 import android.support.design.widget.Snackbar;
+import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -189,8 +191,21 @@ public interface Dagger2 {
 
         private        final int     mData;
 
+        private static Parameters    sInstance;
+
         private Parameters(final int data) {
-            mData = data;
+            if (sInstance != null) CoreLogger.logWarning("sInstance != null");
+            mData     = data;
+            sInstance = this;
+        }
+
+        /**
+         * Returns the {@code Parameters} object in use.
+         *
+         * @return  The {@code Parameters} object
+         */
+        public static Parameters getInstance() {
+            return sInstance;
         }
 
         private boolean get(final int value) {
@@ -370,7 +385,7 @@ public interface Dagger2 {
          *
          * @return  The {@code useSnackbarIsoToast} flag
          */
-        protected boolean getFlagToast(final Parameters parameters) {
+        protected static boolean getFlagToast(final Parameters parameters) {
             return parameters.get(Parameters.VALUE_TOAST);
         }
 
@@ -413,9 +428,67 @@ public interface Dagger2 {
          *
          * @return  {@link Toast} or {@link Snackbar}
          */
-        protected BaseDialog getToast(final boolean useSnackbarIsoToast, final boolean durationLong) {
+        protected static BaseDialog getToast(final boolean useSnackbarIsoToast, final boolean durationLong) {
             return useSnackbarIsoToast ?
                     new BaseSnackbar(durationLong, null): new BaseToast(durationLong);
+        }
+
+        private static boolean getFlag() {
+            return getFlagToast(Parameters.getInstance());
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void showToast(@StringRes final int resId, final boolean durationLong) {
+            show(getFlag(), null, resId, durationLong);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void showToast(final String text, final boolean durationLong) {
+            show(getFlag(), text, Core.NOT_VALID_RES_ID, durationLong);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void showSnackbar(final String text, final boolean durationLong) {
+            show(true, text, Core.NOT_VALID_RES_ID, durationLong);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void showSnackbar(@StringRes final int resId, final boolean durationLong) {
+            show(true, null, resId, durationLong);
+        }
+
+        private static void show(final boolean useSnackbarIsoToast, String text,
+                                 @StringRes final int resId, final boolean durationLong) {
+            if (text == null && !validate(resId)) return;
+
+            if (text == null) //noinspection ConstantConditions
+                text = Utils.getApplication().getString(resId);
+
+            if (useSnackbarIsoToast)
+                new BaseSnackbar(durationLong, null).start(Utils.getCurrentActivity(), text, null);
+            else
+                new BaseToast(durationLong).start(Utils.getApplication(), text);
+        }
+
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+        private static boolean validate(@StringRes final int resId) {
+            try {
+                //noinspection ConstantConditions
+                return validate(Utils.getApplication().getString(resId));
+            }
+            catch (Exception exception) {
+                CoreLogger.logError("validate failed", exception);
+                return false;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static boolean validate(final String text) {
+            boolean     result = !TextUtils.isEmpty(text);
+            if (result) result = text.trim().length() > 0;
+
+            if (!result) CoreLogger.logError("text is empty");
+            return result;
         }
     }
 }
@@ -508,7 +581,7 @@ class BaseSnackbar implements BaseDialog {
             return start(text);
         }
         catch (Exception e) {
-            CoreLogger.log("failed", e);
+            CoreLogger.log("start failed", e);
             return false;
         }
     }
@@ -520,8 +593,18 @@ class BaseSnackbar implements BaseDialog {
             return false;
         }
 
+        String                                      realText = text;
+        if (realText == null)                       realText = mString;
+        if (realText == null &&
+                mStringId != Core.NOT_VALID_RES_ID) realText = activity.getString(mStringId);
+
+        if (!Dagger2.UiModule.validate(realText)) return false;
+
         final View view = getView(activity);
-        if (view == null) return false;
+        if (view == null) {
+            CoreLogger.logError("View is null, can not show Snackbar: " + realText);
+            return false;
+        }
 
         if (mRequestCode != null) {
             if (mListener != null)
@@ -544,19 +627,10 @@ class BaseSnackbar implements BaseDialog {
             }
         }
 
-        String                                      realText = text;
-        if (realText == null)                       realText = mString;
-        if (realText == null &&
-                mStringId != Core.NOT_VALID_RES_ID) realText = activity.getString(mStringId);
-        if (realText == null) {
-            CoreLogger.logError("text is not defined");
-            return false;
-        }
-
         if (mSnackbar != null && mSnackbar.get() != null)
             CoreLogger.logError("Snackbar != null");
 
-        final Snackbar snackbar = Snackbar.make(view, realText, mDuration);
+        @SuppressWarnings("ConstantConditions") final Snackbar snackbar = Snackbar.make(view, realText, mDuration);
 
         if (mListener != null) {
             if (mActionStringId != Core.NOT_VALID_RES_ID && mActionString != null)
@@ -655,20 +729,25 @@ class BaseToast implements BaseDialog {
         mDurationLong = durationLong;
     }
 
-    @Override
-    public boolean start(final Activity activity, final String text, final Intent data) {
+    public boolean start(final Context context, final String text) {
         try {
-            if (activity != null) {
-                Toast.makeText(activity, text,
-                        mDurationLong ? Toast.LENGTH_LONG: Toast.LENGTH_SHORT).show();
+            if (context == null)
+                CoreLogger.logError("context == null");
+            else if (Dagger2.UiModule.validate(text)) {
+                Toast.makeText(context, text,
+                        mDurationLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
                 return true;
             }
-            CoreLogger.logError("activity == null");
         }
         catch (Exception e) {
-            CoreLogger.log("failed", e);
+            CoreLogger.log("start failed", e);
         }
         return false;
+    }
+
+    @Override
+    public boolean start(final Activity activity, final String text, final Intent data) {
+        return start(activity, text);
     }
 
     @Override

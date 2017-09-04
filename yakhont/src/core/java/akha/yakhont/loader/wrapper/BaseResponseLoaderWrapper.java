@@ -856,7 +856,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
                         requesterHelper.requestWrapper(callback);
                     }
                     catch (Throwable throwable) {
-                        CoreLogger.log("failed", throwable);
+                        CoreLogger.log("makeRequest failed", throwable);
                         throw throwable instanceof RuntimeException ? (RuntimeException) throwable: new RuntimeException(throwable);
                     }
                 }

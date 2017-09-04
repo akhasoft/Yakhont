@@ -385,7 +385,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             if (!mSilent) displayError(text);
         }
         catch (Exception e) {
-            CoreLogger.log(addLoaderInfo("failed"), e);
+            CoreLogger.log(addLoaderInfo("displayErrorSafe failed"), e);
         }
     }
 
@@ -1134,10 +1134,10 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * Initialises a newly created {@code CoreLoadExtendedBuilder} object.
          *
          * @param fragment
-         *        The type of data; for generic {@link java.util.Collection} types please use {@link TypeToken}
+         *        The fragment
          *
          * @param type
-         *        The type of data
+         *        The type of data; for generic {@link java.util.Collection} types please use {@link TypeToken}
          */
         @SuppressWarnings("unused")
         protected CoreLoadExtendedBuilder(@NonNull final Fragment fragment, @NonNull final Type type) {
