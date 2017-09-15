@@ -20,6 +20,8 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 import akha.yakhont.support.adapter.BaseSimpleCursorAdapter;
+import akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed;
+import akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed.ValidateFragmentCallbacks;
 import akha.yakhont.support.debug.BaseFragment;
 import akha.yakhont.support.fragment.WorkerFragment.WorkerFragmentCallbacks;
 import akha.yakhont.support.fragment.dialog.CommonDialogFragment;
@@ -70,6 +72,10 @@ public class SupportHelper {                    // support
     
     public static BaseActivityCallbacks getWorkerFragmentCallbacks() {
         return new WorkerFragmentCallbacks();
+    }
+
+    public static void registerValidateFragmentCallbacks() {
+        BaseFragmentLifecycleProceed.register(new ValidateFragmentCallbacks());
     }
 
     public static void showLocationErrorDialog(final Activity activity, final int errorCode) {

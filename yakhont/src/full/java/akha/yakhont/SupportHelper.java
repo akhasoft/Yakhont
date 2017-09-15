@@ -87,6 +87,13 @@ public class SupportHelper {                    // full
         return new WorkerFragmentCallbacksFull();
     }
 
+    public static void registerValidateFragmentCallbacks() {
+        akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.register(
+                new akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.ValidateFragmentCallbacks());
+        akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed.register(
+                new akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed.ValidateFragmentCallbacks());
+    }
+
     public static BaseDialog getAlert(@StringRes final int resId, final int requestCode, final Boolean yesNo) {
         return new AlertFull(resId, requestCode, yesNo);
     }

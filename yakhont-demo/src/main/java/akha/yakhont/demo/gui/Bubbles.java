@@ -323,13 +323,7 @@ public class Bubbles {
         }));
 
         view.setTag(R.id.animator_main, mainAnimator);
-        /*
-Unexpected failure during lint analysis of Bubbles.java (this is a bug in lint or one of the libraries it depends on)
-EcjParser$EcjResolvedClass.isSubclassOf(EcjParser.java:1591)<-ViewTagDetector.visitMethod(ViewTagDetector.java:116)<-
-JavaVisitor$DelegatingJavaVisitor.visitMethodInvocation(JavaVisitor.java:1440)<-MethodInvocation.accept(MethodInvocation.java:114)
-        */
-//        view.setTag(R.id.animators, animators.toArray(new AnimatorHelper[animators.size()]));
-        // TODO: 01.07.2016 submit lint bug 
+
         AnimatorHelper[] tmp = new AnimatorHelper[animators.size()];
         animators.toArray(tmp);
         view.setTag(R.id.animators, tmp);

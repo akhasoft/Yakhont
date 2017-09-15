@@ -25,10 +25,14 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.retrofit.Retrofit2;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.location.Location;
 import android.os.Bundle;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.Date;
 
@@ -53,10 +57,21 @@ public class MainActivity extends Activity implements LocationListener {
 
         // for normal HTTP requests you can use something like this
 //      sRetrofit2.init(Retrofit2Api.class, "http://...");
+
+        showAdvertisement();
     }
 
     @Override
     public void onLocationChanged(Location location, Date date) {
         ((TextView) findViewById(R.id.location)).setText(LocationCallbacks.toDms(location, this));
+    }
+
+    @SuppressLint("InflateParams")
+    private void showAdvertisement() {
+        final Toast toast = new Toast(this);
+        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setGravity(Gravity.CENTER, 0, 0);
+        toast.setView(LayoutInflater.from(this).inflate(R.layout.advertisement, null, false));
+        toast.show();
     }
 }

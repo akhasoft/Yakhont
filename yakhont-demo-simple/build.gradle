@@ -77,21 +77,23 @@ android {
     }
 }
 
-ext.libVerSupport               = '25.3.1'
+ext.libVerDemoSimpleSupport     = '25.3.1'
+ext.libVerDemoSimpleDagger      =   '2.10'
+ext.libVerDemoSimpleRetrofit2   =  '2.3.0'
                                                                             // in alphabetical order:
 dependencies {
-    compile  "com.google.dagger:dagger:2.10"                                // Dagger2
-    apt      "com.google.dagger:dagger-compiler:2.10"
+    compile  "com.google.dagger:dagger:${libVerDemoSimpleDagger}"           // Dagger2
+    apt      "com.google.dagger:dagger-compiler:${libVerDemoSimpleDagger}"
     provided "javax.annotation:jsr250-api:1.0"
 
-    compile  "com.android.support:appcompat-v7:${libVerSupport}"            // Google
-    compile  "com.android.support:recyclerview-v7:${libVerSupport}"
+    compile  "com.android.support:appcompat-v7:${libVerDemoSimpleSupport}"  // Google
+    compile  "com.android.support:recyclerview-v7:${libVerDemoSimpleSupport}"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
     compile  "com.google.android.gms:play-services-location:11.0.4"
 
-    compile  "com.squareup.retrofit2:retrofit:2.3.0"                        // Retrofit
-    compile  "com.squareup.retrofit2:converter-gson:2.3.0"
+    compile  "com.squareup.retrofit2:retrofit:${libVerDemoSimpleRetrofit2}" // Retrofit
+    compile  "com.squareup.retrofit2:converter-gson:${libVerDemoSimpleRetrofit2}"
 
     compile   name:'yakhont', ext:'aar'                                     // Yakhont
 }

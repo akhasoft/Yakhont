@@ -436,4 +436,8 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
         /** The callback for {@link Fragment#onActivityCreated}.   */ @SuppressWarnings({"EmptyMethod", "UnusedParameters", "WeakerAccess"})
         public void onFragmentActivityCreated  (@NonNull final Fragment fragment, final Bundle savedInstanceState) {}
     }
+
+    /** @exclude */@SuppressWarnings("JavaDoc")
+    public static class ValidateFragmentCallbacks extends BaseFragmentCallbacks {
+    }
 }

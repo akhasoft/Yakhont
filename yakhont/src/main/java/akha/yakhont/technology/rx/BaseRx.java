@@ -21,6 +21,8 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.location.LocationCallbacks;
+import akha.yakhont.technology.rx.Rx.RxSubscription;
+import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
 import android.location.Location;
@@ -86,7 +88,7 @@ public abstract class BaseRx<D> {
         final int size = mCallbacks.size();
         if (size == 0) return;
 
-        CoreLogger.logWarning("Rx cleanup, size " + size);
+        CoreLogger.logWarning(getClass().getName() + " Rx cleanup, size " + size);
         mCallbacks.clear();
     }
 
@@ -327,11 +329,34 @@ public abstract class BaseRx<D> {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected BaseRx<D>                     mBaseRx;
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final RxSubscription          mRxSubscription     = new RxSubscription();
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final Rx2Disposable           mRx2Disposable      = new Rx2Disposable();
+
         /**
          * Initialises a newly created {@code CommonRx} object.
          */
         @SuppressWarnings("WeakerAccess")
         protected CommonRx() {
+        }
+
+        /**
+         * Returns the {@link RxSubscription} component.
+         *
+         * @return  The {@link RxSubscription}
+         */
+        public RxSubscription getRxSubscriptionHandler() {
+            return mRxSubscription;
+        }
+
+        /**
+         * Returns the {@link Rx2Disposable} component.
+         *
+         * @return  The {@link Rx2Disposable}
+         */
+        public Rx2Disposable getRx2DisposableHandler() {
+            return mRx2Disposable;
         }
 
         /**
@@ -346,9 +371,12 @@ public abstract class BaseRx<D> {
         public abstract void setErrorHandlerJustLog();
 
         /**
-         * Stops the receipt of notifications on the registered subscribers.
+         * Stops the receipt of notifications on the registered subscribers (and disposables).
          */
-        public abstract void unsubscribe();
+        public void unsubscribe() {
+            mRx2Disposable .unsubscribe();
+            mRxSubscription.unsubscribe();
+        }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         protected abstract void subscribeRx(final SubscriberRx<D> subscriber);
@@ -368,8 +396,7 @@ public abstract class BaseRx<D> {
             return mBaseRx.mIsSingle;
         }
 
-        /** @exclude */
-        @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected void checkSingle() {
             if (!isSingle()) throw new RuntimeException(
                     "given object can not be treated as Rx Single / Maybe; please fix constructor call");
@@ -398,6 +425,11 @@ public abstract class BaseRx<D> {
             if (!mBaseRx.mCallbacks.add(callback)) {
                 CoreLogger.logWarning("the callback is already registered: " + callback);
             }
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static void handleUnknownResult(final Object result) {
+            CoreLogger.logError("unknown Rx " + (result == null ? null: result.getClass()));
         }
     }
 

@@ -142,7 +142,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      */
     @Override
     public void onDetach() {
-        for (final BaseLoaderWrapper loader: getLoaders()) {        // TODO: 22.11.2015 sync
+        for (final BaseLoaderWrapper loader: getLoaders()) {
             loader.setSwipeRefreshWrapper(null);
             loader.setProgress(null);
             setAdapter(loader, null);

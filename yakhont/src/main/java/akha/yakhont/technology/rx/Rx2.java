@@ -55,9 +55,6 @@ public class Rx2<D> extends CommonRx<D> {
 
     private final Disposable                    mDisposable;
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected final CompositeDisposable         mCompositeDisposable;
-
     /**
      * Initialises a newly created {@code Rx2} object.
      */
@@ -73,8 +70,7 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public Rx2(final Disposable disposable) {
-        mDisposable             = disposable;
-        mCompositeDisposable    = new CompositeDisposable();
+        mDisposable = disposable;
     }
 
     /**
@@ -169,22 +165,155 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public void add(final Disposable disposable) {
-        if (disposable == null) {
-            CoreLogger.logError("disposable is null");
-            return;
-        }
-        mCompositeDisposable.add(disposable);
+        mRx2Disposable.add(disposable);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
+    public static <D> Disposable handle(final Object result, final CallbackRx<D> callback) {
+        return result instanceof Observable ? handle((Observable<D>) result, callback):
+               result instanceof Flowable   ? handle((Flowable<D> )  result, callback):
+               result instanceof Single     ? handle((Single<D>    ) result, callback):
+               result instanceof Maybe      ? handle((Maybe<D>     ) result, callback): null;
     }
 
     /**
-     * Please refer to the base method description.
+     * Handles the {@link Flowable} provided.
+     *
+     * @param flowable
+     *        The {@link Flowable}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
      */
-    @Override
-    public void unsubscribe() {
-        if (!mCompositeDisposable.isDisposed()) return;
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Flowable<D> flowable, final CallbackRx<D> callback) {
+        if (flowable == null) CoreLogger.logError("flowable == null");
+        if (callback == null) CoreLogger.logError("callback == null");
 
-        CoreLogger.logWarning("Rx2 dispose, size == " + mCompositeDisposable.size());
-        mCompositeDisposable.dispose();
+        return flowable == null || callback == null ? null: flowable
+                .doOnError(new Consumer<Throwable>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
+                        callback.onError(throwable);
+                    }
+                })
+                .doOnNext(new Consumer<D>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
+                        callback.onResult(data);
+                    }
+                })
+                .subscribe();
+    }
+
+    /**
+     * Handles the {@link Maybe} provided.
+     *
+     * @param maybe
+     *        The {@link Maybe}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Maybe<D> maybe, final CallbackRx<D> callback) {
+        if (maybe    == null) CoreLogger.logError("maybe == null");
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return maybe == null || callback == null ? null: maybe
+                .doOnError(new Consumer<Throwable>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
+                        callback.onError(throwable);
+                    }
+                })
+                .doOnSuccess(new Consumer<D>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
+                        callback.onResult(data);
+                    }
+                })
+                .subscribe();
+    }
+
+    /**
+     * Handles the {@link Observable} provided.
+     *
+     * @param observable
+     *        The {@link Observable}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Observable<D> observable, final CallbackRx<D> callback) {
+        if (observable == null) CoreLogger.logError("observable == null");
+        if (callback   == null) CoreLogger.logError("callback == null");
+
+        return observable == null || callback == null ? null: observable
+                .doOnError(new Consumer<Throwable>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
+                        callback.onError(throwable);
+                    }
+                })
+                .doOnNext(new Consumer<D>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
+                        callback.onResult(data);
+                    }
+                })
+                .subscribe();
+    }
+
+    /**
+     * Handles the {@link Single} provided.
+     *
+     * @param single
+     *        The {@link Single}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Single<D> single, final CallbackRx<D> callback) {
+        if (single   == null) CoreLogger.logError("single == null");
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return single == null || callback == null ? null: single
+                .doOnError(new Consumer<Throwable>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
+                        callback.onError(throwable);
+                    }
+                })
+                .doOnSuccess(new Consumer<D>() {
+                    @Override
+                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
+                        callback.onResult(data);
+                    }
+                })
+                .subscribe();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -360,5 +489,47 @@ public class Rx2<D> extends CommonRx<D> {
     @SuppressWarnings("unused")
     public Completable createCompletable() {
         return createObservable().ignoreElements();
+    }
+
+    /**
+     * A disposable container that can hold onto multiple other disposables.
+     */
+    public static class Rx2Disposable {
+
+        private final CompositeDisposable       mCompositeDisposable    = new CompositeDisposable();
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public void add(final Object result) {
+            if (result instanceof Disposable)
+                add((Disposable) result);
+            else
+                handleUnknownResult(result);
+        }
+
+        /**
+         * Adds a new {@link Disposable}.
+         *
+         * @param disposable
+         *        The {@link Disposable} to add
+         */
+        public void add(final Disposable disposable) {
+            if (disposable == null) {
+                CoreLogger.logError("disposable is null");
+                return;
+            }
+            mCompositeDisposable.add(disposable);
+        }
+
+        /**
+         * Disposes all added {@link Disposable Disposables}.
+         */
+        public void unsubscribe() {
+            if (mCompositeDisposable.isDisposed())
+                CoreLogger.log("CompositeDisposable.isDisposed() returns true");
+            else {
+                CoreLogger.logWarning("Rx2 dispose, size == " + mCompositeDisposable.size());
+                mCompositeDisposable.dispose();
+            }
+        }
     }
 }

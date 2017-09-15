@@ -194,7 +194,7 @@ public class Weaver {
 
         List<String> tokens = new LinkedList<>();
         for (Matcher m = Pattern.compile("[^\\s\"']+|\"[^\"]*\"|'[^']*'").matcher(line.trim()); m.find();)
-            tokens.add(m.group().replace("\"", "").replace("'", "")); // TODO: the reg exp is far from ideal
+            tokens.add(m.group().replace("\"", "").replace("'", ""));
 
         if (tokens.size() == 0) return;
         if (tokens.size() < 3)

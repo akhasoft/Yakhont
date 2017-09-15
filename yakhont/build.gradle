@@ -33,7 +33,7 @@ int    verCode                  =    901818
 
 ext {
     publishedName               = 'Yakhont'
-    publishedDescription        = 'The high-level Android components for data loading, location and lifecycle callbacks'
+    publishedDescription        = 'The high-level Android components for data loading, location, lifecycle callbacks and many more'
 
     publishedGroupId            = 'com.github.akhasoft'
     publishedArtifactId         = 'yakhont'
@@ -102,11 +102,15 @@ android {
 }
 
 ext.libVerSupport               = '25.3.1'
+ext.libVerDagger                =   '2.10'
 ext.libVerRetrofit2             =  '2.3.0'
+
+ext.libVerOkHttp3               =  '3.8.0'
+ext.libVerOkHttp                =  '2.7.5'
                                                                             // in alphabetical order:
 dependencies {
-    compile     "com.google.dagger:dagger:2.10"                             // Dagger2
-    apt         "com.google.dagger:dagger-compiler:2.10"
+    compile     "com.google.dagger:dagger:${libVerDagger}"                  // Dagger2
+    apt         "com.google.dagger:dagger-compiler:${libVerDagger}"
     provided    "javax.annotation:jsr250-api:1.0"
 
     compile     "com.android.support:appcompat-v7:${libVerSupport}"         // Google
@@ -125,12 +129,15 @@ dependencies {
 
     compile     "com.squareup.retrofit2:retrofit:${libVerRetrofit2}"        // Retrofit
     compile     "com.squareup.retrofit2:converter-gson:${libVerRetrofit2}"
-    compile     "com.squareup.okhttp3:okhttp:3.8.0"
-    compile     "com.squareup.okhttp3:logging-interceptor:3.8.0"
+    compile     "com.squareup.okhttp3:okhttp:${libVerOkHttp3}"
+    compile     "com.squareup.okhttp3:logging-interceptor:${libVerOkHttp3}"
+
+    compile     "com.squareup.retrofit2:adapter-rxjava:${libVerRetrofit2}"
+    compile     "com.squareup.retrofit2:adapter-rxjava2:${libVerRetrofit2}"
 
     compile     "com.squareup.retrofit:retrofit:1.9.0"
-    compile     "com.squareup.okhttp:okhttp:2.7.5"
-    compile     "com.squareup.okhttp:okhttp-urlconnection:2.7.5"
+    compile     "com.squareup.okhttp:okhttp:${libVerOkHttp}"
+    compile     "com.squareup.okhttp:okhttp-urlconnection:${libVerOkHttp}"
 
     compile     "io.reactivex.rxjava2:rxjava:2.1.0"                         // Rx
     compile     "io.reactivex:rxjava:1.3.0"

@@ -364,7 +364,15 @@ public class BaseResponse<R, E, D> {
      *        The table name
      */
     @SuppressWarnings("unused")
-    public static void clearTable(@NonNull final ContextWrapper contextWrapper, @NonNull final String tableName) {
+    public static void clearCache(ContextWrapper contextWrapper, final String tableName) {
+        if (tableName == null) {
+            CoreLogger.logError("tableName == null");
+            return;
+        }
+        if (contextWrapper == null) contextWrapper = Utils.getApplication();
+
+        CoreLogger.logWarning("about to clear cache table " + tableName);
+        //noinspection ConstantConditions
         contextWrapper.getContentResolver().delete(Utils.getUri(tableName), null, null);
     }
 }

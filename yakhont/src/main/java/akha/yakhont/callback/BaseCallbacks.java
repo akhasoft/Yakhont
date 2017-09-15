@@ -142,11 +142,38 @@ public abstract class BaseCallbacks<T> {
 
     private boolean                                         mForceProceed;
 
+    private static Validator                                sValidator;
+
+    /**
+     * The callbacks annotations validation API.
+     */
+    public interface Validator {
+
+        /**
+         * Validates the given object's callbacks annotations.
+         *
+         * @param object
+         *        The annotated object
+         *
+         * @param callbackClasses
+         *        The callbacks (if any)
+         *
+         * @return  {@code true} if validation was successful, {@code false} otherwise
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        boolean validate(Object object, Class<? extends BaseCallbacks>[] callbackClasses);
+    }
+
     /**
      * Initialises a newly created {@code BaseCallbacks} object.
      */
     @SuppressWarnings("WeakerAccess")
     public BaseCallbacks() {
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static void setValidator(final Validator validator) {
+        sValidator = validator;
     }
 
     /**
@@ -319,13 +346,13 @@ public abstract class BaseCallbacks<T> {
         final Class<? extends BaseCallbacks>[] callbacksInherited
                 = annotation == null ? null: ((CallbacksInherited) annotation).value();
 
-        if (isFound(callbacksInherited, callbackClass)) return true;
+        if (isFound(object, callbacksInherited, callbackClass)) return true;
 
         annotation = CoreReflection.getAnnotation(object, Callbacks.class);
         final Class<? extends BaseCallbacks>[] callbacksNotInherited
                 = annotation == null ? null: ((Callbacks)          annotation).value();
 
-        return isFound(callbacksNotInherited, callbackClass);
+        return isFound(object, callbacksNotInherited, callbackClass);
     }
 
     private static <T> boolean isReject(@NonNull final T object, @NonNull final Class callbackClass) {
@@ -334,17 +361,23 @@ public abstract class BaseCallbacks<T> {
         final Class<? extends BaseCallbacks>[] stopCallbacksInherited
                 = annotation == null ? null: ((StopCallbacksInherited) annotation).value();
 
-        if (isFound(stopCallbacksInherited, callbackClass)) return true;
+        if (isFound(object, stopCallbacksInherited, callbackClass)) return true;
 
         annotation = CoreReflection.getAnnotation(object, StopCallbacks.class);
         final Class<? extends BaseCallbacks>[] stopCallbacksNotInherited
                 = annotation == null ? null: ((StopCallbacks)          annotation).value();
 
-        return isFound(stopCallbacksNotInherited, callbackClass);
+        return isFound(object, stopCallbacksNotInherited, callbackClass);
     }
 
-    private static boolean isFound(final Class<? extends BaseCallbacks>[] callbackClasses,
-                            @NonNull final Class callbackClass) {
+    private static <T> boolean isFound(@NonNull final T                       object,
+                                       final Class<? extends BaseCallbacks>[] callbackClasses,
+                                       @NonNull final Class                   callbackClass) {
+        if (sValidator == null)
+            CoreLogger.logWarning("sValidator == null");
+        else
+            sValidator.validate(object, callbackClasses);
+
         if (callbackClasses != null)
             for (final Class<? extends BaseCallbacks> tmpClass: callbackClasses)
                 if (tmpClass.isAssignableFrom(callbackClass)) return true;

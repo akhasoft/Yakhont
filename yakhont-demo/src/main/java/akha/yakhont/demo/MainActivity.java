@@ -26,6 +26,7 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.SupportHelper;
+import akha.yakhont.callback.BaseCallbacks.Validator;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 // import akha.yakhont.location.BaseGoogleLocationClient;
 import akha.yakhont.location.LocationCallbacks;
@@ -230,13 +231,21 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     // custom progress dialog (with background image) example (using custom view R.layout.progress)
 
-    @Component(modules = {DemoLocationModule.class, DemoUiModule.class})
+    @Component(modules = {DemoLocationModule.class, DemoUiModule.class, DemoCallbacksValidationModule.class})
     interface DemoDagger extends Dagger2 {
         @Component.Builder
         interface Builder {
             @BindsInstance
             Builder parameters(Dagger2.Parameters parameters);
             DemoDagger build();
+        }
+    }
+
+    @Module
+    static class DemoCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
+        @Provides
+        Validator provideCallbacksValidator() {
+            return getCallbacksValidator();
         }
     }
 

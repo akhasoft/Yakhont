@@ -23,7 +23,6 @@ import akha.yakhont.demo.retrofit.Retrofit2Api;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
-import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
@@ -92,7 +91,20 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         if (getMainActivity().isRetrofit2())
             mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(
-                    this, type, getMainActivity().getRetrofit2())
+                    this, type, getMainActivity().getRetrofit2()) /* {
+
+                        @Override
+                        public void makeRequest(@NonNull Callback<List<Beer>> callback) {
+                            // if the default request is not OK (by some reason),
+                            // you can provide your own here, e.g. for Retrofit2 Call:
+                            //     getApi().data().enqueue(callback);
+                            // or for Rx2 Flowable:
+                            //     getRx2DisposableHandler().add(Rx2.handle(getApi().data(), getRxWrapper(callback)));
+                            // or for Rx Observable:
+                            //     getRxSubscriptionHandler().add(Rx.handle(getApi().data(), getRxWrapper(callback)));
+                            // or ...
+                        }
+                    } */
 
                     .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
@@ -114,6 +126,9 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
             mCoreLoad = new RetrofitCoreLoadBuilder<List<Beer>, RetrofitApi>(
                     this, type, getMainActivity().getRetrofit())
 
+                    // for the moment the default request doesn't support Rx Observables etc. -
+                    //   please consider to switch to Retrofit2 (or override makeRequest)
+
                     .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
                     .setLoaderCallback(new LoaderCallback<List<Beer>>() {   // optional callback
@@ -132,8 +147,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                     .create();
 
         // clear cache (optional)
-        if (savedInstanceState == null) BaseResponse.clearTable(getActivity(),
-                ((BaseResponseLoaderWrapper) mCoreLoad.getLoaders().iterator().next()).getTableName());
+        if (savedInstanceState == null) BaseResponseLoaderWrapper.clearCache(mCoreLoad);
+        // or akha.yakhont.loader.BaseResponse.clearCache(getActivity(), "your_table_name");
 
         startLoading(savedInstanceState, false);
     }

@@ -51,9 +51,6 @@ public class Rx<D> extends CommonRx<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final boolean                     mHasProducer;
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected final CompositeSubscription       mCompositeSubscription;
-
     /**
      * Initialises a newly created {@code Rx} object.
      */
@@ -74,7 +71,6 @@ public class Rx<D> extends CommonRx<D> {
     public Rx(final boolean nullable, final boolean hasProducer) {
         mIsNullable             = nullable;
         mHasProducer            = hasProducer;
-        mCompositeSubscription  = new CompositeSubscription();
 
         CoreLogger.logWarning("please consider using RxJava 2");
     }
@@ -202,22 +198,83 @@ public class Rx<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public void add(final Subscription subscription) {
-        if (subscription == null) {
-            CoreLogger.logError("subscription is null");
-            return;
-        }
-        mCompositeSubscription.add(subscription);
+        mRxSubscription.add(subscription);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
+    public static <D> Subscription handle(final Object result, final CallbackRx<D> callback) {
+        return result instanceof Observable ? handle((Observable<D>) result, callback):
+               result instanceof Single     ? handle((Single<D>    ) result, callback): null;
     }
 
     /**
-     * Please refer to the base method description.
+     * Handles the {@link Observable} provided.
+     *
+     * @param observable
+     *        The {@link Observable}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Subscription}
      */
-    @Override
-    public void unsubscribe() {
-        if (!mCompositeSubscription.hasSubscriptions()) return;
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Subscription handle(final Observable<D> observable, final CallbackRx<D> callback) {
+        if (observable == null) CoreLogger.logError("observable == null");
+        if (callback   == null) CoreLogger.logError("callback == null");
 
-        CoreLogger.logWarning("Rx unsubscribe");
-        mCompositeSubscription.unsubscribe();
+        return observable == null || callback == null ? null: observable
+                .doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        callback.onError(throwable);
+                    }
+                })
+                .doOnNext(new Action1<D>() {
+                    @Override
+                    public void call(D data) {
+                        callback.onResult(data);
+                    }
+                })
+                .subscribe();
+    }
+
+    /**
+     * Handles the {@link Single} provided.
+     *
+     * @param single
+     *        The {@link Single}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Subscription}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Subscription handle(final Single<D> single, final CallbackRx<D> callback) {
+        if (single   == null) CoreLogger.logError("single == null");
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return single == null || callback == null ? null: single
+                .doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        callback.onError(throwable);
+                    }
+                })
+                .doOnSuccess(new Action1<D>() {
+                    @Override
+                    public void call(D data) {
+                        callback.onResult(data);
+                    }
+                })
+                .subscribe();
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -333,5 +390,46 @@ public class Rx<D> extends CommonRx<D> {
     @SuppressWarnings("unused")
     public Completable createCompletable() {
         return createObservable().toCompletable();
+    }
+
+    /**
+     * Represents a group of Subscriptions that are unsubscribed together.
+     */
+    public static class RxSubscription {
+
+        private final CompositeSubscription     mCompositeSubscription = new CompositeSubscription();
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public void add(final Object result) {
+            if (result instanceof Subscription)
+                add((Subscription) result);
+            else
+                handleUnknownResult(result);
+        }
+
+        /**
+         * Adds a new {@link Subscription}.
+         *
+         * @param subscription
+         *        The {@link Subscription} to add
+         */
+        public void add(final Subscription subscription) {
+            if (subscription == null)
+                CoreLogger.logError("subscription is null");
+            else
+                mCompositeSubscription.add(subscription);
+        }
+
+        /**
+         * Unsubscribes all added {@link Subscription Subscriptions}.
+         */
+        public void unsubscribe() {
+            if (mCompositeSubscription.hasSubscriptions()) {
+                CoreLogger.logWarning("Rx unsubscribe");
+                mCompositeSubscription.unsubscribe();
+            }
+            else
+                CoreLogger.log("CompositeSubscription.hasSubscriptions() returns false");
+        }
     }
 }

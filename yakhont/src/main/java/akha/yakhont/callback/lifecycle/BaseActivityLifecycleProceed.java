@@ -556,6 +556,10 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         public void onActivitySaveInstanceState(@NonNull final Activity activity, final Bundle outState          ) {}
     }
 
+    /** @exclude */@SuppressWarnings("JavaDoc")
+    public static class ValidateActivityCallbacks extends BaseActivityCallbacks {
+    }
+
     /**
      * Hides the keyboard when activity paused.
      */

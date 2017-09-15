@@ -270,7 +270,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         // Disable any UI components that depend on Google APIs until onConnected() is called.
         clearResolvingError();
 
-        connect();  // TODO: 11.09.2015
+        connect();
     }
 
     /**

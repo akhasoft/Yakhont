@@ -86,20 +86,24 @@ android {
     }
 }
 
-ext.libVerSupport               = '25.3.1'
+ext.libVerDemoSupport           = '25.3.1'
+ext.libVerDemoDagger            =   '2.10'
+ext.libVerDemoRetrofit2         =  '2.3.0'
                                                                             // in alphabetical order:
 dependencies {
-    compile  "com.google.dagger:dagger:2.10"                                // Dagger2
-    apt      "com.google.dagger:dagger-compiler:2.10"
+    compile  "com.google.dagger:dagger:${libVerDemoDagger}"                 // Dagger2
+    apt      "com.google.dagger:dagger-compiler:${libVerDemoDagger}"
     provided "javax.annotation:jsr250-api:1.0"
 
-    compile  "com.android.support:appcompat-v7:${libVerSupport}"            // Google
-    compile  "com.android.support:design:${libVerSupport}"
+    compile  "com.android.support:appcompat-v7:${libVerDemoSupport}"        // Google
+    compile  "com.android.support:design:${libVerDemoSupport}"
     compile  "com.google.android.gms:play-services-location:11.0.4"
 
-    compile  "com.squareup.retrofit2:retrofit:2.3.0"                        // Retrofit
-    compile  "com.squareup.retrofit2:converter-gson:2.3.0"
+    compile  "com.squareup.retrofit2:retrofit:${libVerDemoRetrofit2}"       // Retrofit
+    compile  "com.squareup.retrofit2:converter-gson:${libVerDemoRetrofit2}"
     compile  "com.squareup.okhttp3:logging-interceptor:3.8.0"
+
+    compile  "com.squareup.retrofit2:adapter-rxjava2:${libVerDemoRetrofit2}"
 
     compile  "com.squareup.retrofit:retrofit:1.9.0"
 

@@ -17,4 +17,9 @@
 <resources>
     <string name="app_name"        >Яхонт: демо (упрощенная версия)</string>
     <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
+
+    <string name="advertisement_1" >Яхонт</string>
+    <string name="advertisement_2" >Загрузка данных с сайта\nи получение местоположения -</string>
+    <string name="advertisement_3" >одной строчкой кода</string>
+    <string name="advertisement_4" >Яхонт делает невозможное\nДелаем вместе?</string>
 </resources>

@@ -78,8 +78,8 @@ public class CoreReflection {
         }
         catch (Exception e) {
             CoreLogger.log("invoke", e);
+            return null;
         }
-        return null;
     }
 
     /**
@@ -102,13 +102,13 @@ public class CoreReflection {
     @SuppressWarnings("WeakerAccess")
     public static Object invoke(@NonNull final Object object, @NonNull final String methodName,
                                 final Object... args) throws InvocationTargetException {
-
         final Class[] classes = new Class[args == null ? 0: args.length];
         for (int i = 0; i < classes.length; i++)
             //noinspection ConstantConditions
             classes[i] = args[i] == null ? null: args[i].getClass();
 
-        return invoke(getObject(object), findMethod(object, methodName, classes), args);
+        final Method method = findMethod(object, methodName, classes);
+        return method == null ? null: invoke(getObject(object), method, args);
     }
 
     /**
@@ -131,7 +131,6 @@ public class CoreReflection {
     @SuppressWarnings("WeakerAccess")
     public static Object invoke(final Object object, final Method method,
                                 final Object... args) throws InvocationTargetException {
-
         checkForNull(method, "method == null");
 
         CoreLogger.log("about to invoke method " + method.toGenericString());
@@ -202,7 +201,7 @@ public class CoreReflection {
             if ((tmpClass = tmpClass.getSuperclass()) == null) break;
         }
 
-        CoreLogger.logError("class " + getClass(object).getName() + ", method " + methodName + " not found");
+        CoreLogger.logWarning("class " + getClass(object).getName() + ", method " + methodName + " not found");
         return null;
     }
 
@@ -233,7 +232,7 @@ public class CoreReflection {
             if ((tmpClass = tmpClass.getSuperclass()) == null) break;
         }
 
-        CoreLogger.logError("class " + getClass(object).getName() + ", field " + fieldName + " not found");
+        CoreLogger.logWarning("class " + getClass(object).getName() + ", field " + fieldName + " not found");
         return null;
     }
 
@@ -250,7 +249,24 @@ public class CoreReflection {
      */
     @SuppressWarnings("unused")
     public static Object getField(@NonNull final Object object, @NonNull final String fieldName) {
-        return doField(false, getClass(object), getObject(object), fieldName, null /* ignored */);
+        final Field field = findField(object, fieldName);
+        return field == null ? null: getField(object, field);
+    }
+
+    /**
+     * Gets the value of the field.
+     *
+     * @param object
+     *        The object on which to get this field
+     *
+     * @param field
+     *        The field
+     *
+     * @return  The field value
+     */
+    @SuppressWarnings("unused")
+    public static Object getField(@NonNull final Object object, final Field field) {
+        return doField(false, getObject(object), field, null /* ignored */);
     }
 
     /**
@@ -269,13 +285,30 @@ public class CoreReflection {
      */
     @SuppressWarnings("unused")
     public static Object setField(@NonNull final Object object, @NonNull final String fieldName, final Object newValue) {
-        return doField(true, getClass(object), getObject(object), fieldName, newValue);
+        final Field field = findField(object, fieldName);
+        return field == null ? null: setField(object, field, newValue);
     }
 
-    private static Object doField(final boolean set, @NonNull Class fieldClass, final Object object,
-                                  @NonNull final String fieldName, final Object newValue) {
+    /**
+     * Sets the value of the field.
+     *
+     * @param object
+     *        The object on which to set this field
+     *
+     * @param field
+     *        The field
+     *
+     * @param newValue
+     *        The field's new value
+     *
+     * @return  The field's previous value
+     */
+    @SuppressWarnings("unused")
+    public static Object setField(@NonNull final Object object, final Field field, final Object newValue) {
+        return doField(true, getObject(object), field, newValue);
+    }
 
-        final Field field = findField(fieldClass, fieldName);
+    private static Object doField(final boolean set, final Object object, final Field field, final Object newValue) {
         checkForNull(field, "field == null");
 
         final boolean accessible = field.isAccessible();
@@ -283,12 +316,11 @@ public class CoreReflection {
 
         try {
             final Object value = field.get(object);
-            if (set)
-                field.set(object, newValue);
+            if (set) field.set(object, newValue);
             return value;
         }
         catch (IllegalAccessException e) {  // should never happen
-            CoreLogger.log(fieldName, e);
+            CoreLogger.log(field.getName(), e);
         }
         finally {
             //noinspection ThrowFromFinallyBlock

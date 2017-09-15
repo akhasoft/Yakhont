@@ -1,8 +1,8 @@
 ﻿<div align="center">
     <table><tr>
-        <td width="42%" align="left">Яхонт делает невозможное</td>
+        <td width="45%" align="left">Яхонт делает невозможное</td>
         <td><img src="https://akhasoft.github.io/yakhont/library/core/logo.png"></td>
-        <td width="42%" align="right">Yakhont - break limits now</td>
+        <td width="45%" align="right">Yakhont - break limits now</td>
     </tr></table>
 </div>         
 

@@ -22,9 +22,13 @@ import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
+import akha.yakhont.callback.BaseCallbacks;
+import akha.yakhont.callback.BaseCallbacks.Validator;
 import akha.yakhont.location.GoogleLocationClient;
 import akha.yakhont.location.GoogleLocationClientNew;
+import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
@@ -56,6 +60,7 @@ import javax.inject.Provider;
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * import akha.yakhont.Core;
+ * import akha.yakhont.callback.BaseCallbacks.Validator;
  * import akha.yakhont.fragment.dialog.ProgressDialogFragment;
  * import akha.yakhont.fragment.dialog.ProgressDialogFragment.ProgressLoaderDialogFragment;
  * import akha.yakhont.location.LocationCallbacks.LocationClient;
@@ -82,7 +87,8 @@ import javax.inject.Provider;
  *
  *     // custom progress dialog example (with custom view R.layout.progress)
  *
- *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class})
+ *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class,
+ *                                MyCallbacksValidationModule.class})
  *     interface MyDagger extends Dagger2 {
  *
  *         &#064;Component.Builder
@@ -90,6 +96,15 @@ import javax.inject.Provider;
  *             &#064;BindsInstance
  *             Builder parameters(Dagger2.Parameters parameters);
  *             MyDagger build();
+ *         }
+ *     }
+ *
+ *     &#064;Module
+ *     static class MyCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
+ *
+ *         &#064;Provides
+ *         Validator provideCallbacksValidator() {
+ *             return getCallbacksValidator();
  *         }
  *     }
  *
@@ -167,7 +182,7 @@ public interface Dagger2 {
     @Named(UI_TOAST_LENGTH_SHORT)      Provider<BaseDialog>     getToastShort();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    @Component(modules = {LocationModule.class, UiModule.class})
+    @Component(modules = {LocationModule.class, UiModule.class, CallbacksValidationModule.class})
     interface DefaultComponent extends Dagger2 {
         @Component.Builder
         interface Builder {
@@ -179,6 +194,9 @@ public interface Dagger2 {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     Lazy<LocationClient> getLocationClient();
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    Validator getCallbacksValidator();
 
     /**
      * The parameters defined at run-time.
@@ -194,7 +212,7 @@ public interface Dagger2 {
         private static Parameters    sInstance;
 
         private Parameters(final int data) {
-            if (sInstance != null) CoreLogger.logWarning("sInstance != null");
+            if (sInstance != null) CoreLogger.logError("sInstance != null");
             mData     = data;
             sInstance = this;
         }
@@ -246,6 +264,60 @@ public interface Dagger2 {
          */
         public static Parameters create() {
             return create(false, false, false);
+        }
+    }
+
+    /**
+     * The callbacks annotations validation component.
+     */
+    @Module
+    class CallbacksValidationModule {
+
+        /**
+         * Initialises a newly created {@code CallbacksValidationModule} object.
+         */
+        public CallbacksValidationModule() {
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        @Provides
+        Validator provideCallbacksValidator() {
+            return getCallbacksValidator();
+        }
+
+        /**
+         * Creates new instance of the {@code Validator}.
+         *
+         * @return  The {@code Validator}
+         */
+        @SuppressWarnings("WeakerAccess")
+        protected Validator getCallbacksValidator() {
+            return new Validator() {
+                @Override
+                public boolean validate(Object object, Class<? extends BaseCallbacks>[] callbackClasses) {
+                    if (callbackClasses == null || callbackClasses.length == 0) return true;
+
+                    boolean result = true;
+                    for (final Class<? extends BaseCallbacks> tmpClass: callbackClasses) {
+                        final boolean resultTmp = validate(object, tmpClass);
+                        if (!resultTmp) result = false;
+                    }
+
+                    CoreLogger.log(result ? Level.DEBUG: Level.ERROR,
+                            "callbacks annotations validation result " + result);
+                    return result;
+                }
+
+                private boolean validate(Object object, Class<? extends BaseCallbacks> tmpClass) {
+                    if (!tmpClass.equals(LocationCallbacks.class)) return true;
+
+                    final boolean result = object instanceof Activity;
+                    if (!result) CoreLogger.logError(
+                            "LocationCallbacks should be used to annotate Activity only");
+
+                    return result;
+                }
+            };
         }
     }
 

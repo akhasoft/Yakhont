@@ -31,6 +31,12 @@ import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderExtendedWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2AdapterWrapper;
+import akha.yakhont.technology.rx.BaseRx.CallbackRx;
+import akha.yakhont.technology.rx.BaseRx.LoaderRx;
+import akha.yakhont.technology.rx.Rx;
+import akha.yakhont.technology.rx.Rx.RxSubscription;
+import akha.yakhont.technology.rx.Rx2;
+import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.annotation.TargetApi;
 import android.app.Fragment;
@@ -43,10 +49,12 @@ import android.view.View;
 
 import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
 import okhttp3.ResponseBody;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -190,6 +198,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
     public static class Retrofit2LoaderBuilder<D, T> extends BaseResponseLoaderExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
 
         private final Retrofit2<T>                                                      mRetrofit;
+        private final LoaderRx<Response<D>, Throwable, D>                               mRx;
 
         /**
          * Initialises a newly created {@code Retrofit2LoaderBuilder} object.
@@ -202,12 +211,18 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          *
          * @param retrofit
          *        The Retrofit2 component
+         *
+         * @param rx
+         *        The Rx component
          */
         @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(@NonNull final Fragment fragment, @NonNull final Type type,
-                                      @NonNull final Retrofit2<T> retrofit) {
+                                      @NonNull final Retrofit2<T>                           retrofit,
+                                      final LoaderRx<Response<D>, Throwable, D>             rx) {
             super(fragment, type);
+
             mRetrofit = retrofit;
+            mRx       = rx;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -222,12 +237,47 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
 
                 @Override
                 public void request(Callback<D> callback) throws Exception {
-                    @SuppressWarnings("unchecked")
-                    final Call<D> call = (Call<D>) CoreReflection.invoke(mHandler, mMethod);
-                    if (call == null)
-                        throw new Exception("call == null");
-                    else
+                    final Object result;
+                    try {
+                        result = CoreReflection.invoke(mHandler, mMethod);
+                    }
+                    catch (InvocationTargetException exception) {
+                        CoreLogger.logError("please check your build.gradle: maybe " +
+                                "\"compile 'com.squareup.retrofit2:adapter-rxjava:...'\" and / or " +
+                                "\"compile 'com.squareup.retrofit2:adapter-rxjava2:...'\" are missing");
+                        throw exception;
+                    }
+                    if (result == null) handleRequestError("result == null");
+
+                    if (result instanceof Call) {
+                        @SuppressWarnings("unchecked")
+                        final Call<D> call = (Call<D>) result;
+
                         call.enqueue(callback);
+                        return;
+                    }
+
+                    if (!Retrofit2CoreLoadBuilder.checkRxComponent(mRx)) return;
+
+                    final CallbackRx<D> callbackRx = Retrofit2CoreLoadBuilder.getRxWrapper(callback);
+
+                    Object resultRx = Rx2.handle(result, callbackRx);
+                    if (resultRx != null) {
+                        mRx.getRx().getRx2DisposableHandler().add(resultRx);
+                        return;
+                    }
+
+                    resultRx = Rx.handle(result, callbackRx);
+                    if (resultRx != null) {
+                        mRx.getRx().getRxSubscriptionHandler().add(resultRx);
+                        return;
+                    }
+
+                    handleRequestError("unknown " + result.getClass() + " (usually in Retrofit API)");
+                }
+
+                private void handleRequestError(@NonNull final String text) throws Exception {
+                    throw new Exception(text);
                 }
             });
         }
@@ -254,8 +304,8 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
             return findMethod(mRetrofit.getService(), mType);
         }
 
-        private static <D, T> Method findMethod(@NonNull final Class<T> service,
-                                                @NonNull final Type     typeResponse) {
+        private static <T> Method findMethod(@NonNull final Class<T> service,
+                                             @NonNull final Type     typeResponse) {
             for (final Method method: service.getMethods())
                 if (TypeHelper.checkType(typeResponse, getType(method)))
                     return method;
@@ -365,11 +415,66 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         }
 
         /**
+         * Returns the {@link Rx2Disposable} component.
+         *
+         * @return  The {@link Rx2Disposable}
+         */
+        @SuppressWarnings("unused")
+        public Rx2Disposable getRx2DisposableHandler() {
+            checkRxComponent(mRx);
+            return mRx == null ? null: mRx.getRx().getRx2DisposableHandler();
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public static <D> boolean checkRxComponent(final LoaderRx<Response<D>, Throwable, D> rx) {
+            if (rx == null) CoreLogger.logError("Rx component was not defined");
+            return rx != null;
+        }
+
+        /**
+         * Returns the {@link RxSubscription} component.
+         *
+         * @return  The {@link RxSubscription}
+         */
+        @SuppressWarnings("unused")
+        public RxSubscription getRxSubscriptionHandler() {
+            checkRxComponent(mRx);
+            return mRx == null ? null: mRx.getRx().getRxSubscriptionHandler();
+        }
+
+        /**
+         * Creates {@link CallbackRx} from {@link Callback}.
+         *
+         * @param callback
+         *        The {@link Callback}
+         *
+         * @param <D>
+         *        The type of data
+         *
+         * @return  The {@link CallbackRx}
+         */
+        public static <D> CallbackRx<D> getRxWrapper(final Callback<D> callback) {
+            if (callback == null) CoreLogger.logError("callback == null");
+
+            return callback == null ? null: new CallbackRx<D>() {
+                @Override
+                public void onResult(D result) {
+                    callback.onResponse(null, Response.success(result));
+                }
+
+                @Override
+                public void onError(Throwable throwable) {
+                    callback.onFailure(null, throwable);
+                }
+            };
+        }
+
+        /**
          * Please refer to the base method description.
          */
         @Override
         public CoreLoad create() {
-            return create(new Retrofit2LoaderBuilder<D, T>(mFragment.get(), mType, mRetrofit));
+            return create(new Retrofit2LoaderBuilder<>(mFragment.get(), mType, mRetrofit, mRx));
         }
     }
 }

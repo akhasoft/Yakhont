@@ -60,6 +60,9 @@
 
 # for yakhont-demo
 
+-dontwarn retrofit2.adapter.rxjava.RxJavaCallAdapterFactory
+-dontwarn retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
+
 -dontnote android.support.v17.leanback.widget.VerticalGridView
 # added for SDK version 24
 -dontnote android.support.v7.app.MediaRouteButton

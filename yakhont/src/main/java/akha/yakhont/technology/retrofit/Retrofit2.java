@@ -19,6 +19,7 @@ package akha.yakhont.technology.retrofit;
 import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.loader.BaseResponse;
@@ -46,9 +47,12 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
 
+import retrofit2.CallAdapter.Factory;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.Retrofit.Builder;
+import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
+import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
@@ -144,14 +148,38 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
         mRetrofitApi = retrofit.create(service);
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Factory getFactoryRx(final boolean factoryRx) {
+        try {
+            return factoryRx ? RxJavaCallAdapterFactory.createAsync():
+                    RxJava2CallAdapterFactory.createAsync();
+        }
+        catch (NoClassDefFoundError error) {    // in most cases it's ok
+            CoreLogger.log(Level.DEBUG, "getFactory can't find class", error);
+        }
+        catch (Exception exception) {
+            CoreLogger.log("getFactory failed", exception);
+        }
+        return null;
+    }
+
+    private void addFactory(final Builder builder, final Factory factory) {
+        if (factory != null) builder.addCallAdapterFactory(factory);
+    }
+
     /**
      * Please refer to the base method description.
      */
     @Override
     public Builder getDefaultBuilder(@NonNull final String retrofitBase) {
-        return new Builder()
+        final Builder builder = new Builder()
                 .addConverterFactory(GsonConverterFactory.create())
                 .baseUrl(retrofitBase);
+
+        addFactory(builder, getFactoryRx(false));     // RxJava2CallAdapterFactory
+        addFactory(builder, getFactoryRx(true));      // RxJavaCallAdapterFactory
+
+        return builder;
     }
 
     /**

@@ -17,11 +17,13 @@
 package akha.yakhont;
 
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.HideKeyboardCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.OrientationCallbacks;
+import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ValidateActivityCallbacks;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 
@@ -348,6 +350,7 @@ public class Core {
      * Initializes the library. Usage example:
      *
      * <pre style="background-color: silver; border: thin solid black;">
+     * import akha.yakhont.callback.BaseCallbacks.Validator;
      * import akha.yakhont.fragment.dialog.CommonDialogFragment;
      * import akha.yakhont.location.LocationCallbacks.LocationClient;
      * import akha.yakhont.technology.Dagger2;
@@ -373,7 +376,8 @@ public class Core {
      *
      *     // custom progress dialog theme example
      *
-     *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class})
+     *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class,
+     *                                MyCallbacksValidationModule.class})
      *     interface MyDagger extends Dagger2 {
      *
      *         &#064;Component.Builder
@@ -381,6 +385,15 @@ public class Core {
      *             &#064;BindsInstance
      *             Builder parameters(Dagger2.Parameters parameters);
      *             MyDagger build();
+     *         }
+     *     }
+     *
+     *     &#064;Module
+     *     static class MyCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
+     *
+     *         &#064;Provides
+     *         Validator provideCallbacksValidator() {
+     *             return getCallbacksValidator();
      *         }
      *     }
      *
@@ -432,7 +445,7 @@ public class Core {
 
         sApplication = new WeakReference<>(application);
 
-        sDagger = dagger != null ? dagger: getDefaultDagger();
+        initDagger(dagger);
 
         Init.logging(application,
                 fullInfo == null ? Utils.isDebugMode(application.getPackageName()): fullInfo);
@@ -445,6 +458,12 @@ public class Core {
         registerCallbacks(application);
 
         return true;
+    }
+
+    private static void initDagger(final Dagger2 dagger) {
+        sDagger = dagger != null ? dagger: getDefaultDagger();
+
+        BaseCallbacks.setValidator(sDagger.getCallbacksValidator());
     }
 
     private static Dagger2 getDefaultDagger(final boolean useGoogleLocationOldApi,
@@ -469,6 +488,11 @@ public class Core {
 
     @SuppressLint("ObsoleteSdkInt")
     private static void registerCallbacks(@NonNull final Application application) {
+        // don't remove
+        SupportHelper.registerValidateFragmentCallbacks();
+        // don't remove
+        register(new ValidateActivityCallbacks());
+
         register((BaseActivityCallbacks) new HideKeyboardCallbacks()               .setForceProceed(true));
         register((BaseActivityCallbacks) new OrientationCallbacks()                .setForceProceed(true));
         register((BaseActivityCallbacks) SupportHelper.getWorkerFragmentCallbacks().setForceProceed(true));
@@ -1087,7 +1111,7 @@ public class Core {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static String getTag(@NonNull final Class c) {   // TODO: 09.12.2015 improve
+        public static String getTag(@NonNull final Class c) {
             return String.format("%s-%s", "yakhont", c.getName());
         }
 
@@ -1458,7 +1482,7 @@ public class Core {
                 }
 
                 final Resources resources = activity.getResources();
-                @IdRes final int defaultViewId = getViewId(resources);
+                @IdRes final int defaultViewId = getDefaultViewId(resources);
 
                 final String defaultViewName = resources.getResourceName(defaultViewId);
                 CoreLogger.log("default view is " + defaultViewName);
@@ -1481,7 +1505,7 @@ public class Core {
             }
 
             @IdRes
-            private static int getViewId(final Resources resources) {
+            private static int getDefaultViewId(final Resources resources) {
                 // return android.R.id.content;
                 final TypedValue typedValue = new TypedValue();
                 resources.getValue(akha.yakhont.R.id.yakhont_default_view_id, typedValue, true);

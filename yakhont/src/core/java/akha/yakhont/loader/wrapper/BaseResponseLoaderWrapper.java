@@ -35,6 +35,7 @@ import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.annotation.TargetApi;
+import android.app.Application;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.content.Context;
@@ -149,6 +150,26 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         });
     }
 
+    /**
+     * Clears all cache associated with given {@code CoreLoad} component.
+     *
+     * @param coreLoad
+     *        The {@code CoreLoad} component
+     */
+    @SuppressWarnings("unused")
+    public static void clearCache(final CoreLoad coreLoad) {
+        if (coreLoad == null) {
+            CoreLogger.logError("coreLoad == null");
+            return;
+        }
+        final Application application = Utils.getApplication();
+
+        for (final BaseLoaderWrapper baseLoaderWrapper: coreLoad.getLoaders())
+            if (baseLoaderWrapper instanceof BaseResponseLoaderWrapper)
+                BaseResponse.clearCache(application,
+                        ((BaseResponseLoaderWrapper) baseLoaderWrapper).getTableName());
+    }
+
     private static String adjustTableName(@NonNull String tableName) {
         if (tableName.trim().length() == 0) {
             CoreLogger.logError("empty table name");
@@ -181,7 +202,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      * @return  This {@code BaseResponseLoaderWrapper} object
      */
     @SuppressWarnings("UnusedReturnValue")
-    public BaseResponseLoaderWrapper<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {       // TODO: 22.11.2015 make sync
+    public BaseResponseLoaderWrapper<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
         mAdapter        = adapter;
 
         if (mLoader instanceof WrapperLoader) ((WrapperLoader) mLoader).setAdapter(getLoaderAdapter(adapter));
@@ -953,11 +974,14 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      * import akha.yakhont.technology.retrofit.Retrofit2;
      * import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
      * import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
+     * import akha.yakhont.technology.rx.Rx;
+     * import akha.yakhont.technology.rx.Rx2;
      *
      * import com.mypackage.model.MyData;
      * import com.mypackage.retrofit.Retrofit2Api;
      *
      * import retrofit2.Callback;
+     * import android.support.annotation.NonNull;
      *
      * public class MyFragment extends Fragment {
      *
@@ -975,11 +999,19 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *         CoreLoad coreLoad = new Retrofit2CoreLoadBuilder&lt;MyData[], Retrofit2Api&gt;(
      *                 this, MyData[].class, getRetrofitApi()) {
      *
-     *                     // optional
+     *                     // optional: override makeRequest only if
+     *                     //   the default one doesn't work well
      *                     &#064;Override
-     *                     public void makeRequest(Callback&lt;MyData[]&gt; callback) {
-     *                         // something like this
-     *                         getApi().data().enqueue(callback);
+     *                     public void makeRequest(&#064;NonNull Callback&lt;MyData[]&gt; callback) {
+     *                         // something like this (e.g. for Retrofit2 Call):
+     *                         //     getApi().data().enqueue(callback);
+     *                         // or like this (e.g. for Rx2 Flowable):
+     *                         //     getRx2DisposableHandler().add(Rx2.handle(
+     *                         //         getApi().data(), getRxWrapper(callback)));
+     *                         // or like this (e.g. for Rx Observable):
+     *                         //     getRxSubscriptionHandler().add(Rx.handle(
+     *                         //         getApi().data(), getRxWrapper(callback)));
+     *                         // or ...
      *                     }
      *                 }
      *
