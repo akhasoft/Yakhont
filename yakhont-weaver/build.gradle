@@ -18,12 +18,12 @@ apply plugin: 'java'
 
 ext {
     publishedName               = 'Yakhont Weaver'
-    publishedDescription        = 'The Yakhont component for the Java bytecode manipulation'
+    publishedDescription        = 'The Yakhont component for working with the Java bytecode'
 
     publishedGroupId            = 'com.github.akhasoft'
     publishedArtifactId         = 'yakhont-weaver'
     publishedPackaging          = 'jar'
-    publishedVersion            = '0.9.18'
+    publishedVersion            = '0.9.19'
 
     projectJavaDocLinks         = ['http://jboss-javassist.github.io/javassist/html/',
                                    'http://google.github.io/android-gradle-dsl/javadoc/current/']

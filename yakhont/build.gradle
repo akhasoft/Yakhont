@@ -28,8 +28,8 @@ apply plugin: 'com.neenbedankt.android-apt'
 
 apply from:   'preprocessor.gradle'
 
-String verName                  = '0.9.18'
-int    verCode                  =    901818
+String verName                  = '0.9.19'
+int    verCode                  =    901901
 
 ext {
     publishedName               = 'Yakhont'

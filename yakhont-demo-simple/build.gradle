@@ -22,7 +22,7 @@ buildscript {
     dependencies {
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'          // Dagger 2
 
-        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.18'               // Yakhont weaver
+        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.19'               // Yakhont weaver
         classpath 'org.javassist:javassist:3.20.0-GA'
     }
 }
@@ -41,8 +41,8 @@ android {
         minSdkVersion           14
         //noinspection OldTargetApi
         targetSdkVersion        23      // for lower values permissions dialogs will not be shown
-        versionCode            10000
-        versionName           '1.0'
+        versionCode            10101
+        versionName           '1.1'
 
         resConfigs              'en', 'ru'
     }
