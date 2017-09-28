@@ -42,7 +42,7 @@ their sources (especially useful for libraries developers).
 The powerful loader wrappers, which (in simplest, but very typical case) allows loading data
 in one line of code, are abstracting you away from things like loaders management, data binding
 and caching, progress dialogs (fully customizable), errors handling and low-level threading;
-don't miss the swipe refresh and both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and
+don't miss the swipe-to-refresh and both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and
 [RxJava 2](https://github.com/ReactiveX/RxJava) support too.
 
 In short, the data loaders features are:
@@ -106,8 +106,8 @@ demo applications can be downloaded from the
 
 ## Usage
 
-Add the following to your build.gradle (you can use **build.gradle** files from [demo](yakhont-demo/buildgradle)
-and [simplified demo](yakhont-demo-simple/buildgradle) as working examples).
+Add the following to your build.gradle (you can use **build.gradle** files from [demo](yakhont-demo/build.gradle)
+and [simplified demo](yakhont-demo-simple/build.gradle) as working examples).
 
 1. Update the **buildscript** block:
 
