@@ -14,17 +14,17 @@ lifecycle debug classes, advanced logging and many more helpful developer-orient
 
 Now you can load data in just one line of code (please refer to the
 [simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainFragment.java)
-for working example):
+for the working example):
 
-```groovy
-new Retrofit2CoreLoadBuilder<>(/* your parameters */).create().startLoading();
+```
+new Retrofit2CoreLoadBuilder<>(/* your parameters here */).create().startLoading();
 ```
 
 And take location in just a couple of lines (the working example is in the
 [simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainActivity.java)
 too):
 
-```groovy
+```
 @CallbacksInherited(LocationCallbacks.class)
 public class YourActivity extends Activity implements LocationListener {
     @Override
@@ -42,7 +42,8 @@ their sources (especially useful for libraries developers).
 The powerful loader wrappers, which (in simplest, but very typical case) allows loading data
 in one line of code, are abstracting you away from things like loaders management, data binding
 and caching, progress dialogs (fully customizable), errors handling and low-level threading;
-don't miss the swipe refresh and both Rx and Rx2 support too.
+don't miss the swipe refresh and both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and
+[RxJava 2](https://github.com/ReactiveX/RxJava) support too.
 
 In short, the data loaders features are:
 - fully asynchronous 
@@ -52,7 +53,7 @@ In short, the data loaders features are:
 - both [Retrofit](http://square.github.io/retrofit/1.x/retrofit/) and [Retrofit 2](http://square.github.io/retrofit/2.x/retrofit/) support
 - swipe-to-refresh
 - device orientation changing support
-- fully customizable GUI progress (via Dagger 2)
+- fully customizable GUI progress (via [Dagger 2](http://google.github.io/dagger/))
 - and last but not least: if Retrofit does not meet your requirements,
 support for any other libraries can be added easily  
 
@@ -65,6 +66,8 @@ Google Location API support
 - Rx support (both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and [RxJava 2](https://github.com/ReactiveX/RxJava))
 
 So, the features Yakhont provides are:
+- developer-defined callbacks to customize lifecycle of Activities and Fragments - and even 
+without changing their sources
 - powerful (but very easy in use) data loaders
 - self-configurable transparent cache which adjusts database structure 'on the fly'
 - out-of-the-box location awareness: just annotate your Activity and you're done
@@ -88,8 +91,12 @@ for more information.
 
 ## Demo and Releases
 
-Demo applications are available for download from the
-[latest release](https://github.com/akhasoft/Yakhont/releases/latest).
+Releases are available [here](https://github.com/akhasoft/Yakhont/releases),
+demo applications can be downloaded from the
+[latest release](https://github.com/akhasoft/Yakhont/releases/latest) (
+[demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk) and
+[simplified demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk)
+).
 
 ## Versions
 
@@ -102,18 +109,24 @@ Demo applications are available for download from the
 Add the following to your build.gradle (you can use **build.gradle** files from [demo](yakhont-demo/buildgradle)
 and [simplified demo](yakhont-demo-simple/buildgradle) as working examples).
 
-1. Update the **buildscript** section:
+1. Update the **buildscript** block:
 
 ```groovy
 buildscript {
+    repositories {
+        // your code here, usually just 'jcenter()'
+    }
     dependencies {
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
        
-        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.19'
-        classpath 'org.javassist:javassist:3.20.0-GA'
+        classpath 'com.github.akhasoft:yakhont-weaver:0.9.19'
     }
 }
 ```
+
+**Note:** the Yakhont components (com.github.akhasoft:yakhont...) are available from both
+[jcenter](http://jcenter.bintray.com/com/github/akhasoft/) and
+[mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/).
 
 2. After your **apply plugin: 'com.android.application'** insert the following:
 
@@ -121,38 +134,43 @@ buildscript {
 apply plugin: 'com.neenbedankt.android-apt'
 ```
 
-3. Update the **dependencies** section:
+Also, update the **android** block:
+
+```groovy
+android {
+    // your code here
+    
+    // fixed DuplicateFileException
+    packagingOptions {
+        exclude 'META-INF/rxjava.properties'
+    }
+}
+```
+
+3. Update the **dependencies** block:
+
+```groovy
+dependencies {
+    compile    'com.github.akhasoft:yakhont:0.9.19'
+    // or
+    // compile 'com.github.akhasoft:yakhont-full:0.9.19'
+    // or
+    // compile 'com.github.akhasoft:yakhont-support:0.9.19'
+}
+```
+
+And if you're about to customize Yakhont using build-in [Dagger 2](http://google.github.io/dagger/),
+something like following lines are required:
 
 ```groovy
 dependencies {
     compile  'com.google.dagger:dagger:2.10'
     apt      'com.google.dagger:dagger-compiler:2.10'
     provided 'javax.annotation:jsr250-api:1.0'
-
-    compile  'com.android.support:appcompat-v7:25.3.1'
-
-    compile  'com.github.akhasoft:yakhont:0.9.19'
 }
 ```
 
-If you're using location API, add the line below:
-
-```groovy
-dependencies {
-    compile  'com.google.android.gms:play-services-location:11.0.4'
-}
-```
-
-And for the Retrofit2 the following lines are required:
-
-```groovy
-dependencies {
-    compile  'com.squareup.retrofit2:retrofit:2.3.0'
-    compile  'com.squareup.retrofit2:converter-gson:2.3.0'
-}
-```
-
-4. The code below forced to compile _release_ version only. If you want to compile
+4. The code below forced to build _release_ version only. If you want to build
 the _debug_ version, please replace 'debug' with 'release':
 
 ```groovy
@@ -163,11 +181,14 @@ android.variantFilter { variant ->
 }
 ```
 
+**Note:** for the moment Yakhont Weaver can't handle both _debug_ and _release_ at the same time.  
+
 5. The code which runs Yakhont Weaver:
 
 ```groovy
 String[] weaverConfigFiles = null
 boolean weaverDebug = false, weaverAddConfig = true
+
 android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
     android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig))
 ```
@@ -177,6 +198,7 @@ Or (to avoid using the Transform API) you can try the following:
 ```groovy
 String[] weaverConfigFiles = null
 boolean weaverDebug = false, weaverAddConfig = true
+
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompile
     javaCompile.doLast {
@@ -194,6 +216,24 @@ without changing their source code.
 **Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation
 (at least, for the moment).
 
+6. Finally, don't forget to add to your _AndroidManifest.xml_ something like code snippet below:
+
+```
+<application ...>
+
+    ...
+    
+    <provider
+        android:authorities="your_package_name.provider"
+        android:name="akha.yakhont.BaseCacheProvider"
+        android:enabled="true"
+        android:exported="false" />
+        
+</application>        
+```
+
+**Note:** "your_package_name" is a placeholder, you should provide real name, e.g. "com.mypackage". 
+
 ## Weaver configuration
 
 By default the Yakhont weaver uses configuration file from it's JAR, but you can specify your own
@@ -206,13 +246,40 @@ to replace default configuration with yours (even if null).
 ProGuard directives are included in the Yakhont libraries. The Android Plugin for Gradle
 automatically appends these directives to your ProGuard configuration.
 
-Anyway, it's strongly advised also to keep your model and Retrofit API as follows
-(it's just an example from the Yakhont Demo, 
+Anyway, it's strongly advised to keep your BuildConfig, model and Retrofit API
+(also "android.support.v4" classes) as follows (it's just an example from the Yakhont Demo, 
 so please update it according to your application's packages names): 
 
 ```
+-keep class android.support.v4.** { *; }
+
+-keep class akha.yakhont.demo.BuildConfig { *; }
 -keep class akha.yakhont.demo.model.** { *; }
 -keep interface akha.yakhont.demo.retrofit.** { *; }
+```
+
+Also, please update the **buildTypes** block with ProGuard directives for 3rd-party libraries
+(you can find them [here](proguard/libs)):
+
+```groovy
+buildTypes {
+    release {
+        minifyEnabled true
+
+        proguardFile 'proguard-google-play-services.pro'
+        proguardFile 'proguard-gson.pro'
+        proguardFile 'proguard-rx-java.pro'
+        proguardFile 'proguard-square-okhttp.pro'
+        proguardFile 'proguard-square-okhttp3.pro'
+        proguardFile 'proguard-square-okio.pro'
+        proguardFile 'proguard-square-picasso.pro'
+        proguardFile 'proguard-square-retrofit.pro'
+        proguardFile 'proguard-square-retrofit2.pro'
+        proguardFile 'proguard-support-v7-appcompat.pro'
+
+        // your code here
+    }
+}
 ```
 
 ## Build
@@ -220,14 +287,8 @@ so please update it according to your application's packages names):
 To check out and build the Yakhont source, issue the following commands:
 
 ```
-$ git clone git@github.com:akhasoft/Yakhont.git
+$ git clone https://github.com/akhasoft/Yakhont.git
 $ cd Yakhont
-$ ./gradlew build
-```
-
-To do a clean build, run the commands below:
-
-```
 $ ./gradlew --configure-on-demand yakhont-weaver:clean yakhont-weaver:build
 $ ./gradlew --configure-on-demand yakhont:clean yakhont:build
 $ ./gradlew --configure-on-demand yakhont-demo:clean yakhont-demo:build
@@ -239,7 +300,7 @@ $ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:
 To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code):
 
 - add **yakhont.link,yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc issues -> Declaration has Javadoc problems -> Additional Javadoc Tags
-- add **yakhont.dic** to File -> Settings -> Editor -> Spelling -> Dictionaries
+- add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling -> Dictionaries
 
 ## Communication
 
@@ -255,7 +316,13 @@ To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Co
 
 ## Known Issues
 
-Not yet.
+If during project building you got something like Exception below,
+kill the Gradle daemon (or just restart your PC).
+
+```
+Execution failed for task ':app:transformClassesWithWeaverTransformForDebug'.
+> com.myproject.MyActivity class is frozen
+```
 
 ## Bugs and Feedback
 

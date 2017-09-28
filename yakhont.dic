@@ -1,7 +1,8 @@
 akha
 akhasoft
-Backpressure
+backpressure
 Barykin
+Bintray
 buildscript
 ctor
 delegator
@@ -13,12 +14,15 @@ flowable
 github
 gson
 javassist
+jcenter
 Kharitonov
 landroid
 mergeable
 mypackage
 nand
 neenbedankt
+okhttp
+okio
 parameterized
 rxjava
 snackbar
@@ -28,7 +32,7 @@ unsubscribe
 unsubscribed
 unsubscribes
 xlint
-yakhont
+Yakhont
 
 abbaye
 blanc
