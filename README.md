@@ -1,3 +1,18 @@
+<!-- Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
+
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+
+          http://www.apache.org/licenses/LICENSE-2.0
+
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+
 <div align="center">
     <table><tr>
         <td width="45%" align="left">Яхонт делает невозможное</td>
@@ -9,7 +24,7 @@
 # Yakhont: high-level Android components for data loading, location, lifecycle callbacks and many more
 
 Yakhont is an Android high-level library offering developer-defined callbacks,
-loader wrappers, fully automatic cache, location-awareness, dynamic permissions handling, 
+loader wrappers and adapters, fully automatic cache, location-awareness, dynamic permissions handling, 
 lifecycle debug classes, advanced logging and many more helpful developer-oriented issues.
 
 Now you can load data in just one line of code (please refer to the
@@ -39,36 +54,37 @@ approach to support your own callbacks creation, that allows to customize handli
 almost every lifecycle state of your Activities and Fragments - and even without changing
 their sources (especially useful for libraries developers).
 
-The powerful loader wrappers, which (in simplest, but very typical case) allows loading data
-in one line of code, are abstracting you away from things like loaders management, data binding
-and caching, progress dialogs (fully customizable), errors handling and low-level threading;
+The powerful loader wrappers and adapters, which (in simplest, but very typical case) 
+allows loading and binding data in nearly one line of code, are abstracting you away from things like 
+loaders management, caching, progress dialogs (fully customizable), errors handling and low-level threading;
 don't miss the swipe-to-refresh and both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and
 [RxJava 2](https://github.com/ReactiveX/RxJava) support too.
 
-In short, the data loaders features are:
+In short, the data loaders and adapters features are:
+- automatic (but fully customizable) data binding
+- automatic and absolutely transparent cache
 - fully asynchronous 
 - forced timeouts 
-- automatic and absolutely transparent cache
 - both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and [RxJava 2](https://github.com/ReactiveX/RxJava) support
 - both [Retrofit](http://square.github.io/retrofit/1.x/retrofit/) and [Retrofit 2](http://square.github.io/retrofit/2.x/retrofit/) support
 - swipe-to-refresh
 - device orientation changing support
 - fully customizable GUI progress (via [Dagger 2](http://google.github.io/dagger/))
-- and last but not least: if Retrofit does not meet your requirements,
-support for any other libraries can be added easily  
+- and last but not least: if Retrofit does not meet your requirements, you can add support for any other library  
 
 In addition, there are the location features which includes:
 - both new ([FusedLocationProviderClient](https://developers.google.com/android/reference/com/google/android/gms/location/FusedLocationProviderClient)-based)
 and old ([GoogleApiClient](https://developers.google.com/android/reference/com/google/android/gms/common/api/GoogleApiClient)-based)
-Google Location API support
+Google Location API support (please visit [Android Developers Blog](https://android-developers.googleblog.com/2017/06/reduce-friction-with-new-location-apis.html) for more info)
 - completely auto (but fully customizable via callbacks) permission handling
 - tons of boilerplate code are not needed anymore - just annotate your Activity
 - Rx support (both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and [RxJava 2](https://github.com/ReactiveX/RxJava))
 
-So, the features Yakhont provides are:
+So, the features the Yakhont provides are:
 - developer-defined callbacks to customize lifecycle of Activities and Fragments - and even 
 without changing their sources
-- powerful (but very easy in use) data loaders
+- powerful (but very easy in use) data loaders and adapters
+- automatic (but fully customizable) data binding
 - self-configurable transparent cache which adjusts database structure 'on the fly'
 - out-of-the-box location awareness: just annotate your Activity and you're done
 - dynamic permissions handling, powered by user-defined callbacks
