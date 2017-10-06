@@ -345,7 +345,7 @@ Execution failed for task ':app:transformClassesWithWeaverTransformForDebug'.
 For bugs, questions and discussions please use the
 [Github Issues](https://github.com/akhasoft/Yakhont/issues).
 
-## LICENSE
+## License
 
     Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
     
