@@ -323,8 +323,9 @@ To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Co
 - [GitHub Issues](https://github.com/akhasoft/Yakhont/issues)
 - e-mail: [akha.yakhont@gmail.com](mailto:akha.yakhont@gmail.com)
 
-## Documentation
+## Information and Documentation
 
+- [blog](https://spark.ru/startup/yahont/blog)
 - [Javadoc - core](https://akhasoft.github.io/yakhont/library/core/)
 - [Javadoc - full](https://akhasoft.github.io/yakhont/library/full/)
 - [Javadoc - support](https://akhasoft.github.io/yakhont/library/support/)
