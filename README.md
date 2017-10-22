@@ -27,6 +27,9 @@ Yakhont is an Android high-level library offering developer-defined callbacks,
 loader wrappers and adapters, fully automatic cache, location-awareness, dynamic permissions handling, 
 lifecycle debug classes, advanced logging and many more helpful developer-oriented issues.
 
+There is also the Yakhont Weaver - a small but powerful utility which manipulates the compiled Java 
+bytecode and can be used separately, without the Yakhont library (you will find more info below).
+
 Now you can load data in just one line of code (please refer to the
 [simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainFragment.java)
 for the working example):
@@ -93,8 +96,8 @@ Activities and Fragments (can be enabled even for 3rd-party components via simpl
 but effective Yakhont preprocessor)
 - advanced logging with e-mail support (auto-disabled in release builds) and more.
 
-All Activities and Fragments are supported: it's not necessary to derive them from any predefined
-ones (with one exception - you will need it for lifecycle debug).
+All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
+them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
 The Yakhont AAR is about 320 KB (except the _full_ version, which is about 530 KB).
 
@@ -226,7 +229,7 @@ android.applicationVariants.all { variant ->
 ```
 
 Here the Yakhont Weaver manipulates the Java bytecode just compiled, which makes possible
-to alternate classes implementation (e.g. add callbacks to Activities and Fragments)
+to alternate classes implementation (e.g. add / modify callbacks in Activities and Fragments)
 without changing their source code.
 
 **Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation
@@ -250,12 +253,18 @@ without changing their source code.
 
 **Note:** "your_package_name" is a placeholder, you should provide real name, e.g. "com.mypackage". 
 
-## Weaver configuration
+## Weaver: usage and configuration
 
-By default the Yakhont weaver uses configuration file from it's JAR, but you can specify your own
-configuration(s) as a parameter (see above). The "weaverAddConfig = true" means adding your
-configuration (if not null) to the default one; "weaverAddConfig = false" forces the Yakhont weaver
+The Yakhont Weaver is a small but powerful utility which manipulates the compiled Java bytecode
+(e.g. in Yakhont demo applications it customizes "Activity.onStart()" and other callbacks).
+
+By default the Yakhont Weaver uses configuration from it's JAR, but you can provide your own
+configuration file(s) as a parameter (see above). The "weaverAddConfig = true" means adding your
+configuration (if not null) to the default one; "weaverAddConfig = false" forces the Yakhont Weaver
 to replace default configuration with yours (even if null).
+
+The Yakhont Weaver is a standalone utility which means it can be used in any application even without 
+Yakhont library - just specify "weaverAddConfig = false" and provide your own configuration file.
 
 ## Proguard
 
