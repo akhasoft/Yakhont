@@ -26,7 +26,7 @@ def getProperty = { String cfgKey, String envKey, String defValue ->
     String cfgProperty = cfgKey != null && project.hasProperty(cfgKey) ? project.property(cfgKey): null
 
     return locProperty != null ? locProperty: cfgProperty != null ? cfgProperty: envProperty != null ? envProperty:
-            defValue != null ? defValue: System.console().readLine(
+            defValue != null ? defValue: System.console() == null ? null: System.console().readLine(
                     System.getProperty('line.separator') + (envKey != null ? envKey: cfgKey) + ': ')
 }
 
@@ -46,6 +46,14 @@ if (getProperty('javadoc', null, 'true') == 'false') {
     }
     return
 }
+
+String projectBintrayUser = projectPublish ? getProperty('bintray.user', 'BINTRAY_USER', null): null
+if (projectPublish) {
+    println ' bintray user == ' + projectBintrayUser
+
+    projectPublish = projectBintrayUser != null
+}
+println ' projectPublish == ' + projectPublish
 
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
@@ -68,12 +76,13 @@ def pomConfig = {
         nodeRoot.appendNode(packaging, getPropertyExt('publishedPackaging'))
     }
 
+    nodeRoot.appendNode('description', getPropertyExt('publishedDescription'))
+
     nodeRoot.children().last() + {
         //noinspection UnnecessaryQualifiedReference
-        resolveStrategy             Closure.DELEGATE_FIRST
+//        resolveStrategy             Closure.DELEGATE_FIRST
 
         name                        getPropertyExt('publishedName')
-        description                 getPropertyExt('publishedDescription')
         url                         getPropertyExt('urlSite')
         inceptionYear               getPropertyExt('projectYear')
 
@@ -133,6 +142,8 @@ String classifierJavadoc = 'javadoc', classifierSources = 'sources'
 //noinspection GroovyAssignabilityCheck
 List<String> flavorList = new ArrayList<String>(), linkList = new ArrayList<String>(getPropertyExtArray('projectJavaDocLinks'))
 List<JavadocOfflineLink> linkOfflineList = new ArrayList<JavadocOfflineLink>()
+
+println(' Assigned new flavorList')
 
 def getLocProperty = { String key, String addKey ->
     if (localProperties == null) {
@@ -197,16 +208,16 @@ def javadocConfig = { options, addKey ->
 
             case 1:
                 options.addOption new JavadocOptionFileOption<String>() {
-                    public String getOption() {
+                    String getOption() {
                         return docletOption[0]
                     }
-                    public String getValue() {
+                    String getValue() {
                         return null
                     }
-                    public void setValue(String value) {
+                    void setValue(String value) {
                     }
                     @SuppressWarnings("UnnecessaryQualifiedReference")
-                    public void write(org.gradle.external.javadoc.internal.JavadocOptionFileWriterContext context) throws IOException {
+                    void write(org.gradle.external.javadoc.internal.JavadocOptionFileWriterContext context) throws IOException {
                         context.writeOption(docletOption[0])
                     }
                 }
@@ -252,7 +263,7 @@ if (isAndroidApp || isAndroidLib) {
         if ((variant.buildType.name.equals('debug')   &&  makeReleaseBuilds) ||
             (variant.buildType.name.equals('release') && !makeReleaseBuilds)) {
             
-            variant.setIgnore(true);
+            variant.setIgnore(true)
         }
     }
 
@@ -266,22 +277,23 @@ if (isAndroidApp || isAndroidLib) {
             android.sdkDirectory.path + '/extras/google/google_play_services/docs/reference/'))
 
     def makeArtifactsAndroid = { variant ->
-        variant.outputs.each { output ->
-
-            //noinspection GroovyAssignabilityCheck
-            output.outputFile = new File(output.outputFile.parent,
-                    output.outputFile.name.replace('-release', '').replace('-' + getPropertyExt('projectDefaultFlavor'), ''))
+        variant.outputs.all { output ->
 
             //noinspection ChangeToOperator
             boolean isDebugVariant = variant.buildType.name.equals('debug')
 
-            String flavorName = getPropertyExt('projectDefaultFlavor') == 'release' ? 'release':
+            String defFlavorName = getPropertyExt('projectDefaultFlavor') 
+
+            String flavorName = defFlavorName == 'release' ? 'release':
                     variant.getVariantData().getVariantConfiguration().getFlavorName()
 
-            boolean isDefaultFlavor     = flavorName == getPropertyExt('projectDefaultFlavor')
+            boolean isDefaultFlavor     = flavorName == defFlavorName
             String  appendixValue       = isDefaultFlavor ? null: flavorName
             String  flavorAdded         = '-' + flavorName
             String  flavorArtifactId    = getPropertyExt('publishedArtifactId') + (isDefaultFlavor ? '': flavorAdded)
+
+            outputFileName = archivesBaseName + (isDefaultFlavor ? '': '-' + flavorName) +
+                    (isAndroidApp ? '.apk': '.aar')
 
             //noinspection GroovyAssignabilityCheck
             Task javadoc = task('generate' + variant.name.capitalize() + 'Javadoc', type: Javadoc) {
@@ -387,6 +399,7 @@ if (isAndroidApp || isAndroidLib) {
                     groupId                     getPropertyExt('publishedGroupId')
                     //noinspection GroovyAssignabilityCheck
                     version                     getPropertyExt('publishedVersion')
+
                     pom.withXml                 pomConfig
 
                     artifacts = [output.outputFile, javadocJar, sourcesJar]
@@ -447,13 +460,21 @@ if (project.plugins.hasPlugin('java')) {
 
 if ((bintray.publications   == null || bintray.publications  .length == 0) &&
     (bintray.configurations == null || bintray.configurations.length == 0)) {
-    
+
+    if (projectPublish) {
+        println(' Both bintray.publications and bintray.configurations are not defined')
+    }
     return
 }
 
 bintray {
-    user                            = getProperty('bintray.user',   'BINTRAY_USER',    null)
+    user                            = projectBintrayUser
     key                             = getProperty('bintray.apikey', 'BINTRAY_API_KEY', '')
+    publish                         = true
+    dryRun                          = false
+    override                        = false
+
+    println(' Bintray activated')
 
     pkg {
         repo                        = getPropertyExt('bintrayRepo')
