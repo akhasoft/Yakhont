@@ -136,8 +136,6 @@ buildscript {
         // your code here, usually just 'jcenter()'
     }
     dependencies {
-        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
-       
         classpath 'com.github.akhasoft:yakhont-weaver:0.9.19'
     }
 }
@@ -147,13 +145,7 @@ buildscript {
 [jcenter](http://jcenter.bintray.com/com/github/akhasoft/) and
 [mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/).
 
-2. After your **apply plugin: 'com.android.application'** insert the following:
-
-```groovy
-apply plugin: 'com.neenbedankt.android-apt'
-```
-
-Also, update the **android** block:
+2. Update the **android** block:
 
 ```groovy
 android {
@@ -170,11 +162,11 @@ android {
 
 ```groovy
 dependencies {
-    compile    'com.github.akhasoft:yakhont:0.9.19'
+    implementation    'com.github.akhasoft:yakhont:0.9.19'
     // or
-    // compile 'com.github.akhasoft:yakhont-full:0.9.19'
+    // implementation 'com.github.akhasoft:yakhont-full:0.9.19'
     // or
-    // compile 'com.github.akhasoft:yakhont-support:0.9.19'
+    // implementation 'com.github.akhasoft:yakhont-support:0.9.19'
 }
 ```
 
@@ -183,9 +175,9 @@ something like following lines are required:
 
 ```groovy
 dependencies {
-    compile  'com.google.dagger:dagger:2.10'
-    apt      'com.google.dagger:dagger-compiler:2.10'
-    provided 'javax.annotation:jsr250-api:1.0'
+    implementation      'com.google.dagger:dagger:2.10'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.10'
+    compileOnly         'javax.annotation:jsr250-api:1.0'
 }
 ```
 
@@ -195,7 +187,7 @@ the _debug_ version, please replace 'debug' with 'release':
 ```groovy
 android.variantFilter { variant ->
     if (variant.buildType.name == 'debug') {
-        variant.setIgnore(true);
+        variant.setIgnore(true)
     }
 }
 ```
