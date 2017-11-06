@@ -20,6 +20,7 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
@@ -31,6 +32,7 @@ import android.support.annotation.StringRes;
 import android.support.v4.app.FragmentActivity;
 
 /** @exclude */ @SuppressWarnings("JavaDoc")
+@SuppressLint("ObsoleteSdkInt")
 public class SupportHelper {                    // full
 
     private SupportHelper() {

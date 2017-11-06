@@ -298,10 +298,10 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     private View initGui(LayoutInflater inflater, ViewGroup container) {
         View view           = inflater.inflate(R.layout.fragment_main, container, false);
 
-        mGridView           = (AbsListView) view.findViewById(R.id.grid);
+        mGridView           = view.findViewById(R.id.grid);
 
-        mCheckBoxForce      = (CheckBox) view.findViewById(R.id.flag_force);
-        mCheckBoxMerge      = (CheckBox) view.findViewById(R.id.flag_merge);
+        mCheckBoxForce      = view.findViewById(R.id.flag_force);
+        mCheckBoxMerge      = view.findViewById(R.id.flag_merge);
 
         view.findViewById(R.id.btn_load).setOnClickListener(new View.OnClickListener() {
             @Override

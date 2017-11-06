@@ -40,6 +40,12 @@ ext {
     bintrayName             = 'yakhont'
     bintrayRepo             = 'maven'
 
+    projectLibVerSupport    = '26.1.0'
+    projectLibVerDagger     =   '2.10'
+    projectLibVerRetrofit2  =  '2.3.0'
+
+    projectGroupId          = 'com.github.akhasoft'
+
     projectIssueManagement  = 'GitHub Issues'
     projectYear             = '2015'
     projectReadme           = 'README.md'

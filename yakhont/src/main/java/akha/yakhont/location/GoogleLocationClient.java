@@ -36,10 +36,6 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
-import com.google.android.gms.common.api.PendingResult;
-import com.google.android.gms.common.api.ResultCallback;
-import com.google.android.gms.common.api.Status;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 
 import javax.inject.Provider;
@@ -79,7 +75,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * @return  This {@code GoogleApiClient}
      */
     @SuppressWarnings("unused")
-    public GoogleApiClient getClient() {
+    public GoogleApiClient getGoogleApiClient() {
         return mClient;
     }
 
@@ -185,10 +181,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     public void onStop(Activity activity) {
         if (mClient.isConnected()) mClient.disconnect();
     }
-
-    /**
-     * Please refer to the base method description.
-     */
+/*
     @SuppressWarnings("WeakerAccess")
     @Override
     protected void requestLocationUpdates(@NonNull final Activity        activity,
@@ -205,9 +198,6 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         }
     }
 
-    /**
-     * Please refer to the base method description.
-     */
     @SuppressWarnings("WeakerAccess")
     @Override
     protected void stopLocationUpdates(final Activity activity) {
@@ -230,12 +220,14 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
             }
         });
     }
-
+*/
     /**
      * Please refer to the base method description.
      */
     @Override
     protected void buildClient(@NonNull final Activity activity) {
+        super.buildClient(activity);
+
         mClient = new GoogleApiClient.Builder(activity)
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
@@ -249,14 +241,20 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     @Override
     public void onConnected(Bundle connectionHint) {
         CoreLogger.log("onConnected");
+
+        final Activity activity = LocationCallbacks.getActivity();
+
+/*
         try {
             onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));
         }
         catch (SecurityException exception) {   // should never happen
             CoreLogger.log("onConnected failed", exception);
         }
+*/
+        getLastLocation(activity);
 
-        startLocationUpdates(LocationCallbacks.getActivity());
+        startLocationUpdates(activity);
     }
 
     /**

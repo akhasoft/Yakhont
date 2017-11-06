@@ -31,10 +31,8 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 
 import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
-import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
@@ -68,12 +66,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     private static final int    REQUEST_CODE          = Utils.getRequestCode(RequestCodes.LOCATION_CHECK_SETTINGS);
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected   FusedLocationProviderClient     mFusedLocationClient;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected   SettingsClient                  mSettingsClient;
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected   LocationCallback                mLocationCallback;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected   PendingIntent                   mPendingIntent;
@@ -87,16 +80,6 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * Initialises a newly created {@code GoogleLocationClientNew} object.
      */
     public GoogleLocationClientNew() {
-    }
-
-    /**
-     *  Returns the Google Play Services Location API client.
-     *
-     * @return  This {@code GoogleApiClient}
-     */
-    @SuppressWarnings("unused")
-    public FusedLocationProviderClient getClient() {
-        return mFusedLocationClient;
     }
 
     /**
@@ -187,70 +170,15 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     /**
      * Please refer to the base method description.
      */
+    @SuppressLint("MissingPermission")
     @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @Override
     protected void buildClient(@NonNull final Activity activity) {
-        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(activity);
+        super.buildClient(activity);
 
-        try {
-            mFusedLocationClient.getLastLocation()
-                    .addOnCompleteListener(activity, new OnCompleteListener<Location>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Location> task) {
-                            log(task);
-                            if (task.isSuccessful())
-                                onLocationChanged(task.getResult());
-                            else
-                                taskOnFailure(task.getException());
-                        }
-                    }).addOnFailureListener(activity, new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception exception) {
-                            taskOnFailure(exception);
-                        }
-                    });
-        }
-        catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("buildClient failed", exception);
-        }
+        getLastLocation(activity);
 
         mSettingsClient = LocationServices.getSettingsClient(activity);
-
-        createLocationCallback();
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected void taskOnFailure(final Exception exception) {
-        // it seems not a good idea to notify Rx about this, so just log
-        CoreLogger.log("task exception", exception);
-        logException(exception);
-    }
-
-    private static void logException(final Exception exception) {
-        if (!(exception instanceof ApiException)) return;
-
-        final ApiException apiException = (ApiException) exception;
-        final int code = apiException.getStatusCode();
-        CoreLogger.logError("ApiException - code: " + code + " " + getStatusCodeDescription(code) +
-                ", message: " + apiException.getStatusMessage());
-    }
-
-    private void log(final Task task) {
-        if (task == null) {
-            CoreLogger.logError("task == null");
-            return;
-        }
-        CoreLogger.log("task.isSuccessful() " + task.isSuccessful() +
-                "task.isComplete() " + task.isComplete());
-        if (task.isSuccessful()) return;
-
-        final Exception exception = task.getException();
-        if (exception == null) {
-            CoreLogger.log("task.getException() == null");
-            return;
-        }
-        CoreLogger.log("task.getException()", exception);
-        logException(exception);
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -341,11 +269,6 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         return false;
     }
 
-    private static String getStatusCodeDescription(int code) {
-        return code == LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE ?
-                "SETTINGS_CHANGE_UNAVAILABLE" : CommonStatusCodes.getStatusCodeString(code);
-    }
-
     /**
      * Please refer to the base method description.
      */
@@ -376,16 +299,6 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                 return true;
         }
         return false;
-    }
-
-    private void createLocationCallback() {
-        mLocationCallback = new LocationCallback() {
-            @Override
-            public void onLocationResult(LocationResult locationResult) {
-                super.onLocationResult(locationResult);
-                onLocationChanged(locationResult.getLastLocation());
-            }
-        };
     }
 
     /**
@@ -555,51 +468,10 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     @Override
     protected void requestLocationUpdates(@NonNull final Activity activity,
                                           @NonNull final LocationRequest locationRequest) {
-        super.requestLocationUpdates(activity, locationRequest);
-
         if (mPendingIntent != null)
             requestLocationUpdates(activity, locationRequest, mPendingIntent);
         else
-            requestLocationUpdates(activity, locationRequest, mLocationCallback);
-    }
-
-    /**
-     * Requests location updates.
-     *
-     * @param activity
-     *        The activity
-     *
-     * @param locationRequest
-     *        The {@code LocationRequest}
-     *
-     * @param locationCallback
-     *        The {@code LocationCallback}
-     */
-    @SuppressWarnings("WeakerAccess")
-    protected void requestLocationUpdates(@NonNull final Activity         activity,
-                                          @NonNull final LocationRequest  locationRequest,
-                                          @NonNull final LocationCallback locationCallback) {
-        try {
-            mFusedLocationClient.requestLocationUpdates(locationRequest,
-                    locationCallback, activity.getMainLooper())
-
-                    .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            log(task);
-                        }
-                    })
-                    .addOnFailureListener(activity, new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception exception) {
-                            taskOnFailure(exception);
-                            mLocationCallbacks.onLocationError(exception);
-                        }
-                    });
-        }
-        catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("requestLocationUpdates failed", exception);
-        }
+            super.requestLocationUpdates(activity, locationRequest);
     }
 
     /**
@@ -614,10 +486,13 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * @param pendingIntent
      *        The {@code PendingIntent}
      */
+    @SuppressLint("MissingPermission")
     @SuppressWarnings("WeakerAccess")
     protected void requestLocationUpdates(@NonNull final Activity        activity,
                                           @NonNull final LocationRequest locationRequest,
                                           @NonNull final PendingIntent   pendingIntent) {
+        CoreLogger.log("requestLocationUpdates for pendingIntent, LocationRequest: " + locationRequest);
+
         try {
             mFusedLocationClient.requestLocationUpdates(locationRequest, pendingIntent)
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
@@ -644,9 +519,9 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      */
     @Override
     protected void stopLocationUpdates(final Activity activity) {
-        super.stopLocationUpdates(activity);
+        if (mPendingIntent != null) {
+            CoreLogger.log("stopLocationUpdates for pendingIntent");
 
-        if (mPendingIntent != null)
             mFusedLocationClient.removeLocationUpdates(mPendingIntent)
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
@@ -654,13 +529,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                             log(task);
                         }
                     });
+        }
         else
-            mFusedLocationClient.removeLocationUpdates(mLocationCallback)
-                    .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
-                        @Override
-                        public void onComplete(@NonNull Task<Void> task) {
-                            log(task);
-                        }
-                    });
+            super.stopLocationUpdates(activity);
     }
 }

@@ -119,7 +119,7 @@ public class Bubbles {
         sDisplayMetrics         = new DisplayMetrics();
         activity.getWindowManager().getDefaultDisplay().getMetrics(sDisplayMetrics);
 
-        sRootLayout             = (ViewGroup) activity.findViewById(R.id.main_layout);
+        sRootLayout             = activity.findViewById(R.id.main_layout);
         sLayoutInflater         = LayoutInflater.from(activity);
 
         initFun(activity);

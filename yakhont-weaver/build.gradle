@@ -20,7 +20,7 @@ ext {
     publishedName               = 'Yakhont Weaver'
     publishedDescription        = 'The Yakhont component for working with the Java bytecode'
 
-    publishedGroupId            = 'com.github.akhasoft'
+    publishedGroupId            = rootProject.ext.projectGroupId
     publishedArtifactId         = 'yakhont-weaver'
     publishedPackaging          = 'jar'
     publishedVersion            = '0.9.19'
@@ -40,7 +40,9 @@ sourceSets {
 
 dependencies {
     compile 'org.javassist:javassist:3.20.0-GA'
+    //noinspection GradleDependency
     compile 'com.android.tools.build:transform-api:1.5.0'
+    //noinspection GradleDependency
     compile 'commons-io:commons-io:2.4'
 }
 

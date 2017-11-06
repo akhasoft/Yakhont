@@ -69,9 +69,9 @@ public class SlideShow {
     private WeakReference<MainFragment>     mFragment               = new WeakReference<>(null);
 
     public void init(View view) {
-        mContainer          = (ViewGroup) view.findViewById(R.id.container);
+        mContainer          = view.findViewById(R.id.container);
         mSwipeRefreshView   = view.findViewById(R.id.swipeContainer);
-        mImageView          = (ImageSwitcher) view.findViewById(R.id.image_slide);
+        mImageView          = view.findViewById(R.id.image_slide);
 
         mControlPanel       = view.findViewById(R.id.control_panel);
         mControlPanelBtn    = view.findViewById(R.id.btn_load);

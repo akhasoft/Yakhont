@@ -643,24 +643,29 @@ public class CoreLogger {
         private static final float                      THRESHOLD                =    2;
         private static final int                        DELAY                    = 1000;
 
-        private final SensorManager     mSensorManager;
-        private final Sensor            mSensor;
         private final Runnable          mHandler;
+        private final SensorManager     mSensorManager;
+        private       Sensor            mSensor;
         private       long              mLastShakeTime;
 
         public ShakeEventListener(@NonNull final Context context, @NonNull final Runnable handler) {
             mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-            mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            if (mSensorManager != null)
+                mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            else
+                logWarning(Context.SENSOR_SERVICE + ": mSensorManager == null");
             mHandler = handler;
         }
 
         public void register() {
+            if (mSensorManager == null) return;
             mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
             logWarning("shake event listener registered");
         }
 
         @SuppressWarnings("unused")
         public void unregister() {
+            if (mSensorManager == null) return;
             mSensorManager.unregisterListener(this, mSensor);
             logWarning("shake event listener unregistered");
         }

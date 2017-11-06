@@ -191,9 +191,10 @@ public class CorePermissions implements ConfigurationChangedListener {
         if (mPermissionsNamesTranslator != null)
             permissions2display = mPermissionsNamesTranslator.getDisplayNames(permissions);
         else {
-            permissions2display = getPermissionDisplayName(permissions[0]);
+            final StringBuilder builder = new StringBuilder(getPermissionDisplayName(permissions[0]));
             for (int i = 1; i < permissions.length; i++)
-                permissions2display += ", " + getPermissionDisplayName(permissions[i]);
+                builder.append(", ").append(getPermissionDisplayName(permissions[i]));
+            permissions2display = builder.toString();
         }
 
         if (mAlert != null)

@@ -27,6 +27,7 @@ import akha.yakhont.support.fragment.WorkerFragment.WorkerFragmentCallbacks;
 import akha.yakhont.support.fragment.dialog.CommonDialogFragment;
 import akha.yakhont.support.loader.BaseLoader;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -38,6 +39,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 
 /** @exclude */ @SuppressWarnings("JavaDoc")
+@SuppressLint("ObsoleteSdkInt")
 public class SupportHelper {                    // support
 
     private SupportHelper() {

@@ -30,7 +30,6 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -144,6 +143,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("deprecation")    // the UI is fully customizable via Dagger 2
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
@@ -151,9 +151,9 @@ public class ProgressDialogFragment extends CommonDialogFragment {
         final Bundle arguments  = getArguments();
         final Activity activity = getDialogActivity();
 
-        final ProgressDialog progress = arguments.containsKey(ARG_THEME)
-                ? new ProgressDialog(activity, arguments.getInt(ARG_THEME))
-                : new ProgressDialog(activity);
+        final android.app.ProgressDialog progress = arguments.containsKey(ARG_THEME)
+                ? new android.app.ProgressDialog(activity, arguments.getInt(ARG_THEME))
+                : new android.app.ProgressDialog(activity);
 
         progress.setMessage(getMessage(activity));
 

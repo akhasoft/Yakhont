@@ -25,7 +25,7 @@ ext {
     publishedName               = 'Yakhont'
     publishedDescription        = 'The high-level Android components for data loading, location, lifecycle callbacks and many more'
 
-    publishedGroupId            = 'com.github.akhasoft'
+    publishedGroupId            = rootProject.ext.projectGroupId
     publishedArtifactId         = 'yakhont'
     publishedPackaging          = 'aar'
     publishedVersion            = verName
@@ -41,11 +41,11 @@ ext {
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           25
+    compileSdkVersion           26
     buildToolsVersion          '26.0.2'
 
     defaultConfig {
-        minSdkVersion            9
+        minSdkVersion           14
         //noinspection OldTargetApi
         targetSdkVersion        23
         versionCode        verCode
@@ -60,10 +60,8 @@ android {
     flavorDimensions 'common'
 
     productFlavors {
-        //noinspection GroovyMissingReturnStatement
         core {
             dimension          'common'
-            minSdkVersion       11
         }
         support {   // same as core but based on support library (android.support.v4.app.Fragment etc.)
             dimension          'common'
@@ -98,9 +96,9 @@ android {
     }
 }
 
-ext.libVerSupport               = '25.3.1'
-ext.libVerDagger                =   '2.10'
-ext.libVerRetrofit2             =  '2.3.0'
+ext.libVerSupport               = rootProject.ext.projectLibVerSupport
+ext.libVerDagger                = rootProject.ext.projectLibVerDagger
+ext.libVerRetrofit2             = rootProject.ext.projectLibVerRetrofit2
 
 ext.libVerOkHttp3               =  '3.8.0'
 ext.libVerOkHttp                =  '2.7.5'
@@ -113,14 +111,14 @@ dependencies {
     api                 "com.android.support:appcompat-v7:${libVerSupport}"  // Google
     api                 "com.android.support:design:${libVerSupport}"
     api                 "com.android.support:recyclerview-v7:${libVerSupport}"
-    api                 "com.google.android.gms:play-services-location:11.0.4"
+    api                 "com.google.android.gms:play-services-location:11.4.2"
 
     fullApi             "com.android.support:leanback-v17:${libVerSupport}"
     fullApi             "com.android.support:mediarouter-v7:${libVerSupport}"
     fullApi             "com.android.support:preference-v14:${libVerSupport}"
     fullApi             "com.android.support:preference-leanback-v17:${libVerSupport}"
 
-    api                 "com.google.code.gson:gson:2.7"                      // Gson
+    api                 "com.google.code.gson:gson:2.8.0"                    // Gson
 
     api                 "com.squareup.picasso:picasso:2.5.2"                 // Picasso
 

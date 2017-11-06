@@ -14,8 +14,9 @@
 # for yakhont-demo
 -dontnote com.google.android.gms.internal.**
 -dontnote com.google.android.gms.flags.impl.FlagProviderImpl
+# from SDK version 26
+-dontnote com.google.android.gms.common.api.internal.**
 
--keepclassmembers class com.google.android.gms.dynamite.descriptors.com.google.android.gms.flags.ModuleDescriptor { *; }
 -dontnote com.google.android.gms.dynamite.DynamiteModule
 
 # added for library version 11.0.0

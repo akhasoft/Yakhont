@@ -77,7 +77,7 @@ def generateActivities() {
     ]
     
     String[] debugSupportActivityClasses = [
-        'android.support.v7.app.ActionBarActivity'                                          ,
+//        'android.support.v7.app.ActionBarActivity'                                          ,
         'android.support.v7.app.AppCompatActivity'
     ]
     

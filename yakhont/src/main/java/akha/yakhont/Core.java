@@ -27,6 +27,7 @@ import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ValidateActi
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -677,23 +678,45 @@ public class Core {
             if (!sRunNetworkMonitor) return;
 
             new Timer("timer for network monitoring").scheduleAtFixedRate(new TimerTask() {
+
+                private static final String PERMISSION = Manifest.permission.ACCESS_NETWORK_STATE;
+
                 @Override
                 public void run() {
                     if (!isVisible() || !isInForeground()) return;
 
-                    boolean isConnected = false;
-
                     final ConnectivityManager connectivityManager =
                             (ConnectivityManager) application.getSystemService(Context.CONNECTIVITY_SERVICE);
-                    final NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
-
-                    if (activeInfo != null && activeInfo.isConnected()) isConnected = true;
-
-                    if (sConnected.getAndSet(isConnected) != isConnected) {
-                        CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
-                                "network is " + (isConnected ? "": "NOT ") + "available");
-                        onNetworkStatusChanged(isConnected);
+                    if (connectivityManager == null) {
+                        CoreLogger.logWarning(Context.CONNECTIVITY_SERVICE + ": connectivityManager == null");
+                        return;
                     }
+
+                    final Activity activity = Utils.getCurrentActivity();
+                    if (activity == null) {
+                        CoreLogger.logWarning("network monitoring: activity == null");
+                        return;
+                    }
+
+                    final boolean result = new CorePermissions.RequestBuilder(activity, PERMISSION)
+                            .setOnGranted(new Runnable() {
+                                @Override
+                                public void run() {
+                                    @SuppressLint("MissingPermission") final NetworkInfo activeInfo =
+                                            connectivityManager.getActiveNetworkInfo();
+
+                                    boolean isConnected = false;
+                                    if (activeInfo != null && activeInfo.isConnected()) isConnected = true;
+
+                                    if (sConnected.getAndSet(isConnected) != isConnected) {
+                                        CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
+                                                "network is " + (isConnected ? "": "NOT ") + "available");
+                                        onNetworkStatusChanged(isConnected);
+                                    }
+                                }
+                            })
+                            .request();
+                    CoreLogger.log(PERMISSION + " request result: " + (result ? "already granted": "not granted yet"));
                 }
             }, 0, TIMEOUT_NETWORK_MONITOR * 1000);
         }
@@ -765,6 +788,10 @@ public class Core {
          */
         @SuppressWarnings("unused")
         public static Application getApplication() {
+            // should never happen
+            if      (sApplication       == null) CoreLogger.logError("sApplication == null");
+            else if (sApplication.get() == null) CoreLogger.logError("sApplication.get() == null");
+
             return sApplication == null ? null: sApplication.get();
         }
 
@@ -915,7 +942,7 @@ public class Core {
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        public static int getInvertedColor(int color) {
+        public static int getInvertedColor(final int color) {
             return Color.rgb(255 - Color.red(color), 255 - Color.green(color), 255 - Color.blue(color));
         }
 

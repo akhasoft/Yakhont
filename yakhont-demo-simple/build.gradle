@@ -29,7 +29,7 @@ apply plugin: 'com.android.application'
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           25
+    compileSdkVersion           26
     buildToolsVersion          '26.0.2'
 
     //noinspection GroovyMissingReturnStatement
@@ -74,9 +74,9 @@ android {
     }
 }
 
-ext.libVerDemoSimpleSupport     = '25.3.1'
-ext.libVerDemoSimpleDagger      =   '2.10'
-ext.libVerDemoSimpleRetrofit2   =  '2.3.0'
+ext.libVerDemoSimpleSupport     = rootProject.ext.projectLibVerSupport
+ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
+ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
                                                                                        // in alphabetical order:
 dependencies {
     implementation      "com.google.dagger:dagger:${libVerDemoSimpleDagger}"           // Dagger2
@@ -87,7 +87,7 @@ dependencies {
     implementation      "com.android.support:recyclerview-v7:${libVerDemoSimpleSupport}"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
-    implementation      "com.google.android.gms:play-services-location:11.0.4"
+    implementation      "com.google.android.gms:play-services-location:11.4.2"
 
     implementation      "com.squareup.retrofit2:retrofit:${libVerDemoSimpleRetrofit2}" // Retrofit
     implementation      "com.squareup.retrofit2:converter-gson:${libVerDemoSimpleRetrofit2}"

@@ -20,14 +20,25 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
 
+import com.google.android.gms.common.api.ApiException;
+import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.LocationSettingsStatusCodes;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.Task;
 
 import java.util.Date;
 
@@ -64,6 +75,12 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     protected static final int     UPDATE_INTERVAL_HIGH_ACCURACY        = 10 * 1000;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static final int     UPDATE_INTERVAL_LOW_ACCURACY         = 60 * 1000;
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected       FusedLocationProviderClient
+                                        mFusedLocationClient;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected       LocationCallback    mLocationCallback;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected       LocationCallbacks   mLocationCallbacks;
@@ -104,6 +121,16 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      */
     @SuppressWarnings("WeakerAccess")
     protected BaseGoogleLocationClient() {
+    }
+
+    /**
+     *  Returns the Google Play Services Location API client.
+     *
+     * @return  This {@code GoogleApiClient}
+     */
+    @SuppressWarnings("unused")
+    public FusedLocationProviderClient getClient() {
+        return mFusedLocationClient;
     }
 
     /**
@@ -436,7 +463,21 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      * @param activity
      *        The activity
      */
-    protected abstract void buildClient(@NonNull final Activity activity);
+    @SuppressWarnings("WeakerAccess")
+    protected void buildClient(@NonNull final Activity activity) {
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(activity);
+        createLocationCallback();
+    }
+
+    private void createLocationCallback() {
+        mLocationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                super.onLocationResult(locationResult);
+                onLocationChanged(locationResult.getLastLocation());
+            }
+        };
+    }
 
     /**
      * Creates new {@code LocationRequest}.
@@ -529,10 +570,33 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      * @param locationRequest
      *        The {@code LocationRequest}
      */
+    @SuppressLint("MissingPermission")
     @SuppressWarnings("WeakerAccess")
     protected void requestLocationUpdates(@NonNull final Activity activity,
                                           @NonNull final LocationRequest locationRequest) {
         CoreLogger.log("requestLocationUpdates, LocationRequest: " + locationRequest);
+
+        try {
+            mFusedLocationClient.requestLocationUpdates(locationRequest,
+                    mLocationCallback, activity.getMainLooper())
+
+                    .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Void> task) {
+                            log(task);
+                        }
+                    })
+                    .addOnFailureListener(activity, new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            taskOnFailure(exception);
+                            mLocationCallbacks.onLocationError(exception);
+                        }
+                    });
+        }
+        catch (SecurityException exception) {   // should never happen
+            CoreLogger.log("requestLocationUpdates failed", exception);
+        }
     }
 
     /**
@@ -544,5 +608,80 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     @SuppressWarnings("WeakerAccess")
     protected void stopLocationUpdates(final Activity activity) {
         CoreLogger.log("stopLocationUpdates");
+
+        mFusedLocationClient.removeLocationUpdates(mLocationCallback)
+                .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Void> task) {
+                        log(task);
+                    }
+                });
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    @SuppressLint("MissingPermission")
+    protected void getLastLocation(@NonNull final Activity activity) {
+        try {
+            mFusedLocationClient.getLastLocation()
+                    .addOnCompleteListener(activity, new OnCompleteListener<Location>() {
+                        @Override
+                        public void onComplete(@NonNull Task<Location> task) {
+                            log(task);
+                            if (task.isSuccessful())
+                                onLocationChanged(task.getResult());
+                            else
+                                taskOnFailure(task.getException());
+                        }
+                    }).addOnFailureListener(activity, new OnFailureListener() {
+                @Override
+                public void onFailure(@NonNull Exception exception) {
+                    taskOnFailure(exception);
+                }
+            });
+        }
+        catch (SecurityException exception) {   // should never happen
+            CoreLogger.log("getLastLocation failed", exception);
+        }
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected void taskOnFailure(final Exception exception) {
+        // it seems not a good idea to notify Rx about this, so just log
+        CoreLogger.log("task exception", exception);
+        logException(exception);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static void logException(final Exception exception) {
+        if (!(exception instanceof ApiException)) return;
+
+        final ApiException apiException = (ApiException) exception;
+        final int code = apiException.getStatusCode();
+        CoreLogger.logError("ApiException - code: " + code + " " + getStatusCodeDescription(code) +
+                ", message: " + apiException.getStatusMessage());
+    }
+
+    private static String getStatusCodeDescription(int code) {
+        return code == LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE ?
+                "SETTINGS_CHANGE_UNAVAILABLE" : CommonStatusCodes.getStatusCodeString(code);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected void log(final Task task) {
+        if (task == null) {
+            CoreLogger.logError("task == null");
+            return;
+        }
+        CoreLogger.log("task.isSuccessful() " + task.isSuccessful() +
+                "task.isComplete() " + task.isComplete());
+        if (task.isSuccessful()) return;
+
+        final Exception exception = task.getException();
+        if (exception == null) {
+            CoreLogger.log("task.getException() == null");
+            return;
+        }
+        CoreLogger.log("task.getException()", exception);
+        logException(exception);
     }
 }

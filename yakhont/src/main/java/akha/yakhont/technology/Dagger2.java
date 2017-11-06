@@ -134,7 +134,7 @@ import javax.inject.Provider;
  *             AlertDialog.Builder builder = new AlertDialog.Builder(activity);
  *
  *             View view = LayoutInflater.from(activity).inflate(R.layout.progress, null);
- *             ((TextView) view.findViewById(R.id.progress_message)).setText(getMessage());
+ *             ((TextView) view.findViewById(R.id.progress_message)).setText(getMessage(activity));
  *
  *             return builder.setView(view).create();
  *         }

@@ -99,14 +99,15 @@ but effective Yakhont preprocessor)
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 320 KB (except the _full_ version, which is about 530 KB).
+The Yakhont AAR is about 340 KB (except the _full_ version, which is about 560 KB).
 
-Yakhont supports Android 2.3 (API level 9) and above
-(_core_ version requires Android 3.0 (API level 11) as a minimum).
+Yakhont supports Android 4.0 (API level 14) and above.
 
-**Note:** Location API requires Android 4.0 (API level 14); please visit
+**Note:** for lower API levels support (9 and above) please use Yakhont
+[v0.9.19](https://github.com/akhasoft/Yakhont/releases/tag/v0.9.19); but the Google Location API
+requires API level 14 in any case (please visit
 [Android Developers Blog](https://android-developers.googleblog.com/2016/11/google-play-services-and-firebase-for-android-will-support-api-level-14-at-minimum.html)
-for more information.
+for more information).
 
 ## Demo and Releases
 

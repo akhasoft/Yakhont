@@ -423,9 +423,10 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static View findListView(@NonNull final View view) {
         return ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
+            @SuppressWarnings("unused")
             @Override
-            public boolean handle(final View view) {
-                return view instanceof AbsListView || view instanceof RecyclerView;
+            public boolean handle(final View listView) {
+                return listView instanceof AbsListView || listView instanceof RecyclerView;
             }
         });
     }
@@ -453,6 +454,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         CoreLogger.log(map.size() > 0 ? Level.DEBUG: Level.ERROR, "views binding: totally " + map.size());
         final int[] ids = new int[map.size()];
         set.clear();
+
         for (final Map.Entry<Integer, String> entry: map.entrySet()) {
             ids[set.size()] = entry.getKey();
             set.add(entry.getValue());

@@ -29,7 +29,7 @@ apply plugin: 'com.android.application'
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           25
+    compileSdkVersion           26
     buildToolsVersion          '26.0.2'
 
     //noinspection GroovyMissingReturnStatement
@@ -83,9 +83,9 @@ android {
     }
 }
 
-ext.libVerDemoSupport           = '25.3.1'
-ext.libVerDemoDagger            =   '2.10'
-ext.libVerDemoRetrofit2         =  '2.3.0'
+ext.libVerDemoSupport           = rootProject.ext.projectLibVerSupport
+ext.libVerDemoDagger            = rootProject.ext.projectLibVerDagger
+ext.libVerDemoRetrofit2         = rootProject.ext.projectLibVerRetrofit2
                                                                                  // in alphabetical order:
 dependencies {
     implementation      "com.google.dagger:dagger:${libVerDemoDagger}"           // Dagger2
@@ -94,7 +94,7 @@ dependencies {
 
     implementation      "com.android.support:appcompat-v7:${libVerDemoSupport}"  // Google
     implementation      "com.android.support:design:${libVerDemoSupport}"
-    implementation      "com.google.android.gms:play-services-location:11.0.4"
+    implementation      "com.google.android.gms:play-services-location:11.4.2"
 
     implementation      "com.squareup.retrofit2:retrofit:${libVerDemoRetrofit2}" // Retrofit
     implementation      "com.squareup.retrofit2:converter-gson:${libVerDemoRetrofit2}"
