@@ -1,4 +1,4 @@
-<!-- Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
+﻿<!-- Copyright (C) 2015-2017 akha, a.k.a. Alexander Kharitonov
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -25,10 +25,11 @@
 
 Yakhont is an Android high-level library offering developer-defined callbacks,
 loader wrappers and adapters, fully automatic cache, location-awareness, dynamic permissions handling, 
-lifecycle debug classes, advanced logging and many more helpful developer-oriented issues.
+lifecycle debug classes, advanced logging and many more helpful developer-oriented features.
 
 There is also the Yakhont Weaver - a small but powerful utility which manipulates the compiled Java 
-bytecode and can be used separately, without the Yakhont library (you will find more info below).
+bytecode and can be used separately, without the Yakhont library (you will find more info
+[below](README.md#weaver-usage-and-configuration)).
 
 Now you can load data in just one line of code (please refer to the
 [simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainFragment.java)
@@ -52,6 +53,21 @@ public class YourActivity extends Activity implements LocationListener {
 }
 ```
 
+## Table of contents
+
+- [Feature List](README.md#feature-list)
+- [Demo and Releases](README.md#demo-and-releases)
+- [Versions](README.md#versions)
+- [Usage](README.md#usage)
+- [Weaver](README.md#weaver-usage-and-configuration)
+- [Proguard](README.md#proguard)
+- [Build](README.md#build)
+- [Communication](README.md#communication)
+- [Information and Documentation](README.md#information-and-documentation)
+- [Known Issues](README.md#known-issues)
+- [Bugs and Feedback](README.md#bugs-and-feedback)
+- [License](README.md#license)
+
 Yakhont extends the [Application.ActivityLifecycleCallbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks.html)
 approach to support your own callbacks creation, that allows to customize handling of
 almost every lifecycle state of your Activities and Fragments - and even without changing
@@ -72,8 +88,7 @@ In short, the data loaders and adapters features are:
 - both [Retrofit](http://square.github.io/retrofit/1.x/retrofit/) and [Retrofit 2](http://square.github.io/retrofit/2.x/retrofit/) support
 - swipe-to-refresh
 - device orientation changing support
-- fully customizable GUI progress (via [Dagger 2](http://google.github.io/dagger/))
-- and last but not least: if Retrofit does not meet your requirements, you can add support for any other library  
+- fully customizable progress GUI
 
 In addition, there are the location features which includes:
 - both new ([FusedLocationProviderClient](https://developers.google.com/android/reference/com/google/android/gms/location/FusedLocationProviderClient)-based)
@@ -83,18 +98,7 @@ Google Location API support (please visit [Android Developers Blog](https://andr
 - tons of boilerplate code are not needed anymore - just annotate your Activity
 - Rx support (both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and [RxJava 2](https://github.com/ReactiveX/RxJava))
 
-So, the features the Yakhont provides are:
-- developer-defined callbacks to customize lifecycle of Activities and Fragments - and even 
-without changing their sources
-- powerful (but very easy in use) data loaders and adapters
-- automatic (but fully customizable) data binding
-- self-configurable transparent cache which adjusts database structure 'on the fly'
-- out-of-the-box location awareness: just annotate your Activity and you're done
-- dynamic permissions handling, powered by user-defined callbacks
-- debug classes with strict mode and lifecycle logging - for all kinds of
-Activities and Fragments (can be enabled even for 3rd-party components via simple,
-but effective Yakhont preprocessor)
-- advanced logging with e-mail support (auto-disabled in release builds) and more.
+For more information please refer to the [detailed feature list](https://github.com/akhasoft/Yakhont/wiki).
 
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
@@ -108,6 +112,10 @@ Yakhont supports Android 4.0 (API level 14) and above.
 requires API level 14 in any case (please visit
 [Android Developers Blog](https://android-developers.googleblog.com/2016/11/google-play-services-and-firebase-for-android-will-support-api-level-14-at-minimum.html)
 for more information).
+
+## Feature List
+
+The detailed feature list is available [here](https://github.com/akhasoft/Yakhont/wiki).
 
 ## Demo and Releases
 
@@ -327,12 +335,11 @@ To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Co
 
 ## Information and Documentation
 
-- [blog](https://spark.ru/startup/yahont/blog)
+- [Wiki](https://github.com/akhasoft/Yakhont/wiki)
 - [Javadoc - core](https://akhasoft.github.io/yakhont/library/core/)
 - [Javadoc - full](https://akhasoft.github.io/yakhont/library/full/)
 - [Javadoc - support](https://akhasoft.github.io/yakhont/library/support/)
 - [Javadoc - weaver](https://akhasoft.github.io/yakhont/weaver/)
-- [Wiki](https://github.com/akhasoft/Yakhont/wiki)
 
 ## Known Issues
 
