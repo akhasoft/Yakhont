@@ -160,7 +160,7 @@ public abstract class BaseRetrofit<T, B> {
      */
     @SuppressWarnings("unused")
     public void init(@NonNull final Class<T> service, @NonNull final B builder) {
-        init(service, builder, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION);
+        init(service, builder, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, false);
     }
 
     /**
@@ -201,13 +201,41 @@ public abstract class BaseRetrofit<T, B> {
      * @param readTimeout
      *        The read timeout (in seconds)
      */
+    @SuppressWarnings("unused")
+    public void init(@NonNull final Class<T> service, @NonNull final B builder,
+                     @IntRange(from = 1) final int connectTimeout,
+                     @IntRange(from = 1) final int readTimeout) {
+        init(service, builder, connectTimeout, readTimeout, true);
+    }
+
+    /**
+     * Initialises Retrofit client.
+     *
+     * @param service
+     *        The service interface
+     *
+     * @param builder
+     *        The RetrofitBuilder
+     *
+     * @param connectTimeout
+     *        The connection timeout (in seconds)
+     *
+     * @param readTimeout
+     *        The read timeout (in seconds)
+     *
+     * @param makeOkHttpClient
+     *        {@code true} to create default OkHttpClient, {@code false} otherwise
+     */
     @CallSuper
     protected void init(@NonNull final Class<T> service, @NonNull final B builder,
                         @IntRange(from = 1) final int connectTimeout,
-                        @IntRange(from = 1) final int readTimeout) {
+                        @IntRange(from = 1) final int readTimeout,
+                        final boolean makeOkHttpClient) {
+
         mConnectionTimeout = Math.max(connectTimeout, readTimeout);
+
         CoreLogger.log("connection timeout set to " + mConnectionTimeout +
-                " seconds, read timeout set to " + readTimeout + " seconds");
+                " seconds, read timeout set to " + readTimeout + " seconds, makeOkHttpClient == " + makeOkHttpClient);
     }
 
     /**

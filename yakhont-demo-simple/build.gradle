@@ -75,19 +75,22 @@ android {
 }
 
 ext.libVerDemoSimpleSupport     = rootProject.ext.projectLibVerSupport
-ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
+ext.libVerDemoSimpleLocation    = rootProject.ext.projectLibVerLocation
+
 ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
+
+ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
                                                                                        // in alphabetical order:
 dependencies {
     implementation      "com.google.dagger:dagger:${libVerDemoSimpleDagger}"           // Dagger2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoSimpleDagger}"
-    compileOnly         "javax.annotation:jsr250-api:1.0"
+    compileOnly         rootProject.ext.projectLibVerDaggerJsr
 
     implementation      "com.android.support:appcompat-v7:${libVerDemoSimpleSupport}"  // Google
     implementation      "com.android.support:recyclerview-v7:${libVerDemoSimpleSupport}"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
-    implementation      "com.google.android.gms:play-services-location:11.4.2"
+    implementation      "com.google.android.gms:play-services-location:${libVerDemoSimpleLocation}"
 
     implementation      "com.squareup.retrofit2:retrofit:${libVerDemoSimpleRetrofit2}" // Retrofit
     implementation      "com.squareup.retrofit2:converter-gson:${libVerDemoSimpleRetrofit2}"
@@ -96,7 +99,8 @@ dependencies {
 }
 
 android.variantFilter { variant ->
-    if (variant.buildType.name == 'release') {     // or 'debug'; weaver can't handle both release and debug at the same time
+    // weaver can't handle both release and debug at the same time
+    if (variant.buildType.name == (rootProject.ext.projectDebug == '1' ? 'release': 'debug')) {
         variant.setIgnore(true)
     }
 }

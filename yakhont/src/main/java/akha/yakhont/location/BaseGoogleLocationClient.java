@@ -658,7 +658,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
         final ApiException apiException = (ApiException) exception;
         final int code = apiException.getStatusCode();
         CoreLogger.logError("ApiException - code: " + code + " " + getStatusCodeDescription(code) +
-                ", message: " + apiException.getStatusMessage());
+                ", message: " + apiException.getMessage());
     }
 
     private static String getStatusCodeDescription(int code) {

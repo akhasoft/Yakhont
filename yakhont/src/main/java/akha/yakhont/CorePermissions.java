@@ -602,7 +602,7 @@ public class CorePermissions implements ConfigurationChangedListener {
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
         @SuppressWarnings("unused")
-        public RequestBuilder setRequestCode(@IntRange(from = 0) final int requestCode) {
+        public RequestBuilder setRequestCode(@IntRange(from = 0) final Integer requestCode) {
             mRequestCode = requestCode;
             return this;
         }

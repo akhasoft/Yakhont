@@ -18,5 +18,6 @@
     <bool name="yakhont_portrait">true</bool>
     <bool name="yakhont_landscape">false</bool>
 
+    <!-- it seems it doesn't work anymore (looks like a bug in API), use Core.Utils.setDefaultViewId(...) -->
     <item name="yakhont_default_view_id" type="id">@android:id/content</item>
 </resources>

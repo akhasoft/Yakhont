@@ -881,6 +881,17 @@ public class Core {
         }
 
         /**
+         * Sets the default View ID (e.g. to show {@link Snackbar}).
+         *
+         * @param resId
+         *        The resource ID of the View (should be common for all Activities)
+         */
+        @SuppressWarnings("unused")
+        public static void setDefaultViewId(@IdRes final int resId) {
+            ViewHelper.sDefViewId = resId;
+        }
+
+        /**
          * Returns handler for the application's main thread.
          *
          * @return  The Handler
@@ -1450,12 +1461,21 @@ public class Core {
         public static class ViewHelper {
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            public static final boolean                 VIEW_FOUND                      = true;
-
-            /** @exclude */ @SuppressWarnings("JavaDoc")
             public interface ViewVisitor {
                 boolean handle(View view);
             }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static final boolean                 VIEW_FOUND                      = true;
+
+            @IdRes
+            private static final int                    DEF_VIEW_REF_ID                 =
+                    akha.yakhont.R.id.yakhont_default_view_id;
+            @IdRes
+            private static final int                    DEF_VIEW_ID                     =
+                    android.R.id.content;
+            @IdRes
+            private static int                          sDefViewId                      = DEF_VIEW_ID;
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public static boolean visitView(@NonNull final View        parentView,
@@ -1484,9 +1504,9 @@ public class Core {
                         return found;
                     }
                 });
-
                 CoreLogger.log(viewHelper[0] == null ? Level.ERROR: Level.DEBUG,
                         "result of find view: " + viewHelper[0]);
+
                 return viewHelper[0];
             }
 
@@ -1510,6 +1530,8 @@ public class Core {
 
                 final Resources resources = activity.getResources();
                 @IdRes final int defaultViewId = getDefaultViewId(resources);
+                CoreLogger.log("defaultViewId " + defaultViewId +
+                    " 0x" + Integer.toHexString(defaultViewId));
 
                 final String defaultViewName = resources.getResourceName(defaultViewId);
                 CoreLogger.log("default view is " + defaultViewName);
@@ -1533,10 +1555,14 @@ public class Core {
 
             @IdRes
             private static int getDefaultViewId(final Resources resources) {
-                // return android.R.id.content;
+                if (sDefViewId != DEF_VIEW_ID) return sDefViewId;
+
+                // it seems it doesn't work anymore (looks like a bug in API)
                 final TypedValue typedValue = new TypedValue();
-                resources.getValue(akha.yakhont.R.id.yakhont_default_view_id, typedValue, true);
-                return typedValue.resourceId;
+                resources.getValue(DEF_VIEW_REF_ID, typedValue, true);
+
+                return typedValue.resourceId == DEF_VIEW_REF_ID ||
+                       typedValue.resourceId == NOT_VALID_RES_ID ? sDefViewId: typedValue.resourceId;
             }
         }
 

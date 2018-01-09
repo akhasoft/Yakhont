@@ -53,27 +53,27 @@ public class YourActivity extends Activity implements LocationListener {
 }
 ```
 
-## Table of contents
+## Table of Contents
 
-- [Feature List](README.md#feature-list)
-- [Demo and Releases](README.md#demo-and-releases)
-- [Versions](README.md#versions)
-- [Usage](README.md#usage)
-- [Weaver](README.md#weaver-usage-and-configuration)
-- [Proguard](README.md#proguard)
-- [Build](README.md#build)
-- [Communication](README.md#communication)
-- [Information and Documentation](README.md#information-and-documentation)
-- [Known Issues](README.md#known-issues)
-- [Bugs and Feedback](README.md#bugs-and-feedback)
-- [License](README.md#license)
+- [Feature List](https://github.com/akhasoft/Yakhont#feature-list)
+- [Demo and Releases](https://github.com/akhasoft/Yakhont#demo-and-releases)
+- [Versions](https://github.com/akhasoft/Yakhont#versions)
+- [Usage](https://github.com/akhasoft/Yakhont#usage)
+- [Weaver](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)
+- [Proguard](https://github.com/akhasoft/Yakhont#proguard)
+- [Build](https://github.com/akhasoft/Yakhont#build)
+- [Communication](https://github.com/akhasoft/Yakhont#communication)
+- [Information and Documentation](https://github.com/akhasoft/Yakhont#information-and-documentation)
+- [Known Issues](https://github.com/akhasoft/Yakhont#known-issues)
+- [Bugs and Feedback](https://github.com/akhasoft/Yakhont#bugs-and-feedback)
+- [License](https://github.com/akhasoft/Yakhont#license)
 
 Yakhont extends the [Application.ActivityLifecycleCallbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks.html)
 approach to support your own callbacks creation, that allows to customize handling of
 almost every lifecycle state of your Activities and Fragments - and even without changing
 their sources (especially useful for libraries developers).
 
-The powerful loader wrappers and adapters, which (in simplest, but very typical case) 
+The powerful loader wrappers and adapters, which (in simplest, but typical case) 
 allows loading and binding data in nearly one line of code, are abstracting you away from things like 
 loaders management, caching, progress dialogs (fully customizable), errors handling and low-level threading;
 don't miss the swipe-to-refresh and both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and

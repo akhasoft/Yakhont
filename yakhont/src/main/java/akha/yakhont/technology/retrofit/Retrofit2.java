@@ -128,7 +128,7 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
 
         init(service, getDefaultBuilder(retrofitBase).client(getDefaultOkHttpClientBuilder(
                 connectTimeout, readTimeout, headers, cookies).build()),
-                connectTimeout, readTimeout);
+                connectTimeout, readTimeout, false);
     }
 
     /**
@@ -138,11 +138,15 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
     @Override
     public void init(@NonNull final Class<T> service, @NonNull final Builder builder,
                      @IntRange(from = 1) final int connectTimeout,
-                     @IntRange(from = 1) final int readTimeout) {
+                     @IntRange(from = 1) final int readTimeout,
+                     final boolean makeOkHttpClient) {
 
-        super.init(service, builder, connectTimeout, readTimeout);
+        super.init(service, builder, connectTimeout, readTimeout, makeOkHttpClient);
 
         mService = service;
+
+        if (makeOkHttpClient) builder.client(getDefaultOkHttpClientBuilder(
+                connectTimeout, readTimeout, null, null).build());
 
         final Retrofit retrofit = builder.build();
         mRetrofitApi = retrofit.create(service);
@@ -446,7 +450,8 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
          *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
          *
          * @param isSingle
-         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx} either emits one value only or an error notification, {@code false} otherwise
+         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx}
+         *        either emits one value only or an error notification, {@code false} otherwise
          */
         @SuppressWarnings("unused")
         public Retrofit2Rx(final CommonRx<BaseResponse<Response<D>, Throwable, D>> commonRx, final boolean isSingle) {

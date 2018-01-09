@@ -205,7 +205,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static BaseDialog getDaggerProgress() {
-        return ProgressDialogFragment.ProgressLoaderDialogFragment.newInstance(null);
+        return ProgressDialogFragment.ProgressLoaderDialogFragment.newInstance();
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")

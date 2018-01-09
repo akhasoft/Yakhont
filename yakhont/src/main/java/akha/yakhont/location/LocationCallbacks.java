@@ -38,6 +38,7 @@ import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.location.Location;
 import android.os.Bundle;
+import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 
 import dagger.Lazy;
@@ -125,6 +126,9 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static Boolean                                        sAccessToLocation;
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static Integer                                        sPermissionsRequestCode;
 
     /**
      * Activity should implement this interface for receiving notifications when the location has changed.
@@ -269,6 +273,18 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     }
 
     /**
+     * Sets the permissions request code to use. Please refer to {@link Activity#onActivityResult}
+     * and {@link Activity#onRequestPermissionsResult} for more info.
+     *
+     * @param requestCode
+     *        The request code to use
+     */
+    @SuppressWarnings("unused")
+    public static void setPermissionsRequestCode(@IntRange(from = 0) final Integer requestCode) {
+        sPermissionsRequestCode = requestCode;
+    }
+
+    /**
      * Returns the location client.
      *
      * @return  The {@code LocationClient}
@@ -398,6 +414,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         final boolean fromDialogFinal = fromDialog;
 
         final boolean result = new CorePermissions.RequestBuilder(activity, permission)
+                .setRequestCode(sPermissionsRequestCode)
                 .setOnGranted(new Runnable() {
                     @Override
                     public void run() {

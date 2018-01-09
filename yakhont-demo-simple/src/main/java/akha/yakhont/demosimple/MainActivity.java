@@ -57,13 +57,13 @@ public class MainActivity extends Activity implements LocationListener {
 
         // for normal HTTP requests you can use something like this
 //      sRetrofit2.init(Retrofit2Api.class, "http://...");
-
-        showAdvertisement();
     }
 
     @Override
     public void onLocationChanged(Location location, Date date) {
         ((TextView) findViewById(R.id.location)).setText(LocationCallbacks.toDms(location, this));
+
+        showAdvertisement();
     }
 
     @SuppressLint("InflateParams")

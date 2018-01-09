@@ -82,24 +82,29 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
                      @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
                      @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
                      @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers) {
-
-        final OkHttpClient okHttpClient = new OkHttpClient();
-        okHttpClient.setConnectTimeout(connectTimeout, TimeUnit.SECONDS);
-        okHttpClient.setReadTimeout   (readTimeout,    TimeUnit.SECONDS);
-
-        init(service, getDefaultBuilder(retrofitBase, headers).setClient(new OkClient(okHttpClient)),
-                connectTimeout, readTimeout);
+        init(service, getDefaultBuilder(retrofitBase, headers),
+                connectTimeout, readTimeout, true);
     }
 
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("WeakerAccess")
     @Override
     public void init(@NonNull final Class<T> service, @NonNull final Builder builder,
                      @IntRange(from = 1) final int connectTimeout,
-                     @IntRange(from = 1) final int readTimeout) {
+                     @IntRange(from = 1) final int readTimeout,
+                     final boolean makeOkHttpClient) {
 
-        super.init(service, builder, connectTimeout, readTimeout);
+        super.init(service, builder, connectTimeout, readTimeout, makeOkHttpClient);
+
+        if (makeOkHttpClient) {
+            final OkHttpClient okHttpClient = new OkHttpClient();
+            okHttpClient.setConnectTimeout(connectTimeout, TimeUnit.SECONDS);
+            okHttpClient.setReadTimeout   (readTimeout,    TimeUnit.SECONDS);
+
+            builder.setClient(new OkClient(okHttpClient));
+        }
 
         mYakhontRestAdapter     = new YakhontRestAdapter<>();
         mRetrofitApi            = mYakhontRestAdapter.create(service, builder.build());

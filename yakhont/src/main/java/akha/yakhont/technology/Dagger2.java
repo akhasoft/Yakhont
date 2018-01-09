@@ -41,6 +41,7 @@ import android.support.design.widget.Snackbar;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewStub;
 import android.widget.Toast;
 
 import java.lang.ref.WeakReference;
@@ -140,8 +141,7 @@ import javax.inject.Provider;
  *         }
  *
  *         public static MyProgress newInstance() {
- *             return (MyProgress) ProgressDialogFragment.newInstance(
- *                 null, new MyProgress());
+ *             return (MyProgress) ProgressDialogFragment.newInstance(new MyProgress());
  *         }
  *     }
  * }
@@ -568,7 +568,7 @@ public interface Dagger2 {
 class BaseSnackbar implements BaseDialog {
 
     @IdRes
-    private final int                       mListViewId;
+    private final int                       mViewId;
     private       Integer                   mDuration;
 
     @StringRes
@@ -597,7 +597,7 @@ class BaseSnackbar implements BaseDialog {
     BaseSnackbar(@SuppressWarnings("SameParameterValue") @IdRes final int listViewId,
                  final Boolean durationLong, final Integer requestCode) {
 
-        mListViewId  = listViewId;
+        mViewId      = listViewId;
         mRequestCode = requestCode;
 
         if (durationLong != null)
@@ -735,7 +735,8 @@ class BaseSnackbar implements BaseDialog {
                     case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_MANUAL     :
                     case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_SWIPE      :
                     case BaseTransientBottomBar.BaseCallback.DISMISS_EVENT_TIMEOUT    :
-                        if (mRequestCode != null) onActivityResult(Activity.RESULT_CANCELED);
+                        if (mRequestCode != null)
+                            onActivityResult(Activity.RESULT_CANCELED);
                         break;
 
                     default:
@@ -760,16 +761,20 @@ class BaseSnackbar implements BaseDialog {
     }
 
     private View getView(final Activity activity) {
-        View view = ViewHelper.getView(activity, mListViewId);
+        View view = ViewHelper.getView(activity, mViewId);
 
+        if (view == null && mViewId != Core.NOT_VALID_VIEW_ID) {
+            CoreLogger.log("about to try to find default view for Snackbar");
+            view = ViewHelper.getView(activity, Core.NOT_VALID_VIEW_ID);
+        }
         if (view != null) {
-            final View viewTmp = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
+            final View viewChild = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
                 @Override
                 public boolean handle(final View view) {
-                    return !(view instanceof ViewGroup);
+                    return !(view instanceof ViewGroup || view instanceof ViewStub);
                 }
             });
-            if (viewTmp != null) view = viewTmp;
+            if (viewChild != null) view = viewChild;
         }
         if (view == null)
             CoreLogger.logError("view == null");

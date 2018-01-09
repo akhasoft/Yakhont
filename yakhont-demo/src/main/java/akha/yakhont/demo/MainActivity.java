@@ -302,7 +302,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         }
 
         public static DemoProgress newInstance() {
-            return (DemoProgress) ProgressDialogFragment.newInstance(null, new DemoProgress()
+            return (DemoProgress) ProgressDialogFragment.newInstance(new DemoProgress()
                     .setConfirmation(false) /* for demo only */ );
         }
     }

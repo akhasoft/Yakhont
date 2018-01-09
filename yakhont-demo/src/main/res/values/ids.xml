@@ -15,7 +15,7 @@
 -->
 
 <resources>
-    <item type="id" name="animator_main" />
-    <item type="id" name="animators" />
+    <item type="id" name="animator_main"     />
+    <item type="id" name="animators"         />
     <item type="id" name="animators_rainbow" />
 </resources>

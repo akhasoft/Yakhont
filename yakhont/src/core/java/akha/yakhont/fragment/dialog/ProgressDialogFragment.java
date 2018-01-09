@@ -36,6 +36,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
+import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 
@@ -51,6 +52,10 @@ import javax.inject.Provider;
 public class ProgressDialogFragment extends CommonDialogFragment {
 
     private static final String         TAG                 = Utils.getTag(ProgressDialogFragment.class);
+
+    /** The name of the entry in the bundle from which to retrieve the maximum allowed progress value (if any). */
+    @SuppressWarnings("WeakerAccess")
+    protected static final String       ARG_MAX             = TAG + ".max";
 
     @StringRes private static final int INFO_STRING_RES_ID  = akha.yakhont.R.string.yakhont_loader_progress;
     @StringRes private static final int  DEF_STRING_RES_ID  = akha.yakhont.R.string.yakhont_loader_progress_def_info;
@@ -73,6 +78,16 @@ public class ProgressDialogFragment extends CommonDialogFragment {
     /**
      * Creates new instance of {@code ProgressDialogFragment} object.
      *
+     * @return  The newly created {@code ProgressDialogFragment} object
+     */
+    @NonNull
+    public static ProgressDialogFragment newInstance() {
+        return newInstance((String) null);
+    }
+
+    /**
+     * Creates new instance of {@code ProgressDialogFragment} object.
+     *
      * @param text
      *        The dialog message's text
      *
@@ -80,7 +95,36 @@ public class ProgressDialogFragment extends CommonDialogFragment {
      */
     @NonNull
     public static ProgressDialogFragment newInstance(final String text) {
-        return newInstance(text, new ProgressDialogFragment());
+        return newInstance(text, 0);
+    }
+
+    /**
+     * Creates new instance of {@code ProgressDialogFragment} object.
+     *
+     * @param text
+     *        The dialog message's text
+     *
+     * @param maxProgress
+     *        The maximum allowed progress value (if any)
+     *
+     * @return  The newly created {@code ProgressDialogFragment} object
+     */
+    @NonNull
+    public static ProgressDialogFragment newInstance(final String text, final int maxProgress) {
+        return newInstance(text, maxProgress, new ProgressDialogFragment());
+    }
+
+    /**
+     * Initialises the new instance of {@code ProgressDialogFragment} object.
+     *
+     * @param fragment
+     *        The new instance of {@code ProgressDialogFragment} object
+     *
+     * @return  The {@code ProgressDialogFragment} object
+     */
+    @NonNull
+    protected static ProgressDialogFragment newInstance(@NonNull final ProgressDialogFragment fragment) {
+        return newInstance(null, 0, fragment);
     }
 
     /**
@@ -89,16 +133,21 @@ public class ProgressDialogFragment extends CommonDialogFragment {
      * @param text
      *        The dialog message's text
      *
+     * @param maxProgress
+     *        The maximum allowed progress value (if any)
+     *
      * @param fragment
      *        The new instance of {@code ProgressDialogFragment} object
      *
      * @return  The {@code ProgressDialogFragment} object
      */
     @NonNull
-    protected static ProgressDialogFragment newInstance(final String text, @NonNull final ProgressDialogFragment fragment) {
+    protected static ProgressDialogFragment newInstance(final String text, final int maxProgress,
+                                                        @NonNull final ProgressDialogFragment fragment) {
         final Bundle arguments = new Bundle();
 
-        if (text != null) arguments.putString(ARG_TEXT, text);
+        if (text        != null) arguments.putString(ARG_TEXT, text);
+        if (maxProgress >     0) arguments.putInt   (ARG_MAX , maxProgress);
 
         fragment.setArguments(arguments);
         return fragment;
@@ -160,7 +209,35 @@ public class ProgressDialogFragment extends CommonDialogFragment {
         progress.setCancelable(true);
         progress.setCanceledOnTouchOutside(false);
 
+        final boolean isIndeterminate = !arguments.containsKey(ARG_MAX);
+        progress.setIndeterminate(isIndeterminate);
+        if (!isIndeterminate) progress.setMax(arguments.getInt(ARG_MAX));
+
         return progress;
+    }
+
+    /**
+     * Sets the current progress (if not in indeterminate mode).
+     *
+     * @param value the current progress, a value between 0 and {@link android.app.ProgressDialog#getMax()}
+     *
+     * @return  This {@code ProgressDialogFragment} object
+     */
+    @SuppressWarnings("deprecation")    // the UI is fully customizable via Dagger 2
+    public ProgressDialogFragment setProgress(@IntRange(from = 0) final int value) {
+        final Dialog dialog = getDialog();
+        if (dialog == null)
+            CoreLogger.logError("dialog == null");
+        else if (!(dialog instanceof android.app.ProgressDialog))
+            CoreLogger.logError("dialog should be instance of android.app.ProgressDialog");
+        else {
+            final android.app.ProgressDialog progress = (android.app.ProgressDialog) dialog;
+            if (progress.isIndeterminate())
+                CoreLogger.logError("the ProgressDialog is in indeterminate mode");
+            else
+                progress.setProgress(value);
+        }
+        return this;
     }
 
     /**
@@ -319,6 +396,17 @@ public class ProgressDialogFragment extends CommonDialogFragment {
         /**
          * Creates new instance of {@code ProgressLoaderDialogFragment} object.
          *
+         * @return  The newly created {@code ProgressLoaderDialogFragment} object
+         */
+        @NonNull
+        public static ProgressLoaderDialogFragment newInstance() {
+            return (ProgressLoaderDialogFragment) ProgressDialogFragment.newInstance(
+                    new ProgressLoaderDialogFragment());
+        }
+
+        /**
+         * Creates new instance of {@code ProgressLoaderDialogFragment} object.
+         *
          * @param text
          *        The dialog message's text
          *
@@ -326,7 +414,8 @@ public class ProgressDialogFragment extends CommonDialogFragment {
          */
         @NonNull
         public static ProgressLoaderDialogFragment newInstance(final String text) {
-            return (ProgressLoaderDialogFragment) ProgressDialogFragment.newInstance(text, new ProgressLoaderDialogFragment());
+            return (ProgressLoaderDialogFragment) ProgressDialogFragment.newInstance(
+                    text, 0, new ProgressLoaderDialogFragment());
         }
 
         /**
