@@ -57,6 +57,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
 import android.util.TypedValue;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
@@ -1455,6 +1456,87 @@ public class Core {
                 prepareRunnable(runnable).run();
                 return null;
             }
+        }
+
+        /**
+         * Helper class for handling the Back key in ActionMode. For example (in Activity):
+         * <p>
+         * <pre style="background-color: silver; border: thin solid black;">
+         * // in BaseActivity it's already done
+         * private final Core.Utils.BackKeyInActionModeHandler mBackKeyHandler =
+         *     new Core.Utils.BackKeyInActionModeHandler();
+         *
+         * private ActionMode.Callback mCallback = new ActionMode.Callback() {
+         *
+         *     &#064;Override
+         *     public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+         *         // in BaseActivity - just call method 'checkBackKeyAndReset()'
+         *         mBackKeyHandler.checkBackKeyAndReset();
+         *         return true;
+         *     }
+         *
+         *     &#064;Override
+         *     public void onDestroyActionMode(ActionMode mode) {
+         *         // in BaseActivity - just call method 'checkBackKeyAndReset()'
+         *         if (mBackKeyHandler.checkBackKeyAndReset())
+         *             // handle Back key (discard changes and exit ActionMode)
+         *         else
+         *             // save changes and exit ActionMode
+         *     }
+         *
+         *     // 'onPrepareActionMode(...)' and 'onActionItemClicked(...)'
+         *     // are skipped for simplification
+         * };
+         *
+         * // in BaseActivity it's already done
+         * &#064;Override
+         * public boolean dispatchKeyEvent(&#064;NonNull KeyEvent event) {
+         *     mBackKeyHandler.handleKeyEvent(event);
+         *
+         *     return super.dispatchKeyEvent(event);
+         * }
+         * </pre>
+         */
+        @SuppressWarnings("unused")
+        public static class BackKeyInActionModeHandler {
+
+            private final AtomicBoolean                 mIsBackWasPressed               = new AtomicBoolean();
+
+            /**
+             * Handles the Back key events.
+             *
+             * @param event
+             *        The KeyEvent to handle
+             */
+            public void handleKeyEvent(final KeyEvent event) {
+                mIsBackWasPressed.set(event.getKeyCode() == KeyEvent.KEYCODE_BACK);
+            }
+
+            /**
+             * Checks which key was pressed to exit ActionMode.
+             *
+             * @return  {@code true} if the Back key was pressed, {@code false} otherwise
+             */
+            public boolean checkBackKeyAndReset() {
+                return mIsBackWasPressed.getAndSet(false);
+            }
+        }
+
+        /**
+         *  The API for measured view layout adjusting.
+         *
+         * @yakhont.see BaseFragment#onAdjustMeasuredView(Core.Utils.MeasuredViewAdjuster,View) BaseFragment.onAdjustMeasuredView(MeasuredViewAdjuster, View)
+         */
+        public interface MeasuredViewAdjuster {
+
+            /**
+             * Allows the view layout adjusting keeping in mind the measured dimensions
+             * (height, width) of the view.
+             *
+             * @param view
+             *        The view to handle
+             */
+            void adjustMeasuredView(View view);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")

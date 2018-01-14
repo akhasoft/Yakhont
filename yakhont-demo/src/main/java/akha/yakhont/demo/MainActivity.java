@@ -301,6 +301,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
             Utils.showToast(R.string.yakhont_loader_cancelled, !Utils.SHOW_DURATION_LONG);
         }
 
+        @NonNull
         public static DemoProgress newInstance() {
             return (DemoProgress) ProgressDialogFragment.newInstance(new DemoProgress()
                     .setConfirmation(false) /* for demo only */ );

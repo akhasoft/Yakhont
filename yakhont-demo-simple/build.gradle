@@ -84,7 +84,6 @@ ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
 dependencies {
     implementation      "com.google.dagger:dagger:${libVerDemoSimpleDagger}"           // Dagger2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoSimpleDagger}"
-    compileOnly         rootProject.ext.projectLibVerDaggerJsr
 
     implementation      "com.android.support:appcompat-v7:${libVerDemoSimpleSupport}"  // Google
     implementation      "com.android.support:recyclerview-v7:${libVerDemoSimpleSupport}"

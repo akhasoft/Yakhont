@@ -842,6 +842,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @LayoutRes
         protected int                                   mLayoutItemId   = Core.NOT_VALID_RES_ID;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected boolean                               mNoBinding;
 
         /**
          * Initialises a newly created {@code CoreLoadBuilder} object.
@@ -942,7 +944,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         }
 
         /**
-         * Sets the {@link ListView}, {@link GridView} or {@link RecyclerView} ID.
+         * Sets the {@link ListView}, {@link GridView} or {@link RecyclerView} ID (for data binding).
          * <p>
          * If a view ID was not set, the implementation looks for the first {@link ListView}, {@link GridView} or
          * {@link RecyclerView} in the fragment's root view.
@@ -984,6 +986,21 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             return this;
         }
 
+        /**
+         * Prevents component from binding loaded data.
+         *
+         * @param noBinding
+         *        {@code true} to just load data, without any default binding (default value is {@code false})
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder<R, E, D> setNoBinding(final boolean noBinding) {
+            mNoBinding = noBinding;
+            return this;
+        }
+
         @LayoutRes
         @SuppressWarnings("SameParameterValue")
         private int getItemLayout(@NonNull final Resources resources, @NonNull final View list,
@@ -1021,53 +1038,82 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             final CoreLoad coreLoad = getCoreLoad(fragment);
             if (coreLoad == null) return null;
 
-            final View root = fragment.getView();
-            if (root == null) {
-                CoreLogger.logError("The fragment's root view is null");
-                return null;
+            if (mNoBinding) {
+                final String errText = "'no default binding' mode set, so %s will be ignored";
+
+                if (mListViewId     != Core.NOT_VALID_VIEW_ID)
+                    CoreLogger.logWarning(String.format(errText, "list ID " + mListViewId));
+
+                if (mLayoutItemId   != Core.NOT_VALID_RES_ID)
+                    CoreLogger.logWarning(String.format(errText, "list item layout ID " +
+                            mLayoutItemId));
+
+                if (mAdapterWrapper != null) {
+                    CoreLogger.logWarning(String.format(errText, "adapter wrapper " +
+                            mAdapterWrapper.getClass().getName()));
+
+                    mAdapterWrapper = null;
+                }
             }
-
-            final View list = mListViewId == Core.NOT_VALID_VIEW_ID ?
-                    BaseCacheAdapter.findListView(root): root.findViewById(mListViewId);
-            if (list == null) {
-                CoreLogger.logError("view with id " + mListViewId + " was not found");
-                return null;
-            }
-
-            @LayoutRes
-            int itemId = mLayoutItemId;
-            if (itemId == Core.NOT_VALID_RES_ID)
-                itemId = getItemLayout(fragment.getResources(), list, "layout", fragment.getActivity().getPackageName());
-
-            CoreLogger.log(itemId == Core.NOT_VALID_RES_ID ? Level.ERROR: Level.DEBUG, "list item ID: " + itemId);
-            if (itemId == Core.NOT_VALID_RES_ID) return null;
-
-            customizeAdapterWrapper(coreLoad, root, list, itemId);
-            if (mAdapterWrapper == null) {
-                CoreLogger.logError("The adapter wrapper is null");
-                return null;
-            }
-
-            if (mViewBinder != null) mAdapterWrapper.setAdapterViewBinder(mViewBinder);
-
-            if (mViewHolderCreator != null)
-                mAdapterWrapper.getRecyclerViewAdapter().setViewHolderCreator(mViewHolderCreator);
-
-            if      (list instanceof ListView)
-                ((ListView) list).setAdapter(mAdapterWrapper.getAdapter());
-            else if (list instanceof GridView)
-                ((GridView) list).setAdapter(mAdapterWrapper.getAdapter());
-            else if (list instanceof RecyclerView)
-                ((RecyclerView) list).setAdapter(mAdapterWrapper.getRecyclerViewAdapter());
-            else {
-                CoreLogger.logError("view with id " + mListViewId +
-                        " should be instance of ListView, GridView or RecyclerView");
-                return null;
-            }
+            else
+                if (!create(fragment, coreLoad)) return null;
 
             coreLoad.addLoader(mAdapterWrapper, mRx, mLoaderBuilder);
 
             return coreLoad;
+        }
+
+        private boolean create(final Fragment fragment, final CoreLoad coreLoad) {
+            View list = null;
+
+            final View root = fragment.getView();
+            if (root == null)
+                CoreLogger.logWarning("The fragment's root view is null");
+            else
+                list = mListViewId == Core.NOT_VALID_VIEW_ID ?
+                        BaseCacheAdapter.findListView(root): root.findViewById(mListViewId);
+
+            if (list == null) {
+                if (mListViewId != Core.NOT_VALID_VIEW_ID)
+                    CoreLogger.logError("view with id " + mListViewId + " was not found");
+                else
+                    CoreLogger.logWarning("no ListView, GridView or RecyclerView found for default binding");
+            }
+
+            @LayoutRes int itemId = mLayoutItemId;
+            if (itemId == Core.NOT_VALID_RES_ID && list != null)
+                itemId = getItemLayout(fragment.getResources(), list, "layout", fragment.getActivity().getPackageName());
+
+            if (itemId == Core.NOT_VALID_RES_ID)
+                CoreLogger.logWarning("no list item layout ID found for default binding");
+            else
+                CoreLogger.log("list item layout ID: " + itemId);
+
+            if (list != null && itemId != Core.NOT_VALID_RES_ID)
+                customizeAdapterWrapper(coreLoad, root, list, itemId);
+
+            if (mAdapterWrapper == null)
+                CoreLogger.logWarning("The adapter wrapper is null, so no data binding will be done");
+            else {
+                if (mViewBinder != null) mAdapterWrapper.setAdapterViewBinder(mViewBinder);
+
+                if (mViewHolderCreator != null)
+                    mAdapterWrapper.getRecyclerViewAdapter().setViewHolderCreator(mViewHolderCreator);
+
+                if      (list instanceof ListView)
+                    ((ListView) list).setAdapter(mAdapterWrapper.getAdapter());
+                else if (list instanceof GridView)
+                    ((GridView) list).setAdapter(mAdapterWrapper.getAdapter());
+                else if (list instanceof RecyclerView)
+                    ((RecyclerView) list).setAdapter(mAdapterWrapper.getRecyclerViewAdapter());
+                else {
+                    CoreLogger.logError("view with id " + mListViewId +
+                            " should be instance of ListView, GridView or RecyclerView");
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 

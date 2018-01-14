@@ -29,7 +29,7 @@ lifecycle debug classes, advanced logging and many more helpful developer-orient
 
 There is also the Yakhont Weaver - a small but powerful utility which manipulates the compiled Java 
 bytecode and can be used separately, without the Yakhont library (you will find more info
-[below](README.md#weaver-usage-and-configuration)).
+[below](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)).
 
 Now you can load data in just one line of code (please refer to the
 [simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainFragment.java)
@@ -184,9 +184,8 @@ something like following lines are required:
 
 ```groovy
 dependencies {
-    implementation      'com.google.dagger:dagger:2.10'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.10'
-    compileOnly         'javax.annotation:jsr250-api:1.0'
+    implementation      'com.google.dagger:dagger:2.x'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.x'
 }
 ```
 

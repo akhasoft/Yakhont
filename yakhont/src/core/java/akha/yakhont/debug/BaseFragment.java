@@ -17,6 +17,7 @@
 package akha.yakhont.debug;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 
@@ -411,68 +412,125 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Allows the view layout adjusting keeping in mind the measured dimensions (height, width) of the view. For example (in Fragment):
+     * Allows the view layout adjusting keeping in mind the measured dimensions
+     * (height, width) of the view.
      *
-     * <pre style="background-color: silver; border: thin solid black;">
-     * &#064;Override
-     * public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-     *     super.onCreateView(inflater, container, savedInstanceState);
+     * @param view
+     *        The view to handle
      *
-     *     View view = ...;
-     *
-     *     onAdjustMeasuredView(view);
-     *     return view;
-     * }
-     *
-     * &#064;Override
-     * protected void adjustMeasuredView(View view) {
-     *     int height = view.getMeasuredHeight();
-     *     int width  = view.getMeasuredWidth();
-     *
-     *     // your code here
-     * }
-     * </pre>
-     *
-     * @param measuredView
-     *        The view
+     * @see akha.yakhont.Core.Utils.MeasuredViewAdjuster#adjustMeasuredView(View)
      */
     @SuppressWarnings({"EmptyMethod", "UnusedParameters", "WeakerAccess"})                      //YakhontPreprocessor:removeInGenerated
-    protected void adjustMeasuredView(@NonNull final View measuredView) {                       //YakhontPreprocessor:removeInGenerated
+    protected void adjustMeasuredView(@NonNull final View view) {                               //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated
 
     /**
-     * The callback helper for calling {@link #adjustMeasuredView(View)}.
+     * The callback helper for calling {@link #adjustMeasuredView(View)}. For example:
      *
-     * @param measuredView
-     *        The view
+     * <pre style="background-color: silver; border: thin solid black;">
+     * public class MyFragment extends BaseFragment {
+     *
+     *     &#064;Override
+     *     public View onCreateView(LayoutInflater inflater, ViewGroup container,
+     *                              Bundle savedInstanceState) {
+     *         super.onCreateView(inflater, container, savedInstanceState);
+     *
+     *         View view = ...;
+     *
+     *         onAdjustMeasuredView(view);
+     *         return view;
+     *     }
+     *
+     *     &#064;Override
+     *     protected void adjustMeasuredView(View view) {
+     *         int height = view.getMeasuredHeight();
+     *         int width  = view.getMeasuredWidth();
+     *
+     *         // your code here
+     *     }
+     * }
+     * </pre>
+     *
+     * @param view
+     *        The view to handle
      */
     @SuppressWarnings("unused")                                                                 //YakhontPreprocessor:removeInGenerated
-    @SuppressLint("ObsoleteSdkInt")                                                             //YakhontPreprocessor:removeInGenerated
-    protected void onAdjustMeasuredView(@NonNull final View measuredView) {                     //YakhontPreprocessor:removeInGenerated
+    protected void onAdjustMeasuredView(@NonNull final View view) {                             //YakhontPreprocessor:removeInGenerated
+        onAdjustMeasuredView(mViewAdjusterImpl, view);                                          //YakhontPreprocessor:removeInGenerated
+    }                                                                                           //YakhontPreprocessor:removeInGenerated
 
-        measuredView.getViewTreeObserver().addOnGlobalLayoutListener(                           //YakhontPreprocessor:removeInGenerated
+    /**
+     * The callback helper for calling
+     * {@link akha.yakhont.Core.Utils.MeasuredViewAdjuster#adjustMeasuredView(View)}. For example:
+     *
+     * <pre style="background-color: silver; border: thin solid black;">
+     * import akha.yakhont.Core;
+     *
+     * public class MyFragment extends Fragment
+     *         implements Core.Utils.MeasuredViewAdjuster {
+     *
+     *     &#064;Override
+     *     public View onCreateView(LayoutInflater inflater, ViewGroup container,
+     *                              Bundle savedInstanceState) {
+     *         super.onCreateView(inflater, container, savedInstanceState);
+     *
+     *         View view = ...;
+     *
+     *         BaseFragment.onAdjustMeasuredView(this, view);
+     *         return view;
+     *     }
+     *
+     *     &#064;Override
+     *     public void adjustMeasuredView(View view) {
+     *         int height = view.getMeasuredHeight();
+     *         int width  = view.getMeasuredWidth();
+     *
+     *         // your code here
+     *     }
+     * }
+     * </pre>
+     *
+     * @param container
+     *        The view container (e.g. Fragment)
+     *
+     * @param view
+     *        The view to handle
+     */
+    @SuppressWarnings("WeakerAccess")                                                           //YakhontPreprocessor:removeInGenerated
+    @SuppressLint("ObsoleteSdkInt")                                                             //YakhontPreprocessor:removeInGenerated
+    public static void onAdjustMeasuredView(@NonNull final MeasuredViewAdjuster container,      //YakhontPreprocessor:removeInGenerated
+                                            @NonNull final View                 view) {         //YakhontPreprocessor:removeInGenerated
+        view.getViewTreeObserver().addOnGlobalLayoutListener(                                   //YakhontPreprocessor:removeInGenerated
                 new ViewTreeObserver.OnGlobalLayoutListener() {                                 //YakhontPreprocessor:removeInGenerated
 
-            @Override                                                                           //YakhontPreprocessor:removeInGenerated
-            public void onGlobalLayout() {                                                      //YakhontPreprocessor:removeInGenerated
-                try {                                                                           //YakhontPreprocessor:removeInGenerated
-                    adjustMeasuredView(measuredView);                                           //YakhontPreprocessor:removeInGenerated
-                }                                                                               //YakhontPreprocessor:removeInGenerated
-                catch (Exception e) {                                                           //YakhontPreprocessor:removeInGenerated
-                    CoreLogger.log("onGlobalLayout failed", e);                                 //YakhontPreprocessor:removeInGenerated
-                }                                                                               //YakhontPreprocessor:removeInGenerated
-                finally {                                                                       //YakhontPreprocessor:removeInGenerated
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)                //YakhontPreprocessor:removeInGenerated
-                        measuredView.getViewTreeObserver().removeOnGlobalLayoutListener(this);  //YakhontPreprocessor:removeInGenerated
-                    else                                                                        //YakhontPreprocessor:removeInGenerated
-                        removeListener();                                                       //YakhontPreprocessor:removeInGenerated
-                }                                                                               //YakhontPreprocessor:removeInGenerated
-            }                                                                                   //YakhontPreprocessor:removeInGenerated
+                    @Override                                                                   //YakhontPreprocessor:removeInGenerated
+                    public void onGlobalLayout() {                                              //YakhontPreprocessor:removeInGenerated
+                        try {                                                                   //YakhontPreprocessor:removeInGenerated
+                            container.adjustMeasuredView(view);                                 //YakhontPreprocessor:removeInGenerated
+                        }                                                                       //YakhontPreprocessor:removeInGenerated
+                        catch (Exception e) {                                                   //YakhontPreprocessor:removeInGenerated
+                            CoreLogger.log("onGlobalLayout failed", e);                     //YakhontPreprocessor:removeInGenerated
+                        }                                                                       //YakhontPreprocessor:removeInGenerated
+                        finally {                                                               //YakhontPreprocessor:removeInGenerated
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)        //YakhontPreprocessor:removeInGenerated
+                                view.getViewTreeObserver().removeOnGlobalLayoutListener(this); //YakhontPreprocessor:removeInGenerated
+                            else                                                                //YakhontPreprocessor:removeInGenerated
+                                removeListener();                                               //YakhontPreprocessor:removeInGenerated
+                        }                                                                       //YakhontPreprocessor:removeInGenerated
+                    }                                                                           //YakhontPreprocessor:removeInGenerated
 
-            @SuppressWarnings("deprecation")                                                    //YakhontPreprocessor:removeInGenerated
-            private void removeListener() {                                                     //YakhontPreprocessor:removeInGenerated
-                measuredView.getViewTreeObserver().removeGlobalOnLayoutListener(this);          //YakhontPreprocessor:removeInGenerated
-            }                                                                                   //YakhontPreprocessor:removeInGenerated
-        });                                                                                     //YakhontPreprocessor:removeInGenerated
+                    @SuppressWarnings("deprecation")                                            //YakhontPreprocessor:removeInGenerated
+                    private void removeListener() {                                             //YakhontPreprocessor:removeInGenerated
+                        view.getViewTreeObserver().removeGlobalOnLayoutListener(this);   //YakhontPreprocessor:removeInGenerated
+                    }                                                                           //YakhontPreprocessor:removeInGenerated
+                });                                                                             //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated
+
+    class MeasuredViewAdjusterImpl implements MeasuredViewAdjuster {                            //YakhontPreprocessor:removeInGenerated
+        public void adjustMeasuredView(View view) {                                             //YakhontPreprocessor:removeInGenerated
+            BaseFragment.this.adjustMeasuredView(view);                                         //YakhontPreprocessor:removeInGenerated
+        }                                                                                       //YakhontPreprocessor:removeInGenerated
+    }                                                                                           //YakhontPreprocessor:removeInGenerated
+
+    private final MeasuredViewAdjusterImpl mViewAdjusterImpl = new MeasuredViewAdjusterImpl();  //YakhontPreprocessor:removeInGenerated
 }

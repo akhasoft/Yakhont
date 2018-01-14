@@ -17,6 +17,7 @@
 package akha.yakhont.debug;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.BackKeyInActionModeHandler;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.debug.BaseApplication;
@@ -37,7 +38,6 @@ import android.view.KeyEvent;
 import android.view.View;
 
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The <code>BaseActivity</code> class is intended for debug purposes. Overridden methods most of the time just adds lifecycle logging.
@@ -586,11 +586,11 @@ public class BaseActivity extends Activity {        // don't modify this line: i
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private final BackKeyInActionMode mBackKeyInActionMode      = new BackKeyInActionMode();    //YakhontPreprocessor:removeInGenerated
+    private final BackKeyInActionModeHandler mBackKeyHandler    =                               //YakhontPreprocessor:removeInGenerated
+            new BackKeyInActionModeHandler();                                                   //YakhontPreprocessor:removeInGenerated
 
     /**
-     * Handles the Back key in ActionMode.
-     * For example (in Fragment):
+     * Handles the Back key in ActionMode. For example (in Fragment):
      *
      * <pre style="background-color: silver; border: thin solid black;">
      * private ActionMode.Callback mCallback = new ActionMode.Callback() {
@@ -608,35 +608,26 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      *         else
      *             // save changes and exit ActionMode
      *     }
+     *
+     *     // 'onPrepareActionMode(...)' and 'onActionItemClicked(...)'
+     *     // are skipped for simplification
      * };
      * </pre>
      *
      * @return  {@code true} if the Back key was pressed, {@code false} otherwise
+     *
+     * @see akha.yakhont.Core.Utils.BackKeyInActionModeHandler
      */
     public boolean checkBackKeyAndReset() {                                                     //YakhontPreprocessor:removeInGenerated
-        return mBackKeyInActionMode.checkBackKeyAndReset();                                     //YakhontPreprocessor:removeInGenerated
+        return mBackKeyHandler.checkBackKeyAndReset();                                          //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated
 
     /** @exclude {@yakhont.preprocessor.remove.in.generated} */ @SuppressWarnings("JavaDoc")
     @CallSuper                                                                                  //YakhontPreprocessor:removeInGenerated
     @Override                                                                                   //YakhontPreprocessor:removeInGenerated
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {                                  //YakhontPreprocessor:removeInGenerated
-        mBackKeyInActionMode.handleKeyEvent(event);                                             //YakhontPreprocessor:removeInGenerated
+        mBackKeyHandler.handleKeyEvent(event);                                                  //YakhontPreprocessor:removeInGenerated
 
         return super.dispatchKeyEvent(event);                                                   //YakhontPreprocessor:removeInGenerated
-    }                                                                                           //YakhontPreprocessor:removeInGenerated
-
-    @SuppressWarnings("unused")                                                                 //YakhontPreprocessor:removeInGenerated
-    private static class BackKeyInActionMode {                                                  //YakhontPreprocessor:removeInGenerated
-
-        private final AtomicBoolean mIsBackWasPressed           = new AtomicBoolean();          //YakhontPreprocessor:removeInGenerated
-
-        public void handleKeyEvent(final KeyEvent event) {                                      //YakhontPreprocessor:removeInGenerated
-            mIsBackWasPressed.set(event.getKeyCode() == KeyEvent.KEYCODE_BACK);                 //YakhontPreprocessor:removeInGenerated
-        }                                                                                       //YakhontPreprocessor:removeInGenerated
-
-        public boolean checkBackKeyAndReset() {                                                 //YakhontPreprocessor:removeInGenerated
-            return mIsBackWasPressed.getAndSet(false);                                          //YakhontPreprocessor:removeInGenerated
-        }                                                                                       //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated
 }

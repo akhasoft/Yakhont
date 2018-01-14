@@ -22,6 +22,7 @@ import akha.yakhont.demo.model.Beer;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 
+import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
@@ -29,6 +30,7 @@ import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
+import akha.yakhont.support.debug.BaseFragment;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
 import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper;
@@ -42,6 +44,7 @@ import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2
 // also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont' (or 'yakhont-full')
 
 /*
+import akha.yakhont.debug.BaseFragment;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
@@ -52,13 +55,11 @@ import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoad
 
 import android.graphics.Rect;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.AbsListView;
 import android.widget.CheckBox;
 import android.widget.ImageView;
@@ -69,7 +70,8 @@ import com.google.gson.reflect.TypeToken;
 import java.util.Arrays;
 import java.util.List;
 
-public class MainFragment extends /* android.app.Fragment */ android.support.v4.app.Fragment {
+public class MainFragment extends /* android.app.Fragment */ android.support.v4.app.Fragment
+        implements MeasuredViewAdjuster {
 
     private CoreLoad                    mCoreLoad;
 
@@ -313,7 +315,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         mCheckBoxForce.setOnClickListener(mListener);
         mCheckBoxMerge.setOnClickListener(mListener);
 
-        onAdjustMeasuredView(view.findViewById(R.id.container));
+        BaseFragment.onAdjustMeasuredView(this, view);
 
         mSlideShow.init(view);
 
@@ -352,30 +354,9 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         Bubbles.setState(cancel);
     }
 
-    @SuppressWarnings("WeakerAccess")
-    protected void onAdjustMeasuredView(final View view) {
-        view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                try {
-                    mSlideRect = new Rect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
-                }
-                catch (Exception e) {
-                    Log.e("MainFragment", "onAdjustMeasuredView", e);
-                }
-                finally {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-                        view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                    else
-                        removeListener();
-                }
-            }
-
-            @SuppressWarnings("deprecation")
-            private void removeListener() {
-                view.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-            }
-        });
+    @Override
+    public void adjustMeasuredView(View view) {
+        mSlideRect = new Rect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
     }
 
     public Rect getSlideRect() {

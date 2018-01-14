@@ -113,7 +113,6 @@ ext.libVerDagger                = rootProject.ext.projectLibVerDagger
 dependencies {
     api                 "com.google.dagger:dagger:${libVerDagger}"           // Dagger2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDagger}"
-    compileOnly         rootProject.ext.projectLibVerDaggerJsr
 
     api                 "com.android.support:appcompat-v7:${libVerSupport}"  // Google
     api                 "com.android.support:design:${libVerSupport}"
@@ -125,7 +124,7 @@ dependencies {
     fullApi             "com.android.support:preference-v14:${libVerSupport}"
     fullApi             "com.android.support:preference-leanback-v17:${libVerSupport}"
 
-    api                 "com.google.code.gson:gson:2.8.0"                    // Gson
+    api                 "com.google.code.gson:gson:2.8.2"                    // Gson
 
     api                 "com.squareup.picasso:picasso:2.5.2"                 // Picasso
 

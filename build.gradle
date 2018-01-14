@@ -73,13 +73,12 @@ ext {
     projectLibVerRetrofit   =  '1.9.0'
     projectLibVerRetrofit2  =  '2.3.0'
 
-    projectLibVerOkHttp3    =  '3.8.0'
+    projectLibVerOkHttp3    =  '3.9.1'
 
-    projectLibVerRxJava     =  '1.3.0'
-    projectLibVerRxJava2    =  '2.1.0'
+    projectLibVerRxJava     =  '1.3.4'
+    projectLibVerRxJava2    =  '2.1.8'
 
-    projectLibVerDagger     =   '2.10'
-    projectLibVerDaggerJsr  = 'javax.annotation:jsr250-api:1.0'
+    projectLibVerDagger     = '2.14.1'
 
     projectProGuardFiles    = ['proguard-google-play-services.pro'                      ,
                                'proguard-gson.pro'                                      ,
