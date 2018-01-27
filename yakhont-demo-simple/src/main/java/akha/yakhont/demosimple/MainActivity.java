@@ -44,6 +44,14 @@ public class MainActivity extends Activity implements LocationListener {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        // avoids terminating the application by calls to the Rx uncaught exception handler
+        // actually it's the final application only that should set (or not) such kind of handlers:
+        // it's not advised for intermediate libraries to change the global handlers behavior
+        //
+        // For more info please refer to
+        //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
+        Core.setRxUncaughtExceptionBehavior(false /* not terminate */);
+
         Core.init(getApplication());                        // initializes the Yakhont library
         LocationCallbacks.allowAccessToLocation(true);      // suppress confirmation dialog
 

@@ -26,6 +26,9 @@ import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.OrientationC
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ValidateActivityCallbacks;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
+import akha.yakhont.technology.rx.BaseRx.CommonRx;
+import akha.yakhont.technology.rx.Rx;
+import akha.yakhont.technology.rx.Rx2;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
@@ -459,7 +462,39 @@ public class Core {
 
         registerCallbacks(application);
 
+        checkRx();
+
         return true;
+    }
+
+    private static void checkRx() {
+        final String msg = "before 'Core.init()' please call 'Core.setRxUncaughtExceptionBehavior()' " +
+                "method (or any of '%s.setErrorHandler*()' methods); " +
+                "ignore this error only if you know what you're doing";
+        if (!Rx2.isErrorHandlerDefined())
+            CoreLogger.logError(String.format(msg, "Rx2"));
+        if (!Rx .isErrorHandlerDefined())
+            CoreLogger.logError(String.format(msg, "Rx" ));
+    }
+
+    /**
+     * Sets the Rx components behaviour in case of uncaught exceptions.
+     * For more info please refer to {@link <a href="https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling">Rx error handling</a>}.
+     *
+     * @param terminate
+     *        {@code true} to terminate application in case of uncaught Rx exception, {@code false} otherwise
+     */
+    @SuppressWarnings("unused")
+    public static void setRxUncaughtExceptionBehavior(final boolean terminate) {
+        if (terminate) {
+            Rx .setErrorHandlerDefault();
+            Rx2.setErrorHandlerDefault();
+        }
+        else {
+            Rx .setErrorHandlerJustLog();
+            Rx2.setErrorHandlerJustLog();
+        }
+        CommonRx.setSafeFlag(!terminate);
     }
 
     private static void initDagger(final Dagger2 dagger) {
@@ -1484,7 +1519,7 @@ public class Core {
          *             // save changes and exit ActionMode
          *     }
          *
-         *     // 'onPrepareActionMode(...)' and 'onActionItemClicked(...)'
+         *     // methods 'onPrepareActionMode(...)' and 'onActionItemClicked(...)'
          *     // are skipped for simplification
          * };
          *

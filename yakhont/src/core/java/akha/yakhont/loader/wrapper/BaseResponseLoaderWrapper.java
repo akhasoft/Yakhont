@@ -27,9 +27,10 @@ import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.Mergeable;
 import akha.yakhont.loader.BaseLoader;
+import akha.yakhont.loader.BaseLoader.LoaderCallback;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
-import akha.yakhont.loader.BaseResponse.LoaderCallback;
+import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.CacheLoader;
 import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
@@ -437,7 +438,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         private         UriResolver                                               mUriResolver;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected       LoaderManager.LoaderCallbacks<BaseResponse<R, E, D>>      mLoaderCallbacks;
+        protected       LoaderCallback<C, R, E, D>                                mLoaderCallbacks;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       LoaderFactory<BaseResponse                <R, E, D>>      mLoaderFactory;
 
@@ -607,7 +608,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         }
 
         /**
-         * Sets the loader callbacks.
+         * Sets the loader callback. Simplified version of the {@link #setLoaderCallbacks(LoaderManager.LoaderCallbacks)}.
          *
          * @param loaderCallbacks
          *        The loader callbacks
@@ -615,40 +616,46 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        public BaseResponseLoaderBuilder<C, R, E, D> setLoaderCallbacks(final LoaderManager.LoaderCallbacks<BaseResponse<R, E, D>> loaderCallbacks) {
-            mLoaderCallbacks    = loaderCallbacks;
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
+        public BaseResponseLoaderBuilder<C, R, E, D> setLoaderCallback(final LoaderCallback<C, R, E, D> loaderCallbacks) {
+            mLoaderCallbacks = loaderCallbacks;
             return this;
         }
 
-        /**
-         * Sets the loader callback. Simplified version of the {@link #setLoaderCallbacks(LoaderManager.LoaderCallbacks)}.
-         *
-         * @param loaderCallback
-         *        The loader callback (see {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()})
-         *
-         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
-         */
-        @NonNull
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public BaseResponseLoaderBuilder<C, R, E, D> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
-            return setLoaderCallbacks(loaderCallback == null ? null: new LoaderManager.LoaderCallbacks<BaseResponse<R, E, D>>() {
-                @Override
-                public Loader<BaseResponse<R, E, D>> onCreateLoader(int id, Bundle args) {
-                    return null;
-                }
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected LoaderManager.LoaderCallbacks<BaseResponse<R, E, D>> createLoaderCallbacks() {
+            return mLoaderCallbacks == null ? null: new LoaderManager.LoaderCallbacks<BaseResponse<R, E, D>>() {
 
                 @Override
-                public void onLoadFinished(Loader<BaseResponse<R, E, D>> loader, BaseResponse<R, E, D> data) {
-                    if (data == null)
-                        loaderCallback.onLoadFinished(null, null);
-                    else
-                        loaderCallback.onLoadFinished(data.getResult(), data.getSource());
+                public Loader<BaseResponse<R, E, D>> onCreateLoader(int id, Bundle args) {
+                    final Loader<BaseResponse<R, E, D>> loader = mLoaderCallbacks.onCreateLoader(id, args);
+                    return loader != null ? loader: mLoaderCallbacks.onCreateLoader(
+                            mLoaderCallbacks.getLoaderWrapper().createLoader(id, args));
                 }
 
                 @Override
                 public void onLoaderReset(Loader<BaseResponse<R, E, D>> loader) {
+                    mLoaderCallbacks.onLoaderReset(loader);
                 }
-            });
+
+                @Override
+                public void onLoadFinished(Loader<BaseResponse<R, E, D>> loader, BaseResponse<R, E, D> data) {
+                    mLoaderCallbacks.onLoadFinished(loader, data);
+
+                    if (data == null) {
+                        mLoaderCallbacks.onLoadFinished(null, (Source) null);
+                        return;
+                    }
+
+                    final E      error  = data.getError();
+                    final Source source = data.getSource();
+
+                    if (error != null)
+                        mLoaderCallbacks.onLoadError(error, source);
+                    else
+                        mLoaderCallbacks.onLoadFinished(data.getResult(), source);
+                }
+            };
         }
 
         /**
@@ -664,8 +671,11 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
 
             final BaseResponseLoaderWrapper<C, R, E, D> loaderWrapper = createLoaderWrapper();
 
-            if (mLoaderCallbacks != null) loaderWrapper.setLoaderCallbacks(mLoaderCallbacks);
-            if (mLoaderFactory   != null) loaderWrapper.setLoaderFactory  (mLoaderFactory  );
+            if (mLoaderCallbacks != null) {
+                mLoaderCallbacks.setLoaderWrapper(loaderWrapper);
+                loaderWrapper.setLoaderCallbacks(createLoaderCallbacks());
+            }
+            if (mLoaderFactory   != null) loaderWrapper.setLoaderFactory(mLoaderFactory);
 
             return loaderWrapper;
         }
@@ -1202,9 +1212,13 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          *
          * @param sync
          *        {@code true} to load data synchronously, {@code false} otherwise
+         *
+         * @param noErrors
+         *        {@code true} to not display loading errors, {@code false} otherwise
          */
         @SuppressWarnings({"SameParameterValue", "unused"})
-        void startLoading(boolean forceCache, boolean noProgress, boolean merge, boolean sync);
+        void startLoading(boolean forceCache, boolean noProgress, boolean merge,
+                          boolean sync, boolean noErrors);
 
         /**
          * Starts loader with the given ID.
@@ -1224,10 +1238,14 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          * @param sync
          *        {@code true} to load data synchronously, {@code false} otherwise
          *
+         * @param noErrors
+         *        {@code true} to not display loading errors, {@code false} otherwise
+         *
          * @return  {@code true} if loader was started successfully, {@code false} otherwise
          */
         @SuppressWarnings("unused")
-        BaseLoaderWrapper startLoading(int loaderId, boolean forceCache, boolean noProgress, boolean merge, boolean sync);
+        BaseLoaderWrapper startLoading(int loaderId, boolean forceCache, boolean noProgress,
+                                       boolean merge, boolean sync, boolean noErrors);
 
         /**
          * Displays a data loading progress indicator.

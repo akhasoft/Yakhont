@@ -68,6 +68,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
 
     private static final String                             ARG_FORCE_CACHE             = "force_cache";
     private static final String                             ARG_NO_PROGRESS             = "no_progress";
+    private static final String                             ARG_NO_ERRORS               = "no_errors";
     private static final String                             ARG_MERGE                   = "merge";
     private static final String                             ARG_CONFIGURABLE            = "configurable";
 
@@ -320,7 +321,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
     @NonNull
     @SuppressWarnings("unused")
     public BaseLoaderWrapper<D> start() {
-        return start(false, false, false);
+        return start(false, false, false, false);
     }
 
     /**
@@ -335,17 +336,23 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
      * @param merge
      *        {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
      *
+     * @param noErrors
+     *        {@code true} to not display loading errors, {@code false} otherwise
+     *
      * @return  This {@code BaseLoaderWrapper} object
      */
     @NonNull
-    public BaseLoaderWrapper<D> start(final boolean forceCache, final boolean noProgress, final boolean merge) {
-        CoreLogger.log("forceCache: " + forceCache + ", noProgress: " + noProgress + ", merge: " + merge);
+    public BaseLoaderWrapper<D> start(final boolean forceCache, final boolean noProgress,
+                                      final boolean merge, final boolean noErrors) {
+        CoreLogger.log("forceCache: " + forceCache + ", noProgress: " + noProgress +
+                ", noErrors: " + noErrors + ", merge: " + merge);
 
         if (!validateArguments(forceCache, noProgress, merge)) return this;
 
         final Bundle bundle = new Bundle();
         bundle.putBoolean(ARG_FORCE_CACHE,      forceCache);
         bundle.putBoolean(ARG_NO_PROGRESS,      noProgress);
+        bundle.putBoolean(ARG_NO_ERRORS,        noErrors);
         bundle.putBoolean(ARG_MERGE,            merge);
         bundle.putBoolean(ARG_CONFIGURABLE,     true);
 
@@ -406,23 +413,31 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
 
             if (loader != null) return loader;
         }
+        return createLoader(id, args);
+    }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Loader<D> createLoader(@SuppressWarnings("unused") final int id, final Bundle args) {
         final Loader<D> loader = mLoaderFactory.getLoader(args.getBoolean(ARG_MERGE));
         if (!args.getBoolean(ARG_CONFIGURABLE)) return loader;
 
+        final boolean noProgress = args.getBoolean(ARG_NO_PROGRESS);
+        final boolean noErrors   = args.getBoolean(ARG_NO_ERRORS);
+
         if (loader instanceof ConfigurableLoader) {
             ((ConfigurableLoader) loader).setForceCache(args.getBoolean(ARG_FORCE_CACHE));
-            ((ConfigurableLoader) loader).setNoProgress(args.getBoolean(ARG_NO_PROGRESS));
+            ((ConfigurableLoader) loader).setNoProgress(noProgress);
         }
         else {
             if (loader instanceof CacheLoader)
                 ((CacheLoader) loader).setForceCache(args.getBoolean(ARG_FORCE_CACHE));
             if (loader instanceof BaseLoader)
-                ((BaseLoader)  loader).setProgress(new ProgressWrapper(mFragment, args.getBoolean(ARG_NO_PROGRESS)));
+                ((BaseLoader)  loader).setProgress(new ProgressWrapper(mFragment,
+                        noProgress, noErrors));
         }
 
         if (!(loader instanceof BaseLoader)) {
-            mProgress = new ProgressWrapper(mFragment, args.getBoolean(ARG_NO_PROGRESS));
+            mProgress = new ProgressWrapper(mFragment, noProgress, noErrors);
             mProgress.doProgress(true, null);
         }
 
@@ -536,18 +551,25 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
      *
      * @param merge
      *        {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
+     *
+     * @param noErrors
+     *        {@code true} to not display loading errors, {@code false} otherwise
      */
     @WorkerThread
     @SuppressWarnings("unused")
     public static void startSync(@NonNull final Collection<BaseLoaderWrapper> loaders,
-                                 final boolean forceCache, final boolean noProgress, final boolean merge) {
-        startSync(loaders, false, forceCache, noProgress, merge);
+                                 final boolean forceCache, final boolean noProgress,
+                                 final boolean merge, final boolean noErrors) {
+        startSync(loaders, false, forceCache, noProgress, merge, noErrors);
     }
 
     @WorkerThread
-    private static void startSync(@NonNull final Collection<BaseLoaderWrapper> loaders, final boolean configured,
-                                  final boolean forceCache, final boolean noProgress, final boolean merge) {
-        CoreLogger.log("configured: " + configured + ", forceCache: " + forceCache + ", noProgress: " + noProgress + ", merge: " + merge);
+    private static void startSync(@NonNull final Collection<BaseLoaderWrapper> loaders,
+                                  @SuppressWarnings("SameParameterValue") final boolean configured,
+                                  final boolean forceCache, final boolean noProgress,
+                                  final boolean merge, final boolean noErrors) {
+        CoreLogger.log("configured: " + configured + ", forceCache: " + forceCache +
+                ", noProgress: " + noProgress + ", noErrors: " + noErrors + ", merge: " + merge);
 
         if (!validateArguments(forceCache, noProgress, merge)) return;
 
@@ -575,7 +597,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
                     if (configured)
                         loader.startConfigured();
                     else
-                        loader.start(forceCache, noProgress, merge);
+                        loader.start(forceCache, noProgress, merge, noErrors);
             }
         });
 
@@ -618,7 +640,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
     /**
      * The <code>SwipeRefreshWrapper</code> class is intended to support "swipe refresh" feature. To enable swipe refresh,
      * fragment should contain {@link SwipeRefreshLayout} and register it via one of the methods provided
-     * (for example, {@link #register(Fragment, int) register()}). For example:
+     * (for example, {@link #register(Fragment, int, boolean) register()}). For example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * public class MyFragment extends Fragment {
@@ -679,8 +701,27 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
          *        The resource ID of the {@code SwipeRefreshLayout}
          */
         @SuppressWarnings("unused")
-        public static void register(@NonNull final Fragment fragment, final @IdRes int resId) {
-            register(fragment, new int[] {resId});
+        public static void register(@NonNull final Fragment fragment,
+                                    final @IdRes int resId) {
+            register(fragment, resId, false);
+        }
+
+        /**
+         * Enables "swipe refresh" feature for the given fragment.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param resId
+         *        The resource ID of the {@code SwipeRefreshLayout}
+         *
+         * @param noErrors
+         *        Whether or not the view should show loading errors
+         */
+        @SuppressWarnings("unused")
+        public static void register(@NonNull final Fragment fragment,
+                                    final @IdRes int resId, final boolean noErrors) {
+            register(fragment, new int[] {resId}, noErrors);
         }
 
         /**
@@ -691,11 +732,17 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
          *
          * @param resIds
          *        The list of {@code SwipeRefreshLayout}'s resource IDs
+         *
+         * @param noErrors
+         *        Whether or not the view should show loading errors
          */
-        public static void register(@NonNull final Fragment fragment, @NonNull @Size(min = 1) final @IdRes int[] resIds) {
+        public static void register(@NonNull final Fragment fragment,
+                                    @NonNull @Size(min = 1) final @IdRes int[] resIds,
+                                    final boolean noErrors) {
             final FragmentData[] fragmentData = new FragmentData[resIds.length];
             for (int i = 0; i < resIds.length; i++)
-                fragmentData[i] = new FragmentData(fragment, resIds[i], false, false, null);
+                fragmentData[i] = new FragmentData(fragment, resIds[i],false,
+                        false, null, noErrors);
             register(fragment, Arrays.asList(fragmentData));
         }
 
@@ -816,7 +863,8 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
                         if (data.mId != null && data.mId != loader.getLoaderId()) continue;
 
                         loader.setSwipeRefreshWrapper(new SwipeRefreshWrapper(swipeRefreshLayout));
-                        loader.start(data.mForceCache, data.mSwipeProgress, data.mMerge);
+                        loader.start(data.mForceCache, data.mSwipeProgress,
+                                data.mMerge, data.mNoErrors);
 
                         started = true;
                     }
@@ -905,19 +953,21 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
         public static class FragmentData {
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            final View                                      mView;
+            public final View                               mView;
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            final @IdRes int                                mResId;
+            public final @IdRes int                         mResId;
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            final boolean                                   mForceCache;
+            public final boolean                            mForceCache;
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            final boolean                                   mSwipeProgress;
+            public final boolean                            mSwipeProgress;
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            final boolean                                   mMerge;
+            public final boolean                            mNoErrors;
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            final Integer                                   mId;
+            public final boolean                            mMerge;
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            final Runnable                                  mRunnable;
+            public final Integer                            mId;
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public final Runnable                           mRunnable;
 
             /**
              * Initialises a newly created {@code FragmentData} object.
@@ -936,11 +986,14 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
              *
              * @param runnable
              *        The {@code Runnable} to run before loading will be started
+             *
+             * @param noErrors
+             *        Whether or not the view should show loading errors
              */
             @SuppressWarnings("SameParameterValue")
             public FragmentData(@NonNull final Fragment fragment, final @IdRes int resId, final boolean forceCache,
-                                final boolean merge, final Runnable runnable) {
-                this(fragment.getView(), resId, forceCache, false, merge, null, runnable);
+                                final boolean merge, final Runnable runnable, final boolean noErrors) {
+                this(fragment.getView(), resId, forceCache, false, merge, null, runnable, noErrors);
             }
 
             /**
@@ -966,14 +1019,19 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
              *
              * @param runnable
              *        The {@code Runnable} to run before loading will be started
+             *
+             * @param noErrors
+             *        Whether or not the view should show loading errors
              */
             @SuppressWarnings("SameParameterValue")
             public FragmentData(final View view, final @IdRes int resId, final boolean forceCache, final boolean swipeProgress,
-                                final boolean merge, final Integer id, final Runnable runnable) {
+                                final boolean merge, final Integer id,
+                                final Runnable runnable, final boolean noErrors) {
                 mView                       = view;
                 mResId                      = resId;
                 mForceCache                 = forceCache;
                 mSwipeProgress              = swipeProgress;
+                mNoErrors                   = noErrors;
                 mMerge                      = merge;
                 mId                         = id;
                 mRunnable                   = runnable;
@@ -984,8 +1042,9 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
              */
             @Override
             public String toString() {
-                return String.format(CoreLogger.getLocale(), "forceCache %b, swipeProgress %b, merge %b, resId %d, id %d",
-                        mForceCache, mSwipeProgress, mMerge, mResId, mId);
+                return String.format(CoreLogger.getLocale(),
+                        "forceCache %b, swipeProgress %b, noErrors %b, merge %b, resId %d, id %d",
+                        mForceCache, mSwipeProgress, mNoErrors, mMerge, mResId, mId);
             }
         }
     }

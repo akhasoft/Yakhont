@@ -48,6 +48,7 @@ import okhttp3.Request;
 import okhttp3.logging.HttpLoggingInterceptor;
 
 import retrofit2.CallAdapter.Factory;
+import retrofit2.Converter;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.Retrofit.Builder;
@@ -176,8 +177,25 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
      */
     @Override
     public Builder getDefaultBuilder(@NonNull final String retrofitBase) {
+        return getDefaultBuilder(retrofitBase, null);
+    }
+
+    /**
+     * Returns the default Retrofit builder.
+     *
+     * @param retrofitBase
+     *        The service API endpoint URL
+     *
+     * @param factory
+     *        The converter factory for serialization and deserialization of objects
+     *
+     * @return  The Retrofit builder
+     */
+    @SuppressWarnings("WeakerAccess")
+    public Builder getDefaultBuilder(@NonNull final String retrofitBase,
+                                     @SuppressWarnings("SameParameterValue") final Converter.Factory factory) {
         final Builder builder = new Builder()
-                .addConverterFactory(GsonConverterFactory.create())
+                .addConverterFactory(factory != null ? factory: GsonConverterFactory.create())
                 .baseUrl(retrofitBase);
 
         addFactory(builder, getFactoryRx(false));     // RxJava2CallAdapterFactory

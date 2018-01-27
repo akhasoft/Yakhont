@@ -31,6 +31,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -639,16 +640,11 @@ public abstract class BaseCallbacks<T> {
 
             final Class callbacksClass = callbacks.getClass();
 
-            Class tmpClass = callbacksClass;
-            for (;;) {
-                final Method[] methods = tmpClass.getDeclaredMethods();
-
-                for (final Method method: methods) {
-                    final E lifeCycle = namesMap.get(method.getName());
-                    if (lifeCycle != null) lifeCycles.add(lifeCycle);
-                }
-
-                if ((tmpClass = tmpClass.getSuperclass()).equals(BaseCacheCallbacks.class)) break;
+            final List<Method> methods = CoreReflection.findOverriddenMethods(
+                    callbacksClass, BaseCacheCallbacks.class);
+            for (final Method method: methods) {
+                final E lifeCycle = namesMap.get(method.getName());
+                if (lifeCycle != null) lifeCycles.add(lifeCycle);
             }
 
             if (lifeCycles.size() > 0) {

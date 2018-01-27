@@ -15,35 +15,22 @@
 
 
 -keep class akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed$ActivityLifecycle
--keep class akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
 
--keep class akha.yakhont.support.callback.lifecycle.BaseActivityLifecycleProceed$ActivityLifecycle
+-keep class akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
 -keep class akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
 
--dontnote akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed$ActivityLifecycle
 -dontnote akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
-
--dontnote akha.yakhont.support.callback.lifecycle.BaseActivityLifecycleProceed$ActivityLifecycle
 -dontnote akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
 
--keep class * extends akha.yakhont.callback.BaseCallbacks$BaseActivityCallbacks {
+-keep class * extends akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed$BaseActivityCallbacks {
     public void onActivity*(...);
 }
-
--keep class * extends akha.yakhont.callback.BaseCallbacks$BaseFragmentCallbacks {
+-keep class * extends akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks {
+    public void onFragment*(...);
+}
+-keep class * extends akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks {
     public void onFragment*(...);
 }
 
--keep class * extends akha.yakhont.support.callback.BaseCallbacks$BaseActivityCallbacks {
-    public void onActivity*(...);
-}
-
--keep class * extends akha.yakhont.support.callback.BaseCallbacks$BaseFragmentCallbacks {
-    public void onFragment*(...);
-}
-
--dontnote akha.yakhont.callback.BaseCallbacks$BaseActivityCallbacks
--dontnote akha.yakhont.callback.BaseCallbacks$BaseFragmentCallbacks
-
--dontnote akha.yakhont.support.callback.BaseCallbacks$BaseActivityCallbacks
--dontnote akha.yakhont.support.callback.BaseCallbacks$BaseFragmentCallbacks
+-dontnote akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks
+-dontnote akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks

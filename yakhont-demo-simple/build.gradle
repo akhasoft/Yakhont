@@ -20,8 +20,8 @@ buildscript {
         flatDir dirs: '../yakhont-weaver/build/libs'                        // Yakhont weaver
     }
     dependencies {
-        classpath 'akha.yakhont.weaver:yakhont-weaver:0.9.19'               // Yakhont weaver
-        classpath 'org.javassist:javassist:3.20.0-GA'
+        classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"               // Yakhont weaver
+        classpath "org.javassist:javassist:${rootProject.ext.projectLibVerJavassist}"
     }
 }
 
@@ -79,6 +79,9 @@ ext.libVerDemoSimpleLocation    = rootProject.ext.projectLibVerLocation
 
 ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
 
+ext.libVerDemoSimpleRxJava      = rootProject.ext.projectLibVerRxJava
+ext.libVerDemoSimpleRxJava2     = rootProject.ext.projectLibVerRxJava2
+
 ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
                                                                                        // in alphabetical order:
 dependencies {
@@ -93,6 +96,9 @@ dependencies {
 
     implementation      "com.squareup.retrofit2:retrofit:${libVerDemoSimpleRetrofit2}" // Retrofit
     implementation      "com.squareup.retrofit2:converter-gson:${libVerDemoSimpleRetrofit2}"
+
+    implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoSimpleRxJava2}"       // Rx
+    implementation      "io.reactivex:rxjava:${libVerDemoSimpleRxJava}"
 
     implementation      name:'yakhont', ext:'aar'                                      // Yakhont
 }

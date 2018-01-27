@@ -94,6 +94,14 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        // avoids terminating the application by calls to the Rx uncaught exception handler
+        // actually it's the final application only that should set (or not) such kind of handlers:
+        // it's not advised for intermediate libraries to change the global handlers behavior
+        //
+        // For more info please refer to
+        //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
+        Core.setRxUncaughtExceptionBehavior(false /* not terminate */);
+
         Core.init(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger
                 .builder()
                 .parameters(Dagger2.Parameters.create(USE_GOOGLE_LOCATION_OLD_API,
@@ -180,11 +188,6 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
                 Log.e("MainActivity", "LocationRx: " + throwable);
             }
         });
-
-        // avoids terminating the application by calls to the Rx uncaught exception handler
-        // actually it's the final application only that should set (or not) such kind of handlers:
-        // it's not advised for intermediate libraries to change the global handlers behavior
-        mRx.setErrorHandlerJustLog();
 
         // unsubscribe and unregister goes automatically
         mLocationCallbacks.register(this, mRx);

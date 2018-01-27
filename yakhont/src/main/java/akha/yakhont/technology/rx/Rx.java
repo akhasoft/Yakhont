@@ -51,6 +51,8 @@ public class Rx<D> extends CommonRx<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final boolean                     mHasProducer;
 
+    private static boolean                      sIsErrorHandlerDefined;
+
     /**
      * Initialises a newly created {@code Rx} object.
      */
@@ -76,18 +78,21 @@ public class Rx<D> extends CommonRx<D> {
     }
 
     /**
-     * Please refer to the base method description.
+     * Sets Rx error handler to the empty one. Not advisable at all.
+     *
+     * @see RxJavaHooks#setOnError
      */
-    @Override
-    public void setErrorHandlerEmpty() {
+    @SuppressWarnings("unused")
+    public static void setErrorHandlerEmpty() {
         setErrorHandlerHelper(false);
     }
 
     /**
-     * Please refer to the base method description.
+     * Sets Rx error handler to the one which does logging only.
+     *
+     * @see RxJavaHooks#setOnError
      */
-    @Override
-    public void setErrorHandlerJustLog() {
+    public static void setErrorHandlerJustLog() {
         setErrorHandlerHelper(true);
     }
 
@@ -95,7 +100,7 @@ public class Rx<D> extends CommonRx<D> {
         setErrorHandler(new Action1<Throwable>() {
             @Override
             public void call(Throwable throwable) {
-                if (isLog) CoreLogger.log("Rx error handler", throwable);
+                if (isLog) CoreLogger.log("RxJavaHooks OnError handler", throwable);
             }
         });
     }
@@ -105,10 +110,34 @@ public class Rx<D> extends CommonRx<D> {
      *
      * @param handler
      *        The Rx error handler to set
+     *
+     * @see RxJavaHooks#setOnError
      */
     @SuppressWarnings("WeakerAccess")
     public static void setErrorHandler(final Action1<Throwable> handler) {
         RxJavaHooks.setOnError(handler);
+        sIsErrorHandlerDefined = true;
+    }
+
+    /**
+     * Keeps using default Rx error handler.
+     *
+     * @see RxJavaHooks#setOnError
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static void setErrorHandlerDefault() {
+        sIsErrorHandlerDefined = true;
+    }
+
+    /**
+     * Checks whether the Rx error handler was set or not.
+     *
+     * @return  {@code true} if the Rx error handler was set, {@code false} otherwise
+     *
+     * @see RxJavaHooks#setOnError
+     */
+    public static boolean isErrorHandlerDefined() {
+        return sIsErrorHandlerDefined;
     }
 
     /**
@@ -201,14 +230,66 @@ public class Rx<D> extends CommonRx<D> {
         mRxSubscription.add(subscription);
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
     public static <D> Subscription handle(final Object result, final CallbackRx<D> callback) {
         return result instanceof Observable ? handle((Observable<D>) result, callback):
                result instanceof Single     ? handle((Single<D>    ) result, callback): null;
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static <D> Action1<D> getHandlerData(@NonNull final CallbackRx<D> callback) {
+        return new Action1<D>() {
+            @Override
+            public void call(D data) {
+                callback.onResult(data);
+            }
+        };
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static <D> Action1<Throwable> getHandlerError(@NonNull final CallbackRx<D> callback) {
+        return new Action1<Throwable>() {
+            @Override
+            public void call(Throwable throwable) {
+                callback.onError(throwable);
+            }
+        };
+    }
+
     /**
-     * Handles the {@link Observable} provided.
+     * Handles (subscribes) the {@link Observable} provided.
+     *
+     * @param observable
+     *        The {@link Observable}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param isSafe
+     *        {@code false} to throw {@link rx.exceptions.OnErrorNotImplementedException}
+     *        in case of error, {@code true} otherwise
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Subscription}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Subscription handle(final Observable<D> observable, final CallbackRx<D> callback,
+                                          final boolean isSafe) {
+        if (observable == null) CoreLogger.logError("observable == null");
+        if (callback   == null) CoreLogger.logError("callback == null");
+
+        return observable == null || callback == null ? null: isSafe ?
+                observable.subscribe(getHandlerData(callback), getHandlerError(callback)):
+                observable.doOnError(getHandlerError(callback)).doOnNext(getHandlerData(callback)).subscribe();
+    }
+
+    /**
+     * Handles (subscribes) the {@link Observable} provided.
+     * The subscription behaviour defines by the {@link #getSafeFlag} method.
      *
      * @param observable
      *        The {@link Observable}
@@ -223,27 +304,41 @@ public class Rx<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static <D> Subscription handle(final Observable<D> observable, final CallbackRx<D> callback) {
-        if (observable == null) CoreLogger.logError("observable == null");
-        if (callback   == null) CoreLogger.logError("callback == null");
-
-        return observable == null || callback == null ? null: observable
-                .doOnError(new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        callback.onError(throwable);
-                    }
-                })
-                .doOnNext(new Action1<D>() {
-                    @Override
-                    public void call(D data) {
-                        callback.onResult(data);
-                    }
-                })
-                .subscribe();
+        return handle(observable, callback, getSafeFlag());
     }
 
     /**
-     * Handles the {@link Single} provided.
+     * Handles (subscribes) the {@link Single} provided.
+     *
+     * @param single
+     *        The {@link Single}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param isSafe
+     *        {@code false} to throw {@link rx.exceptions.OnErrorNotImplementedException}
+     *        in case of error, {@code true} otherwise
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Subscription}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Subscription handle(final Single<D> single, final CallbackRx<D> callback,
+                                          final boolean isSafe) {
+        if (single   == null) CoreLogger.logError("single == null");
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return single == null || callback == null ? null: isSafe ?
+                single.subscribe(getHandlerData(callback), getHandlerError(callback)):
+                single.doOnError(getHandlerError(callback)).doOnSuccess(getHandlerData(callback)).subscribe();
+    }
+
+    /**
+     * Handles (subscribes) the {@link Single} provided.
+     * The subscription behaviour defines by the {@link #getSafeFlag} method.
      *
      * @param single
      *        The {@link Single}
@@ -258,24 +353,10 @@ public class Rx<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static <D> Subscription handle(final Single<D> single, final CallbackRx<D> callback) {
-        if (single   == null) CoreLogger.logError("single == null");
-        if (callback == null) CoreLogger.logError("callback == null");
-
-        return single == null || callback == null ? null: single
-                .doOnError(new Action1<Throwable>() {
-                    @Override
-                    public void call(Throwable throwable) {
-                        callback.onError(throwable);
-                    }
-                })
-                .doOnSuccess(new Action1<D>() {
-                    @Override
-                    public void call(D data) {
-                        callback.onResult(data);
-                    }
-                })
-                .subscribe();
+        return handle(single, callback, getSafeFlag());
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean checkNullSubscriber(final Subscriber<? super D> subscriber) {
@@ -392,12 +473,18 @@ public class Rx<D> extends CommonRx<D> {
         return createObservable().toCompletable();
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Represents a group of Subscriptions that are unsubscribed together.
      */
     public static class RxSubscription {
 
-        private final CompositeSubscription     mCompositeSubscription = new CompositeSubscription();
+        private CompositeSubscription           mCompositeSubscription = createContainer();
+
+        private static CompositeSubscription createContainer() {
+            return new CompositeSubscription();
+        }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public void add(final Object result) {
@@ -421,12 +508,24 @@ public class Rx<D> extends CommonRx<D> {
         }
 
         /**
+         * Checks whether the given container is empty or not.
+         *
+         * @return  {@code true} if container is not empty, {@code false} otherwise
+         */
+        public boolean notEmpty() {
+            return mCompositeSubscription.hasSubscriptions();
+        }
+
+        /**
          * Unsubscribes all added {@link Subscription Subscriptions}.
          */
         public void unsubscribe() {
-            if (mCompositeSubscription.hasSubscriptions()) {
+            if (notEmpty()) {
                 CoreLogger.logWarning("Rx unsubscribe");
                 mCompositeSubscription.unsubscribe();
+
+                // not usable after unsubscribe, so creating the new one
+                mCompositeSubscription = createContainer();
             }
             else
                 CoreLogger.log("CompositeSubscription.hasSubscriptions() returns false");

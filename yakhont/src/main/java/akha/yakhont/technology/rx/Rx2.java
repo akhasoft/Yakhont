@@ -55,6 +55,8 @@ public class Rx2<D> extends CommonRx<D> {
 
     private final Disposable                    mDisposable;
 
+    private static boolean                      sIsErrorHandlerDefined;
+
     /**
      * Initialises a newly created {@code Rx2} object.
      */
@@ -74,22 +76,26 @@ public class Rx2<D> extends CommonRx<D> {
     }
 
     /**
-     * Please refer to the base method description.
+     * Sets Rx error handler to the empty one. Not advisable at all.
+     *
+     * @see RxJavaPlugins#setErrorHandler
      */
-    @Override
-    public void setErrorHandlerEmpty() {
+    @SuppressWarnings("unused")
+    public static void setErrorHandlerEmpty() {
         setErrorHandler(Functions.<Throwable>emptyConsumer());
     }
 
     /**
-     * Please refer to the base method description.
+     * Sets Rx error handler to the one which does logging only.
+     * For more info please refer to {@link <a href="https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling">Rx error handling</a>}.
+     *
+     * @see RxJavaPlugins#setErrorHandler
      */
-    @Override
-    public void setErrorHandlerJustLog() {
+    public static void setErrorHandlerJustLog() {
         setErrorHandler(new Consumer<Throwable>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
-                CoreLogger.log("Rx2 error handler", throwable);
+                CoreLogger.log("RxJavaPlugins Error handler", throwable);
             }
         });
     }
@@ -99,10 +105,34 @@ public class Rx2<D> extends CommonRx<D> {
      *
      * @param handler
      *        The Rx error handler to set
+     *
+     * @see RxJavaPlugins#setErrorHandler
      */
     @SuppressWarnings("WeakerAccess")
     public static void setErrorHandler(final Consumer<? super Throwable> handler) {
         RxJavaPlugins.setErrorHandler(handler);
+        sIsErrorHandlerDefined = true;
+    }
+
+    /**
+     * Keeps using default Rx error handler.
+     *
+     * @see RxJavaPlugins#setErrorHandler
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static void setErrorHandlerDefault() {
+        sIsErrorHandlerDefined = true;
+    }
+
+    /**
+     * Checks whether the Rx error handler was set or not.
+     *
+     * @return  {@code true} if the Rx error handler was set, {@code false} otherwise
+     *
+     * @see RxJavaPlugins#setErrorHandler
+     */
+    public static boolean isErrorHandlerDefined() {
+        return sIsErrorHandlerDefined;
     }
 
     /**
@@ -162,11 +192,15 @@ public class Rx2<D> extends CommonRx<D> {
      *
      * @param disposable
      *        The {@link Disposable} to add
+     *
+     * @return  {@code true} if Disposable was successfully added, {@code false} otherwise
      */
-    @SuppressWarnings("WeakerAccess")
-    public void add(final Disposable disposable) {
-        mRx2Disposable.add(disposable);
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    public boolean add(final Disposable disposable) {
+        return mRx2Disposable.add(disposable);
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
     public static <D> Disposable handle(final Object result, final CallbackRx<D> callback) {
@@ -176,8 +210,58 @@ public class Rx2<D> extends CommonRx<D> {
                result instanceof Maybe      ? handle((Maybe<D>     ) result, callback): null;
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static <D> Consumer<D> getHandlerData(@NonNull final CallbackRx<D> callback) {
+        return new Consumer<D>() {
+            @Override
+            public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
+                callback.onResult(data);
+            }
+        };
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static <D> Consumer<Throwable> getHandlerError(@NonNull final CallbackRx<D> callback) {
+        return new Consumer<Throwable>() {
+            @Override
+            public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
+                callback.onError(throwable);
+            }
+        };
+    }
+
     /**
-     * Handles the {@link Flowable} provided.
+     * Handles (subscribes) the {@link Flowable} provided.
+     *
+     * @param flowable
+     *        The {@link Flowable}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param isSafe
+     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
+     *        in case of error, {@code true} otherwise
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Flowable<D> flowable, final CallbackRx<D> callback,
+                                        final boolean isSafe) {
+        if (flowable == null) CoreLogger.logError("flowable == null");
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return flowable == null || callback == null ? null: isSafe ?
+                flowable.subscribe(getHandlerData(callback), getHandlerError(callback)):
+                flowable.doOnError(getHandlerError(callback)).doOnNext(getHandlerData(callback)).subscribe();
+    }
+
+    /**
+     * Handles (subscribes) the {@link Flowable} provided.
+     * The subscription behaviour defines by the {@link #getSafeFlag} method.
      *
      * @param flowable
      *        The {@link Flowable}
@@ -192,27 +276,41 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static <D> Disposable handle(final Flowable<D> flowable, final CallbackRx<D> callback) {
-        if (flowable == null) CoreLogger.logError("flowable == null");
-        if (callback == null) CoreLogger.logError("callback == null");
-
-        return flowable == null || callback == null ? null: flowable
-                .doOnError(new Consumer<Throwable>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
-                        callback.onError(throwable);
-                    }
-                })
-                .doOnNext(new Consumer<D>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
-                        callback.onResult(data);
-                    }
-                })
-                .subscribe();
+        return handle(flowable, callback, getSafeFlag());
     }
 
     /**
-     * Handles the {@link Maybe} provided.
+     * Handles (subscribes) the {@link Maybe} provided.
+     *
+     * @param maybe
+     *        The {@link Maybe}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param isSafe
+     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
+     *        in case of error, {@code true} otherwise
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Maybe<D> maybe, final CallbackRx<D> callback,
+                                        final boolean isSafe) {
+        if (maybe    == null) CoreLogger.logError("maybe == null");
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return maybe == null || callback == null ? null: isSafe ?
+                maybe.subscribe(getHandlerData(callback), getHandlerError(callback)):
+                maybe.doOnError(getHandlerError(callback)).doOnSuccess(getHandlerData(callback)).subscribe();
+    }
+
+    /**
+     * Handles (subscribes) the {@link Maybe} provided.
+     * The subscription behaviour defines by the {@link #getSafeFlag} method.
      *
      * @param maybe
      *        The {@link Maybe}
@@ -227,27 +325,41 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static <D> Disposable handle(final Maybe<D> maybe, final CallbackRx<D> callback) {
-        if (maybe    == null) CoreLogger.logError("maybe == null");
-        if (callback == null) CoreLogger.logError("callback == null");
-
-        return maybe == null || callback == null ? null: maybe
-                .doOnError(new Consumer<Throwable>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
-                        callback.onError(throwable);
-                    }
-                })
-                .doOnSuccess(new Consumer<D>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
-                        callback.onResult(data);
-                    }
-                })
-                .subscribe();
+        return handle(maybe, callback, getSafeFlag());
     }
 
     /**
-     * Handles the {@link Observable} provided.
+     * Handles (subscribes) the {@link Observable} provided.
+     *
+     * @param observable
+     *        The {@link Observable}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param isSafe
+     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
+     *        in case of error, {@code true} otherwise
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Observable<D> observable, final CallbackRx<D> callback,
+                                        final boolean isSafe) {
+        if (observable == null) CoreLogger.logError("observable == null");
+        if (callback   == null) CoreLogger.logError("callback == null");
+
+        return observable == null || callback == null ? null: isSafe ?
+                observable.subscribe(getHandlerData(callback), getHandlerError(callback)):
+                observable.doOnError(getHandlerError(callback)).doOnNext(getHandlerData(callback)).subscribe();
+    }
+
+    /**
+     * Handles (subscribes) the {@link Observable} provided.
+     * The subscription behaviour defines by the {@link #getSafeFlag} method.
      *
      * @param observable
      *        The {@link Observable}
@@ -262,27 +374,41 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static <D> Disposable handle(final Observable<D> observable, final CallbackRx<D> callback) {
-        if (observable == null) CoreLogger.logError("observable == null");
-        if (callback   == null) CoreLogger.logError("callback == null");
-
-        return observable == null || callback == null ? null: observable
-                .doOnError(new Consumer<Throwable>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
-                        callback.onError(throwable);
-                    }
-                })
-                .doOnNext(new Consumer<D>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
-                        callback.onResult(data);
-                    }
-                })
-                .subscribe();
+        return handle(observable, callback, getSafeFlag());
     }
 
     /**
-     * Handles the {@link Single} provided.
+     * Handles (subscribes) the {@link Single} provided.
+     *
+     * @param single
+     *        The {@link Single}
+     *
+     * @param callback
+     *        The {@link CallbackRx}
+     *
+     * @param isSafe
+     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
+     *        in case of error, {@code true} otherwise
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link Disposable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <D> Disposable handle(final Single<D> single, final CallbackRx<D> callback,
+                                        final boolean isSafe) {
+        if (single   == null) CoreLogger.logError("single == null");
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return single == null || callback == null ? null: isSafe ?
+                single.subscribe(getHandlerData(callback), getHandlerError(callback)):
+                single.doOnError(getHandlerError(callback)).doOnSuccess(getHandlerData(callback)).subscribe();
+    }
+
+    /**
+     * Handles (subscribes) the {@link Single} provided.
+     * The subscription behaviour defines by the {@link #getSafeFlag} method.
      *
      * @param single
      *        The {@link Single}
@@ -297,24 +423,10 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static <D> Disposable handle(final Single<D> single, final CallbackRx<D> callback) {
-        if (single   == null) CoreLogger.logError("single == null");
-        if (callback == null) CoreLogger.logError("callback == null");
-
-        return single == null || callback == null ? null: single
-                .doOnError(new Consumer<Throwable>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
-                        callback.onError(throwable);
-                    }
-                })
-                .doOnSuccess(new Consumer<D>() {
-                    @Override
-                    public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
-                        callback.onResult(data);
-                    }
-                })
-                .subscribe();
+        return handle(single, callback, getSafeFlag());
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean checkNullObserver(final Observer<? super D> observer) {
@@ -491,19 +603,27 @@ public class Rx2<D> extends CommonRx<D> {
         return createObservable().ignoreElements();
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * A disposable container that can hold onto multiple other disposables.
      */
     public static class Rx2Disposable {
 
-        private final CompositeDisposable       mCompositeDisposable    = new CompositeDisposable();
+        private CompositeDisposable             mCompositeDisposable    = createContainer();
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        public void add(final Object result) {
+        private static CompositeDisposable createContainer() {
+            return new CompositeDisposable();
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "UnusedReturnValue"})
+        public boolean add(final Object result) {
             if (result instanceof Disposable)
-                add((Disposable) result);
-            else
+                return add((Disposable) result);
+            else {
                 handleUnknownResult(result);
+                return false;
+            }
         }
 
         /**
@@ -511,24 +631,50 @@ public class Rx2<D> extends CommonRx<D> {
          *
          * @param disposable
          *        The {@link Disposable} to add
+         *
+         * @return  {@code true} if Disposable was successfully added, {@code false} otherwise
          */
-        public void add(final Disposable disposable) {
+        public boolean add(final Disposable disposable) {
             if (disposable == null) {
-                CoreLogger.logError("disposable is null");
-                return;
+                CoreLogger.logError("Disposable is null");
+                return false;
             }
-            mCompositeDisposable.add(disposable);
+            boolean result = mCompositeDisposable.add(disposable);
+            if (!result) {
+                if (notEmpty())
+                    CoreLogger.logError("can not add Disposable to not empty container");
+                else {
+                    mCompositeDisposable = createContainer();
+                    result = mCompositeDisposable.add(disposable);
+                    if (!result) CoreLogger.logError("can not add Disposable to container");
+                }
+            }
+            return result;
+        }
+
+        /**
+         * Checks whether the given container is empty or not.
+         *
+         * @return  {@code true} if container is not empty, {@code false} otherwise
+         */
+        public boolean notEmpty() {
+            return mCompositeDisposable.size() > 0;
         }
 
         /**
          * Disposes all added {@link Disposable Disposables}.
          */
         public void unsubscribe() {
-            if (mCompositeDisposable.isDisposed())
+            if (!notEmpty())
+                CoreLogger.log("CompositeDisposable.size() returns 0");
+            else if (mCompositeDisposable.isDisposed())
                 CoreLogger.log("CompositeDisposable.isDisposed() returns true");
             else {
                 CoreLogger.logWarning("Rx2 dispose, size == " + mCompositeDisposable.size());
                 mCompositeDisposable.dispose();
+
+                // not usable after disposing, so creating the new one
+                mCompositeDisposable = createContainer();
             }
         }
     }

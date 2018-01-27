@@ -110,22 +110,6 @@ public abstract class BaseRx<D> {
     }
 
     /**
-     * Please refer to {@link CommonRx#setErrorHandlerEmpty CommonRx.setErrorHandlerEmpty()} description.
-     */
-    @SuppressWarnings("unused")
-    public void setErrorHandlerEmpty() {
-        mCommonRx.setErrorHandlerEmpty();
-    }
-
-    /**
-     * Please refer to {@link CommonRx#setErrorHandlerJustLog CommonRx.setErrorHandlerJustLog()} description.
-     */
-    @SuppressWarnings("unused")
-    public void setErrorHandlerJustLog() {
-        mCommonRx.setErrorHandlerJustLog();
-    }
-
-    /**
      * Returns the last observed item (if any), or null.
      *
      * @return  The last observed item
@@ -334,6 +318,16 @@ public abstract class BaseRx<D> {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final Rx2Disposable           mRx2Disposable      = new Rx2Disposable();
 
+        // statics for anonymous Rx (e.g. in Retrofit API only)
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static final RxSubscription   sRxSubscription     = new RxSubscription();
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static final Rx2Disposable    sRx2Disposable      = new Rx2Disposable();
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static boolean                sSafe               = true;
+
         /**
          * Initialises a newly created {@code CommonRx} object.
          */
@@ -345,30 +339,45 @@ public abstract class BaseRx<D> {
          * Returns the {@link RxSubscription} component.
          *
          * @return  The {@link RxSubscription}
+         *
+         * @see #unsubscribe()
          */
         public RxSubscription getRxSubscriptionHandler() {
             return mRxSubscription;
         }
 
         /**
+         * Returns the anonymous {@link RxSubscription} component.
+         *
+         * @return  The {@link RxSubscription}
+         *
+         * @see #unsubscribeAnonymous()
+         */
+        public static RxSubscription getRxSubscriptionHandlerAnonymous() {
+            return sRxSubscription;
+        }
+
+        /**
          * Returns the {@link Rx2Disposable} component.
          *
          * @return  The {@link Rx2Disposable}
+         *
+         * @see #unsubscribe()
          */
         public Rx2Disposable getRx2DisposableHandler() {
             return mRx2Disposable;
         }
 
         /**
-         * Sets Rx error handler to the empty one. Not advisable at all.
+         * Returns the anonymous {@link Rx2Disposable} component.
+         *
+         * @return  The {@link Rx2Disposable}
+         *
+         * @see #unsubscribeAnonymous()
          */
-        public abstract void setErrorHandlerEmpty();
-
-        /**
-         * Sets Rx error handler to the one which does logging only.
-         * For more info please refer to {@link <a href="https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling">Rx error handling</a>}.
-         */
-        public abstract void setErrorHandlerJustLog();
+        public static Rx2Disposable getRx2DisposableHandlerAnonymous() {
+            return sRx2Disposable;
+        }
 
         /**
          * Stops the receipt of notifications on the registered subscribers (and disposables).
@@ -376,6 +385,22 @@ public abstract class BaseRx<D> {
         public void unsubscribe() {
             mRx2Disposable .unsubscribe();
             mRxSubscription.unsubscribe();
+        }
+
+        /**
+         * Stops the receipt of notifications on the anonymous subscribers (and disposables).
+         * E.g. if Rx is in Retrofit API only.
+         */
+        public static void unsubscribeAnonymous() {
+            final String msg ="about to unregister anonymous %s";
+            if (sRx2Disposable.notEmpty()) {
+                CoreLogger.logWarning(String.format(msg, "disposables"));
+                sRx2Disposable.unsubscribe();
+            }
+            if (sRxSubscription.notEmpty()) {
+                CoreLogger.logWarning(String.format(msg, "subscribers"));
+                sRxSubscription.unsubscribe();
+            }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -430,6 +455,31 @@ public abstract class BaseRx<D> {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected static void handleUnknownResult(final Object result) {
             CoreLogger.logError("unknown Rx " + (result == null ? null: result.getClass()));
+        }
+
+        /**
+         * Returns the 'safe' flag value. Please refer to {@link #setSafeFlag} for more information.
+         *
+         * @return  The 'safe' flag value
+         */
+        @SuppressWarnings("WeakerAccess")
+        public static boolean getSafeFlag() {
+            return sSafe;
+        }
+
+        /**
+         * The 'safe' flag affects subscription behaviour. E.g. for {@code Observable}, if 'safe' flag is {@code true},
+         * executes {@code 'observable.subscribe(dataHandler, errorHandler)'}, otherwise executes
+         * {@code 'observable.doOnError(errorHandler).doOnNext(dataHandler).subscribe()'}.
+         * <p>
+         * So, if 'safe' flag is {@code false} and some error happens, the {@code OnErrorNotImplementedException}
+         * will be thrown.
+         *
+         * @param value
+         *        The new value for the 'safe' flag
+         */
+        public static void setSafeFlag(final boolean value) {
+            sSafe = value;
         }
     }
 
@@ -767,7 +817,7 @@ public abstract class BaseRx<D> {
 
             final E error = baseResponse.getError();
             if (error != null) {
-                onError(error instanceof Throwable ? (Throwable) error: new Exception(error.toString()));
+                onError(BaseResponse.getThrowable(error));
                 return;
             }
 

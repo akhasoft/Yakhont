@@ -31,6 +31,7 @@ import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.annotation.TargetApi;
@@ -182,6 +183,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
             return;
         }
         if (prevRx != null) prevRx.cleanup();
+        CommonRx.unsubscribeAnonymous();
 
         setRxUnchecked(baseResponseLoaderWrapper, rx);
     }
@@ -369,25 +371,26 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      */
     @Override
     public void startLoading() {
-        startLoading(false, false, false, false);
+        startLoading(false, false, false, false, false);
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public void startLoading(final boolean forceCache, final boolean noProgress, final boolean merge, final boolean sync) {
+    public void startLoading(final boolean forceCache, final boolean noProgress,
+                             final boolean merge, final boolean sync, final boolean noErrors) {
         final Collection<BaseLoaderWrapper> loaders = mLoaders;
         if (sync)
             Utils.runInBackground(new Runnable() {
                 @Override
                 public void run() {
-                    BaseLoaderWrapper.startSync(loaders, forceCache, noProgress, merge);
+                    BaseLoaderWrapper.startSync(loaders, forceCache, noProgress, merge, noErrors);
                 }
             });
         else
             for (final BaseLoaderWrapper loader: loaders)
-                loader.start(forceCache, noProgress, merge);
+                loader.start(forceCache, noProgress, merge, noErrors);
     }
 
     /**
@@ -395,7 +398,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      */
     @Override
     public BaseLoaderWrapper startLoading(final int loaderId, final boolean forceCache, final boolean noProgress,
-                                          final boolean merge, final boolean sync) {
+                                          final boolean merge, final boolean sync, final boolean noErrors) {
         setGoBackOnLoadingCanceled(false);
 
         for (final BaseLoaderWrapper loader: mLoaders)
@@ -408,7 +411,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
                         }
                     });
                 else
-                    loader.start(forceCache, noProgress, merge);
+                    loader.start(forceCache, noProgress, merge, noErrors);
 
                 return loader;
             }

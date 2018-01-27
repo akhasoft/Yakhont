@@ -30,10 +30,10 @@ import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.fragment.WorkerFragment;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
-import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderFactory;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
@@ -47,6 +47,7 @@ import android.content.Context;
 import android.content.Loader;
 import android.content.res.Resources;
 import android.os.Build;
+import android.os.Bundle;
 import android.support.annotation.IdRes;
 import android.support.annotation.IntRange;
 import android.support.annotation.LayoutRes;
@@ -361,8 +362,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                     return;
                 }
 
-                logError(baseResponse.getError());
-                displayErrorSafe(makeErrorMessage(baseResponse.getError()));
+                final E error = baseResponse.getError();
+                logError(error);
+                displayErrorSafe(makeErrorMessage(error));
 
                 onFailure(baseResponse);
             }
@@ -744,7 +746,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     public static class ProgressWrapper {
 
         private final   WeakReference<Fragment>           mFragment;
-        private final   boolean                           mNoProgress;
+        private final   boolean                           mNoProgress, mNoError;
         private final   AtomicBoolean                     mProgressShown        = new AtomicBoolean();
         private final   Provider<BaseDialog>              mToast;
 
@@ -757,12 +759,33 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @param noProgress
          *        {@code true} to NOT display progress, {@code false} otherwise
          */
+        @SuppressWarnings({"WeakerAccess", "unused"})
+        public ProgressWrapper(@NonNull final WeakReference<Fragment> fragment,
+                               final boolean noProgress) {
+            this(fragment, noProgress, false);
+        }
+
+        /**
+         * Initialises a newly created {@code ProgressWrapper} object.
+         *
+         * @param fragment
+         *        The fragment
+         *
+         * @param noProgress
+         *        {@code true} to not display progress, {@code false} otherwise
+         *
+         * @param noError
+         *        {@code true} to not display errors, {@code false} otherwise
+         */
         @SuppressWarnings("WeakerAccess")
-        public ProgressWrapper(@NonNull final WeakReference<Fragment> fragment, final boolean noProgress) {
+        public ProgressWrapper(@NonNull final WeakReference<Fragment> fragment,
+                               final boolean noProgress, final boolean noError) {
             mFragment       = fragment;
+
             mNoProgress     = noProgress;
-            
-            mToast          = Core.getDagger().getToastLong();
+            mNoError        = noError;
+
+            mToast          = noError ? null: Core.getDagger().getToastLong();
         }
 
         /**
@@ -797,11 +820,119 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @SuppressWarnings("WeakerAccess")
         public void displayError(@NonNull final String text) {
+            if (mNoError) return;
+
             final Fragment fragment = mFragment.get();
+
             if (fragment == null)
                 CoreLogger.logError("fragment == null");
             else
                 mToast.get().start(fragment.getActivity(), text, null);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Callback interface for a client to interact with loader manager. Extended version of the
+     * {@link android.app.LoaderManager.LoaderCallbacks}.
+     *
+     * @param <C>
+     *        The type of callback
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data in this loader
+     */
+    @SuppressWarnings("unused")
+    public static abstract class LoaderCallback<C, R, E, D>
+            implements LoaderManager.LoaderCallbacks<BaseResponse<R, E, D>> {
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected BaseResponseLoaderWrapper<C, R, E, D> mLoaderWrapper;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public void setLoaderWrapper(final BaseResponseLoaderWrapper<C, R, E, D> loaderWrapper) {
+            mLoaderWrapper = loaderWrapper;
+        }
+
+        /**
+         * Returns the owner of the given object.
+         *
+         * @return  The BaseResponseLoaderWrapper container for this object
+         */
+        public BaseResponseLoaderWrapper<C, R, E, D> getLoaderWrapper() {
+            return mLoaderWrapper;
+        }
+
+        /**
+         * Provides the possibility to customize the loader.
+         *
+         * @param loader
+         *        The loader to use
+         *
+         * @return  The customized loader (default implementation returns the original one)
+         */
+        public Loader<BaseResponse<R, E, D>> onCreateLoader(final Loader<BaseResponse<R, E, D>> loader) {
+            return loader;
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @SuppressWarnings("SameReturnValue")
+        @Override
+        public Loader<BaseResponse<R, E, D>> onCreateLoader(final int id, final Bundle args) {
+            return null;
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @SuppressWarnings("EmptyMethod")
+        @Override
+        public void onLoaderReset(final Loader<BaseResponse<R, E, D>> loader) {
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @SuppressWarnings("EmptyMethod")
+        @Override
+        public void onLoadFinished(final Loader<BaseResponse<R, E, D>> loader,
+                                   final BaseResponse<R, E, D> data) {
+        }
+
+        /**
+         * Called when a loader finished its load. Please refer to
+         * {@link android.app.LoaderManager.LoaderCallbacks#onLoadFinished LoaderCallbacks.onLoadFinished()} for more details.
+         *
+         * @param data
+         *        The data generated by the Loader
+         *
+         * @param source
+         *        The data source
+         */
+        @SuppressWarnings({"UnusedParameters", "EmptyMethod"})
+        public void onLoadFinished(final D data, final Source source) {
+        }
+
+        /**
+         * Called when a loader finished with error.
+         *
+         * @param error
+         *        The error
+         *
+         * @param source
+         *        The data source
+         */
+        @SuppressWarnings("EmptyMethod")
+        public void onLoadError(final E error, final Source source) {
         }
     }
 
@@ -1145,7 +1276,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         protected final Type                            mType;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected LoaderCallback<D>                     mLoaderCallback;
+        protected LoaderCallback<C, R, E, D>            mLoaderCallback;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @Size(min = 1)
@@ -1233,7 +1364,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings("unused")
-        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallback(final LoaderCallback<C, R, E, D> loaderCallback) {
             mLoaderCallback = loaderCallback;
             return this;
         }
@@ -1378,6 +1509,66 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderFactory(@NonNull final LoaderFactory<BaseResponse<R, E, D>> loaderFactory) {
             mLoaderFactory = loaderFactory;
             return this;
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setRx(final LoaderRx<R, E, D> rx) {
+            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setRx(rx);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setViewBinder(final ViewBinder viewBinder) {
+            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setViewBinder(viewBinder);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
+            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setViewHolderCreator(viewHolderCreator);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setListView(final int listViewId) {
+            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setListView(listViewId);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setListItem(final int layoutItemId) {
+            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setListItem(layoutItemId);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setNoBinding(final boolean noBinding) {
+            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setNoBinding(noBinding);
         }
 
         /**

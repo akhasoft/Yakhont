@@ -80,6 +80,8 @@ ext {
 
     projectLibVerDagger     = '2.14.1'
 
+    projectLibVerJavassist  = '3.22.0-GA'
+
     projectProGuardFiles    = ['proguard-google-play-services.pro'                      ,
                                'proguard-gson.pro'                                      ,
                                'proguard-rx-java.pro'                                   ,

@@ -32,6 +32,7 @@ import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderE
 import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2AdapterWrapper;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
+import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx.RxSubscription;
@@ -49,6 +50,7 @@ import android.view.View;
 
 import com.google.gson.reflect.TypeToken;
 
+import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -165,8 +167,14 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         }
 
         final ResponseBody errorBody = response.errorBody();
-        CoreLogger.logError("error " + errorBody);
-        
+        try {
+            final String error = errorBody == null ? null: errorBody.string();
+            CoreLogger.logError("error body: " + error);
+        }
+        catch (IOException exception) {
+            CoreLogger.logError("error body decoding exception: " + exception);
+        }
+
         final int code = response.code();
         onError(call, response, new Exception("error code " + code), loader);
     }
@@ -257,19 +265,19 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
                         return;
                     }
 
-                    if (!Retrofit2CoreLoadBuilder.checkRxComponent(mRx)) return;
+                    //if (!Retrofit2CoreLoadBuilder.checkRxComponent(mRx)) return;
 
                     final CallbackRx<D> callbackRx = Retrofit2CoreLoadBuilder.getRxWrapper(callback);
 
                     Object resultRx = Rx2.handle(result, callbackRx);
                     if (resultRx != null) {
-                        mRx.getRx().getRx2DisposableHandler().add(resultRx);
+                        getRx2DisposableHandler(mRx).add(resultRx);
                         return;
                     }
 
                     resultRx = Rx.handle(result, callbackRx);
                     if (resultRx != null) {
-                        mRx.getRx().getRxSubscriptionHandler().add(resultRx);
+                        getRxSubscriptionHandler(mRx).add(resultRx);
                         return;
                     }
 
@@ -280,6 +288,23 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
                     throw new Exception(text);
                 }
             });
+        }
+
+        private static <R, E, D> Rx2Disposable getRx2DisposableHandler(final LoaderRx<R, E, D> rx) {
+            checkRxComponent(rx);
+            return rx == null ? CommonRx.getRx2DisposableHandlerAnonymous():
+                    rx.getRx().getRx2DisposableHandler();
+        }
+
+        private static <R, E, D> void checkRxComponent(final LoaderRx<R, E, D> rx) {
+            if (rx == null) CoreLogger.logWarning(
+                    "Rx component was not defined, so anonymous handlers will be used");
+        }
+
+        private static <R, E, D> RxSubscription getRxSubscriptionHandler(final LoaderRx<R, E, D> rx) {
+            checkRxComponent(rx);
+            return rx == null ? CommonRx.getRxSubscriptionHandlerAnonymous():
+                    rx.getRx().getRxSubscriptionHandler();
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -330,6 +355,13 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
      *        The type of Retrofit 2 API
      */
     public static class Retrofit2CoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
+
+        /**
+         * Please refer to the base class description.
+         */
+        @SuppressWarnings("unused")
+        public static abstract class LoaderCallback<D> extends BaseLoader.LoaderCallback<Callback<D>, Response<D>, Throwable, D> {
+        }
 
         private final Retrofit2<T>      mRetrofit;
 
@@ -421,11 +453,11 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          */
         @SuppressWarnings("unused")
         public Rx2Disposable getRx2DisposableHandler() {
-            checkRxComponent(mRx);
-            return mRx == null ? null: mRx.getRx().getRx2DisposableHandler();
+            //checkRxComponent(mRx);
+            return Retrofit2LoaderBuilder.getRx2DisposableHandler(mRx);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
         public static <D> boolean checkRxComponent(final LoaderRx<Response<D>, Throwable, D> rx) {
             if (rx == null) CoreLogger.logError("Rx component was not defined");
             return rx != null;
@@ -438,8 +470,8 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          */
         @SuppressWarnings("unused")
         public RxSubscription getRxSubscriptionHandler() {
-            checkRxComponent(mRx);
-            return mRx == null ? null: mRx.getRx().getRxSubscriptionHandler();
+            //checkRxComponent(mRx);
+            return Retrofit2LoaderBuilder.getRxSubscriptionHandler(mRx);
         }
 
         /**

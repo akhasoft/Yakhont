@@ -274,6 +274,13 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
      */
     public static class RetrofitCoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D, T> {
 
+        /**
+         * Please refer to the base class description.
+         */
+        @SuppressWarnings("unused")
+        public static abstract class LoaderCallback<D> extends BaseLoader.LoaderCallback<Callback<D>, Response, Exception, D> {
+        }
+
         private final Retrofit<T>       mRetrofit;
 
         /**

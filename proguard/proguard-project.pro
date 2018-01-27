@@ -32,8 +32,17 @@
 -keep public class * extends android.content.BroadcastReceiver
 -keep public class * extends android.content.ContentProvider
 
+# otherwise there are problems with dynamic permissions
 -keep class android.support.v4.** { *; }
 -keep interface android.support.v4.** { *; }
+
+# just for better stack traces
+-keep class io.reactivex.exceptions.** { *; }
+-keep class retrofit2.HttpException { *; }
+-keep class retrofit2.adapter.rxjava2.HttpException { *; }
+
+-dontnote retrofit2.HttpException
+-dontnote retrofit2.adapter.rxjava2.HttpException
 
 -dontnote android.support.v4.**
 

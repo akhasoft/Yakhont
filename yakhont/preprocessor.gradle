@@ -283,16 +283,18 @@ def makeFlavorSupport(boolean supportAdapter) {
         'loader.BaseLoader'                                           , 'loader.CacheLoader'                              ,
         'retrofit.RetrofitLoaderWrapper'                              , 'retrofit.Retrofit2LoaderWrapper'                 ,
         'wrapper.BaseLoaderWrapper'                                   , 'wrapper.BaseResponseLoaderWrapper'               ,
-        'BaseLoader.CoreLoadBuilder'                                  , 'BaseLoader.CoreLoadExtendedBuilder'              ,
         'BaseFragmentLifecycleProceed.BaseFragmentCallbacks'          , 'BaseFragmentLifecycleProceed.FragmentLifecycle'  ,
-        'BaseLoader.ProgressWrapper'                                  ,
+        'BaseLoader.CoreLoadBuilder'                                  , 'BaseLoader.CoreLoadExtendedBuilder'              ,
+        'BaseLoader.LoaderCallback'                                   , 'BaseLoader.ProgressWrapper'                      ,
         'BaseLoaderWrapper.LoaderBuilder'                             , 'BaseLoaderWrapper.SwipeRefreshWrapper'           ,
         'BaseResponseLoaderWrapper.BaseResponseLoaderBuilder'         , 'BaseResponseLoaderWrapper.CoreLoad'              ,
         'BaseResponseLoaderWrapper.BaseResponseLoaderExtendedBuilder' ,
         'BaseResponseLoaderWrapper.BaseResponseLoaderExtendedWrapper' ,
         'ProgressDialogFragment.ProgressLoaderDialogFragment'         ,
-        'RetrofitLoaderWrapper.RetrofitLoaderBuilder'                 , 'RetrofitLoaderWrapper.RetrofitCoreLoadBuilder'   ,
-        'Retrofit2LoaderWrapper.Retrofit2LoaderBuilder'               , 'Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder' ,
+        'RetrofitLoaderWrapper.RetrofitLoaderBuilder'                 ,
+        'RetrofitLoaderWrapper.RetrofitCoreLoadBuilder'               , 'RetrofitCoreLoadBuilder.LoaderCallback'          ,
+        'Retrofit2LoaderWrapper.Retrofit2LoaderBuilder'               ,
+        'Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder'             , 'Retrofit2CoreLoadBuilder.LoaderCallback'         ,
         'SwipeRefreshWrapper.FragmentData'                            , 'WorkerFragment.WorkerFragmentCallbacks'
     ]
 

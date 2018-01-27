@@ -242,7 +242,14 @@ public class CorePermissions implements ConfigurationChangedListener {
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
         Utils.onActivityResult("CorePermissions", activity, requestCode, resultCode, data);
+        final RequestCodes code = Utils.getRequestCode(requestCode);
 
+        if (code != RequestCodes.PERMISSIONS_RATIONALE_ALERT &&
+            code != RequestCodes.PERMISSIONS_DENIED_ALERT) {
+
+            CoreLogger.logWarning("unknown request code " + requestCode);
+            return;
+        }
         if (data == null) {
             CoreLogger.logError("intent == null");
             return;
@@ -256,7 +263,7 @@ public class CorePermissions implements ConfigurationChangedListener {
                 data.getIntExtra(ARG_VIEW_ID, Core.NOT_VALID_VIEW_ID));
         if (corePermissions == null) return;
 
-        switch (Utils.getRequestCode(requestCode)) {
+        switch (code) {
             case PERMISSIONS_RATIONALE_ALERT:
                 corePermissions.mAlert = null;
 
@@ -302,10 +309,6 @@ public class CorePermissions implements ConfigurationChangedListener {
                         break;
                 }
                 break;
-
-            default:
-                CoreLogger.log("nothing to do");
-                return;
         }
 
         Core.unregister(corePermissions);
@@ -333,7 +336,7 @@ public class CorePermissions implements ConfigurationChangedListener {
         }
 
         if (corePermissions == null)
-            CoreLogger.logWarning("not found " + requestCode);
+            CoreLogger.logWarning("unknown request code " + requestCode);
         else
             onRequestHelper(activity, permissions, grantResults, corePermissions);
     }

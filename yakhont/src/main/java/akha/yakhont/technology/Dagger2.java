@@ -212,7 +212,7 @@ public interface Dagger2 {
         private static Parameters    sInstance;
 
         private Parameters(final int data) {
-            if (sInstance != null) CoreLogger.logError("sInstance != null");
+            if (sInstance != null) CoreLogger.logWarning("sInstance != null");
             mData     = data;
             sInstance = this;
         }

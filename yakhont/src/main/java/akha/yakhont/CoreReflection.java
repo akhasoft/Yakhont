@@ -22,8 +22,10 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -203,6 +205,50 @@ public class CoreReflection {
 
         CoreLogger.logWarning("class " + getClass(object).getName() + ", method " + methodName + " not found");
         return null;
+    }
+
+    /**
+     * Finds list of the overridden methods.
+     *
+     * @param derivedClass
+     *        The class which may override methods of the 'baseClass'
+     *
+     * @param baseClass
+     *        The class which methods could be overridden by the 'derivedClass'
+     *
+     * @return  The list of the overridden methods
+     */
+    @NonNull
+    public static List<Method> findOverriddenMethods(final Class<?> derivedClass, final Class<?> baseClass) {
+        final List<Method> methods = new ArrayList<>();
+        if (derivedClass == null) {
+            CoreLogger.logError("derived class == null");
+            return methods;
+        }
+        if (baseClass == null) {
+            CoreLogger.logError("super class == null");
+            return methods;
+        }
+        if (derivedClass.equals(baseClass)) {
+            CoreLogger.logWarning("derived class and super class are the same: " + derivedClass.getName());
+            return methods;
+        }
+        if (baseClass.equals(Object.class))
+            CoreLogger.logWarning("about to find overridden methods of java.lang.Object: " + derivedClass.getName());
+        if (!baseClass.isAssignableFrom(derivedClass)) {
+            CoreLogger.logError("class " + derivedClass.getName() + " is not derived from " +
+                    baseClass.getName());
+            return methods;
+        }
+        Class tmpClass = derivedClass;
+        for (;;) {
+            final Method[] tmpMethods = tmpClass.getDeclaredMethods();
+            if (tmpMethods != null && tmpMethods.length > 0)
+                Collections.addAll(methods, tmpMethods);
+            tmpClass = tmpClass.getSuperclass();
+            if (tmpClass == null || tmpClass.equals(baseClass)) break;
+        }
+        return methods;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

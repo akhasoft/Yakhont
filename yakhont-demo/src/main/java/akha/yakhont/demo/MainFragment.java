@@ -24,7 +24,6 @@ import akha.yakhont.demo.retrofit.RetrofitApi;
 
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
-import akha.yakhont.loader.BaseResponse.LoaderCallback;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
@@ -74,6 +73,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         implements MeasuredViewAdjuster {
 
     private CoreLoad                    mCoreLoad;
+    @SuppressWarnings("unused")
+    private boolean                     mNotDisplayLoadingErrors;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -110,19 +111,32 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
                     .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
-                    .setLoaderCallback(new LoaderCallback<List<Beer>>() {   // optional callback
+                    // in general, it's an optional callback -
+                    //   but normally you'll want to provide some customization here
+                    .setLoaderCallback(new Retrofit2CoreLoadBuilder.LoaderCallback<List<Beer>>() {
                         @Override
                         public void onLoadFinished(List<Beer> data, Source source) {
                             MainFragment.this.onLoadFinished(data, source);
                         }
+                        /*
+                        @Override
+                        public void onLoadError(Throwable error, Source source) {
+                            // customize your error reporting here
+                            // set 'mNotDisplayLoadingErrors = true' to suppress default
+                            //   error reporting (Toast)
+                            // also, you can do such customization in Rx onError() below
+                        } */
                     })
+
                     .setViewBinder(new ViewBinder() {                       // data binding (optional too)
                         @Override
                         public boolean setViewValue(View view, Object data, String textRepresentation) {
                             return MainFragment.this.setViewValue(view, data, textRepresentation);
                         }
                     })
+
                     .setRx(mRxRetrofit2)                                    // optional
+
                     .create();
         else
             mCoreLoad = new RetrofitCoreLoadBuilder<List<Beer>, RetrofitApi>(
@@ -133,19 +147,23 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
                     .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
-                    .setLoaderCallback(new LoaderCallback<List<Beer>>() {   // optional callback
+                    // see comment above
+                    .setLoaderCallback(new RetrofitCoreLoadBuilder.LoaderCallback<List<Beer>>() {
                         @Override
                         public void onLoadFinished(List<Beer> data, Source source) {
                             MainFragment.this.onLoadFinished(data, source);
                         }
                     })
+
                     .setViewBinder(new ViewBinder() {                       // data binding (optional too)
                         @Override
                         public boolean setViewValue(View view, Object data, String textRepresentation) {
                             return MainFragment.this.setViewValue(view, data, textRepresentation);
                         }
                     })
+
                     .setRx(mRxRetrofit)                                     // optional
+
                     .create();
 
         // clear cache (optional)
@@ -161,7 +179,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         mCoreLoad.setGoBackOnLoadingCanceled(!byUserRequest);
 
         mCoreLoad.startLoading(byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
-            !byUserRequest, mCheckBoxMerge.isChecked(), false);
+            !byUserRequest, mCheckBoxMerge.isChecked(), false, mNotDisplayLoadingErrors);
     }
 
     private void onLoadFinished(List<Beer> data, Source source) {   // called from LoaderManager.LoaderCallbacks.onLoadFinished()
@@ -293,7 +311,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     private void registerSwipeRefresh() {
         SwipeRefreshWrapper.register(MainFragment.this, new FragmentData(
-                MainFragment.this, R.id.swipeContainer, mCheckBoxForce.isChecked(), mCheckBoxMerge.isChecked(), null));
+                MainFragment.this, R.id.swipeContainer, mCheckBoxForce.isChecked(),
+                mCheckBoxMerge.isChecked(), null, mNotDisplayLoadingErrors));
     }
 
     // just a boilerplate code here
@@ -315,7 +334,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         mCheckBoxForce.setOnClickListener(mListener);
         mCheckBoxMerge.setOnClickListener(mListener);
 
-        BaseFragment.onAdjustMeasuredView(this, view);
+        BaseFragment.onAdjustMeasuredView(this, view.findViewById(R.id.container));
 
         mSlideShow.init(view);
 

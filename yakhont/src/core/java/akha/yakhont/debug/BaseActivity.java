@@ -609,7 +609,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      *             // save changes and exit ActionMode
      *     }
      *
-     *     // 'onPrepareActionMode(...)' and 'onActionItemClicked(...)'
+     *     // methods 'onPrepareActionMode(...)' and 'onActionItemClicked(...)'
      *     // are skipped for simplification
      * };
      * </pre>
