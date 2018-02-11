@@ -18,7 +18,7 @@ package akha.yakhont.demo.gui;
 
 import akha.yakhont.demo.R;
 
-import akha.yakhont.Core;
+import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 
 import android.animation.Animator;
 import android.animation.FloatEvaluator;
@@ -54,12 +54,10 @@ import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UpdateAppearance;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.Property;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.widget.TextView;
@@ -201,7 +199,7 @@ public class Bubbles {
         final TextView view = (TextView) sLayoutInflater.inflate(R.layout.bubbles_text_view, null);
 
         int backgroundColor = sFunColors.getColor(sFunColorsOrder.get(), Color.TRANSPARENT /* just stub */ );
-        int color = Core.Utils.getInvertedColor(backgroundColor);
+        int color = akha.yakhont.Core.Utils.getInvertedColor(backgroundColor);
 
         ShapeDrawable background = new ShapeDrawable(new OvalShape());
         background.getPaint().setColor(backgroundColor);
@@ -222,28 +220,12 @@ public class Bubbles {
         }
         getRootLayout().addView(view);
 
-        view.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+        akha.yakhont.Core.Utils.onAdjustMeasuredView(new MeasuredViewAdjuster() {
             @Override
-            public void onGlobalLayout() {
-                try {
-                    startAnimation(view);
-                }
-                catch (Exception e) {
-                    Log.e("Bubbles", "onAdjustMeasuredView", e);
-                }
-                finally {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-                        view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                    else
-                        removeListener();
-                }
+            public void adjustMeasuredView(View view) {
+                startAnimation((TextView) view);
             }
-            
-            @SuppressWarnings("deprecation")
-            private void removeListener() {
-                view.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-            }
-        });
+        }, view);
     }
 
     @SuppressWarnings("deprecation")

@@ -40,7 +40,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
@@ -267,9 +266,13 @@ public class BaseCacheProvider extends ContentProvider {
         final String tableName = Utils.getLoaderTableName(uri);
         CoreLogger.log(String.format(getLocale(), "table %s, %d rows", tableName, bulkValues.length));
 
+        final SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        if (!isTableExist(tableName))
+            createTable(db, tableName, getColumns(tableName, bulkValues));
+
         switch (mUriMatcher.match(uri)) {
             case ALL:
-                runTransaction(mDbHelper.getWritableDatabase(), new Runnable() {
+                runTransaction(db, new Runnable() {
                     @Override
                     public void run() {
                         for (final ContentValues values: bulkValues)
@@ -412,10 +415,13 @@ public class BaseCacheProvider extends ContentProvider {
             mDbHelper.getWritableDatabase().query(tableName, new String[] {columnName}, null, null, null, null, null, "1");
             return true;
         }
-        catch (SQLException e) {
-            CoreLogger.log(Level.DEBUG, tableName, e);
-            return false;
+        catch (SQLException exception) {
+            CoreLogger.log(Level.DEBUG, tableName, exception);
         }
+        catch (Exception exception) {
+            CoreLogger.log(tableName, exception);
+        }
+        return false;
     }
 
     /**
@@ -527,9 +533,9 @@ public class BaseCacheProvider extends ContentProvider {
             runnable.run();
             db.setTransactionSuccessful();
         }
-        catch (Exception e) {
-            CoreLogger.log("transaction failed", e);
-            throw e;
+        catch (Exception exception) {
+            CoreLogger.log("transaction failed", exception);
+            throw exception;
         }
         finally {
             db.endTransaction();
@@ -584,8 +590,8 @@ public class BaseCacheProvider extends ContentProvider {
             }
             return true;
         }
-        catch (IOException | SQLException e) {
-            CoreLogger.log(scriptName, e);
+        catch (/*IOException | SQL*/Exception exception) {
+            CoreLogger.log(scriptName, exception);
             return false;
         }
     }

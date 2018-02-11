@@ -77,7 +77,7 @@ public class SupportHelper {                    // support
     }
 
     public static void registerValidateFragmentCallbacks() {
-        BaseFragmentLifecycleProceed.register(new ValidateFragmentCallbacks());
+        BaseFragmentLifecycleProceed.register(new ValidateFragmentCallbacks(), true);
     }
 
     public static void showLocationErrorDialog(final Activity activity, final int errorCode) {

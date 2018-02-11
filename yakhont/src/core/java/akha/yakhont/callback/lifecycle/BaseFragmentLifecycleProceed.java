@@ -116,7 +116,25 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      */
     @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "SameReturnValue", "unused"})
     public static boolean register(@NonNull final BaseFragmentCallbacks callbacks) {
-        return register(sCallbacks, callbacks, FragmentLifecycle.class, CALLBACKS);
+        return register(callbacks, false);
+    }
+
+    /**
+     * Registers the callbacks handler.
+     *
+     * @param callbacks
+     *        The callbacks handler to register
+     *
+     * @param silent
+     *        {@code true} to suppress 'no implemented callbacks' error reporting
+     *
+     * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
+     */
+    @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "SameReturnValue", "unused"})
+    public static boolean register(@NonNull final BaseFragmentCallbacks callbacks,
+                                   final boolean silent) {
+        return register(sCallbacks, callbacks, FragmentLifecycle.class, CALLBACKS,
+                BaseFragmentCallbacks.class, silent);
     }
 
     /**

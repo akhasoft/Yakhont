@@ -612,6 +612,12 @@ public abstract class BaseCallbacks<T> {
          * @param namesMap
          *        The lifecycle callbacks method's names to enumeration mapping
          *
+         * @param baseClass
+         *        The type of the base callbacks handler
+         *
+         * @param silent
+         *        {@code true} to suppress 'no implemented callbacks' error reporting
+         *
          * @param <E>
          *        The type of the lifecycle enumeration
          *
@@ -623,25 +629,25 @@ public abstract class BaseCallbacks<T> {
         @SuppressWarnings({"WeakerAccess", "SameReturnValue", "SameParameterValue"})
         public static <E extends Enum<E>, C extends BaseCacheCallbacks> boolean register(
                 @NonNull final Map<C, Set<E>> callbacksMap, @NonNull final C callbacks,
-                @NonNull final Class<E> type, @NonNull final Map<String, E> namesMap) {
+                @NonNull final Class<E> type, @NonNull final Map<String, E> namesMap,
+                @NonNull final Class<? extends BaseCacheCallbacks> baseClass, final boolean silent) {
 
-            final Set<E> lifeCycles = getImplementedCallbacks(callbacks, type, namesMap);
-            if (lifeCycles.size() == 0)
-                CoreLogger.logWarning("no implemented callbacks found for " + callbacks.getClass().getName());
+            final Set<E> lifeCycles = getImplementedCallbacks(callbacks, type, namesMap,
+                    baseClass, silent);
 
             return register(callbacksMap, callbacks, lifeCycles);
         }
 
         @NonNull
         private static <E extends Enum<E>, C extends BaseCacheCallbacks> Set<E> getImplementedCallbacks(
-                @NonNull final C callbacks, @NonNull final Class<E> type, @NonNull final Map<String, E> namesMap) {
+                @NonNull final C callbacks, @NonNull final Class<E> type, @NonNull final Map<String, E> namesMap,
+                @NonNull final Class<? extends BaseCacheCallbacks> baseClass, final boolean silent) {
 
             final EnumSet<E> lifeCycles = EnumSet.noneOf(type);
 
             final Class callbacksClass = callbacks.getClass();
 
-            final List<Method> methods = CoreReflection.findOverriddenMethods(
-                    callbacksClass, BaseCacheCallbacks.class);
+            final List<Method> methods = CoreReflection.findOverriddenMethods(callbacksClass, baseClass);
             for (final Method method: methods) {
                 final E lifeCycle = namesMap.get(method.getName());
                 if (lifeCycle != null) lifeCycles.add(lifeCycle);
@@ -653,7 +659,8 @@ public abstract class BaseCallbacks<T> {
                     CoreLogger.log("  " + lifeCycle.name());
             }
             else
-                CoreLogger.logError("no implemented callbacks found in " + callbacksClass.getName());
+                if (!silent) CoreLogger.logError("no implemented callbacks found in " +
+                        callbacksClass.getName());
 
             return Collections.unmodifiableSet(lifeCycles);
         }

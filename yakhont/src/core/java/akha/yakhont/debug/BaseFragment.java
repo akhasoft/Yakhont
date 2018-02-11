@@ -21,7 +21,6 @@ import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 
-import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Fragment;
@@ -37,7 +36,6 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 
 import java.util.Arrays;
 
@@ -456,74 +454,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @SuppressWarnings("unused")                                                                 //YakhontPreprocessor:removeInGenerated
     protected void onAdjustMeasuredView(@NonNull final View view) {                             //YakhontPreprocessor:removeInGenerated
-        onAdjustMeasuredView(mViewAdjusterImpl, view);                                          //YakhontPreprocessor:removeInGenerated
-    }                                                                                           //YakhontPreprocessor:removeInGenerated
-
-    /**
-     * The callback helper for calling
-     * {@link akha.yakhont.Core.Utils.MeasuredViewAdjuster#adjustMeasuredView(View)}. For example:
-     *
-     * <pre style="background-color: silver; border: thin solid black;">
-     * import akha.yakhont.Core;
-     *
-     * public class MyFragment extends Fragment
-     *         implements Core.Utils.MeasuredViewAdjuster {
-     *
-     *     &#064;Override
-     *     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-     *                              Bundle savedInstanceState) {
-     *         super.onCreateView(inflater, container, savedInstanceState);
-     *
-     *         View view = ...;
-     *
-     *         BaseFragment.onAdjustMeasuredView(this, view);
-     *         return view;
-     *     }
-     *
-     *     &#064;Override
-     *     public void adjustMeasuredView(View view) {
-     *         int height = view.getMeasuredHeight();
-     *         int width  = view.getMeasuredWidth();
-     *
-     *         // your code here
-     *     }
-     * }
-     * </pre>
-     *
-     * @param container
-     *        The view container (e.g. Fragment)
-     *
-     * @param view
-     *        The view to handle
-     */
-    @SuppressWarnings("WeakerAccess")                                                           //YakhontPreprocessor:removeInGenerated
-    @SuppressLint("ObsoleteSdkInt")                                                             //YakhontPreprocessor:removeInGenerated
-    public static void onAdjustMeasuredView(@NonNull final MeasuredViewAdjuster container,      //YakhontPreprocessor:removeInGenerated
-                                            @NonNull final View                 view) {         //YakhontPreprocessor:removeInGenerated
-        view.getViewTreeObserver().addOnGlobalLayoutListener(                                   //YakhontPreprocessor:removeInGenerated
-                new ViewTreeObserver.OnGlobalLayoutListener() {                                 //YakhontPreprocessor:removeInGenerated
-
-                    @Override                                                                   //YakhontPreprocessor:removeInGenerated
-                    public void onGlobalLayout() {                                              //YakhontPreprocessor:removeInGenerated
-                        try {                                                                   //YakhontPreprocessor:removeInGenerated
-                            container.adjustMeasuredView(view);                                 //YakhontPreprocessor:removeInGenerated
-                        }                                                                       //YakhontPreprocessor:removeInGenerated
-                        catch (Exception e) {                                                   //YakhontPreprocessor:removeInGenerated
-                            CoreLogger.log("onGlobalLayout failed", e);                     //YakhontPreprocessor:removeInGenerated
-                        }                                                                       //YakhontPreprocessor:removeInGenerated
-                        finally {                                                               //YakhontPreprocessor:removeInGenerated
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)        //YakhontPreprocessor:removeInGenerated
-                                view.getViewTreeObserver().removeOnGlobalLayoutListener(this); //YakhontPreprocessor:removeInGenerated
-                            else                                                                //YakhontPreprocessor:removeInGenerated
-                                removeListener();                                               //YakhontPreprocessor:removeInGenerated
-                        }                                                                       //YakhontPreprocessor:removeInGenerated
-                    }                                                                           //YakhontPreprocessor:removeInGenerated
-
-                    @SuppressWarnings("deprecation")                                            //YakhontPreprocessor:removeInGenerated
-                    private void removeListener() {                                             //YakhontPreprocessor:removeInGenerated
-                        view.getViewTreeObserver().removeGlobalOnLayoutListener(this);   //YakhontPreprocessor:removeInGenerated
-                    }                                                                           //YakhontPreprocessor:removeInGenerated
-                });                                                                             //YakhontPreprocessor:removeInGenerated
+        Utils.onAdjustMeasuredView(mViewAdjusterImpl, view);                                    //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated
 
     class MeasuredViewAdjusterImpl implements MeasuredViewAdjuster {                            //YakhontPreprocessor:removeInGenerated

@@ -269,7 +269,8 @@ public class Rx<D> extends CommonRx<D> {
      *
      * @param isSafe
      *        {@code false} to throw {@link rx.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise
+     *        in case of error, {@code true} otherwise;
+     *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
      *        The type of data
@@ -318,7 +319,8 @@ public class Rx<D> extends CommonRx<D> {
      *
      * @param isSafe
      *        {@code false} to throw {@link rx.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise
+     *        in case of error, {@code true} otherwise;
+     *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
      *        The type of data
@@ -477,10 +479,12 @@ public class Rx<D> extends CommonRx<D> {
 
     /**
      * Represents a group of Subscriptions that are unsubscribed together.
+     * Unlike {@link CompositeSubscription}, it's reusable.
      */
     public static class RxSubscription {
 
-        private CompositeSubscription           mCompositeSubscription = createContainer();
+        private CompositeSubscription           mCompositeSubscription  = createContainer();
+        private final Object                    mLock                   = new Object();
 
         private static CompositeSubscription createContainer() {
             return new CompositeSubscription();
@@ -503,8 +507,11 @@ public class Rx<D> extends CommonRx<D> {
         public void add(final Subscription subscription) {
             if (subscription == null)
                 CoreLogger.logError("subscription is null");
-            else
-                mCompositeSubscription.add(subscription);
+            else {
+                synchronized (mLock) {
+                    mCompositeSubscription.add(subscription);
+                }
+            }
         }
 
         /**
@@ -513,22 +520,26 @@ public class Rx<D> extends CommonRx<D> {
          * @return  {@code true} if container is not empty, {@code false} otherwise
          */
         public boolean notEmpty() {
-            return mCompositeSubscription.hasSubscriptions();
+            synchronized (mLock) {
+                return mCompositeSubscription.hasSubscriptions();
+            }
         }
 
         /**
          * Unsubscribes all added {@link Subscription Subscriptions}.
          */
         public void unsubscribe() {
-            if (notEmpty()) {
-                CoreLogger.logWarning("Rx unsubscribe");
-                mCompositeSubscription.unsubscribe();
+            synchronized (mLock) {
+                if (notEmpty()) {
+                    CoreLogger.logWarning("Rx unsubscribe");
+                    mCompositeSubscription.unsubscribe();
 
-                // not usable after unsubscribe, so creating the new one
-                mCompositeSubscription = createContainer();
+                    // not usable after unsubscribe, so creating the new one
+                    mCompositeSubscription = createContainer();
+                }
+                else
+                    CoreLogger.log("CompositeSubscription.hasSubscriptions() returns false");
             }
-            else
-                CoreLogger.log("CompositeSubscription.hasSubscriptions() returns false");
         }
     }
 }

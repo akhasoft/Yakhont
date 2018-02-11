@@ -608,7 +608,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         }
 
         /**
-         * Sets the loader callback. Simplified version of the {@link #setLoaderCallbacks(LoaderManager.LoaderCallbacks)}.
+         * Sets the loader callback. Extended version of the {@link #setLoaderCallbacks(LoaderManager.LoaderCallbacks)}.
          *
          * @param loaderCallbacks
          *        The loader callbacks

@@ -22,6 +22,7 @@ import akha.yakhont.demo.model.Beer;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 
+import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseResponse.Source;
@@ -29,7 +30,6 @@ import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
-import akha.yakhont.support.debug.BaseFragment;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
 import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper;
@@ -43,7 +43,6 @@ import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2
 // also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont' (or 'yakhont-full')
 
 /*
-import akha.yakhont.debug.BaseFragment;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
@@ -334,7 +333,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         mCheckBoxForce.setOnClickListener(mListener);
         mCheckBoxMerge.setOnClickListener(mListener);
 
-        BaseFragment.onAdjustMeasuredView(this, view.findViewById(R.id.container));
+        Utils.onAdjustMeasuredView(this, view.findViewById(R.id.container));
 
         mSlideShow.init(view);
 

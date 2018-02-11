@@ -174,6 +174,9 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         catch (IOException exception) {
             CoreLogger.logError("error body decoding exception: " + exception);
         }
+        catch (OutOfMemoryError error) {
+            CoreLogger.logError("error body is extremely large: " + error);
+        }
 
         final int code = response.code();
         onError(call, response, new Exception("error code " + code), loader);

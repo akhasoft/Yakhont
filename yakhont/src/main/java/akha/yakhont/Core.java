@@ -63,6 +63,7 @@ import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.Toast;
 
@@ -528,7 +529,7 @@ public class Core {
         // don't remove
         SupportHelper.registerValidateFragmentCallbacks();
         // don't remove
-        register(new ValidateActivityCallbacks());
+        BaseActivityLifecycleProceed.register(new ValidateActivityCallbacks(), true);
 
         register((BaseActivityCallbacks) new HideKeyboardCallbacks()               .setForceProceed(true));
         register((BaseActivityCallbacks) new OrientationCallbacks()                .setForceProceed(true));
@@ -1560,7 +1561,7 @@ public class Core {
         /**
          *  The API for measured view layout adjusting.
          *
-         * @yakhont.see BaseFragment#onAdjustMeasuredView(Core.Utils.MeasuredViewAdjuster,View) BaseFragment.onAdjustMeasuredView(MeasuredViewAdjuster, View)
+         * @see #onAdjustMeasuredView(MeasuredViewAdjuster, View)
          */
         public interface MeasuredViewAdjuster {
 
@@ -1572,6 +1573,50 @@ public class Core {
              *        The view to handle
              */
             void adjustMeasuredView(View view);
+        }
+
+        /**
+         * The callback helper for calling
+         * {@link MeasuredViewAdjuster#adjustMeasuredView(View)}. For example:
+         *
+         * <pre style="background-color: silver; border: thin solid black;">
+         * import akha.yakhont.Core;
+         *
+         * public class MyFragment extends Fragment
+         *         implements Core.Utils.MeasuredViewAdjuster {
+         *
+         *     &#064;Override
+         *     public View onCreateView(LayoutInflater inflater, ViewGroup container,
+         *                              Bundle savedInstanceState) {
+         *         super.onCreateView(inflater, container, savedInstanceState);
+         *
+         *         View view = ...;
+         *
+         *         Core.Utils.onAdjustMeasuredView(this, view);
+         *         return view;
+         *     }
+         *
+         *     &#064;Override
+         *     public void adjustMeasuredView(View view) {
+         *         int height = view.getMeasuredHeight();
+         *         int width  = view.getMeasuredWidth();
+         *
+         *         // your code here
+         *     }
+         * }
+         * </pre>
+         *
+         * @param container
+         *        The view container (e.g. Fragment)
+         *
+         * @param view
+         *        The view to handle
+         */
+        @SuppressWarnings("WeakerAccess")                                                           //YakhontPreprocessor:removeInGenerated
+        @SuppressLint("ObsoleteSdkInt")                                                             //YakhontPreprocessor:removeInGenerated
+        public static void onAdjustMeasuredView(@NonNull final MeasuredViewAdjuster container,
+                                                @NonNull final View                 view) {
+            ViewHelper.onAdjustMeasuredView(container, view);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1593,6 +1638,35 @@ public class Core {
                     android.R.id.content;
             @IdRes
             private static int                          sDefViewId                      = DEF_VIEW_ID;
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static void onAdjustMeasuredView(@NonNull final MeasuredViewAdjuster container,
+                                                    @NonNull final View                 view) {
+                view.getViewTreeObserver().addOnGlobalLayoutListener(
+                        new ViewTreeObserver.OnGlobalLayoutListener() {
+
+                            @Override
+                            public void onGlobalLayout() {
+                                try {
+                                    container.adjustMeasuredView(view);
+                                }
+                                catch (Exception e) {
+                                    CoreLogger.log("onGlobalLayout failed", e);
+                                }
+                                finally {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+                                        view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                                    else
+                                        removeListener();
+                                }
+                            }
+
+                            @SuppressWarnings("deprecation")
+                            private void removeListener() {
+                                view.getViewTreeObserver().removeGlobalOnLayoutListener(this);
+                            }
+                        });
+            }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public static boolean visitView(@NonNull final View        parentView,

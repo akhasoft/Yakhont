@@ -22,6 +22,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -233,22 +234,185 @@ public class CoreReflection {
             CoreLogger.logWarning("derived class and super class are the same: " + derivedClass.getName());
             return methods;
         }
-        if (baseClass.equals(Object.class))
-            CoreLogger.logWarning("about to find overridden methods of java.lang.Object: " + derivedClass.getName());
         if (!baseClass.isAssignableFrom(derivedClass)) {
             CoreLogger.logError("class " + derivedClass.getName() + " is not derived from " +
                     baseClass.getName());
             return methods;
         }
-        Class tmpClass = derivedClass;
-        for (;;) {
-            final Method[] tmpMethods = tmpClass.getDeclaredMethods();
-            if (tmpMethods != null && tmpMethods.length > 0)
-                Collections.addAll(methods, tmpMethods);
-            tmpClass = tmpClass.getSuperclass();
-            if (tmpClass == null || tmpClass.equals(baseClass)) break;
+        if (baseClass.equals(Object.class))
+            CoreLogger.logWarning("about to find overridden methods of java.lang.Object: " + derivedClass.getName());
+
+        final List<Method> derivedMethods = findMethods(derivedClass, baseClass,
+                true, true, false, true,
+                false, true);
+        final List<Method>    baseMethods = findMethods(baseClass, null,
+                true, true, false, true,
+                false, true);
+
+        for (final Method derivedMethod: derivedMethods) {
+            final int modifiers = derivedMethod.getModifiers();
+            if (Modifier.isStatic  (modifiers) ||
+                Modifier.isAbstract(modifiers)) continue;
+
+            for (final Method baseMethod: baseMethods) {
+                final int baseModifiers = baseMethod.getModifiers();
+                if (Modifier.isStatic(baseModifiers) ||
+                    Modifier.isFinal (baseModifiers)) continue;
+
+                final Boolean check = methodsEquals(baseMethod, derivedMethod);
+                if (check != null && check) {
+                    methods.add(derivedMethod);
+                    break;
+                }
+            }
         }
         return methods;
+    }
+
+    /**
+     * Compares methods by name, parameters and return type.
+     *
+     * @param method1
+     *        The 1st method to compare
+     *
+     * @param method2
+     *        The 2nd method to compare
+     *
+     * @return  {@code true} if name, parameters and return type are the same,
+     *          {@code false} if name or parameters are not the same,
+     *          {@code null} if name and parameters are the same, but return types are not
+     *          (it's not possible in source code - but possible on the JVM level)
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static Boolean methodsEquals(final Method method1, final Method method2) {
+        if (method1 == null)
+            CoreLogger.logError("method1 == null");
+        else if (method2 == null)
+            CoreLogger.logError("method2 == null");
+        else {
+            final String name1 = method1.getName();
+            final String name2 = method2.getName();
+            if (!name1.equals(name2)) return false;
+
+            final Class<?>[] params1 = method1.getParameterTypes();
+            final Class<?>[] params2 = method2.getParameterTypes();
+            if (params1.length != params2.length) return false;
+
+            for (int i = 0; i < params1.length; i++)
+                if (!params1[i].equals(params2[i])) return false;
+
+            final Class<?> return1 = method1.getReturnType();
+            final Class<?> return2 = method2.getReturnType();
+            if (return1.equals(return2)) return true;
+
+            CoreLogger.logWarning("return types of methods " + name1 + " are not the same: " +
+                    return1.getName() + " and " + return2.getName());
+            return null;
+        }
+        return false;
+    }
+
+    /**
+     * Checks the scope of the method.
+     *
+     * @param method
+     *        The method to check
+     *
+     * @return  {@code true} if the method has "package-private" (default) scope, {@code false} otherwise
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static boolean isPackagePrivate(final Method method) {
+        if (method == null) {
+            CoreLogger.logError("method == null");
+            return false;
+        }
+        final int modifiers = method.getModifiers();
+        return !Modifier.isPublic (modifiers) && !Modifier.isProtected(modifiers) &&
+               !Modifier.isPrivate(modifiers);
+    }
+
+    /**
+     * Finds list of methods of the class, based on selection flags (see below).
+     *
+     * @param methodsClass
+     *        The class which methods should be retrieved
+     *
+     * @param stopClass
+     *        The super class(es) methods are retrieved too; specifies at which (if any) of super class
+     *        algorithm should stop retrieving methods
+     *
+     * @param includePublic
+     *        {@code true} to include public methods, {@code false} otherwise
+     *
+     * @param includeProtected
+     *        {@code true} to include protected methods, {@code false} otherwise
+     *
+     * @param includePrivate
+     *        {@code true} to include private methods, {@code false} otherwise
+     *
+     * @param includePackage
+     *        {@code true} to include package-private methods, {@code false} otherwise
+     *
+     * @param includeSynthetic
+     *        {@code true} to include synthetic methods only, {@code false} to exclude them,
+     *        {@code null} to include all (no check for 'synthetic' flag)
+     *
+     * @param includeBridge
+     *        {@code true} to include bridge methods only, {@code false} to exclude them,
+     *        {@code null} to include all (no check for 'bridge' flag);
+     *        if set, 'includeBridge' has higher priority than 'includeSynthetic'
+     *
+     * @return  The list of selected methods of the class
+     */
+    @SuppressWarnings({"ConstantConditions" /* lint complains: method too complex to analyze :-) */, "WeakerAccess", "SameParameterValue"})
+    @NonNull
+    public static List<Method> findMethods(final Class<?> methodsClass, final Class<?> stopClass,
+                                           final boolean includePublic,    final boolean includeProtected,
+                                           final boolean includePrivate,   final boolean includePackage,
+                                           final Boolean includeSynthetic, final Boolean includeBridge) {
+        final List<Method> methods = new ArrayList<>();
+        if (methodsClass == null) {
+            CoreLogger.logError("class == null");
+            return methods;
+        }
+        Class tmpClass = methodsClass;
+        for (;;) {
+            final Method[] tmpMethods = tmpClass.getDeclaredMethods();
+            for (final Method method: tmpMethods) {
+                final int modifiers = method.getModifiers();
+
+                if (!includePublic    && Modifier.isPublic   (modifiers)) continue;
+                if (!includeProtected && Modifier.isProtected(modifiers)) continue;
+                if (!includePrivate   && Modifier.isPrivate  (modifiers)) continue;
+                if (!includePackage   && isPackagePrivate    (method))    continue;
+
+                if (includeSynthetic == null) {
+                    if (skipBridge(includeBridge, method)) continue;
+                }
+                else if (includeSynthetic) {
+                    if (!method.isSynthetic())             continue;
+                    if (skipBridge(includeBridge, method)) continue;
+                }
+                else if (method.isSynthetic()) {
+                    if (includeBridge != null && includeBridge && method.isBridge())
+                        CoreLogger.logWarning("although synthetic methods should be excluded, " +
+                                "we include bridge method " + method.getName());
+                    else
+                        continue;
+                }
+
+                methods.add(method);
+            }
+            if (methodsClass.equals(stopClass)) break;
+
+            tmpClass = tmpClass.getSuperclass();
+            if (tmpClass == null || tmpClass.equals(stopClass)) break;
+        }
+        return methods;
+    }
+
+    private static boolean skipBridge(final Boolean includeBridge, final Method method) {
+        return includeBridge != null && includeBridge != method.isBridge();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

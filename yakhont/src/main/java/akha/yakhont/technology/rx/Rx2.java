@@ -241,7 +241,8 @@ public class Rx2<D> extends CommonRx<D> {
      *
      * @param isSafe
      *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise
+     *        in case of error, {@code true} otherwise;
+     *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
      *        The type of data
@@ -290,7 +291,8 @@ public class Rx2<D> extends CommonRx<D> {
      *
      * @param isSafe
      *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise
+     *        in case of error, {@code true} otherwise;
+     *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
      *        The type of data
@@ -339,7 +341,8 @@ public class Rx2<D> extends CommonRx<D> {
      *
      * @param isSafe
      *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise
+     *        in case of error, {@code true} otherwise;
+     *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
      *        The type of data
@@ -388,7 +391,8 @@ public class Rx2<D> extends CommonRx<D> {
      *
      * @param isSafe
      *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise
+     *        in case of error, {@code true} otherwise;
+     *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
      *        The type of data
@@ -607,10 +611,12 @@ public class Rx2<D> extends CommonRx<D> {
 
     /**
      * A disposable container that can hold onto multiple other disposables.
+     * Unlike {@link CompositeDisposable}, it's reusable.
      */
     public static class Rx2Disposable {
 
         private CompositeDisposable             mCompositeDisposable    = createContainer();
+        private final Object                    mLock                   = new Object();
 
         private static CompositeDisposable createContainer() {
             return new CompositeDisposable();
@@ -639,17 +645,19 @@ public class Rx2<D> extends CommonRx<D> {
                 CoreLogger.logError("Disposable is null");
                 return false;
             }
-            boolean result = mCompositeDisposable.add(disposable);
-            if (!result) {
-                if (notEmpty())
-                    CoreLogger.logError("can not add Disposable to not empty container");
-                else {
-                    mCompositeDisposable = createContainer();
-                    result = mCompositeDisposable.add(disposable);
-                    if (!result) CoreLogger.logError("can not add Disposable to container");
+            synchronized (mLock) {
+                boolean result = mCompositeDisposable.add(disposable);
+                if (!result) {
+                    if (notEmpty())
+                        CoreLogger.logError("can not add Disposable to not empty container");
+                    else {
+                        mCompositeDisposable = createContainer();
+                        result = mCompositeDisposable.add(disposable);
+                        if (!result) CoreLogger.logError("can not add Disposable to container");
+                    }
                 }
+                return result;
             }
-            return result;
         }
 
         /**
@@ -658,23 +666,27 @@ public class Rx2<D> extends CommonRx<D> {
          * @return  {@code true} if container is not empty, {@code false} otherwise
          */
         public boolean notEmpty() {
-            return mCompositeDisposable.size() > 0;
+            synchronized (mLock) {
+                return mCompositeDisposable.size() > 0;
+            }
         }
 
         /**
          * Disposes all added {@link Disposable Disposables}.
          */
         public void unsubscribe() {
-            if (!notEmpty())
-                CoreLogger.log("CompositeDisposable.size() returns 0");
-            else if (mCompositeDisposable.isDisposed())
-                CoreLogger.log("CompositeDisposable.isDisposed() returns true");
-            else {
-                CoreLogger.logWarning("Rx2 dispose, size == " + mCompositeDisposable.size());
-                mCompositeDisposable.dispose();
+            synchronized (mLock) {
+                if (!notEmpty())
+                    CoreLogger.log("CompositeDisposable.size() returns 0");
+                else if (mCompositeDisposable.isDisposed())
+                    CoreLogger.log("CompositeDisposable.isDisposed() returns true");
+                else {
+                    CoreLogger.logWarning("Rx2 dispose, size == " + mCompositeDisposable.size());
+                    mCompositeDisposable.dispose();
 
-                // not usable after disposing, so creating the new one
-                mCompositeDisposable = createContainer();
+                    // not usable after disposing, so creating the new one
+                    mCompositeDisposable = createContainer();
+                }
             }
         }
     }

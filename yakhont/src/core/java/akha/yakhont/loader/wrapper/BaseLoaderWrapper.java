@@ -741,7 +741,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
                                     final boolean noErrors) {
             final FragmentData[] fragmentData = new FragmentData[resIds.length];
             for (int i = 0; i < resIds.length; i++)
-                fragmentData[i] = new FragmentData(fragment, resIds[i],false,
+                fragmentData[i] = new FragmentData(fragment, resIds[i], false,
                         false, null, noErrors);
             register(fragment, Arrays.asList(fragmentData));
         }
