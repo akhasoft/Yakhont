@@ -590,6 +590,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
         for (final BaseLoaderWrapper loader: loaders)
             loader.setCountDownLatch(countDownLatch);
 
+        //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
@@ -834,6 +835,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
             final SwipeRefreshLayout swipeRefreshLayout = getSwipeContainer(view, resId);
             if (swipeRefreshLayout == null) return;
 
+            //noinspection Convert2Lambda
             swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
                 @Override
                 public void onRefresh() {

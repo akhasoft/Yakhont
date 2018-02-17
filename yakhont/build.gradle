@@ -53,8 +53,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility     JavaVersion.VERSION_1_7
-        targetCompatibility     JavaVersion.VERSION_1_7
+        sourceCompatibility     JavaVersion.VERSION_1_8
+        targetCompatibility     JavaVersion.VERSION_1_8
     }
 
     flavorDimensions 'common'
@@ -97,6 +97,7 @@ android {
 }
 
 ext.libVerSupport               = rootProject.ext.projectLibVerSupport
+ext.libVerLifecycle             = rootProject.ext.projectLibVerLifecycle
 ext.libVerLocation              = rootProject.ext.projectLibVerLocation
 
 ext.libVerRetrofit              = rootProject.ext.projectLibVerRetrofit
@@ -117,6 +118,8 @@ dependencies {
     api                 "com.android.support:appcompat-v7:${libVerSupport}"  // Google
     api                 "com.android.support:design:${libVerSupport}"
     api                 "com.android.support:recyclerview-v7:${libVerSupport}"
+    api                 "android.arch.lifecycle:common-java8:${libVerLifecycle}"
+    api                 "android.arch.lifecycle:extensions:${libVerLifecycle}"
     api                 "com.google.android.gms:play-services-location:${libVerLocation}"
 
     fullApi             "com.android.support:leanback-v17:${libVerSupport}"

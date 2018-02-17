@@ -567,7 +567,7 @@ public abstract class BaseRx<D> {
          */
         @SuppressWarnings("SameParameterValue")
         public LocationRx(final boolean isRx2, final Activity activity) {
-            this(isRx2 ? new Rx2<Location>(): new Rx<Location>(), activity);
+            this(isRx2 ? new Rx2<>(): new Rx<>(), activity);
         }
 
         /**
@@ -722,7 +722,7 @@ public abstract class BaseRx<D> {
          *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
          */
         public LoaderRx(final boolean isRx2, final boolean isSingle) {
-            this(isRx2 ? new Rx2<BaseResponse<R, E, D>>(): new Rx<BaseResponse<R, E, D>>(), isSingle);
+            this(isRx2 ? new Rx2<>(): new Rx<>(), isSingle);
         }
 
         /**

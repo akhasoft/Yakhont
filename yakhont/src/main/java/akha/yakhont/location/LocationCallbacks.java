@@ -363,6 +363,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
             return;
         }
 
+        //noinspection Convert2Lambda
         mFutures.put(lifecycle, mExecutor.schedule(new Runnable() {
             @Override
             public void run() {
@@ -413,6 +414,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         if (!fromDialog) fromDialog   = !granted;
         final boolean fromDialogFinal = fromDialog;
 
+        @SuppressWarnings("Convert2Lambda")
         final boolean result = new CorePermissions.RequestBuilder(activity, permission)
                 .setRequestCode(sPermissionsRequestCode)
                 .setOnGranted(new Runnable() {
@@ -478,6 +480,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
         if (isAccessToLocationAllowed() && mStartStopCounter.incrementAndGet() == 1)
 
+            //noinspection Convert2Lambda
             addTask(ActivityLifecycle.STARTED, new Runnable() {
                 @Override
                 public void run() {
@@ -500,6 +503,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
         if (isAccessToLocationAllowed() && mPauseResumeCounter.incrementAndGet() == 1)
 
+            //noinspection Convert2Lambda
             addTask(ActivityLifecycle.RESUMED, new Runnable() {
                 @Override
                 public void run() {
@@ -520,6 +524,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public void onActivityPaused(@NonNull final Activity activity) {
         if (isAccessToLocationAllowed() && mPauseResumeCounter.decrementAndGet() == 0)
 
+            //noinspection Convert2Lambda
             addTask(ActivityLifecycle.PAUSED, new Runnable() {
                 @Override
                 public void run() {
@@ -540,6 +545,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public void onActivityStopped(@NonNull final Activity activity) {
         if (isAccessToLocationAllowed() && mStartStopCounter.decrementAndGet() == 0)
 
+            //noinspection Convert2Lambda
             addTask(ActivityLifecycle.STOPPED, new Runnable() {
                 @Override
                 public void run() {
@@ -562,6 +568,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
         if (isAccessToLocationAllowed() && getProceeded().size() == 0)
 
+            //noinspection Convert2Lambda
             addTask(ActivityLifecycle.DESTROYED, new Runnable() {
                 @Override
                 public void run() {
@@ -627,7 +634,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public boolean register(final Activity activity, final LocationRx locationRx) {
         if (!checkData(activity, locationRx)) return false;
 
-        if (!mRx.containsKey(activity)) mRx.put(activity, Utils.<LocationRx>newSet());
+        if (!mRx.containsKey(activity)) mRx.put(activity, Utils.newSet());
 
         final boolean result = mRx.get(activity).add(locationRx);
         CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "register Rx: result == " + result);
@@ -738,6 +745,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         final boolean decision = resultCode == Activity.RESULT_OK;
         sAccessToLocation = decision;
 
+        //noinspection Anonymous2MethodRef,Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {

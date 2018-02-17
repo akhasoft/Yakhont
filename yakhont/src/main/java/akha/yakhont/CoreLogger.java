@@ -479,9 +479,10 @@ public class CoreLogger {
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public static List<String> getLogCat(List<String> list, final boolean clearList, final String cmd) {
-        final List<String> listActual = (list == null) ? new ArrayList<String>(): list;
+        final List<String> listActual = (list == null) ? new ArrayList<>(): list;
         if (clearList) listActual.clear();
 
+        //noinspection Anonymous2MethodRef,Convert2Lambda
         getLog(cmd, new LogHandler() {
             @Override
             public void handle(String line) throws IOException {
@@ -560,6 +561,7 @@ public class CoreLogger {
     public static void sendData(final Context context, final String[] addresses, final String subject,
                                 final String cmd, final boolean hasScreenShot, final boolean hasDb,
                                 final String[] moreFiles) {
+        //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
@@ -630,6 +632,7 @@ public class CoreLogger {
         }
         final Context contextToUse = context.getApplicationContext();
 
+        //noinspection Convert2Lambda
         new ShakeEventListener(contextToUse, new Runnable() {
             @Override
             public void run() {
@@ -771,6 +774,8 @@ public class CoreLogger {
 
         private static void removePreviousZipFiles(final File dir) {
             if (dir == null) return;
+
+            @SuppressWarnings("Convert2Lambda")
             final File[] files = dir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(final File dir, final String name) {
@@ -800,6 +805,7 @@ public class CoreLogger {
                 final File tmpFile = getTmpFile("log", suffix, "txt", tmpDir);
                 final PrintWriter output = new PrintWriter(tmpFile);
 
+                //noinspection Anonymous2MethodRef,Convert2Lambda
                 getLog(cmd, new LogHandler() {
                     @Override
                     public void handle(String line) throws IOException {

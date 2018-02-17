@@ -82,7 +82,7 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings("unused")
     public static void setErrorHandlerEmpty() {
-        setErrorHandler(Functions.<Throwable>emptyConsumer());
+        setErrorHandler(Functions.emptyConsumer());
     }
 
     /**
@@ -92,6 +92,7 @@ public class Rx2<D> extends CommonRx<D> {
      * @see RxJavaPlugins#setErrorHandler
      */
     public static void setErrorHandlerJustLog() {
+        //noinspection Convert2Lambda
         setErrorHandler(new Consumer<Throwable>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
@@ -212,6 +213,7 @@ public class Rx2<D> extends CommonRx<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Consumer<D> getHandlerData(@NonNull final CallbackRx<D> callback) {
+        //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Consumer<D>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
@@ -222,6 +224,7 @@ public class Rx2<D> extends CommonRx<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Consumer<Throwable> getHandlerError(@NonNull final CallbackRx<D> callback) {
+        //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Consumer<Throwable>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {

@@ -84,7 +84,7 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
                                  @NonNull final Requester<Callback<D>> requester,
                                  @NonNull final String tableName, final String description) {
         this(context, fragment, null, requester, Core.TIMEOUT_CONNECTION, tableName, description,
-                BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver());
+                BaseResponseLoaderWrapper.getDefaultConverter(), getDefaultUriResolver());
     }
 
     /**
@@ -163,12 +163,12 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
     }
 
     private void onSuccess(final D result, final Response response, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
-        loader.callbackHelper(true, new BaseResponse<Response, Exception, D>(
+        loader.callbackHelper(true, new BaseResponse<>(
                 result, response, null, null, Source.NETWORK, null));
     }
 
     private void onError(final RetrofitError error, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
-        loader.callbackHelper(false, new BaseResponse<Response, Exception, D>(
+        loader.callbackHelper(false, new BaseResponse<>(
                 null, null, null, new RetrofitException(error), Source.NETWORK, error));
     }
 
@@ -352,8 +352,8 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
         @Override
         protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
                                                @NonNull final View list, @LayoutRes final int item) {
-            setAdapterWrapper(mFrom == null ? new RetrofitAdapterWrapper<D>(mFragment.get().getActivity(), item):
-                    new RetrofitAdapterWrapper<D>(mFragment.get().getActivity(), item, mFrom, mTo));
+            setAdapterWrapper(mFrom == null ? new RetrofitAdapterWrapper<>(mFragment.get().getActivity(), item):
+                    new RetrofitAdapterWrapper<>(mFragment.get().getActivity(), item, mFrom, mTo));
         }
 
         /**
@@ -369,7 +369,7 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
          */
         @Override
         public CoreLoad create() {
-            return create(new RetrofitLoaderBuilder<D, T>(mFragment.get(), mType, mRetrofit));
+            return create(new RetrofitLoaderBuilder<>(mFragment.get(), mType, mRetrofit));
         }
     }
 }

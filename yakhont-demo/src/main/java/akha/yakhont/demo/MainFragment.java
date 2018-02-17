@@ -92,6 +92,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         final TypeToken type = new TypeToken<List<Beer>>() {};
 
         if (getMainActivity().isRetrofit2())
+            //noinspection Anonymous2MethodRef
             mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(
                     this, type, getMainActivity().getRetrofit2()) /* {
 
@@ -127,17 +128,13 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                         } */
                     })
 
-                    .setViewBinder(new ViewBinder() {                       // data binding (optional too)
-                        @Override
-                        public boolean setViewValue(View view, Object data, String textRepresentation) {
-                            return MainFragment.this.setViewValue(view, data, textRepresentation);
-                        }
-                    })
+                    .setViewBinder(MainFragment.this::setViewValue)         // data binding (optional too)
 
                     .setRx(mRxRetrofit2)                                    // optional
 
                     .create();
         else
+            //noinspection Anonymous2MethodRef
             mCoreLoad = new RetrofitCoreLoadBuilder<List<Beer>, RetrofitApi>(
                     this, type, getMainActivity().getRetrofit())
 
@@ -154,12 +151,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                         }
                     })
 
-                    .setViewBinder(new ViewBinder() {                       // data binding (optional too)
-                        @Override
-                        public boolean setViewValue(View view, Object data, String textRepresentation) {
-                            return MainFragment.this.setViewValue(view, data, textRepresentation);
-                        }
-                    })
+                    .setViewBinder(MainFragment.this::setViewValue)         // data binding (optional too)
 
                     .setRx(mRxRetrofit)                                     // optional
 
@@ -314,30 +306,26 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                 mCheckBoxMerge.isChecked(), null, mNotDisplayLoadingErrors));
     }
 
-    // just a boilerplate code here
+    // just a boilerplate code
     private View initGui(LayoutInflater inflater, ViewGroup container) {
-        View view           = inflater.inflate(R.layout.fragment_main, container, false);
+        View mainView       = inflater.inflate(R.layout.fragment_main, container, false);
 
-        mGridView           = view.findViewById(R.id.grid);
+        mGridView           = mainView.findViewById(R.id.grid);
 
-        mCheckBoxForce      = view.findViewById(R.id.flag_force);
-        mCheckBoxMerge      = view.findViewById(R.id.flag_merge);
+        mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
+        mCheckBoxMerge      = mainView.findViewById(R.id.flag_merge);
 
-        view.findViewById(R.id.btn_load).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                startLoading(null, true);
-            }
-        });
+        mainView.findViewById(R.id.btn_load).setOnClickListener(
+                view -> startLoading(null, true));
 
         mCheckBoxForce.setOnClickListener(mListener);
         mCheckBoxMerge.setOnClickListener(mListener);
 
-        Utils.onAdjustMeasuredView(this, view.findViewById(R.id.container));
+        Utils.onAdjustMeasuredView(this, mainView.findViewById(R.id.container));
 
-        mSlideShow.init(view);
+        mSlideShow.init(mainView);
 
-        return view;
+        return mainView;
     }
 
     private void initGui(final Bundle savedInstanceState) {

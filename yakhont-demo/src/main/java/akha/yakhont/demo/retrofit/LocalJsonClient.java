@@ -24,7 +24,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 
 import retrofit.client.Client;
-import retrofit.client.Header;
 import retrofit.client.Request;
 import retrofit.client.Response;
 import retrofit.mime.TypedInput;
@@ -49,7 +48,7 @@ public class LocalJsonClient implements Client {
     public Response execute(Request request) throws IOException {
         LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.getUrl(), request.getMethod());
         return new Response(request.getUrl(), LocalJsonClientHelper.HTTP_CODE_OK, data.message(),
-                new ArrayList<Header>(), new TypedInputStream(data));
+                new ArrayList<>(), new TypedInputStream(data));
     }
 
     private static class TypedInputStream implements TypedInput {

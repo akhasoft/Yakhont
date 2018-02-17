@@ -250,6 +250,7 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
         builder.addInterceptor(logger);
 
         if (headers != null && !headers.isEmpty())
+            //noinspection Convert2Lambda
             builder.addInterceptor(new Interceptor() {
                 @Override
                 public okhttp3.Response intercept(final Chain chain) throws IOException {
@@ -275,7 +276,7 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
                 @Override
                 public List<Cookie> loadForRequest(HttpUrl url) {
                     List<Cookie> list = mCookieStore.get(url);
-                    list = list != null ? new ArrayList<>(list): new ArrayList<Cookie>();
+                    list = list != null ? new ArrayList<>(list): new ArrayList<>();
 
                     for (final String name: cookies.keySet())
                         setCookie(name, cookies.get(name), list, url);

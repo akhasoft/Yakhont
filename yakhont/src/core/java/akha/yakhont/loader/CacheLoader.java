@@ -194,7 +194,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
         if (mForceCache.get() || !Utils.isConnected()) {
             CoreLogger.log(addLoaderInfo("request forced to cache, forceCache " + mForceCache.get()));
 
-            onFailure(new BaseResponse<R, E, D>(Source.CACHE));
+            onFailure(new BaseResponse<>(Source.CACHE));
         }
         else
             super.makeRequest();
@@ -226,6 +226,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
         final ContentValues[] values = mConverter.get(result);
         baseResponse.setContentValues(values);
 
+        //noinspection Convert2Lambda
         mExecutor.execute(new Runnable() {
             @Override
             public void run() {
@@ -293,7 +294,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
         public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
             CoreLogger.log(addLoaderInfo("from cache"));
 
-            deliver(new BaseResponse<R, E, D>(mConverter.get(cursor), null, cursor, mError, Source.CACHE, null));
+            deliver(new BaseResponse<>(mConverter.get(cursor), null, cursor, mError, Source.CACHE, null));
         }
 
         /**

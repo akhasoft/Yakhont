@@ -97,6 +97,7 @@ public class Rx<D> extends CommonRx<D> {
     }
 
     private static void setErrorHandlerHelper(final boolean isLog) {
+        //noinspection Convert2Lambda
         setErrorHandler(new Action1<Throwable>() {
             @Override
             public void call(Throwable throwable) {
@@ -178,7 +179,8 @@ public class Rx<D> extends CommonRx<D> {
                 subscriber.onCompleted();
             }
         };
-        if (mHasProducer) s.setProducer(new Producer() {
+        if (mHasProducer) //noinspection Anonymous2MethodRef,Convert2Lambda
+            s.setProducer(new Producer() {
             @Override
             public void request(long n) {
                 subscriber.request(n);
@@ -240,6 +242,7 @@ public class Rx<D> extends CommonRx<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Action1<D> getHandlerData(@NonNull final CallbackRx<D> callback) {
+        //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Action1<D>() {
             @Override
             public void call(D data) {
@@ -250,6 +253,7 @@ public class Rx<D> extends CommonRx<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Action1<Throwable> getHandlerError(@NonNull final CallbackRx<D> callback) {
+        //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Action1<Throwable>() {
             @Override
             public void call(Throwable throwable) {
@@ -374,6 +378,7 @@ public class Rx<D> extends CommonRx<D> {
     @NonNull
     @SuppressWarnings("WeakerAccess")
     public Observable<D> createObservable() {
+        //noinspection Convert2Lambda
         return Observable.unsafeCreate(new Observable.OnSubscribe<D>() {
             @Override
             public void call(final Subscriber<? super D> subscriber) {

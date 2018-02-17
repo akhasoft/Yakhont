@@ -18,7 +18,7 @@ package akha.yakhont.demo.gui;
 
 import akha.yakhont.demo.R;
 
-import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
+import akha.yakhont.Core;
 
 import android.animation.Animator;
 import android.animation.FloatEvaluator;
@@ -196,36 +196,31 @@ public class Bubbles {
     private static void startAnimation() {
 
         @SuppressLint("InflateParams")
-        final TextView view = (TextView) sLayoutInflater.inflate(R.layout.bubbles_text_view, null);
+        final TextView textView = (TextView) sLayoutInflater.inflate(R.layout.bubbles_text_view, null);
 
         int backgroundColor = sFunColors.getColor(sFunColorsOrder.get(), Color.TRANSPARENT /* just stub */ );
-        int color = akha.yakhont.Core.Utils.getInvertedColor(backgroundColor);
+        int color = Core.Utils.getInvertedColor(backgroundColor);
 
         ShapeDrawable background = new ShapeDrawable(new OvalShape());
         background.getPaint().setColor(backgroundColor);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
-            view.setBackground(background);
+            textView.setBackground(background);
         else
-            setBackgroundDrawable(view, background);
+            setBackgroundDrawable(textView, background);
 
         int idx = sFunTextOrder.get() * 2;
-        setText(view, String.format("%s%s%s", sFunText[idx], sNewLine, sFunText[idx + 1]), color);
-        view.setTypeface (sFunTypefaces.get(sFunTypefacesOrder.get()));
-        view.setTextColor(color);
+        setText(textView, String.format("%s%s%s", sFunText[idx], sNewLine, sFunText[idx + 1]), color);
+        textView.setTypeface (sFunTypefaces.get(sFunTypefacesOrder.get()));
+        textView.setTextColor(color);
 
         if (sIsCancel.get()) return;
 
         synchronized (sViews) {
-            sViews.add(view);
+            sViews.add(textView);
         }
-        getRootLayout().addView(view);
+        getRootLayout().addView(textView);
 
-        akha.yakhont.Core.Utils.onAdjustMeasuredView(new MeasuredViewAdjuster() {
-            @Override
-            public void adjustMeasuredView(View view) {
-                startAnimation((TextView) view);
-            }
-        }, view);
+        Core.Utils.onAdjustMeasuredView(view -> startAnimation((TextView) view), textView);
     }
 
     @SuppressWarnings("deprecation")
@@ -233,29 +228,27 @@ public class Bubbles {
         view.setBackgroundDrawable(background);
     }
 
-    private static void startAnimation(final TextView view) {
+    private static void startAnimation(final TextView textView) {
 
-        final int viewWidth  = view.getMeasuredWidth ();
-        final int viewHeight = view.getMeasuredHeight();
+        final int viewWidth  = textView.getMeasuredWidth ();
+        final int viewHeight = textView.getMeasuredHeight();
 
         //noinspection SuspiciousNameCombination
-        view.getLayoutParams().height = viewWidth;
-        
-        view.setPivotX(viewWidth  / 2);
-        view.setPivotY(viewHeight / 2);
+        textView.getLayoutParams().height = viewWidth;
 
-        view.setLeft(0);
-        view.setTop (0);
+        textView.setPivotX(viewWidth  / 2);
+        textView.setPivotY(viewHeight / 2);
+
+        textView.setLeft(0);
+        textView.setTop (0);
+
         ValueAnimator mainAnimator = ValueAnimator.ofInt(0, sDisplayMetrics.heightPixels);
         mainAnimator.setDuration(DURATION_MAX * 1000);
         mainAnimator.setInterpolator(new AccelerateInterpolator());
 
-        mainAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                int value = (Integer) valueAnimator.getAnimatedValue();
-                view.setTranslationY(value);
-            }
+        mainAnimator.addUpdateListener(valueAnimator -> {
+            int value = (Integer) valueAnimator.getAnimatedValue();
+            textView.setTranslationY(value);
         });
         mainAnimator.addListener(new Animator.AnimatorListener() {
             @Override
@@ -263,14 +256,14 @@ public class Bubbles {
             }
             @Override
             public void onAnimationEnd(Animator animator) {
-                view.setTag(R.id.animators, null);
+                textView.setTag(R.id.animators, null);
 
-                cancelRainbow(view);
-                view.setTag(R.id.animators_rainbow, null);
+                cancelRainbow(textView);
+                textView.setTag(R.id.animators_rainbow, null);
 
-                getRootLayout().removeView(view);
+                getRootLayout().removeView(textView);
                 synchronized (sViews) {
-                    sViews.remove(view);
+                    sViews.remove(textView);
                 }
             }
             @Override public void onAnimationStart (Animator animator) {}
@@ -279,16 +272,14 @@ public class Bubbles {
 
         ArrayList<AnimatorHelper> animators = new ArrayList<>();
 
-        animators.add(new AnimatorHelper(view, "ScaleX",           true, 3.5, 0.9, new AnimatorData() { @Override public float[] getData() {
-            return new float[] {0.6f, 1 + sRandom.nextFloat()};
-        }}));
-        animators.add(new AnimatorHelper(view, "ScaleY",           true, 3.5, 0.9, new AnimatorData() { @Override public float[] getData() {
-            return new float[] {0.6f, 1 + sRandom.nextFloat()};
-        }}));
-        animators.add(new AnimatorHelper(view, "Rotation",         true, 2.5, 0.5, new AnimatorData() { @Override public float[] getData() {
-            return new float[] {   0, sRandom.nextInt(90) - 45};
-        }}));
-        animators.add(new AnimatorHelper(view, "TranslationX",    false, 2.5,  -1, new AnimatorData() {
+        animators.add(new AnimatorHelper(textView, "ScaleX",           true, 3.5,
+                0.9, () -> new float[] {0.6f, 1 + sRandom.nextFloat()}));
+        animators.add(new AnimatorHelper(textView, "ScaleY",           true, 3.5,
+                0.9, () -> new float[] {0.6f, 1 + sRandom.nextFloat()}));
+        animators.add(new AnimatorHelper(textView, "Rotation",         true, 2.5,
+                0.5, () -> new float[] {0, sRandom.nextInt(90) - 45}));
+        animators.add(new AnimatorHelper(textView, "TranslationX",    false, 2.5,
+                -1, new AnimatorData() {
 
             private int start = getX();
 
@@ -304,11 +295,11 @@ public class Bubbles {
             }
         }));
 
-        view.setTag(R.id.animator_main, mainAnimator);
+        textView.setTag(R.id.animator_main, mainAnimator);
 
         AnimatorHelper[] tmp = new AnimatorHelper[animators.size()];
         animators.toArray(tmp);
-        view.setTag(R.id.animators, tmp);
+        textView.setTag(R.id.animators, tmp);
 
         mainAnimator.start();
         for (AnimatorHelper animator: animators)
@@ -494,12 +485,7 @@ public class Bubbles {
                 animator.setStartDelay    (animators.size() * 700        );
                 animator.setRepeatCount   (ValueAnimator.INFINITE        );
                 animator.setEvaluator     (new FloatEvaluator()          );
-                animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                    @Override
-                    public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                        view.setText(spannable);
-                    }
-                });
+                animator.addUpdateListener(valueAnimator -> view.setText(spannable));
                 animator.start();
 
                 animators.add(animator);
@@ -581,12 +567,7 @@ public class Bubbles {
                         
             ObjectAnimator animator = ObjectAnimator.ofInt(spanGroup, FIREWORKS_PROPERTY, 0, spanGroup.getSpans().size());
             animator.setDuration(duration);
-            animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-                @Override
-                public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                    view.setText(spannable);
-                }
-            });
+            animator.addUpdateListener(valueAnimator -> view.setText(spannable));
             animator.addListener(new Animator.AnimatorListener() {
                 @Override
                 public void onAnimationEnd(Animator animator) {

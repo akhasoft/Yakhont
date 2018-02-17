@@ -98,12 +98,12 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         log(info, value.incrementAndGet(), getActivityName(activity));
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isVisible() {
         return sStarted.get() > sStopped.get();
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isInForeground() {
         return sResumed.get() > sPaused.get();
     }
@@ -235,6 +235,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         }
 
         for (final BaseActivityCallbacks callbacks: sCallbacks.keySet())
+            //noinspection Convert2Lambda
             apply(sCallbacks, callbacks, created, lifeCycle, activity, new Runnable() {
                 @Override
                 public void run() {

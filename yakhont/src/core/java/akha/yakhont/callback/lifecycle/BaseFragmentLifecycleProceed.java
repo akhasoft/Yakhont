@@ -173,6 +173,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
         }
 
         for (final BaseFragmentCallbacks callbacks: sCallbacks.keySet())
+            //noinspection Convert2Lambda
             apply(sCallbacks, callbacks, created, lifeCycle, fragment, new Runnable() {
                 @Override
                 public void run() {

@@ -43,16 +43,13 @@ public class SplashActivity extends /* Activity */ android.support.v7.app.AppCom
         setContentView(R.layout.activity_splash);
         overridePendingTransition(android.R.anim.fade_in, 0);
 
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                final Activity activity = SplashActivity.this;
+        new Handler().postDelayed(() -> {
+            final Activity activity = SplashActivity.this;
 
-                activity.startActivity(new Intent(activity, MainActivity.class));
-                activity.overridePendingTransition(R.anim.hyperspace_in, R.anim.hyperspace_out);
-                
-                activity.finish();
-            }
+            activity.startActivity(new Intent(activity, MainActivity.class));
+            activity.overridePendingTransition(R.anim.hyperspace_in, R.anim.hyperspace_out);
+
+            activity.finish();
         }, DELAY_ACTIVITY_START);
     }
 }

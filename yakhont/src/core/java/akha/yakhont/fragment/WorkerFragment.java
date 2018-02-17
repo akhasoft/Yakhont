@@ -279,6 +279,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
 
         CoreLogger.logWarning("isGoBackOnLoadingCanceled: about to call Activity.onBackPressed()");
 
+        //noinspection Convert2Lambda
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
@@ -382,6 +383,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
                              final boolean merge, final boolean sync, final boolean noErrors) {
         final Collection<BaseLoaderWrapper> loaders = mLoaders;
         if (sync)
+            //noinspection Convert2Lambda
             Utils.runInBackground(new Runnable() {
                 @Override
                 public void run() {
@@ -404,6 +406,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
         for (final BaseLoaderWrapper loader: mLoaders)
             if (loader.getLoaderId() == loaderId) {
                 if (sync)
+                    //noinspection Convert2Lambda
                     Utils.runInBackground(new Runnable() {
                         @Override
                         public void run() {

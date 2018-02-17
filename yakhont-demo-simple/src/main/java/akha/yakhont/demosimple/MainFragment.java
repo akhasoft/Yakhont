@@ -44,10 +44,12 @@ public class MainFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        ((RecyclerView) getActivity().findViewById(R.id.recycler))
-                .setLayoutManager(new LinearLayoutManager(getActivity()));
+        MainActivity activity = (MainActivity) getActivity();
 
-        new Retrofit2CoreLoadBuilder<>(this, Beer[].class, MainActivity.sRetrofit2)
+        ((RecyclerView) getActivity().findViewById(R.id.recycler))
+                .setLayoutManager(new LinearLayoutManager(activity));
+
+        new Retrofit2CoreLoadBuilder<>(this, Beer[].class, activity.getRetrofit())
                 .create()
                 // uncomment to stay in application if user cancelled data loading
 //              .setGoBackOnLoadingCanceled(false)

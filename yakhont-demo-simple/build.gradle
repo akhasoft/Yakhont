@@ -41,12 +41,12 @@ android {
         versionCode            10101
         versionName           '1.1'
 
-        resConfigs              'en', 'ru'
+        resConfigs            'en', 'ru'
     }
 
     compileOptions {
-        sourceCompatibility     JavaVersion.VERSION_1_7
-        targetCompatibility     JavaVersion.VERSION_1_7
+        sourceCompatibility     JavaVersion.VERSION_1_8
+        targetCompatibility     JavaVersion.VERSION_1_8
     }
 
     lintOptions {
@@ -75,6 +75,7 @@ android {
 }
 
 ext.libVerDemoSimpleSupport     = rootProject.ext.projectLibVerSupport
+ext.libVerDemoSimpleLifecycle   = rootProject.ext.projectLibVerLifecycle
 ext.libVerDemoSimpleLocation    = rootProject.ext.projectLibVerLocation
 
 ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
@@ -90,6 +91,8 @@ dependencies {
 
     implementation      "com.android.support:appcompat-v7:${libVerDemoSimpleSupport}"  // Google
     implementation      "com.android.support:recyclerview-v7:${libVerDemoSimpleSupport}"
+    implementation      "android.arch.lifecycle:common-java8:${libVerDemoSimpleLifecycle}"
+    implementation      "android.arch.lifecycle:extensions:${libVerDemoSimpleLifecycle}"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
     implementation      "com.google.android.gms:play-services-location:${libVerDemoSimpleLocation}"
@@ -103,27 +106,23 @@ dependencies {
     implementation      name:'yakhont', ext:'aar'                                      // Yakhont
 }
 
-android.variantFilter { variant ->
-    // weaver can't handle both release and debug at the same time
-    if (variant.buildType.name == (rootProject.ext.projectDebug == '1' ? 'release': 'debug')) {
-        variant.setIgnore(true)
-    }
-}
+// for demo simple let's build both release and debug - just to be sure the weaver is working fine
 
 String[] weaverConfigFiles = null   // use default one; or something like "new String[] {projectDir.absolutePath + '/weaver.config'}"
 boolean weaverDebug = false, weaverAddConfig = true
 
-//noinspection GroovyAssignabilityCheck, UnnecessaryQualifiedReference
-android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
-        android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig))
-/*
-// to avoid using the Transform API, you can try the following:
 android.applicationVariants.all { variant ->
-    JavaCompile javaCompile = variant.javaCompile
+    AbstractCompile javaCompile = variant.javaCompiler
     javaCompile.doLast {
+        //noinspection UnnecessaryQualifiedReference
         new akha.yakhont.weaver.Weaver().run(weaverDebug, android.defaultConfig.applicationId,
                 javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
                 android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig)
     }
 }
+
+/* if (by some reason) you're about to use the deprecated Transform API, you can try the following:
+//noinspection GroovyAssignabilityCheck, UnnecessaryQualifiedReference
+android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
+        android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig))
 */

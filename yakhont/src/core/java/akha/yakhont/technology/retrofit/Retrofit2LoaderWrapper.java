@@ -98,7 +98,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
                                   @NonNull final Requester<Callback<D>> requester,
                                   @NonNull final String tableName, final String description) {
         this(context, fragment, null, requester, Core.TIMEOUT_CONNECTION, tableName, description,
-                BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver());
+                BaseResponseLoaderWrapper.getDefaultConverter(), getDefaultUriResolver());
     }
 
     /**
@@ -161,7 +161,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
     private void onSuccess(final Call<D> call, final Response<D> response,
                            final BaseLoader<Callback<D>, Response<D>, Throwable, D> loader) {
         if (response.isSuccessful()) {
-            loader.callbackHelper(true, new BaseResponse<Response<D>, Throwable, D>(
+            loader.callbackHelper(true, new BaseResponse<>(
                     response.body(), response, null, null, Source.NETWORK, null));
             return;
         }
@@ -185,7 +185,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
     private void onError(@SuppressWarnings("UnusedParameters") final Call<D> call,
                          final Response<D> response, final Throwable error,
                          final BaseLoader<Callback<D>, Response<D>, Throwable, D> loader) {
-        loader.callbackHelper(false, new BaseResponse<Response<D>, Throwable, D>(
+        loader.callbackHelper(false, new BaseResponse<>(
                 null, response, null, error, Source.NETWORK, null));
     }
 
@@ -437,8 +437,8 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         @Override
         protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
                                                @NonNull final View list, @LayoutRes final int item) {
-            setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item):
-                    new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item, mFrom, mTo));
+            setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<>(mFragment.get().getActivity(), item):
+                    new Retrofit2AdapterWrapper<>(mFragment.get().getActivity(), item, mFrom, mTo));
         }
 
         /**

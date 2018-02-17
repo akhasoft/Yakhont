@@ -140,21 +140,12 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 //      ((BaseGoogleLocationClient) mLocationCallbacks.getLocationClient()).setLocationUpdatesParameters(...);
 
         //noinspection ConstantConditions
-        findViewById(R.id.fab_location).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Utils.showSnackbar(LocationCallbacks.toDms(getLocation(), MainActivity.this),
-                        Utils.SHOW_DURATION_LONG);
-            }
-        });
+        findViewById(R.id.fab_location).setOnClickListener(view -> Utils.showSnackbar(
+                LocationCallbacks.toDms(getLocation(), MainActivity.this), Utils.SHOW_DURATION_LONG));
 
         //noinspection ConstantConditions
-        findViewById(R.id.fab_info).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Utils.showToast(R.string.info, Utils.SHOW_DURATION_LONG);
-            }
-        });
+        findViewById(R.id.fab_info).setOnClickListener(view -> Utils.showToast(
+                R.string.info, Utils.SHOW_DURATION_LONG));
     }
 
     @SuppressWarnings("SameReturnValue")

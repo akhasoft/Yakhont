@@ -75,7 +75,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      */
     @SuppressWarnings("WeakerAccess")
     public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId) {
-        this(ValuesCacheAdapterWrapper.<R, E, D>init(context, layoutId), context, layoutId);
+        this(ValuesCacheAdapterWrapper.init(context, layoutId), context, layoutId);
     }
 
     /**
@@ -97,7 +97,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
                                      @NonNull @Size(min = 1) final    int[] to) {
-        this(ValuesCacheAdapterWrapper.<R, E, D>init(context, layoutId, from, to), context, layoutId);
+        this(ValuesCacheAdapterWrapper.init(context, layoutId, from, to), context, layoutId);
     }
 
     /**
@@ -160,6 +160,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
             @NonNull @Size(min = 1) final String[] from,
             @NonNull @Size(min = 1) final    int[] to) {
 
+        @SuppressWarnings("Convert2Lambda")
         final BaseCacheAdapter<ContentValues, R, E, D> adapter = factory.getAdapter(context, layout, from, to,
                 new BaseArrayAdapter<>(context, layout, getDataBinder(context, from, to)),
                 new ArrayConverter<ContentValues, R, E, D>() {
@@ -233,6 +234,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      */
     @Override
     public void resetArray() {
+        //noinspection Convert2Lambda
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {

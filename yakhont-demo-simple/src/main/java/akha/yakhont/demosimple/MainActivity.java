@@ -39,7 +39,13 @@ import java.util.Date;
 @CallbacksInherited(LocationCallbacks.class)
 public class MainActivity extends Activity implements LocationListener {
 
-    public static final Retrofit2<Retrofit2Api> sRetrofit2 = new Retrofit2<>();
+    private boolean mAdvertisementShown;
+
+    private final Retrofit2<Retrofit2Api> mRetrofit2     = new Retrofit2<>();
+
+    public Retrofit2<Retrofit2Api> getRetrofit() {
+        return mRetrofit2;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +66,7 @@ public class MainActivity extends Activity implements LocationListener {
 
         // local JSON client, so URL doesn't matter
         // uncomment network delay emulation for the progress dialog etc.
-        sRetrofit2.init(Retrofit2Api.class, sRetrofit2.getDefaultBuilder("http://localhost/")
+        mRetrofit2.init(Retrofit2Api.class, mRetrofit2.getDefaultBuilder("http://localhost/")
                 .client(new LocalJsonClient2() /* .setEmulatedNetworkDelay(2000) */ ));
 
         // for normal HTTP requests you can use something like this
@@ -76,6 +82,9 @@ public class MainActivity extends Activity implements LocationListener {
 
     @SuppressLint("InflateParams")
     private void showAdvertisement() {
+        if (mAdvertisementShown) return;
+        mAdvertisementShown = true;
+
         final Toast toast = new Toast(this);
         toast.setDuration(Toast.LENGTH_LONG);
         toast.setGravity(Gravity.CENTER, 0, 0);

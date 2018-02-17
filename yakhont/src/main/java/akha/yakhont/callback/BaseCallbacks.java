@@ -671,6 +671,7 @@ public abstract class BaseCallbacks<T> {
                 @NonNull final Map<? extends BaseCacheCallbacks<T>, Set<E>> callbacksMap, @NonNull final BaseCacheCallbacks<T> callbacks,
                 final Boolean created, @NonNull final E lifeCycle, @NonNull final T object, @NonNull final Runnable runnable) {
 
+            //noinspection Convert2Lambda
             if (proceed(callbacks, created, object, new Callable<Boolean>() {
                 @Override
                 public Boolean call() throws Exception {

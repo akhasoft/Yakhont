@@ -44,13 +44,14 @@ import org.apache.commons.io.FileUtils;
 
 /**
  * The <code>WeaverTransform</code> class is just the wrapper for the {@link Weaver} one,
- * allowing to use Google's <code>Transform API</code>.
+ * allowing to use Google's <code>Transform API</code> (deprecated).
  *
  * @see Weaver
  *
  * @author akha
  */
 @SuppressWarnings("WeakerAccess")
+@Deprecated
 public class WeaverTransform extends Transform {
 
     private final        String                         mApplicationId, mBootClassPath;
@@ -90,6 +91,7 @@ public class WeaverTransform extends Transform {
      */
     @Override
     public String getName() {
+        //noinspection deprecation
         return WeaverTransform.class.getSimpleName();
     }
 

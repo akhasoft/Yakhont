@@ -427,6 +427,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
 
             final CoreLoad coreLoad = BaseLoader.getCoreLoad(getDialogActivity());
             if (coreLoad != null) {
+                //noinspection Anonymous2MethodRef,Convert2Lambda
                 Utils.runInBackground(new Runnable() {
                     @Override
                     public void run() {

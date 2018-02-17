@@ -138,6 +138,7 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
                 .setEndpoint(retrofitBase);
 
         if (headers != null && !headers.isEmpty())
+            //noinspection Convert2Lambda
             builder.setRequestInterceptor(new RequestInterceptor() {
                 @Override
                 public void intercept(RequestFacade request) {

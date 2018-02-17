@@ -96,6 +96,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     }
 
     private void init() {
+        //noinspection Convert2Lambda
         setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override
             public boolean setViewValue(View view, Cursor cursor, int columnIndex) {

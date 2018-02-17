@@ -310,6 +310,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
         doProgressSafe(true);
 
+        //noinspection Convert2Lambda
         Utils.runInBackground(true, new Runnable() {
             @Override
             public void run() {
@@ -346,6 +347,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      *        The results of loading
      */
     public void callbackHelper(final boolean success, @NonNull final BaseResponse<R, E, D> baseResponse) {
+        //noinspection Convert2Lambda
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
@@ -513,10 +515,11 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                     if (!isWaiting()) return;
                     CoreLogger.log(addLoaderInfo("timer proceed"));
 
+                    //noinspection Convert2Lambda
                     Utils.postToMainLoop(new Runnable() {
                         @Override
                         public void run() {
-                            onFailure(new BaseResponse<R, E, D>(Source.TIMEOUT));
+                            onFailure(new BaseResponse<>(Source.TIMEOUT));
                         }
                     });
                 }
@@ -525,6 +528,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     }
 
     private void postDeliverResult(@NonNull final BaseResponse<R, E, D> result) {
+        //noinspection Convert2Lambda
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
@@ -643,6 +647,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      */
     @Override
     protected void onStartLoading() {
+        //noinspection Convert2Lambda
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {

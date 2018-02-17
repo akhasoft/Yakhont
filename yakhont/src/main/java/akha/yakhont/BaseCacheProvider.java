@@ -272,6 +272,7 @@ public class BaseCacheProvider extends ContentProvider {
 
         switch (mUriMatcher.match(uri)) {
             case ALL:
+                //noinspection Convert2Lambda
                 runTransaction(db, new Runnable() {
                     @Override
                     public void run() {
@@ -649,6 +650,7 @@ public class BaseCacheProvider extends ContentProvider {
          */
         @Override
         public void onCreate(final SQLiteDatabase db) {
+            //noinspection Convert2Lambda
             runTransaction(db, new Runnable() {
                 @Override
                 public void run() {
@@ -662,6 +664,7 @@ public class BaseCacheProvider extends ContentProvider {
          */
         @Override
         public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
+            //noinspection Convert2Lambda
             runTransaction(db, new Runnable() {
                 @Override
                 public void run() {
@@ -734,6 +737,7 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     private static void copyFile(@NonNull final Context context, @NonNull final File srcFile, final File dstFileOrg) {
+        //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {

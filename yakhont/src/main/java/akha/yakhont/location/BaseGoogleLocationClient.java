@@ -404,7 +404,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
             mSmallestDisplacement = savedInstanceState.getFloat(ARG_REQUEST_SMALLEST_DISPLACEMENT);
 
         if (savedInstanceState.keySet().contains                       (ARG_LOCATION      ))
-            setLocation((Location)   savedInstanceState.getParcelable  (ARG_LOCATION      ));
+            setLocation(             savedInstanceState.getParcelable  (ARG_LOCATION      ));
         if (savedInstanceState.keySet().contains                       (ARG_TIME          ))
             mLastUpdateTime = (Date) savedInstanceState.getSerializable(ARG_TIME          );
         if (savedInstanceState.keySet().contains                       (ARG_UNIQUE_UPDATES))
@@ -577,6 +577,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
         CoreLogger.log("requestLocationUpdates, LocationRequest: " + locationRequest);
 
         try {
+            //noinspection Anonymous2MethodRef,Convert2Lambda
             mFusedLocationClient.requestLocationUpdates(locationRequest,
                     mLocationCallback, activity.getMainLooper())
 
@@ -609,6 +610,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     protected void stopLocationUpdates(final Activity activity) {
         CoreLogger.log("stopLocationUpdates");
 
+        //noinspection Anonymous2MethodRef,Convert2Lambda
         mFusedLocationClient.removeLocationUpdates(mLocationCallback)
                 .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                     @Override
@@ -622,6 +624,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     @SuppressLint("MissingPermission")
     protected void getLastLocation(@NonNull final Activity activity) {
         try {
+            //noinspection Anonymous2MethodRef,Convert2Lambda
             mFusedLocationClient.getLastLocation()
                     .addOnCompleteListener(activity, new OnCompleteListener<Location>() {
                         @Override
@@ -633,10 +636,10 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                                 taskOnFailure(task.getException());
                         }
                     }).addOnFailureListener(activity, new OnFailureListener() {
-                @Override
-                public void onFailure(@NonNull Exception exception) {
-                    taskOnFailure(exception);
-                }
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            taskOnFailure(exception);
+                        }
             });
         }
         catch (SecurityException exception) {   // should never happen

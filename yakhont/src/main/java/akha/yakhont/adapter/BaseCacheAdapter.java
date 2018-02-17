@@ -422,6 +422,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static View findListView(@NonNull final View view) {
+        //noinspection Convert2Lambda
         return ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
             @SuppressWarnings("unused")
             @Override
@@ -438,6 +439,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         final Resources             resources       = context.getResources();
         final ViewInflater          viewInflater    = new ViewInflater(context, layoutId);
 
+        //noinspection Convert2Lambda
         ViewHelper.visitView(viewInflater.inflate(null), new ViewHelper.ViewVisitor() {
             @Override
             public boolean handle(final View view) {

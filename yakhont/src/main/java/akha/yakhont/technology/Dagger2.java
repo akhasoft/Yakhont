@@ -682,6 +682,7 @@ class BaseSnackbar implements BaseDialog {
             if (mListener != null)
                 CoreLogger.logError("listener is already defined, request code will be ignored");
             else
+                //noinspection Convert2Lambda
                 mListener = new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
@@ -768,6 +769,7 @@ class BaseSnackbar implements BaseDialog {
             view = ViewHelper.getView(activity, Core.NOT_VALID_VIEW_ID);
         }
         if (view != null) {
+            //noinspection Convert2Lambda
             final View viewChild = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
                 @Override
                 public boolean handle(final View view) {

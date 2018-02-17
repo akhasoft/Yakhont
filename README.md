@@ -189,37 +189,14 @@ dependencies {
 }
 ```
 
-4. The code below forced to build _release_ version only. If you want to build
-the _debug_ version, please replace 'debug' with 'release':
-
-```groovy
-android.variantFilter { variant ->
-    if (variant.buildType.name == 'debug') {
-        variant.setIgnore(true)
-    }
-}
-```
-
-**Note:** for the moment Yakhont Weaver can't handle both _debug_ and _release_ at the same time.  
-
-5. The code which runs Yakhont Weaver:
-
-```groovy
-String[] weaverConfigFiles = null
-boolean weaverDebug = false, weaverAddConfig = true
-
-android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
-    android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig))
-```
-   
-Or (to avoid using the Transform API) you can try the following:
+4. The code which runs Yakhont Weaver:
 
 ```groovy
 String[] weaverConfigFiles = null
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
-    JavaCompile javaCompile = variant.javaCompile
+    AbstractCompile javaCompile = variant.javaCompiler
     javaCompile.doLast {
         new akha.yakhont.weaver.Weaver().run(weaverDebug, android.defaultConfig.applicationId,
             javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
@@ -232,10 +209,10 @@ Here the Yakhont Weaver manipulates the Java bytecode just compiled, which makes
 to alternate classes implementation (e.g. add / modify callbacks in Activities and Fragments)
 without changing their source code.
 
-**Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation
-(at least, for the moment).
+**Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation.
+By the way, Jack is no longer supported too.
 
-6. Finally, don't forget to add to your _AndroidManifest.xml_ something like code snippet below:
+5. Finally, don't forget to add to your _AndroidManifest.xml_ something like code snippet below:
 
 ```
 <application ...>

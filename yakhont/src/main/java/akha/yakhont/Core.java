@@ -35,6 +35,10 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
+import android.arch.lifecycle.DefaultLifecycleObserver;
+import android.arch.lifecycle.LifecycleOwner;
+import android.arch.lifecycle.ProcessLifecycleOwner;
+import android.arch.lifecycle.Lifecycle.Event;
 import android.content.ComponentCallbacks;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
@@ -125,7 +129,7 @@ import java.util.zip.ZipOutputStream;
  *
  * @author akha
  */
-public class Core {
+public class Core implements DefaultLifecycleObserver {
 
     /** Not valid resource ID (the value is {@value}). */
     @AnyRes public static final int                     NOT_VALID_RES_ID            = 0;
@@ -180,6 +184,9 @@ public class Core {
     private static       boolean                        sSupport;
     private static       WeakReference<Application>     sApplication;
     private static       Dagger2                        sDagger;
+
+    private static final AtomicBoolean                  sResumed                    = new AtomicBoolean();
+    private static final AtomicBoolean                  sStarted                    = new AtomicBoolean();
 
     /**
      *  The dialog API that are common to the whole library.
@@ -545,6 +552,8 @@ public class Core {
             BaseActivityLifecycleProceed.setActive(true);
             sAppCallbacks = new ApplicationCallbacks();
         }
+
+        ProcessLifecycleOwner.get().getLifecycle().addObserver(sInstance);
     }
 
     @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "unused"})
@@ -552,16 +561,84 @@ public class Core {
         return BaseActivityLifecycleProceed.register(callbacks);
     }
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess", "BooleanMethodIsAlwaysInverted"})
+    /**
+     * Checks whether the application is visible or not.
+     *
+     * @return  {@code true} if {@link ProcessLifecycleOwner} dispatched {@link Event#ON_START} event and
+     *          {@code false} in case of {@link Event#ON_STOP} one
+     *
+     * @see ProcessLifecycleOwner
+     */
+    @SuppressWarnings({"WeakerAccess", "BooleanMethodIsAlwaysInverted"})
     public static boolean isVisible() {
-        return BaseActivityLifecycleProceed.isVisible();
+        return sStarted.get();  // BaseActivityLifecycleProceed.isVisible();
     }
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "BooleanMethodIsAlwaysInverted", "WeakerAccess"})
+    /**
+     * Checks whether the application is in foreground or not.
+     *
+     * @return  {@code true} if {@link ProcessLifecycleOwner} dispatched {@link Event#ON_RESUME} event and
+     *          {@code false} in case of {@link Event#ON_PAUSE} one
+     *
+     * @see ProcessLifecycleOwner
+     */
+    @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "WeakerAccess"})
     public static boolean isInForeground() {
-        return BaseActivityLifecycleProceed.isInForeground();
+        return sResumed.get();  // BaseActivityLifecycleProceed.isInForeground();
+    }
+
+    /**
+     * Please refer to the base method description.
+     *
+     * @see ProcessLifecycleOwner
+     */
+    @Override
+    public void onStart(@NonNull LifecycleOwner owner) {
+        sStarted.set(true);
+        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    }
+
+    /**
+     * Please refer to the base method description.
+     *
+     * @see ProcessLifecycleOwner
+     */
+    @Override
+    public void onResume(@NonNull LifecycleOwner owner) {
+        sResumed.set(true);
+        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    }
+
+    /**
+     * Please refer to the base method description.
+     *
+     * @see ProcessLifecycleOwner
+     */
+    @Override
+    public void onPause(@NonNull LifecycleOwner owner) {
+        sResumed.set(false);
+        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    }
+
+    /**
+     * Please refer to the base method description.
+     *
+     * @see ProcessLifecycleOwner
+     */
+    @Override
+    public void onStop(@NonNull LifecycleOwner owner) {
+        sStarted.set(false);
+        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    }
+
+    @SuppressWarnings("SameReturnValue")
+    private Level getDebugLevel() {
+        return Level.WARNING;
+    }
+
+    private String getDebugMessage() {
+        final Application app = Utils.getApplication();
+        return "application: " + (app  == null ? "unknown": app.getClass().getName());
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -630,6 +707,7 @@ public class Core {
             CoreLogger.logWarning("newConfig " + newConfig);
 
             for (final ConfigurationChangedListener listener: sAppCallbacksListeners)
+                //noinspection Convert2Lambda
                 notifyListener(new Runnable() {
                     @Override
                     public void run() {
@@ -735,6 +813,7 @@ public class Core {
                         return;
                     }
 
+                    @SuppressWarnings("Convert2Lambda")
                     final boolean result = new CorePermissions.RequestBuilder(activity, PERMISSION)
                             .setOnGranted(new Runnable() {
                                 @Override
@@ -760,6 +839,7 @@ public class Core {
 
         private static void onNetworkStatusChanged(final boolean isConnected) {
             for (final NetworkStatusListener listener: sNetworkStatusListeners)
+                //noinspection Convert2Lambda
                 notifyListener(new Runnable() {
                     @Override
                     public void run() {
@@ -805,6 +885,7 @@ public class Core {
         @SuppressWarnings("unused")
         public static final  boolean                    SHOW_DURATION_LONG              = true;
 
+        @SuppressWarnings("Convert2Lambda")
         private static       UriResolver                sUriResolver                    = new UriResolver() {
             @Override
             public Uri getUri(@NonNull final String tableName) {
@@ -1311,6 +1392,7 @@ public class Core {
                 CoreLogger.logError("no arguments");
                 return;
             }
+            //noinspection Convert2Lambda
             runInBackground(new Runnable() {
                 @Override
                 public void run() {
@@ -1457,6 +1539,7 @@ public class Core {
             }
 
             private Runnable prepareRunnable(@NonNull final Runnable runnable) {
+                //noinspection Convert2Lambda
                 return new Runnable() {
                     @Override
                     public void run() {
@@ -1687,6 +1770,7 @@ public class Core {
                                         @NonNull final ViewVisitor visitor) {
                 final View[] viewHelper = new View[1];
 
+                //noinspection Convert2Lambda
                 visitView(parentView, new ViewVisitor() {
                     @Override
                     public boolean handle(final View view) {

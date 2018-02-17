@@ -141,6 +141,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         mConverter      = converter;
         mUriResolver    = uriResolver;
 
+        //noinspection Convert2Lambda
         setLoaderFactory(new LoaderFactory<BaseResponse<R, E, D>>() {
             @NonNull
             @Override
@@ -300,6 +301,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
                                        final int timeout, @NonNull final C callback) {
         final LoaderFactory<BaseResponse<R, E, D>> loaderFactory = geLoaderFactory();
 
+        //noinspection Convert2Lambda
         setLoaderFactory(new LoaderFactory<BaseResponse<R, E, D>>() {
             @NonNull
             @Override
@@ -723,7 +725,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          */
         @NonNull
         protected Converter<D> getConverter() {
-            return mConverter != null ? mConverter: new BaseConverter<D>();
+            return mConverter != null ? mConverter: new BaseConverter<>();
         }
 
         /**
@@ -880,6 +882,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         protected Requester<C> getRequester(@NonNull final RequesterHelper<C, T> requesterHelper) {
             requesterHelper.init();
 
+            //noinspection Convert2Lambda
             return new Requester<C>() {
                 @Override
                 public void makeRequest(@NonNull final C callback) {

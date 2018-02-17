@@ -196,6 +196,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      */
     @SuppressWarnings("WeakerAccess")
     protected void startSettingsUpdates(final Activity activity) {
+        //noinspection Convert2Lambda
         mSettingsClient.checkLocationSettings(createNewLocationSettingsRequest())
                 .addOnCompleteListener(activity, new OnCompleteListener<LocationSettingsResponse>() {
                     @Override
@@ -494,6 +495,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         CoreLogger.log("requestLocationUpdates for pendingIntent, LocationRequest: " + locationRequest);
 
         try {
+            //noinspection Anonymous2MethodRef,Convert2Lambda
             mFusedLocationClient.requestLocationUpdates(locationRequest, pendingIntent)
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
@@ -522,6 +524,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         if (mPendingIntent != null) {
             CoreLogger.log("stopLocationUpdates for pendingIntent");
 
+            //noinspection Anonymous2MethodRef,Convert2Lambda
             mFusedLocationClient.removeLocationUpdates(mPendingIntent)
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override

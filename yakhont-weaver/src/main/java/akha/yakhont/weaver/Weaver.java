@@ -231,6 +231,7 @@ public class Weaver {
     }
 
     private void printConfig(Map<String, Map<String, List<String>>> map) {
+        log(mNewLine + "START OF CONFIG");
         for (String key: map.keySet()) {
             log(mNewLine + "--- " + key);
             for (String method: map.get(key).keySet()) {
@@ -239,6 +240,7 @@ public class Weaver {
                     log("    action: " + getActionDescription(methodData) + ", code: '" + getCode(methodData) + "'");
             }
         }
+        log(mNewLine + "END OF CONFIG");
     }
 
     private String removeExtraSpaces(String str) {
@@ -279,7 +281,8 @@ public class Weaver {
         destClassName  = path.substring(idx).replace(File.separator, ".").substring(0, path.length() - idx - 6);     // remove .class
         String rootDir = path.substring(0, idx);
 
-        ClassPool pool = ClassPool.getDefault();
+        // getDefault() returns singleton but we need clear instance
+        ClassPool pool = new ClassPool(true); // ClassPool.getDefault();
         pool.insertClassPath(rootDir.endsWith(File.separator) ? rootDir.substring(0, rootDir.length() - 1): rootDir);
 
         pool.appendPathList(mClassPath);

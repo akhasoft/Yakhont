@@ -41,12 +41,12 @@ android {
         versionCode            10101
         versionName           '1.1'
 
-        resConfigs              'en', 'ru'
+        resConfigs            'en', 'ru'
     }
 
     compileOptions {
-        sourceCompatibility     JavaVersion.VERSION_1_7
-        targetCompatibility     JavaVersion.VERSION_1_7
+        sourceCompatibility     JavaVersion.VERSION_1_8
+        targetCompatibility     JavaVersion.VERSION_1_8
     }
 
     lintOptions {
@@ -84,6 +84,7 @@ android {
 }
 
 ext.libVerDemoSupport           = rootProject.ext.projectLibVerSupport
+ext.libVerDemoLifecycle         = rootProject.ext.projectLibVerLifecycle
 ext.libVerDemoLocation          = rootProject.ext.projectLibVerLocation
 
 ext.libVerDemoRetrofit          = rootProject.ext.projectLibVerRetrofit
@@ -102,6 +103,8 @@ dependencies {
 
     implementation      "com.android.support:appcompat-v7:${libVerDemoSupport}"  // Google
     implementation      "com.android.support:design:${libVerDemoSupport}"
+    implementation      "android.arch.lifecycle:common-java8:${libVerDemoLifecycle}"
+    implementation      "android.arch.lifecycle:extensions:${libVerDemoLifecycle}"
     implementation      "com.google.android.gms:play-services-location:${libVerDemoLocation}"
 
     implementation      "com.squareup.retrofit2:retrofit:${libVerDemoRetrofit2}" // Retrofit
@@ -121,7 +124,7 @@ dependencies {
 }
 
 android.variantFilter { variant ->
-    // weaver can't handle both release and debug at the same time
+    // let's build release (or debug) only - just to reduce building time
     if (variant.buildType.name == (rootProject.ext.projectDebug == '1' ? 'release': 'debug')) {
         variant.setIgnore(true)
     }
@@ -130,17 +133,18 @@ android.variantFilter { variant ->
 String[] weaverConfigFiles = null   // use default one; or something like "new String[] {projectDir.absolutePath + '/weaver.config'}"
 boolean weaverDebug = false, weaverAddConfig = true
 
-//noinspection GroovyAssignabilityCheck, UnnecessaryQualifiedReference
-android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
-        android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig))
-/*
-// to avoid using the Transform API, you can try the following:
 android.applicationVariants.all { variant ->
-    JavaCompile javaCompile = variant.javaCompile
+    AbstractCompile javaCompile = variant.javaCompiler
     javaCompile.doLast {
+        //noinspection UnnecessaryQualifiedReference
         new akha.yakhont.weaver.Weaver().run(weaverDebug, android.defaultConfig.applicationId,
                 javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
                 android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig)
     }
 }
+
+/* if (by some reason) you're about to use the deprecated Transform API, you can try the following:
+//noinspection GroovyAssignabilityCheck, UnnecessaryQualifiedReference
+android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
+        android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig))
 */
