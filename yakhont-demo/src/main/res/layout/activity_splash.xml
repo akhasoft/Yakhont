@@ -19,14 +19,14 @@
     android:layout_height="match_parent">
 
     <ImageView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
 
-            android:scaleType="fitCenter"
-            android:adjustViewBounds="true"
+        android:scaleType="fitCenter"
+        android:adjustViewBounds="true"
 
-            android:src="@drawable/img_splash"
-            android:contentDescription="@string/app_name" />
+        android:src="@drawable/img_splash"
+        android:contentDescription="@string/app_name" />
 
 </LinearLayout>
 

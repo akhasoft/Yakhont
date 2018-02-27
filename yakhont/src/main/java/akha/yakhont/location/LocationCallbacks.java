@@ -634,7 +634,8 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public boolean register(final Activity activity, final LocationRx locationRx) {
         if (!checkData(activity, locationRx)) return false;
 
-        if (!mRx.containsKey(activity)) mRx.put(activity, Utils.newSet());
+        if (!mRx.containsKey(activity)) //noinspection RedundantTypeArguments
+            mRx.put(activity, Utils.<LocationRx>newSet());
 
         final boolean result = mRx.get(activity).add(locationRx);
         CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "register Rx: result == " + result);

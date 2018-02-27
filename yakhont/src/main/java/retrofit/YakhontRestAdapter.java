@@ -39,13 +39,14 @@ public class YakhontRestAdapter<T> {
         boolean setType(Type type);
     }
 
-    @SuppressWarnings("unchecked")
     public T create(@NonNull final Class<T> service, @NonNull final RestAdapter restAdapter) {
         mHandler            = restAdapter.create(service);
         mService            = service;
         mMethodInfoCache    = restAdapter.getMethodInfoCache(service);
 
-        return (T) Proxy.newProxyInstance(service.getClassLoader(), new Class<?>[] {service}, new YakhontHandler());
+        @SuppressWarnings("unchecked")
+        final T result = (T) Proxy.newProxyInstance(service.getClassLoader(), new Class<?>[] {service}, new YakhontHandler());
+        return result;
     }
 
     private class YakhontHandler implements InvocationHandler {

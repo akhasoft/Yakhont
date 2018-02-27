@@ -29,15 +29,15 @@ apply plugin: 'com.android.application'
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           26
-    buildToolsVersion          '26.0.2'
+    compileSdkVersion           27
+    buildToolsVersion          '27.0.3'
 
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
         applicationId           'akha.yakhont.demosimple'
         minSdkVersion           14
         //noinspection OldTargetApi
-        targetSdkVersion        23      // for lower values permissions dialogs will not be shown
+        targetSdkVersion        27
         versionCode            10101
         versionName           '1.1'
 
@@ -84,18 +84,32 @@ ext.libVerDemoSimpleRxJava      = rootProject.ext.projectLibVerRxJava
 ext.libVerDemoSimpleRxJava2     = rootProject.ext.projectLibVerRxJava2
 
 ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
-                                                                                       // in alphabetical order:
-dependencies {
-    implementation      "com.google.dagger:dagger:${libVerDemoSimpleDagger}"           // Dagger2
-    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoSimpleDagger}"
 
-    implementation      "com.android.support:appcompat-v7:${libVerDemoSimpleSupport}"  // Google
+dependencies {
+    // v4 Support Libraries
+    // fragment has dependencies on compat, core-utils, core-ui, and media-compat
+    implementation      "com.android.support:support-fragment:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:support-compat:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:support-core-utils:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:support-core-ui:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:support-media-compat:${libVerDemoSimpleSupport}"
+    // v7 Support Libraries
+    // appcompat (includes support for material design) depends on the v4 Support Library
+    implementation      "com.android.support:appcompat-v7:${libVerDemoSimpleSupport}"
     implementation      "com.android.support:recyclerview-v7:${libVerDemoSimpleSupport}"
-    implementation      "android.arch.lifecycle:common-java8:${libVerDemoSimpleLifecycle}"
-    implementation      "android.arch.lifecycle:extensions:${libVerDemoSimpleLifecycle}"
+    // v13 Support Library (support for the Fragment with the FragmentCompat)
+    implementation      "com.android.support:support-v13:${libVerDemoSimpleSupport}"
+
+    implementation      "com.android.support:support-annotations:${libVerDemoSimpleSupport}"
+//    implementation      "com.android.support:design:${libVerDemoSimpleSupport}"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
     implementation      "com.google.android.gms:play-services-location:${libVerDemoSimpleLocation}"
+    implementation      "android.arch.lifecycle:common-java8:${libVerDemoSimpleLifecycle}"
+    implementation      "android.arch.lifecycle:extensions:${libVerDemoSimpleLifecycle}"
+
+    implementation      "com.google.dagger:dagger:${libVerDemoSimpleDagger}"           // Dagger2
+    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoSimpleDagger}"
 
     implementation      "com.squareup.retrofit2:retrofit:${libVerDemoSimpleRetrofit2}" // Retrofit
     implementation      "com.squareup.retrofit2:converter-gson:${libVerDemoSimpleRetrofit2}"

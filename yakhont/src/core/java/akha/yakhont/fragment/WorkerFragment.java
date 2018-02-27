@@ -152,9 +152,9 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
         super.onDetach();
     }
 
-    @SuppressWarnings("unchecked")
-    private void restoreCallbacks(@NonNull final LoaderManager loaderManager, final int id, @NonNull final BaseLoaderWrapper loader) {
-        loaderManager.initLoader(id, null, loader);
+    private void restoreCallbacks(@NonNull final LoaderManager loaderManager, final int id,
+                                  @NonNull final BaseLoaderWrapper<?> callback) {
+        loaderManager.initLoader(id, null, callback);
     }
 
     @SuppressWarnings("unchecked")
@@ -166,7 +166,8 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     }
 
     @SuppressWarnings("unchecked")
-    private void setRxUnchecked(@NonNull final BaseResponseLoaderWrapper baseResponseLoaderWrapper, final LoaderRx rx) {
+    private void setRxUnchecked(@NonNull final BaseResponseLoaderWrapper baseResponseLoaderWrapper,
+                                final LoaderRx rx) {
         baseResponseLoaderWrapper.setRx(rx);
     }
 
@@ -340,13 +341,13 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final LoaderRx rx, @NonNull final BaseLoaderWrapper loader) {
+    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final LoaderRx rx,
+                                       @NonNull final BaseLoaderWrapper loader) {
         @SuppressWarnings("unchecked")
         BaseLoaderWrapper foundLoader = loader.findLoader(mLoaders), loaderToSet = loader;
 
         if (foundLoader == null)
             mLoaders.add(loader);
-        
         else {
             if (!foundLoader.isLoading()) {
                 mLoaders.remove(foundLoader);

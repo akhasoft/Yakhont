@@ -54,6 +54,8 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 import okhttp3.ResponseBody;
 
@@ -97,8 +99,9 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
                                   @NonNull final Fragment fragment,
                                   @NonNull final Requester<Callback<D>> requester,
                                   @NonNull final String tableName, final String description) {
+        //noinspection RedundantTypeArguments
         this(context, fragment, null, requester, Core.TIMEOUT_CONNECTION, tableName, description,
-                BaseResponseLoaderWrapper.getDefaultConverter(), getDefaultUriResolver());
+                BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver());
     }
 
     /**
@@ -141,19 +144,17 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
                                   @NonNull final UriResolver uriResolver) {
         super(context, fragment, loaderId, requester, tableName, description, converter, uriResolver);
 
-        @SuppressWarnings("unchecked")
-        final BaseLoader<Callback<D>, Response<D>, Throwable, D>[] baseLoader =
-                (BaseLoader<Callback<D>, Response<D>, Throwable, D>[]) new BaseLoader[1];
+        final List<BaseLoader<Callback<D>, Response<D>, Throwable, D>> baseLoaders = new ArrayList<>(1);
 
-        setLoaderParameters(baseLoader, timeout, new Callback<D>() {
+        setLoaderParameters(baseLoaders, timeout, new Callback<D>() {
                 @Override
                 public void onResponse(Call<D> call, Response<D> response) {
-                    onSuccess(call, response, baseLoader[0]);
+                    onSuccess(call, response, baseLoaders.get(0));
                 }
 
                 @Override
                 public void onFailure(Call<D> call, Throwable throwable) {
-                    onError(call, null, throwable, baseLoader[0]);
+                    onError(call, null, throwable, baseLoaders.get(0));
                 }
             });
     }
@@ -161,7 +162,8 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
     private void onSuccess(final Call<D> call, final Response<D> response,
                            final BaseLoader<Callback<D>, Response<D>, Throwable, D> loader) {
         if (response.isSuccessful()) {
-            loader.callbackHelper(true, new BaseResponse<>(
+            //noinspection Convert2Diamond
+            loader.callbackHelper(true, new BaseResponse<Response<D>, Throwable, D>(
                     response.body(), response, null, null, Source.NETWORK, null));
             return;
         }
@@ -185,7 +187,8 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
     private void onError(@SuppressWarnings("UnusedParameters") final Call<D> call,
                          final Response<D> response, final Throwable error,
                          final BaseLoader<Callback<D>, Response<D>, Throwable, D> loader) {
-        loader.callbackHelper(false, new BaseResponse<>(
+        //noinspection Convert2Diamond
+        loader.callbackHelper(false, new BaseResponse<Response<D>, Throwable, D>(
                 null, response, null, error, Source.NETWORK, null));
     }
 
@@ -248,43 +251,39 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
 
                 @Override
                 public void request(Callback<D> callback) throws Exception {
-                    final Object result;
+                    final Class<?> returnType = mMethod.getReturnType();
+
                     try {
-                        result = CoreReflection.invoke(mHandler, mMethod);
+                        if (returnType.isAssignableFrom(Call.class)) {
+                            final Call<D> call = CoreReflection.invoke(mHandler, mMethod);
+                            if (call == null) throw new Exception("Call == null");
+
+                            call.enqueue(callback);
+                            return;
+                        }
+
+                        final CallbackRx<D> callbackRx = Retrofit2CoreLoadBuilder.getRxWrapper(callback);
+
+                        Object resultRx = Rx2.handle(mHandler, mMethod, callbackRx);
+                        if (resultRx != null) {
+                            getRx2DisposableHandler(mRx).add(resultRx);
+                            return;
+                        }
+
+                        resultRx = Rx.handle(mHandler, mMethod, callbackRx);
+                        if (resultRx != null) {
+                            getRxSubscriptionHandler(mRx).add(resultRx);
+                            return;
+                        }
+
+                        handleRequestError("unknown " + returnType + " (usually in Retrofit API)");
                     }
                     catch (InvocationTargetException exception) {
                         CoreLogger.logError("please check your build.gradle: maybe " +
-                                "\"compile 'com.squareup.retrofit2:adapter-rxjava:...'\" and / or " +
-                                "\"compile 'com.squareup.retrofit2:adapter-rxjava2:...'\" are missing");
+                                "\"implementation 'com.squareup.retrofit2:adapter-rxjava:...'\" and / or " +
+                                "\"implementation 'com.squareup.retrofit2:adapter-rxjava2:...'\" are missing");
                         throw exception;
                     }
-                    if (result == null) handleRequestError("result == null");
-
-                    if (result instanceof Call) {
-                        @SuppressWarnings("unchecked")
-                        final Call<D> call = (Call<D>) result;
-
-                        call.enqueue(callback);
-                        return;
-                    }
-
-                    //if (!Retrofit2CoreLoadBuilder.checkRxComponent(mRx)) return;
-
-                    final CallbackRx<D> callbackRx = Retrofit2CoreLoadBuilder.getRxWrapper(callback);
-
-                    Object resultRx = Rx2.handle(result, callbackRx);
-                    if (resultRx != null) {
-                        getRx2DisposableHandler(mRx).add(resultRx);
-                        return;
-                    }
-
-                    resultRx = Rx.handle(result, callbackRx);
-                    if (resultRx != null) {
-                        getRxSubscriptionHandler(mRx).add(resultRx);
-                        return;
-                    }
-
-                    handleRequestError("unknown " + result.getClass() + " (usually in Retrofit API)");
                 }
 
                 private void handleRequestError(@NonNull final String text) throws Exception {
@@ -327,7 +326,6 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
             return loaderWrapper;
         }
 
-        @SuppressWarnings("unchecked")
         private Method findMethod() {
             return findMethod(mRetrofit.getService(), mType);
         }
@@ -437,8 +435,9 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         @Override
         protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
                                                @NonNull final View list, @LayoutRes final int item) {
-            setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<>(mFragment.get().getActivity(), item):
-                    new Retrofit2AdapterWrapper<>(mFragment.get().getActivity(), item, mFrom, mTo));
+            //noinspection Convert2Diamond
+            setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item):
+                    new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item, mFrom, mTo));
         }
 
         /**

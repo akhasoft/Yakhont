@@ -26,6 +26,7 @@ okhttp
 okio
 parameterized
 reactivex
+recyclerview
 rxjava
 snackbar
 squareup

@@ -54,6 +54,7 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -99,6 +100,39 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
 
     private       LoaderRx<R, E, D>                         mRx;
 
+    private final LoaderFactoryWrapper                      mLoaderFactoryWrapper;
+
+    /**
+     * The API to create new {@yakhont.link BaseLoader} instances. To create {@link Loader} instances
+     * please use {@yakhont.link BaseLoaderWrapper#LoaderFactory LoaderFactory}.
+     *
+     * @param <C>
+     *        The type of callback
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data to load
+     *
+     * @yakhont.see BaseLoaderWrapper#LoaderFactory LoaderFactory
+     */
+    public interface BaseLoaderFactory<C, R, E, D> {
+
+        /**
+         * Returns a new {@code BaseLoader} instance.
+         *
+         * @param merge
+         *        {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
+         *
+         * @return  The {@code BaseLoader} instance
+         */
+        BaseLoader<C, R, E, D> getLoader(boolean merge);
+    }
+
     /**
      * Initialises a newly created {@code BaseResponseLoaderWrapper} object.
      *
@@ -133,23 +167,46 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
                                      @NonNull final UriResolver uriResolver) {
         super(fragment, loaderId);
 
-        mTableName      = adjustTableName(tableName);
-        mDescription    = description;
+        mTableName              = adjustTableName(tableName);
+        mDescription            = description;
         CoreLogger.log("assigned table name: " + mTableName);
 
-        mRequester      = requester;
-        mConverter      = converter;
-        mUriResolver    = uriResolver;
+        mRequester              = requester;
+        mConverter              = converter;
+        mUriResolver            = uriResolver;
+
+        mLoaderFactoryWrapper   = new LoaderFactoryWrapper();
 
         //noinspection Convert2Lambda
-        setLoaderFactory(new LoaderFactory<BaseResponse<R, E, D>>() {
-            @NonNull
+        setBaseLoaderFactory(new BaseLoaderFactory<C, R, E, D>() {
             @Override
-            public Loader<BaseResponse<R, E, D>> getLoader(final boolean merge) {
-                return new WrapperLoader<>(context, new WeakReference<>(getFragment()), mConverter, getLoaderId(),
-                        mTableName, mDescription, merge, mAdapter, mRequester, mUriResolver);
+            public BaseLoader<C, R, E, D> getLoader(boolean merge) {
+                return new WrapperLoader<>(context, new WeakReference<>(getFragment()), mConverter,
+                        getLoaderId(), mTableName, mDescription, merge, mAdapter, mRequester, mUriResolver);
             }
         });
+    }
+
+    /**
+     * Sets {@code BaseLoader} factory.
+     *
+     * @param baseLoaderFactory
+     *        The factory
+     */
+    @SuppressWarnings("WeakerAccess")
+    public void setBaseLoaderFactory(final BaseLoaderFactory<C, R, E, D> baseLoaderFactory) {
+        mLoaderFactoryWrapper.mBaseLoaderFactory = baseLoaderFactory;
+    }
+
+    private class LoaderFactoryWrapper {
+
+        private BaseLoaderFactory<C, R, E, D>               mBaseLoaderFactory;
+
+        private BaseLoader<C, R, E, D> setCallback(final boolean merge, final C callback) {
+            final BaseLoader<C, R, E, D> loader = mBaseLoaderFactory.getLoader(merge);
+            if (loader == null) CoreLogger.logWarning("loader == null");
+            return loader == null ? null: loader.setCallback(callback);
+        }
     }
 
     /**
@@ -290,31 +347,24 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         return Utils.getUriResolver();
     }
 
-    @SuppressWarnings("unchecked")
-    private BaseLoader<C, R, E, D> getBaseLoader(@NonNull final Loader<BaseResponse<R, E, D>> loader) {
-        return (BaseLoader<C, R, E, D>) loader;
-    }
-
-    // should be called from ctor only
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    protected void setLoaderParameters(@NonNull @Size(value = 1) final BaseLoader<C, R, E, D>[] baseLoader,
+    protected void setLoaderParameters(@NonNull @Size(value = 0) final List<BaseLoader<C, R, E, D>> baseLoaders,
                                        final int timeout, @NonNull final C callback) {
-        final LoaderFactory<BaseResponse<R, E, D>> loaderFactory = geLoaderFactory();
-
+        if (geLoaderFactory() != null) {
+            CoreLogger.logWarning("can not set loader callback; user-defined loader factory");
+            return;
+        }
         //noinspection Convert2Lambda
         setLoaderFactory(new LoaderFactory<BaseResponse<R, E, D>>() {
-            @NonNull
             @Override
             public Loader<BaseResponse<R, E, D>> getLoader(final boolean merge) {
-                final Loader<BaseResponse<R, E, D>> loader = loaderFactory.getLoader(merge);
-
-                if (loader instanceof BaseLoader) {
-                    baseLoader[0] = getBaseLoader(loader);
-                    baseLoader[0].setTimeout(timeout).setCallback(callback);
+                final BaseLoader<C, R, E, D> loader = mLoaderFactoryWrapper.setCallback(merge, callback);
+                if (loader != null) {
+                    loader.setTimeout(timeout);
+                    baseLoaders.add(loader);
                 }
                 else
-                    CoreLogger.logWarning("callback not set");
-
+                    CoreLogger.logWarning("BaseLoader == null; can not set timeout");
                 return loader;
             }
         });
@@ -725,7 +775,15 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          */
         @NonNull
         protected Converter<D> getConverter() {
-            return mConverter != null ? mConverter: new BaseConverter<>();
+            //noinspection Convert2Diamond
+            return mConverter != null ? mConverter: new BaseConverter<D>();
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public Converter<D> getConverterWithCheck() {
+            if (mConverter == null)     // should never happen
+                CoreLogger.logError("mConverter == null");
+            return getConverter();
         }
 
         /**
@@ -857,7 +915,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
             protected       T                                                     mHandler;
             private   final Type                                                  mTypeResponse;
 
-            @SuppressWarnings({"unchecked", "WeakerAccess"})
+            @SuppressWarnings("WeakerAccess")
             public RequesterHelper(final Type type) {
                 mTypeResponse = type;
             }

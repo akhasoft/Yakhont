@@ -87,7 +87,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     private final       BaseArrayAdapter<T>                 mArrayAdapter;
     private final       BaseCursorAdapter                   mCursorAdapter;
 
-    private final       ArrayConverter<T, R, E, D>          mConverter;
+    private             DataConverter<T, R, E, D>           mConverter;
 
     /**
      * The API to convert a {@code BaseResponse} to collection.
@@ -105,17 +105,27 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The type of data
      */
     @SuppressWarnings("WeakerAccess")
-    public interface ArrayConverter<T, R, E, D> {
+    public interface DataConverter<T, R, E, D> {
 
         /**
-         * Converts data in {@code BaseResponse} to collection.
+         * Converts {@code BaseResponse} to collection.
          *
          * @param baseResponse
          *        The {@code BaseResponse}
          *
          * @return  The Collection
          */
-        Collection<? extends T> convert(BaseResponse<R, E, D> baseResponse);
+        Collection<T> convert(BaseResponse<R, E, D> baseResponse);
+
+        /**
+         * Converts {@code Cursor} to data.
+         *
+         * @param cursor
+         *        The {@code Cursor}
+         *
+         * @return  The Collection
+         */
+        T convert(Cursor cursor);
     }
     
     /**
@@ -130,6 +140,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         @SuppressWarnings("UnusedReturnValue")
         Cursor swapCursor(Cursor cursor);
         void setAdapterViewBinder(ViewBinder viewBinder);
+        Cursor getItemCursor(int position);
     }
 
     /**
@@ -228,17 +239,13 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *
      * @param arrayAdapter
      *        The BaseArrayAdapter
-     *
-     * @param converter
-     *        The ArrayConverter
      */
     @SuppressWarnings("WeakerAccess")
     public BaseCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                             @NonNull @Size(min = 1) final String[]          from,
                             @NonNull @Size(min = 1) final    int[]          to,
-                            @NonNull final BaseArrayAdapter<T>              arrayAdapter,
-                            @NonNull final ArrayConverter  <T, R, E, D>     converter) {
-        this(SupportHelper.getBaseCursorAdapter(context, layoutId, from, to), arrayAdapter, converter);
+                            @NonNull final BaseArrayAdapter<T>              arrayAdapter) {
+        this(SupportHelper.getBaseCursorAdapter(context, layoutId, from, to), arrayAdapter);
     }
 
     /**
@@ -249,7 +256,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      */
     @SuppressWarnings({"unused", "WeakerAccess"})
     public BaseCacheAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter) {
-        this(baseCacheAdapter.mCursorAdapter, baseCacheAdapter.mArrayAdapter, baseCacheAdapter.mConverter);
+        this(baseCacheAdapter.mCursorAdapter, baseCacheAdapter.mArrayAdapter);
+        setConverter(baseCacheAdapter.mConverter);
     }
 
     /**
@@ -260,20 +268,27 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *
      * @param arrayAdapter
      *        The BaseArrayAdapter
-     *
-     * @param converter
-     *        The ArrayConverter
      */
     @SuppressWarnings("WeakerAccess")
     public BaseCacheAdapter(@NonNull final BaseCursorAdapter                   cursorAdapter,
-                            @NonNull final BaseArrayAdapter<T>                 arrayAdapter,
-                            @NonNull final ArrayConverter  <T, R, E, D>        converter) {
+                            @NonNull final BaseArrayAdapter<T>                 arrayAdapter) {
 
         mArrayAdapter   = arrayAdapter;
-        mConverter      = converter;
         mCursorAdapter  = cursorAdapter;
 
         setCurrentAdapter(false);
+    }
+
+    /**
+     * Sets the {@code DataConverter}.
+     *
+     * @param converter
+     *        The {@code DataConverter}
+     */
+    public void setConverter(@NonNull final DataConverter<T, R, E, D> converter) {
+        if (mConverter != null)
+            CoreLogger.logError("DataConverter already set");
+        mConverter      = converter;
     }
 
     /**
@@ -511,9 +526,18 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    @SuppressWarnings("unchecked")
     public T getItem(int position) {
-        return (T) mBaseAdapter.getItem(position);
+        return isCursorAdapter() ? getItemCursor(position): getItemArray(position);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected T getItemArray(int position) {
+        return mArrayAdapter.getItem(position);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected T getItemCursor(int position) {
+        return mConverter.convert(mCursorAdapter.getItemCursor(position));
     }
 
     /**
@@ -619,25 +643,21 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @param arrayAdapter
          *        The BaseArrayAdapter
-         *
-         * @param converter
-         *        The ArrayConverter
          */
         public ApiMCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                 @NonNull @Size(min = 1) final String[]          from,
                                 @NonNull @Size(min = 1) final    int[]          to,
-                                @NonNull final BaseArrayAdapter<T>              arrayAdapter,
-                                @NonNull final ArrayConverter  <T, R, E, D>     converter) {
-            super(context, layoutId, from, to, arrayAdapter, converter);
+                                @NonNull final BaseArrayAdapter<T>              arrayAdapter) {
+            super(context, layoutId, from, to, arrayAdapter);
         }
 
         /**
          * Please refer to the base method description.
          */
         @Override
-        @SuppressWarnings("unchecked")
         public Resources.Theme getDropDownViewTheme() {
-            return ((ThemedSpinnerAdapter) (isCursorAdapter() ? getCursorAdapter(): getArrayAdapter())).getDropDownViewTheme();
+            return (isCursorAdapter() ? (ThemedSpinnerAdapter) getCursorAdapter(): getArrayAdapter())
+                    .getDropDownViewTheme();
         }
 
         /**
@@ -648,7 +668,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             if (isCursorAdapter())
                 ((ThemedSpinnerAdapter) getCursorAdapter()).setDropDownViewTheme(theme);
             else
-                getArrayAdapter() .setDropDownViewTheme(theme);
+                getArrayAdapter().setDropDownViewTheme(theme);
         }
     }
 
@@ -692,16 +712,12 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @param arrayAdapter
          *        The BaseArrayAdapter
-         *
-         * @param converter
-         *        The ArrayConverter
          */
         public SupportCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                    @NonNull @Size(min = 1) final String[]        from,
                                    @NonNull @Size(min = 1) final    int[]        to,
-                                   @NonNull final BaseArrayAdapter<T>            arrayAdapter,
-                                   @NonNull final ArrayConverter  <T, R, E, D>   converter) {
-            super(context, layoutId, from, to, arrayAdapter, converter);
+                                   @NonNull final BaseArrayAdapter<T>            arrayAdapter) {
+            super(context, layoutId, from, to, arrayAdapter);
 
             mDropDownHelper = new android.support.v7.widget.ThemedSpinnerAdapter.Helper(context);
             mLayoutId       = layoutId;
@@ -776,9 +792,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param arrayAdapter
          *        The BaseArrayAdapter
          *
-         * @param converter
-         *        The ArrayConverter
-         *
          * @param support
          *        {@code true} to return the {@code SupportCacheAdapter} instance, {@code false} otherwise
          *
@@ -789,15 +802,14 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                                                        @NonNull @Size(min = 1) final String[]         from,
                                                        @NonNull @Size(min = 1) final    int[]         to,
                                                        @NonNull final BaseArrayAdapter<T>             arrayAdapter,
-                                                       @NonNull final ArrayConverter  <T, R, E, D>    converter,
                                                        final boolean support) {
             if (support)
-                return new SupportCacheAdapter<>(context, layoutId, from, to, arrayAdapter, converter);
+                return new SupportCacheAdapter<>(context, layoutId, from, to, arrayAdapter);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                return new ApiMCacheAdapter   <>(context, layoutId, from, to, arrayAdapter, converter);
+                return new ApiMCacheAdapter   <>(context, layoutId, from, to, arrayAdapter);
             else
-                return new BaseCacheAdapter   <>(context, layoutId, from, to, arrayAdapter, converter);
+                return new BaseCacheAdapter   <>(context, layoutId, from, to, arrayAdapter);
         }
     }
 

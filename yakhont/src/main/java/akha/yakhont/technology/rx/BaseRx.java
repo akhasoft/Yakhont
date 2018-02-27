@@ -565,9 +565,9 @@ public abstract class BaseRx<D> {
          * @param activity
          *        The Activity
          */
-        @SuppressWarnings("SameParameterValue")
+        @SuppressWarnings({"SameParameterValue", "Convert2Diamond"})
         public LocationRx(final boolean isRx2, final Activity activity) {
-            this(isRx2 ? new Rx2<>(): new Rx<>(), activity);
+            this(isRx2 ? new Rx2<Location>(): new Rx<Location>(), activity);
         }
 
         /**
@@ -721,8 +721,9 @@ public abstract class BaseRx<D> {
          * @param isSingle
          *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
          */
+        @SuppressWarnings("Convert2Diamond")
         public LoaderRx(final boolean isRx2, final boolean isSingle) {
-            this(isRx2 ? new Rx2<>(): new Rx<>(), isSingle);
+            this(isRx2 ? new Rx2<BaseResponse<R, E, D>>(): new Rx<BaseResponse<R, E, D>>(), isSingle);
         }
 
         /**
@@ -815,9 +816,9 @@ public abstract class BaseRx<D> {
                 return;
             }
 
-            final E error = baseResponse.getError();
+            final Throwable error = baseResponse.getErrorOrThrowable();
             if (error != null) {
-                onError(BaseResponse.getThrowable(error));
+                onError(error);
                 return;
             }
 

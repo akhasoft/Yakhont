@@ -128,7 +128,7 @@ public class Weaver {
                     String bootClassPath, String[] configFiles, boolean addConfig)
             throws NotFoundException, CannotCompileException, IOException {
 
-        log(" Weaving compiled classes...");
+        log(false, "Yakhont: weaving compiled classes in " + classesDir);
         mDebug = debug;
 
         mApplicationId = applicationId;
@@ -168,7 +168,8 @@ public class Weaver {
 
     private void parseConfig(String configFile) throws IOException, CannotCompileException {
         if (configFile == null) return;
-        configFile = configFile.replace("\\", File.separator).replace("/", File.separator);
+        configFile = configFile.replace("\\", File.separator)
+                .replace("/", File.separator);
         log(mNewLine + mNewLine + "config file: " + configFile);
 
         for (String line: Files.readAllLines(Paths.get(configFile), Charset.defaultCharset()))
@@ -194,7 +195,8 @@ public class Weaver {
 
         List<String> tokens = new LinkedList<>();
         for (Matcher m = Pattern.compile("[^\\s\"']+|\"[^\"]*\"|'[^']*'").matcher(line.trim()); m.find();)
-            tokens.add(m.group().replace("\"", "").replace("'", ""));
+            tokens.add(m.group().replace("\"", "")
+                    .replace("'", ""));
 
         if (tokens.size() == 0) return;
         if (tokens.size() < 3)
@@ -237,7 +239,8 @@ public class Weaver {
             for (String method: map.get(key).keySet()) {
                 log(mNewLine + "   " + method);
                 for (String methodData: map.get(key).get(method))
-                    log("    action: " + getActionDescription(methodData) + ", code: '" + getCode(methodData) + "'");
+                    log("    action: " + getActionDescription(methodData) + ", code: '" +
+                            getCode(methodData) + "'");
             }
         }
         log(mNewLine + "END OF CONFIG");
@@ -278,12 +281,14 @@ public class Weaver {
         int idx = path.indexOf(mApplicationId.replace(".", File.separator));
         if (idx < 0) return;
 
-        destClassName  = path.substring(idx).replace(File.separator, ".").substring(0, path.length() - idx - 6);     // remove .class
+        destClassName  = path.substring(idx).replace(File.separator, ".")
+                .substring(0, path.length() - idx - 6);     // remove .class
         String rootDir = path.substring(0, idx);
 
         // getDefault() returns singleton but we need clear instance
         ClassPool pool = new ClassPool(true); // ClassPool.getDefault();
-        pool.insertClassPath(rootDir.endsWith(File.separator) ? rootDir.substring(0, rootDir.length() - 1): rootDir);
+        pool.insertClassPath(rootDir.endsWith(File.separator) ?
+                rootDir.substring(0, rootDir.length() - 1): rootDir);
 
         pool.appendPathList(mClassPath);
         pool.appendPathList(mBootClassPath);
@@ -307,19 +312,23 @@ public class Weaver {
         clsDest.writeFile(rootDir.endsWith(File.separator) ? rootDir: rootDir + File.separator);
     }
 
-    private void insertMethods(CtClass clsDest, CtClass clsSrc, String methodName, ClassPool pool) throws NotFoundException, CannotCompileException {
+    private void insertMethods(CtClass clsDest, CtClass clsSrc, String methodName, ClassPool pool)
+            throws NotFoundException, CannotCompileException {
         List<String> methodData = mMethodsToWeave.get(clsSrc.getName()).get(methodName);
         for (int i = methodData.size() - 1; i >= 0; i--) {
             if (Collections.frequency(methodData, methodData.get(i)) > 1)
-                log(false, "warning - duplicated entries for method " + methodName + ": " + methodData.get(i));
+                log(false, "warning - duplicated entries for method " + methodName +
+                        ": " + methodData.get(i));
 
             int idx = methodName.indexOf("(");
-            CtMethod[] methods = clsSrc.getDeclaredMethods(idx < 0 ? methodName: methodName.substring(0, idx));
+            CtMethod[] methods = clsSrc.getDeclaredMethods(idx < 0 ? methodName:
+                    methodName.substring(0, idx));
 
             boolean ignoreSignature = methodName.endsWith(IGNORE_SIGNATURE);
             if (ignoreSignature) idx = -1;
             if (methods.length > 1 && idx < 0 && !ignoreSignature)
-                log(false, "warning - there're several methods " + methodName + ", please specify signature or use " + IGNORE_SIGNATURE);
+                log(false, "warning - there're several methods " + methodName +
+                        ", please specify signature or use " + IGNORE_SIGNATURE);
 
             for (CtMethod methodSrc: methods) {
                 if (idx >= 0 && !methodSrc.getSignature().startsWith(methodName.substring(idx))) continue;
@@ -332,8 +341,10 @@ public class Weaver {
                 }
 
                 if (methodDest != null) {
-                    log(mNewLine + "method " + methodDest.getLongName() + " is already overridden; about to weave, action: " +
-                            getActionDescription(methodData.get(i)) + ", code: " + getCode(methodData.get(i)));
+                    log(mNewLine + "method " + methodDest.getLongName() +
+                            " is already overridden; about to weave, action: "   +
+                            getActionDescription(methodData.get(i)) + ", code: " +
+                            getCode(methodData.get(i)));
 
                     Actions action = getAction(methodData.get(i));
                     switch (action) {
@@ -348,7 +359,8 @@ public class Weaver {
                             break;
                         case CATCH:
                             methodDest.addCatch(getCode(methodData.get(i)),
-                                    pool.get(getActionDescriptionRaw(methodData.get(i))), "$" + EXCEPTION_NAME);
+                                    pool.get(getActionDescriptionRaw(methodData.get(i))),
+                                    "$" + EXCEPTION_NAME);
                             break;
                         default:        // should never happen
                             throw new CannotCompileException("error - unknown action: " + action);
@@ -357,7 +369,9 @@ public class Weaver {
                 else {
                     String newMethod = newMethod(methodSrc, methodData.get(i), clsDest);
 
-                    log(mNewLine + "about to add method " + methodName + mNewLine + " method body: " + newMethod);
+                    log(mNewLine + "about to add method " + methodName + mNewLine +
+                            " method body: " + newMethod);
+
                     clsDest.addMethod(CtNewMethod.make(newMethod, clsDest));
                 }
             }
@@ -385,11 +399,13 @@ public class Weaver {
      */
     @SuppressWarnings({"WeakerAccess", "UnusedParameters"})
     protected String newMethod(CtMethod methodSrc, String data, CtClass clsDest)
-            throws NotFoundException, CannotCompileException {  // it seems CtNewMethod.delegator(...) is not applicable here
+            throws NotFoundException, CannotCompileException {
+        // it seems CtNewMethod.delegator(...) is not applicable here
 
         int modifiers = methodSrc.getModifiers();
         if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers) || Modifier.isPrivate(modifiers))
-            throw new CannotCompileException("error - can not override " + methodSrc.getName() + " 'cause it's static (or final or private)");
+            throw new CannotCompileException("error - can not override " + methodSrc.getName() +
+                    " 'cause it's static (or final or private)");
 
         CtClass[] paramTypes = methodSrc.getParameterTypes(), exceptionTypes = methodSrc.getExceptionTypes();
         if (paramTypes == null) paramTypes = new CtClass[] {};
@@ -404,18 +420,22 @@ public class Weaver {
         String argPrefix = "arg", code = getCode(data);
         StringBuilder pArgs = new StringBuilder(), eArgs = new StringBuilder();
         for (int i = 0; i < paramTypes.length; i++)
-            pArgs.append(String.format(Locale.getDefault(), "%s%s %s%d", i == 0 ? "": ", ", paramTypes[i].getName().replace('$', '.'), argPrefix, i + 1));
+            pArgs.append(String.format(Locale.getDefault(), "%s%s %s%d", i == 0 ? "":
+                    ", ", paramTypes[i].getName().replace('$', '.'), argPrefix, i + 1));
         for (int i = paramTypes.length; i > 0; i--)
             code = code.replace("$" + i, argPrefix + i);
         for (int i = 0; i < exceptionTypes.length; i++)
-            eArgs.append(String.format(Locale.getDefault(), "%s %s", i == 0 ? "throws": ",", exceptionTypes[i].getName().replace('$', '.')));
+            eArgs.append(String.format(Locale.getDefault(), "%s %s", i == 0 ? "throws": ",",
+                    exceptionTypes[i].getName().replace('$', '.')));
 
         return removeExtraSpaces(String.format("public %s %s(%s) %s { %s %s %s super.%s($$); %s %s %s }",
                 returnName, methodSrc.getName(), pArgs, eArgs, isTry ? "try { ": "",
-                action.equals(Actions.INSERT_BEFORE) ? code: "", isVoid ? "": String.format("%s result =", returnName), methodSrc.getName(),
+                action.equals(Actions.INSERT_BEFORE) ? code: "", isVoid ? "": String.format(
+                        "%s result =", returnName), methodSrc.getName(),
                 action.equals(Actions.INSERT_AFTER)  ? code: "", isVoid ? "": "return result;",
-                !isTry ? "": action.equals(Actions.INSERT_AFTER_FINALLY) ? String.format(" } finally { %s }", code):
-                        String.format(" } catch(%s %s) { %s }", getActionDescriptionRaw(data), EXCEPTION_NAME,
-                                code.replace("$" + EXCEPTION_NAME, EXCEPTION_NAME))));
+                !isTry ? "": action.equals(Actions.INSERT_AFTER_FINALLY) ? String.format(
+                        " } finally { %s }", code): String.format(" } catch(%s %s) { %s }",
+                        getActionDescriptionRaw(data), EXCEPTION_NAME,
+                        code.replace("$" + EXCEPTION_NAME, EXCEPTION_NAME))));
     }
 }

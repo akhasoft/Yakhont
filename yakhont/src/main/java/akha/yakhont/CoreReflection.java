@@ -75,7 +75,7 @@ public class CoreReflection {
      * Same as {@link #invoke(Object, String, Object...)} but never throws exceptions.
      */
     @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
-    public static Object invokeSafe(@NonNull final Object object, @NonNull final String methodName, final Object... args) {
+    public static <T> T invokeSafe(@NonNull final Object object, @NonNull final String methodName, final Object... args) {
         try {
             return invoke(object, methodName, args);
         }
@@ -97,21 +97,28 @@ public class CoreReflection {
      * @param args
      *        The method arguments
      *
+     * @param <T>
+     *        The type of data to return
+     *
      * @return  The result of method invoking
      *
      * @throws  InvocationTargetException
      *          please refer to the exception description
+     *
+     * @throws  IllegalAccessException
+     *          please refer to the exception description
      */
     @SuppressWarnings("WeakerAccess")
-    public static Object invoke(@NonNull final Object object, @NonNull final String methodName,
-                                final Object... args) throws InvocationTargetException {
+    public static <T> T invoke(@NonNull final Object object, @NonNull final String methodName, final Object... args)
+            throws InvocationTargetException, IllegalAccessException {
         final Class[] classes = new Class[args == null ? 0: args.length];
         for (int i = 0; i < classes.length; i++)
             //noinspection ConstantConditions
             classes[i] = args[i] == null ? null: args[i].getClass();
 
         final Method method = findMethod(object, methodName, classes);
-        return method == null ? null: invoke(getObject(object), method, args);
+        //noinspection RedundantTypeArguments
+        return method == null ? null: CoreReflection.<T>invoke(getObject(object), method, args);
     }
 
     /**
@@ -126,14 +133,20 @@ public class CoreReflection {
      * @param args
      *        The method arguments
      *
+     * @param <T>
+     *        The type of data to return
+     *
      * @return  The result of method invoking
      *
      * @throws  InvocationTargetException
      *          please refer to the exception description
+     *
+     * @throws  IllegalAccessException
+     *          please refer to the exception description
      */
     @SuppressWarnings("WeakerAccess")
-    public static Object invoke(final Object object, final Method method,
-                                final Object... args) throws InvocationTargetException {
+    public static <T> T invoke(final Object object, final Method method, final Object... args)
+            throws InvocationTargetException, IllegalAccessException {
         checkForNull(method, "method == null");
 
         CoreLogger.log("about to invoke method " + method.toGenericString());
@@ -145,15 +158,31 @@ public class CoreReflection {
         }
 
         try {
-            return method.invoke(object, args);
+            @SuppressWarnings("unchecked")
+            final T result = (T) method.invoke(object, args);
+            return result;
         }
-        catch (IllegalAccessException e) {          // should never happen
-            CoreLogger.log(method.getName(), e);
-            return null;
+        catch (ClassCastException | IllegalAccessException exception) {
+            CoreLogger.log(method.getName(), exception);
+            throw exception;
         }
         finally {
             if (!accessible) //noinspection ThrowFromFinallyBlock
                 method.setAccessible(false);
+        }
+    }
+
+    /**
+     * Same as {@link #invoke(Object, Method, Object...)} but never throws exceptions.
+     */
+    @SuppressWarnings({"UnusedReturnValue", "SameParameterValue", "unused"})
+    public static <T> T invokeSafe(@NonNull final Object object, @NonNull final Method method, final Object... args) {
+        try {
+            return invoke(object, method, args);
+        }
+        catch (Exception e) {
+            CoreLogger.log("invoke", e);
+            return null;
         }
     }
 
@@ -455,12 +484,16 @@ public class CoreReflection {
      * @param fieldName
      *        The field name
      *
+     * @param <T>
+     *        The type of data to return
+     *
      * @return  The field value
      */
     @SuppressWarnings("unused")
-    public static Object getField(@NonNull final Object object, @NonNull final String fieldName) {
+    public static <T> T getField(@NonNull final Object object, @NonNull final String fieldName) {
         final Field field = findField(object, fieldName);
-        return field == null ? null: getField(object, field);
+        //noinspection RedundantTypeArguments
+        return field == null ? null: CoreReflection.<T>getField(object, field);
     }
 
     /**
@@ -472,10 +505,13 @@ public class CoreReflection {
      * @param field
      *        The field
      *
+     * @param <T>
+     *        The type of data to return
+     *
      * @return  The field value
      */
     @SuppressWarnings("unused")
-    public static Object getField(@NonNull final Object object, final Field field) {
+    public static <T> T getField(@NonNull final Object object, final Field field) {
         return doField(false, getObject(object), field, null /* ignored */);
     }
 
@@ -491,10 +527,13 @@ public class CoreReflection {
      * @param newValue
      *        The field's new value
      *
+     * @param <T>
+     *        The type of data to return
+     *
      * @return  The field's previous value
      */
     @SuppressWarnings("unused")
-    public static Object setField(@NonNull final Object object, @NonNull final String fieldName, final Object newValue) {
+    public static <T> T setField(@NonNull final Object object, @NonNull final String fieldName, final T newValue) {
         final Field field = findField(object, fieldName);
         return field == null ? null: setField(object, field, newValue);
     }
@@ -511,25 +550,30 @@ public class CoreReflection {
      * @param newValue
      *        The field's new value
      *
+     * @param <T>
+     *        The type of data to return
+     *
      * @return  The field's previous value
      */
     @SuppressWarnings("unused")
-    public static Object setField(@NonNull final Object object, final Field field, final Object newValue) {
+    public static <T> T setField(@NonNull final Object object, final Field field, final T newValue) {
         return doField(true, getObject(object), field, newValue);
     }
 
-    private static Object doField(final boolean set, final Object object, final Field field, final Object newValue) {
+    private static <T> T doField(final boolean set, final Object object, final Field field, final T newValue) {
         checkForNull(field, "field == null");
 
         final boolean accessible = field.isAccessible();
         field.setAccessible(true);
 
         try {
-            final Object value = field.get(object);
+            @SuppressWarnings("unchecked")
+            final T value = (T) field.get(object);
+
             if (set) field.set(object, newValue);
             return value;
         }
-        catch (IllegalAccessException e) {  // should never happen
+        catch (ClassCastException | IllegalAccessException e) {
             CoreLogger.log(field.getName(), e);
         }
         finally {

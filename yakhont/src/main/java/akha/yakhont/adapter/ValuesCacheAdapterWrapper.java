@@ -20,19 +20,22 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
-import akha.yakhont.adapter.BaseCacheAdapter.ArrayConverter;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseArrayAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.DataBinder;
+import akha.yakhont.adapter.BaseCacheAdapter.DataConverter;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewInflater;
+import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.loader.BaseResponse.Converter;
 
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.provider.BaseColumns;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
@@ -63,6 +66,9 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     private final BaseCacheAdapter <ContentValues, R, E, D>             mBaseCacheAdapter;
     private final ContentValuesRecyclerViewAdapter<R, E, D>             mBaseRecyclerViewAdapter;
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Converter<D>                                              mConverter;
+
     /**
      * Initialises a newly created {@code ValuesCacheAdapterWrapper} object. The data binding goes by default:
      * cursor's column {@link BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title etc.
@@ -75,7 +81,8 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      */
     @SuppressWarnings("WeakerAccess")
     public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId) {
-        this(ValuesCacheAdapterWrapper.init(context, layoutId), context, layoutId);
+        //noinspection RedundantTypeArguments
+        this(ValuesCacheAdapterWrapper.<R, E, D>init(context, layoutId), context, layoutId);
     }
 
     /**
@@ -97,7 +104,8 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
                                      @NonNull @Size(min = 1) final    int[] to) {
-        this(ValuesCacheAdapterWrapper.init(context, layoutId, from, to), context, layoutId);
+        //noinspection RedundantTypeArguments
+        this(ValuesCacheAdapterWrapper.<R, E, D>init(context, layoutId, from, to), context, layoutId);
     }
 
     /**
@@ -133,6 +141,8 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
     private ValuesCacheAdapterWrapper(@NonNull final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter,
                                       @NonNull final Context context, @LayoutRes final int layoutId) {
         mBaseCacheAdapter        = baseCacheAdapter;
+        mBaseCacheAdapter.setConverter(new DataConverterContentValues());
+
         mBaseRecyclerViewAdapter = new ContentValuesRecyclerViewAdapter<>(context, layoutId,
                 baseCacheAdapter.getArrayAdapter().getFrom(),
                 baseCacheAdapter.getArrayAdapter().getTo(), baseCacheAdapter);
@@ -163,17 +173,39 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
         @SuppressWarnings("Convert2Lambda")
         final BaseCacheAdapter<ContentValues, R, E, D> adapter = factory.getAdapter(context, layout, from, to,
                 new BaseArrayAdapter<>(context, layout, getDataBinder(context, from, to)),
-                new ArrayConverter<ContentValues, R, E, D>() {
-                    @Override
-                    public Collection<ContentValues> convert(@NonNull final BaseResponse<R, E, D> baseResponse) {
-                        final ContentValues[] values = baseResponse.getValues();
-                        return values != null ? Arrays.asList(values): null;
-                    }
-                },
                 compatible);
 
         CoreLogger.log(Level.INFO, "instantiated " + adapter.getClass().getName());
         return adapter;
+    }
+
+    /**
+     * Sets the {@code Converter}.
+     *
+     * @param converter
+     *        The {@code Converter}
+     */
+    public void setConverter(@NonNull final Converter<D> converter) {
+        if (mConverter != null)
+            CoreLogger.logWarning("converter already set");
+        mConverter = converter;
+    }
+
+    private class DataConverterContentValues implements DataConverter<ContentValues, R, E, D> {
+        @Override
+        public Collection<ContentValues> convert(@NonNull final BaseResponse<R, E, D> baseResponse) {
+            final ContentValues[] values = baseResponse.getValues();
+            return values != null ? Arrays.asList(values): null;
+        }
+
+        @Override
+        public ContentValues convert(@NonNull final Cursor cursor) {
+            if (mConverter == null) {       // should never happen
+                CoreLogger.logWarning("converter is null");
+                mConverter = new BaseConverter<>();     // type not set, but here it's not needed
+            }
+            return mConverter.getContentValues(cursor);
+        }
     }
 
     private static DataBinder<ContentValues> getDataBinder(@NonNull final Context context,

@@ -26,7 +26,7 @@ task preprocessor {
         boolean addDebugActivities = true       // auto generate additional debug Activities
         boolean addDebugFragments  = true       // auto generate additional debug Fragments
 
-        println(' Preprocessing sources...')
+        println('Yakhont: preprocessing sources...')
 
         clearTmpSources()
 
@@ -75,12 +75,13 @@ def generateActivities() {
         'android.app.TabActivity'                                                           ,                                
         'android.preference.PreferenceActivity'                    
     ]
-    
+
+    // android.support.v4.app.FragmentActivity is a special case
     String[] debugSupportActivityClasses = [
 //        'android.support.v7.app.ActionBarActivity'                                          ,
         'android.support.v7.app.AppCompatActivity'
     ]
-    
+
     addActivities('src/core/java/akha/yakhont/debug'           ,    false,  debugActivityClasses       )
     addActivities('src/support/java/akha/yakhont/support/debug',     true,  debugSupportActivityClasses)
 }
@@ -95,7 +96,7 @@ def generateFragments() {
         'android.support.v17.leanback.app.ErrorFragment'                                    ,                              
         'android.support.v17.leanback.app.GuidedStepFragment'                               ,                         
         'android.support.v17.leanback.app.HeadersFragment'                                  ,                            
-        'android.support.v17.leanback.app.PlaybackOverlayFragment'                          ,                    
+//        'android.support.v17.leanback.app.PlaybackOverlayFragment'                          ,
         'android.support.v17.leanback.app.RowsFragment'                                     ,                               
         'android.support.v17.leanback.app.SearchFragment'                                   ,
         'android.support.v17.leanback.app.VerticalGridFragment'                             ,
@@ -113,12 +114,13 @@ def generateFragments() {
     String[] debugSupportFragmentClasses = [
         'android.support.v4.app.ListFragment'                                               ,                               
         'android.support.v7.app.MediaRouteDiscoveryFragment'                                ,                
-        'android.support.v17.leanback.app.BrowseSupportFragment'                            ,                      
-        'android.support.v17.leanback.app.DetailsSupportFragment'                           ,                     
+        'android.support.v17.leanback.app.BrandedSupportFragment'                           ,
+        'android.support.v17.leanback.app.BrowseSupportFragment'                            ,
+        'android.support.v17.leanback.app.DetailsSupportFragment'                           ,
         'android.support.v17.leanback.app.ErrorSupportFragment'                             ,                       
         'android.support.v17.leanback.app.GuidedStepSupportFragment'                        ,                  
         'android.support.v17.leanback.app.HeadersSupportFragment'                           ,                     
-        'android.support.v17.leanback.app.PlaybackOverlaySupportFragment'                   ,             
+//        'android.support.v17.leanback.app.PlaybackOverlaySupportFragment'                   ,
         'android.support.v17.leanback.app.RowsSupportFragment'                              ,                        
         'android.support.v17.leanback.app.SearchSupportFragment'                            ,                      
         'android.support.v17.leanback.app.VerticalGridSupportFragment'        

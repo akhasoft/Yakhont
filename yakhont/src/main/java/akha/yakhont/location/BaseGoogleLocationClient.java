@@ -404,7 +404,8 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
             mSmallestDisplacement = savedInstanceState.getFloat(ARG_REQUEST_SMALLEST_DISPLACEMENT);
 
         if (savedInstanceState.keySet().contains                       (ARG_LOCATION      ))
-            setLocation(             savedInstanceState.getParcelable  (ARG_LOCATION      ));
+            //noinspection RedundantCast
+            setLocation((Location)   savedInstanceState.getParcelable  (ARG_LOCATION      ));
         if (savedInstanceState.keySet().contains                       (ARG_TIME          ))
             mLastUpdateTime = (Date) savedInstanceState.getSerializable(ARG_TIME          );
         if (savedInstanceState.keySet().contains                       (ARG_UNIQUE_UPDATES))

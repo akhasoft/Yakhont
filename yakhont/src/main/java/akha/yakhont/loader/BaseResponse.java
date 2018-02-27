@@ -101,6 +101,16 @@ public class BaseResponse<R, E, D> {
         D get(Cursor cursor);
 
         /**
+         * Converts cursor to ContentValues.
+         *
+         * @param cursor
+         *        The cursor
+         *
+         * @return  The ContentValues
+         */
+        ContentValues getContentValues(Cursor cursor);
+
+        /**
          * Converts data to content values.
          *
          * @param src
@@ -126,11 +136,6 @@ public class BaseResponse<R, E, D> {
          * @return  This {@code Converter} object
          */
         Converter<D> setType(Type type);
-    }
-
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static <E> Throwable getThrowable(final E error) {
-        return error instanceof Throwable ? (Throwable) error: new Exception(error.toString());
     }
 
     /**
@@ -169,14 +174,9 @@ public class BaseResponse<R, E, D> {
         mData               = data;
         mResponse           = response;
         mCursor             = cursor;
-        mError              = error;
         mSource             = source;
+        mError              = error;
         mThrowable          = throwable;
-    }
-
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public void setContentValues(final ContentValues[] values) {
-        mContentValues = values;
     }
 
     /**
@@ -212,6 +212,11 @@ public class BaseResponse<R, E, D> {
         return mContentValues;
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public void setValues(final ContentValues[] values) {
+        mContentValues = values;
+    }
+
     /**
      * Returns the error.
      *
@@ -220,6 +225,29 @@ public class BaseResponse<R, E, D> {
     @SuppressWarnings("unused")
     public E getError() {
         return mError;
+    }
+
+    /**
+     * If error is an instance of {@link Throwable}, returns the error itself;
+     * otherwise, returns {@link Exception} wrapper for error.
+     *
+     * @return  The error as {@link Throwable}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public Throwable getErrorAsThrowable() {
+        return mError == null ? null: mError instanceof Throwable ? (Throwable) mError:
+                new Exception(mError.toString());
+    }
+
+    /**
+     * If error is not null returns error as {@link Throwable}; otherwise, returns throwable.
+     *
+     * @return  The error or throwable
+     *
+     * @see #getErrorAsThrowable
+     */
+    public Throwable getErrorOrThrowable() {
+        return mError == null ? mThrowable: getErrorAsThrowable();
     }
 
     /**

@@ -282,18 +282,6 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private final AtomicBoolean     mWaitForResponse    = new AtomicBoolean();
-    private final Object            mWaitLock           = new Object();
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isWaiting() {
-        synchronized (mWaitLock) {
-            if (!mWaitForResponse.get()) return false;
-            mWaitForResponse.set(false);
-        }
-        return true;
-    }
-
     /**
      * Starts an asynchronous load.
      */
@@ -303,11 +291,6 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             CoreLogger.logError(addLoaderInfo("mCallback == null"));
             return;
         }
-
-        synchronized (mWaitLock) {
-            mWaitForResponse.set(true);
-        }
-
         doProgressSafe(true);
 
         //noinspection Convert2Lambda
@@ -320,21 +303,12 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 }
                 catch (Exception exception) {
                     CoreLogger.log(addLoaderInfo("makeRequest failed"), exception);
-                    callbackHelper(false, wrapException(exception));
+                    //noinspection Convert2Diamond
+                    callbackHelper(false, new BaseResponse<R, E, D>(
+                            null, null, null, null, Source.UNKNOWN, exception));
                 }
             }
         });
-    }
-
-    @SuppressWarnings("unchecked")
-    private BaseResponse<R, E, D> wrapException(@NonNull final Exception exception) {
-        try {
-            return new BaseResponse<>(null, null, null, (E) exception, Source.UNKNOWN, null);
-        }
-        catch (Exception internalException) {
-            CoreLogger.log(addLoaderInfo("BaseResponse creation failed"), internalException);
-            return new BaseResponse<>(null, null, null, null, Source.UNKNOWN, exception);
-        }
     }
 
     /**
@@ -351,37 +325,47 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
-                final boolean waiting = isWaiting();
-                CoreLogger.log(waiting ? Level.DEBUG: Level.ERROR, addLoaderInfo("success " + success));
-
-                if (!waiting) return;
-                CoreLogger.log(addLoaderInfo("proceed"));
-
-                doProgressSafe(false);
-
-                if (success) {
-                    onSuccess(baseResponse);
-                    return;
-                }
-
-                final E error = baseResponse.getError();
-                logError(error);
-                displayErrorSafe(makeErrorMessage(error));
-
-                onFailure(baseResponse);
+                callback(success, baseResponse);
             }
         });
     }
 
-    private void logError(final E error) {
-        if (error == null) {
-            CoreLogger.logError(addLoaderInfo("error == null"));
+    private void callback(final boolean success, @NonNull final BaseResponse<R, E, D> baseResponse) {
+        synchronized (mTimerLock) {
+            final boolean waiting = mTimerTask != null;
+            CoreLogger.log(waiting ? Level.DEBUG: Level.ERROR, addLoaderInfo(
+                    "success " + success + ", waiting " + waiting));
+            if (!waiting) return;
+        }
+        CoreLogger.log(addLoaderInfo("proceed"));
+
+        doProgressSafe(false);
+
+        if (success) {
+            onSuccess(baseResponse);
             return;
         }
-        if (error instanceof Throwable)
-            CoreLogger.logError(addLoaderInfo(error.toString()), (Throwable) error);
-        else
-            CoreLogger.logError(addLoaderInfo(error.toString()));
+
+        final E error = baseResponse.getError();
+        if (error != null) {
+            if (error instanceof Throwable)
+                logError((Throwable) error);
+            else
+                CoreLogger.logError(addLoaderInfo(error.toString()));
+        }
+        final Throwable throwable = baseResponse.getThrowable();
+        if (throwable != null) logError(throwable);
+
+        if (error == null && throwable == null)
+            CoreLogger.logError(addLoaderInfo("error == null"));
+
+        displayErrorSafe(makeErrorMessage(baseResponse));
+
+        onFailure(baseResponse);
+    }
+
+    private void logError(@NonNull final Throwable throwable) {
+        CoreLogger.logError(addLoaderInfo("loader failed"), throwable);
     }
 
     private void displayErrorSafe(@NonNull final String text) {
@@ -454,7 +438,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     /** @exclude */
     @NonNull
     @SuppressWarnings({"JavaDoc", "UnusedParameters", "WeakerAccess"})
-    protected String makeErrorMessage(final E error) {
+    protected String makeErrorMessage(@NonNull final BaseResponse<R, E, D> baseResponse) {
         return mNetworkMessage;
     }
 
@@ -473,11 +457,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected void doProgressSafe(final boolean show) {
+    private void doProgressSafe(final boolean show, final boolean cancel) {
         try {
-            doProgressTimer(show);
+            doProgressTimer(show, cancel);
             if (!mSilent) doProgress(show);
         }
         catch (Exception e) {
@@ -485,46 +467,57 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         }
     }
 
-    private Timer               mTimer;
-    private final Object        mTimerLock       = new Object();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected void doProgressSafe(final boolean show) {
+        doProgressSafe(show, true);
+    }
 
-    private void doProgressTimer(final boolean show) {
+    private final    Timer      mTimer           = new Timer("loader timer", true);
+    private final    Object     mTimerLock       = new Object();
+    private volatile TimerTask  mTimerTask;
+
+    private void doProgressTimer(final boolean start, final boolean cancel) {
         synchronized (mTimerLock) {
-            if (mTimer != null) {
-                mTimer.cancel();
-                mTimer = null;
-            }
-            if (!show) return;
-
-            if (mTimeout < 0) {
-                CoreLogger.logError(addLoaderInfo("mTimeout < 0"));
-                return;
-            }
-
-            // stop show loading progress after TIMEOUT_CONNECTION_TIMER seconds of connection timeout
-            // (normally should never happen)
-            final int timeout = (mTimeout + Core.TIMEOUT_CONNECTION_TIMER) * 1000;
-
-            mTimer = new Timer(addLoaderInfo("timer for loading progress"));
-            mTimer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    CoreLogger.log(Level.ERROR, addLoaderInfo("timer forced to stop display loading progress"), false);
-                    doProgressSafe(false);
-
-                    if (!isWaiting()) return;
-                    CoreLogger.log(addLoaderInfo("timer proceed"));
-
-                    //noinspection Convert2Lambda
-                    Utils.postToMainLoop(new Runnable() {
-                        @Override
-                        public void run() {
-                            onFailure(new BaseResponse<>(Source.TIMEOUT));
-                        }
-                    });
-                }
-            }, timeout);
+            doProgressTimerAsync(start, cancel);
         }
+    }
+
+    private void doProgressTimerAsync(final boolean start, final boolean cancel) {
+        if (mTimerTask != null) {
+            final boolean result = !cancel || mTimerTask.cancel();
+            mTimerTask = null;
+
+            if (start)   CoreLogger.logError(addLoaderInfo("previous TimerTask is not null"));
+            if (!result) CoreLogger.logError(addLoaderInfo("TimerTask cancel problem"));
+        }
+        if (!start) return;
+
+        if (mTimeout < 0) {
+            CoreLogger.logError(addLoaderInfo("mTimeout < 0"));
+            return;
+        }
+
+        // stop show loading progress after TIMEOUT_CONNECTION_TIMER seconds of connection timeout
+        // (normally should never happen)
+        final int timeout = (mTimeout + Core.TIMEOUT_CONNECTION_TIMER) * 1000;
+
+        mTimerTask = new TimerTask() {
+            @Override
+            public void run() {
+                CoreLogger.log(Level.ERROR, addLoaderInfo("forced to stop"), false);
+                doProgressSafe(false, false);
+
+                //noinspection Convert2Lambda
+                Utils.postToMainLoop(new Runnable() {
+                    @Override
+                    public void run() {
+                        //noinspection Convert2Diamond
+                        onFailure(new BaseResponse<R, E, D>(Source.TIMEOUT));
+                    }
+                });
+            }
+        };
+        mTimer.schedule(mTimerTask, timeout);
     }
 
     private void postDeliverResult(@NonNull final BaseResponse<R, E, D> result) {
@@ -1013,7 +1006,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public CoreLoadBuilder<R, E, D> setRx(final LoaderRx<R, E, D> rx) {
             mRx = rx;
             return this;
@@ -1058,7 +1051,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public CoreLoadBuilder<R, E, D> setViewBinder(final ViewBinder viewBinder) {
             mViewBinder = viewBinder;
             return this;
@@ -1073,7 +1066,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public CoreLoadBuilder<R, E, D> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
             mViewHolderCreator = viewHolderCreator;
             return this;
@@ -1091,7 +1084,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public CoreLoadBuilder<R, E, D> setListView(@IdRes final int listViewId) {
             mListViewId = listViewId;
             return this;
@@ -1116,7 +1109,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public CoreLoadBuilder<R, E, D> setListItem(@LayoutRes final int layoutItemId) {
             mLayoutItemId = layoutItemId;
             return this;
@@ -1131,7 +1124,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "UnusedReturnValue"})
         public CoreLoadBuilder<R, E, D> setNoBinding(final boolean noBinding) {
             mNoBinding = noBinding;
             return this;
@@ -1521,9 +1514,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        @SuppressWarnings("unchecked")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setRx(final LoaderRx<R, E, D> rx) {
-            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setRx(rx);
+            super.setRx(rx);
+            return this;
         }
 
         /**
@@ -1531,9 +1524,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        @SuppressWarnings("unchecked")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setViewBinder(final ViewBinder viewBinder) {
-            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setViewBinder(viewBinder);
+            super.setViewBinder(viewBinder);
+            return this;
         }
 
         /**
@@ -1541,9 +1534,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        @SuppressWarnings("unchecked")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
-            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setViewHolderCreator(viewHolderCreator);
+            super.setViewHolderCreator(viewHolderCreator);
+            return this;
         }
 
         /**
@@ -1551,9 +1544,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        @SuppressWarnings("unchecked")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setListView(final int listViewId) {
-            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setListView(listViewId);
+            super.setListView(listViewId);
+            return this;
         }
 
         /**
@@ -1561,9 +1554,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        @SuppressWarnings("unchecked")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setListItem(final int layoutItemId) {
-            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setListItem(layoutItemId);
+            super.setListItem(layoutItemId);
+            return this;
         }
 
         /**
@@ -1571,9 +1564,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        @SuppressWarnings("unchecked")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setNoBinding(final boolean noBinding) {
-            return (CoreLoadExtendedBuilder<C, R, E, D, T>) super.setNoBinding(noBinding);
+            super.setNoBinding(noBinding);
+            return this;
         }
 
         /**
@@ -1592,31 +1585,24 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             mDefaultRequester.makeRequest(callback);
         }
 
-        @SuppressWarnings("unchecked")
-        private BaseResponseLoaderBuilder<C, R, E, D> getBuilder() {
-            if (mLoaderBuilder instanceof BaseResponseLoaderBuilder)
-                return (BaseResponseLoaderBuilder<C, R, E, D>) mLoaderBuilder;
-
-            CoreLogger.logWarning("The loader builder is not an instance of BaseResponseLoaderBuilder");
-            return null;
-        }
-
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected CoreLoad create(BaseResponseLoaderBuilder<C, R, E, D> builder) {
+        protected CoreLoad create(final BaseResponseLoaderBuilder<C, R, E, D> builder) {
             final Fragment fragment = mFragment.get();
             if (fragment == null) {
                 CoreLogger.logError("The fragment is null");
                 return null;
             }
 
-            if (mLoaderBuilder != null) {
-                CoreLogger.logWarning("The loader builder is already set");
-                builder = getBuilder();
-            }
-            else
-                setLoaderBuilder(builder);
+            if (builder == null) {
+                if (mLoaderBuilder != null) return super.create();
 
-            if (builder == null) return super.create();
+                CoreLogger.logError("The loader builder is not defined");
+                return null;
+            }
+            else if (mLoaderBuilder != null)
+                CoreLogger.logWarning("The already set loader builder will be ignored");
+
+            setLoaderBuilder(builder);
 
             if (mDescriptionId != Core.NOT_VALID_RES_ID && mDescription != null)
                 CoreLogger.logWarning("Both description and description ID were set; description ID will be ignored");
@@ -1635,7 +1621,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             if (mUriResolver    != null)                        builder.setUriResolver   (mUriResolver                      );
             if (mLoaderFactory  != null)                        builder.setLoaderFactory (mLoaderFactory                    );
 
-            return super.create();
+            final CoreLoad coreLoad = super.create();
+            if (mAdapterWrapper != null) mAdapterWrapper.setConverter(builder.getConverterWithCheck());
+            return coreLoad;
         }
     }
 }

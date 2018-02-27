@@ -121,7 +121,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
          *
          * @return  The {@code Loader} instance
          */
-        @NonNull Loader<D> getLoader(boolean merge);
+        Loader<D> getLoader(boolean merge);
     }
 
     /**
@@ -193,7 +193,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
      *
      * @return  The loader factory
      */
-    @NonNull
+//    @NonNull
     @SuppressWarnings("WeakerAccess")
     public LoaderFactory<D> geLoaderFactory() {
         return mLoaderFactory;

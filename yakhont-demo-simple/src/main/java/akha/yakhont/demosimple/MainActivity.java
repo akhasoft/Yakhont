@@ -67,7 +67,7 @@ public class MainActivity extends Activity implements LocationListener {
         // local JSON client, so URL doesn't matter
         // uncomment network delay emulation for the progress dialog etc.
         mRetrofit2.init(Retrofit2Api.class, mRetrofit2.getDefaultBuilder("http://localhost/")
-                .client(new LocalJsonClient2() /* .setEmulatedNetworkDelay(2000) */ ));
+                .client(new LocalJsonClient2() /* .setEmulatedNetworkDelay(20) */ ));
 
         // for normal HTTP requests you can use something like this
 //      sRetrofit2.init(Retrofit2Api.class, "http://...");
@@ -86,7 +86,7 @@ public class MainActivity extends Activity implements LocationListener {
         mAdvertisementShown = true;
 
         final Toast toast = new Toast(this);
-        toast.setDuration(Toast.LENGTH_LONG);
+        toast.setDuration(Toast.LENGTH_SHORT);
         toast.setGravity(Gravity.CENTER, 0, 0);
         toast.setView(LayoutInflater.from(this).inflate(R.layout.advertisement, null, false));
         toast.show();

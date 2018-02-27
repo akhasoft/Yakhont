@@ -17,11 +17,14 @@
 package akha.yakhont.technology.rx;
 
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
 import android.support.annotation.NonNull;
+
+import java.lang.reflect.Method;
 
 import io.reactivex.BackpressureStrategy;
 import io.reactivex.Completable;
@@ -203,12 +206,45 @@ public class Rx2<D> extends CommonRx<D> {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
-    public static <D> Disposable handle(final Object result, final CallbackRx<D> callback) {
-        return result instanceof Observable ? handle((Observable<D>) result, callback):
-               result instanceof Flowable   ? handle((Flowable<D> )  result, callback):
-               result instanceof Single     ? handle((Single<D>    ) result, callback):
-               result instanceof Maybe      ? handle((Maybe<D>     ) result, callback): null;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static <D> Disposable handle(
+            final Object handler, final Method method, final CallbackRx<D> callback)
+            throws Exception {
+        if (handler == null) {
+            CoreLogger.logError("handler == null");
+            return null;
+        }
+        if (method == null) {
+            CoreLogger.logError("method == null");
+            return null;
+        }
+        final Class<?> returnType = method.getReturnType();
+
+        if (returnType.isAssignableFrom(Flowable.class)) {
+            final Flowable<D> result = CoreReflection.invoke(handler, method);
+            checkNull(result, "Flowable == null");
+            return handle(result, callback);
+        }
+        if (returnType.isAssignableFrom(Observable.class)) {
+            final Observable<D> result = CoreReflection.invoke(handler, method);
+            checkNull(result, "Observable == null");
+            return handle(result, callback);
+        }
+        if (returnType.isAssignableFrom(Single.class)) {
+            final Single<D> result = CoreReflection.invoke(handler, method);
+            checkNull(result, "Single == null");
+            return handle(result, callback);
+        }
+        if (returnType.isAssignableFrom(Maybe.class)) {
+            final Maybe<D> result = CoreReflection.invoke(handler, method);
+            checkNull(result, "Maybe == null");
+            return handle(result, callback);
+        }
+        return null;
+    }
+
+    private static void checkNull(final Object result, final String msg) throws Exception {
+        if (result == null) throw new Exception(msg);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})

@@ -249,12 +249,10 @@ ProGuard directives are included in the Yakhont libraries. The Android Plugin fo
 automatically appends these directives to your ProGuard configuration.
 
 Anyway, it's strongly advised to keep your BuildConfig, model and Retrofit API
-(also "android.support.v4" classes) as follows (it's just an example from the Yakhont Demo, 
+as follows (it's just an example from the Yakhont Demo, 
 so please update it according to your application's packages names): 
 
 ```
--keep class android.support.v4.** { *; }
-
 -keep class akha.yakhont.demo.BuildConfig { *; }
 -keep class akha.yakhont.demo.model.** { *; }
 -keep interface akha.yakhont.demo.retrofit.** { *; }

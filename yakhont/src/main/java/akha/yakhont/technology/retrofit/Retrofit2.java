@@ -276,7 +276,8 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
                 @Override
                 public List<Cookie> loadForRequest(HttpUrl url) {
                     List<Cookie> list = mCookieStore.get(url);
-                    list = list != null ? new ArrayList<>(list): new ArrayList<>();
+                    //noinspection Convert2Diamond
+                    list = list != null ? new ArrayList<>(list): new ArrayList<Cookie>();
 
                     for (final String name: cookies.keySet())
                         setCookie(name, cookies.get(name), list, url);

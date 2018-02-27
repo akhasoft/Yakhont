@@ -13,7 +13,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-
 -keep class akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed$ActivityLifecycle
 
 -keep class akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
@@ -34,3 +33,26 @@
 
 -dontnote akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks
 -dontnote akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks
+
+-keep class * extends android.app.Activity {
+    public void onActivityResult(...);
+}
+
+# below is 3rd-party stuff
+
+-keep class android.support.v4.app.FragmentActivity {
+    public void validateRequestPermissionsRequestCode(...);
+}
+
+# for stack traces
+-keep class io.reactivex.exceptions.** { *; }
+-keep class retrofit2.HttpException { *; }
+-keep class retrofit2.adapter.rxjava2.HttpException { *; }
+
+-dontnote retrofit2.HttpException
+-dontnote retrofit2.adapter.rxjava2.HttpException
+
+# for FragmentManagerImpl; proguard doesn't allow to specify it directly
+-keep class * extends android.support.v4.app.FragmentManager {
+    public void noteStateNotSaved(...);
+}

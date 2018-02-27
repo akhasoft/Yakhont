@@ -17,11 +17,14 @@
 package akha.yakhont.technology.rx;
 
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
 import android.support.annotation.NonNull;
+
+import java.lang.reflect.Method;
 
 import rx.Completable;
 import rx.Observable;
@@ -181,11 +184,11 @@ public class Rx<D> extends CommonRx<D> {
         };
         if (mHasProducer) //noinspection Anonymous2MethodRef,Convert2Lambda
             s.setProducer(new Producer() {
-            @Override
-            public void request(long n) {
-                subscriber.request(n);
-            }
-        });
+                @Override
+                public void request(long n) {
+                    subscriber.request(n);
+                }
+            });
         return s;
     }
 
@@ -234,10 +237,35 @@ public class Rx<D> extends CommonRx<D> {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
-    public static <D> Subscription handle(final Object result, final CallbackRx<D> callback) {
-        return result instanceof Observable ? handle((Observable<D>) result, callback):
-               result instanceof Single     ? handle((Single<D>    ) result, callback): null;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static <D> Subscription handle(
+            final Object handler, final Method method, final CallbackRx<D> callback)
+            throws Exception {
+        if (handler == null) {
+            CoreLogger.logError("handler == null");
+            return null;
+        }
+        if (method == null) {
+            CoreLogger.logError("method == null");
+            return null;
+        }
+        final Class<?> returnType = method.getReturnType();
+
+        if (returnType.isAssignableFrom(Observable.class)) {
+            final Observable<D> result = CoreReflection.invoke(handler, method);
+            checkNull(result, "Observable == null");
+            return handle(result, callback);
+        }
+        if (returnType.isAssignableFrom(Single.class)) {
+            final Single<D> result = CoreReflection.invoke(handler, method);
+            checkNull(result, "Single == null");
+            return handle(result, callback);
+        }
+        return null;
+    }
+
+    private static void checkNull(final Object result, final String msg) throws Exception {
+        if (result == null) throw new Exception(msg);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -405,11 +433,14 @@ public class Rx<D> extends CommonRx<D> {
      * @param subscriber
      *        The {code Subscriber} to convert
      *
+     * @param <D>
+     *        The data type
+     *
      * @return  The converted subscriber
      */
-    @SuppressWarnings({"WeakerAccess", "unchecked"})
-    public SafeSubscriber<? super D> getSafeSubscriber(final Subscriber<? super D> subscriber) {
-        return subscriber instanceof SafeSubscriber ?
+    @SuppressWarnings("WeakerAccess")
+    public static <D> SafeSubscriber<D> getSafeSubscriber(@NonNull final Subscriber<D> subscriber) {
+        return subscriber instanceof SafeSubscriber<?> ?
                 (SafeSubscriber<D>) subscriber: new SafeSubscriber<>(subscriber);
     }
 

@@ -67,7 +67,7 @@ ext {
     bintrayName             = 'yakhont'
     bintrayRepo             = 'maven'
 
-    projectLibVerSupport    = '26.1.0'
+    projectLibVerSupport    = '27.0.2'
     projectLibVerLifecycle  =  '1.1.0'
     projectLibVerLocation   = '11.8.0'
 

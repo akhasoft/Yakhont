@@ -43,6 +43,8 @@ import android.view.View;
 import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -83,8 +85,9 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
                                  @NonNull final Fragment fragment,
                                  @NonNull final Requester<Callback<D>> requester,
                                  @NonNull final String tableName, final String description) {
+        //noinspection RedundantTypeArguments
         this(context, fragment, null, requester, Core.TIMEOUT_CONNECTION, tableName, description,
-                BaseResponseLoaderWrapper.getDefaultConverter(), getDefaultUriResolver());
+                BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver());
     }
 
     /**
@@ -127,19 +130,17 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
                                  @NonNull final UriResolver uriResolver) {
         super(context, fragment, loaderId, requester, tableName, description, converter, uriResolver);
 
-        @SuppressWarnings("unchecked")
-        final BaseLoader<Callback<D>, Response, Exception, D>[] baseLoader =
-                (BaseLoader<Callback<D>, Response, Exception, D>[]) new BaseLoader[1];
+        final List<BaseLoader<Callback<D>, Response, Exception, D>> baseLoaders = new ArrayList<>(1);
 
-        setLoaderParameters(baseLoader, timeout, mType != null ? new Callback<D>() {
+        setLoaderParameters(baseLoaders, timeout, mType != null ? new Callback<D>() {
                     @Override
                     public void success(final D result, final Response response) {
-                        onSuccess(result, response, baseLoader[0]);
+                        onSuccess(result, response, baseLoaders.get(0));
                     }
 
                     @Override
                     public void failure(final RetrofitError error) {
-                        onError(error, baseLoader[0]);
+                        onError(error, baseLoaders.get(0));
                     }
                 }: new YakhontCallback<D>() {
                     @Override
@@ -152,23 +153,25 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
 
                     @Override
                     public void success(final D result, final Response response) {
-                        onSuccess(result, response, baseLoader[0]);
+                        onSuccess(result, response, baseLoaders.get(0));
                     }
 
                     @Override
                     public void failure(final RetrofitError error) {
-                        onError(error, baseLoader[0]);
+                        onError(error, baseLoaders.get(0));
                     }
                 });
     }
 
     private void onSuccess(final D result, final Response response, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
-        loader.callbackHelper(true, new BaseResponse<>(
+        //noinspection Convert2Diamond
+        loader.callbackHelper(true, new BaseResponse<Response, Exception, D>(
                 result, response, null, null, Source.NETWORK, null));
     }
 
     private void onError(final RetrofitError error, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
-        loader.callbackHelper(false, new BaseResponse<>(
+        //noinspection Convert2Diamond
+        loader.callbackHelper(false, new BaseResponse<Response, Exception, D>(
                 null, null, null, new RetrofitException(error), Source.NETWORK, error));
     }
 
@@ -352,8 +355,9 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
         @Override
         protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
                                                @NonNull final View list, @LayoutRes final int item) {
-            setAdapterWrapper(mFrom == null ? new RetrofitAdapterWrapper<>(mFragment.get().getActivity(), item):
-                    new RetrofitAdapterWrapper<>(mFragment.get().getActivity(), item, mFrom, mTo));
+            //noinspection Convert2Diamond
+            setAdapterWrapper(mFrom == null ? new RetrofitAdapterWrapper<D>(mFragment.get().getActivity(), item):
+                    new RetrofitAdapterWrapper<D>(mFragment.get().getActivity(), item, mFrom, mTo));
         }
 
         /**
@@ -369,7 +373,8 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
          */
         @Override
         public CoreLoad create() {
-            return create(new RetrofitLoaderBuilder<>(mFragment.get(), mType, mRetrofit));
+            //noinspection Convert2Diamond
+            return create(new RetrofitLoaderBuilder<D, T>(mFragment.get(), mType, mRetrofit));
         }
     }
 }

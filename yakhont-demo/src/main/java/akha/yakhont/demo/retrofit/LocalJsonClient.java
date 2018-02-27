@@ -17,6 +17,7 @@
 package akha.yakhont.demo.retrofit;
 
 import android.content.Context;
+import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.IOException;
@@ -24,6 +25,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 
 import retrofit.client.Client;
+import retrofit.client.Header;
 import retrofit.client.Request;
 import retrofit.client.Response;
 import retrofit.mime.TypedInput;
@@ -46,9 +48,12 @@ public class LocalJsonClient implements Client {
 
     @Override
     public Response execute(Request request) throws IOException {
+        final int delay = mLocalJsonClientHelper.getDelay();
+        if (delay > 0) SystemClock.sleep(delay * 1000);
         LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.getUrl(), request.getMethod());
+        //noinspection Convert2Diamond
         return new Response(request.getUrl(), LocalJsonClientHelper.HTTP_CODE_OK, data.message(),
-                new ArrayList<>(), new TypedInputStream(data));
+                new ArrayList<Header>(), new TypedInputStream(data));
     }
 
     private static class TypedInputStream implements TypedInput {

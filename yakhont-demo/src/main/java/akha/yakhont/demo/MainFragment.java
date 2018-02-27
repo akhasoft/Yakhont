@@ -54,6 +54,7 @@ import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoad
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -76,7 +77,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     private boolean                     mNotDisplayLoadingErrors;
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return initGui(inflater, container);
     }
 
@@ -92,7 +93,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         final TypeToken type = new TypeToken<List<Beer>>() {};
 
         if (getMainActivity().isRetrofit2())
-            //noinspection Anonymous2MethodRef
+            //noinspection Anonymous2MethodRef,Convert2Lambda
             mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(
                     this, type, getMainActivity().getRetrofit2()) /* {
 
@@ -128,13 +129,18 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                         } */
                     })
 
-                    .setViewBinder(MainFragment.this::setViewValue)         // data binding (optional too)
+                    .setViewBinder(new ViewBinder() {                       // data binding (optional too)
+                        @Override
+                        public boolean setViewValue(View view, Object data, String textRepresentation) {
+                            return MainFragment.this.setViewValue(view, data, textRepresentation);
+                        }
+                    })
 
                     .setRx(mRxRetrofit2)                                    // optional
 
                     .create();
         else
-            //noinspection Anonymous2MethodRef
+            //noinspection Anonymous2MethodRef,Convert2Lambda
             mCoreLoad = new RetrofitCoreLoadBuilder<List<Beer>, RetrofitApi>(
                     this, type, getMainActivity().getRetrofit())
 
@@ -151,7 +157,12 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                         }
                     })
 
-                    .setViewBinder(MainFragment.this::setViewValue)         // data binding (optional too)
+                    .setViewBinder(new ViewBinder() {                       // data binding (optional too)
+                        @Override
+                        public boolean setViewValue(View view, Object data, String textRepresentation) {
+                            return MainFragment.this.setViewValue(view, data, textRepresentation);
+                        }
+                    })
 
                     .setRx(mRxRetrofit)                                     // optional
 
@@ -278,7 +289,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // below is GUI stuff only
 
-    private static final int            EMULATED_NETWORK_DELAY          = 3000;     // ms
+    private static final int            EMULATED_NETWORK_DELAY          = 3;     // seconds
     private static final int            PARTS_QTY                       = 3;
 
     private static final String         ARG_PART_COUNTER                = "part_counter";
@@ -315,8 +326,13 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
         mCheckBoxMerge      = mainView.findViewById(R.id.flag_merge);
 
-        mainView.findViewById(R.id.btn_load).setOnClickListener(
-                view -> startLoading(null, true));
+        //noinspection Convert2Lambda
+        mainView.findViewById(R.id.btn_load).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startLoading(null, true);
+            }
+        });
 
         mCheckBoxForce.setOnClickListener(mListener);
         mCheckBoxMerge.setOnClickListener(mListener);
@@ -339,7 +355,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
+    public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
         savedInstanceState.putInt(ARG_PART_COUNTER, mPartCounter);
         super.onSaveInstanceState(savedInstanceState);
     }

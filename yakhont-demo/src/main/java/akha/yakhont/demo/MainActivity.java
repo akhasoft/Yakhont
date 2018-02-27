@@ -139,13 +139,22 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         // set location client parameters here (if necessary)
 //      ((BaseGoogleLocationClient) mLocationCallbacks.getLocationClient()).setLocationUpdatesParameters(...);
 
-        //noinspection ConstantConditions
-        findViewById(R.id.fab_location).setOnClickListener(view -> Utils.showSnackbar(
-                LocationCallbacks.toDms(getLocation(), MainActivity.this), Utils.SHOW_DURATION_LONG));
+        //noinspection ConstantConditions,Convert2Lambda
+        findViewById(R.id.fab_location).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Utils.showSnackbar(LocationCallbacks.toDms(getLocation(), MainActivity.this),
+                        Utils.SHOW_DURATION_LONG);
+            }
+        });
 
-        //noinspection ConstantConditions
-        findViewById(R.id.fab_info).setOnClickListener(view -> Utils.showToast(
-                R.string.info, Utils.SHOW_DURATION_LONG));
+        //noinspection ConstantConditions,Convert2Lambda
+        findViewById(R.id.fab_info).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Utils.showToast(R.string.info, Utils.SHOW_DURATION_LONG);
+            }
+        });
     }
 
     @SuppressWarnings("SameReturnValue")
@@ -268,6 +277,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         @SuppressWarnings({"unused", "UnusedParameters"})
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             Activity activity = getActivity();
+            if (activity == null) throw new RuntimeException("activity == null");      // should never happen
             AlertDialog.Builder builder = new AlertDialog.Builder(activity);
 
             @SuppressLint("InflateParams")

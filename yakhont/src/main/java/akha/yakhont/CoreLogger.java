@@ -46,11 +46,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * The <code>CoreLogger</code> class is responsible for logging. In addition to usability and flexible settings
- * it provides such build-in features as auto-disable logging in release builds, stack-trace and thread info logging,
- * support for 3-rd party loggers etc.
- *
- * <p>There is also the possibility to send log records via e-mail (useful for hardly-reproduced errors).
+ * The <code>CoreLogger</code> class is responsible for logging.
+ * Call {@link #setLogLevel} or {@link #setFullInfo} to set {@link Level log level}.
+ * Call {@link #setShowStack} to force stack trace logging.
+ * Call {@link #setShowThread} to force thread info logging.
  *
  * @author akha
  */
@@ -69,7 +68,7 @@ public class CoreLogger {
         /** The "error" priority. */
         ERROR,
         /** The "silent" priority, which just switches logging off. */
-        SILENT      // switches off logging (via call to "setLevel"); should be last in the enum
+        SILENT      // should be last in enum
     }
 
     private static final String                         FORMAT                   = "%s: %s";
@@ -78,17 +77,16 @@ public class CoreLogger {
 
     private static final String                         CLASS_NAME               = CoreLogger.class.getName();
 
+    private static final Level                          LEVEL_STACK              = Level.ERROR;
+    private static final Level                          LEVEL_THREAD             = Level.WARNING;
+
     private static       LoggerExtender                 sLoggerExtender;
 
     private static final AtomicReference<String>        sTag                     = new AtomicReference<>();
 
     private static final AtomicReference<Level>         sLogLevel                = new AtomicReference<>(Level.ERROR);
-    private static final Level                          sForceShowStackLevel     = Level.ERROR;
-    private static final Level                          sForceShowThreadLevel    = Level.ERROR;
-
-    private static final AtomicBoolean                  sShowStack               = new AtomicBoolean();
-    private static final AtomicBoolean                  sShowThread              = new AtomicBoolean();
-    private static final AtomicBoolean                  sFullInfo                = new AtomicBoolean();
+    private static final AtomicBoolean                  sForceShowStack          = new AtomicBoolean();
+    private static final AtomicBoolean                  sForceShowThread         = new AtomicBoolean();
 
     /**
      * Allows usage of 3-rd party loggers. Please refer to {@link #setLoggerExtender(LoggerExtender)}.
@@ -146,39 +144,30 @@ public class CoreLogger {
     }
 
     /**
-     * Indicates whether the detailed logging should be enabled or not.
+     * Indicates whether the detailed logging was enabled or not.
      *
-     * @return  The detailed logging flag
+     * @return  The detailed logging mode state
      */
-    public static boolean isFullInfo() {    // supports different behaviour for debug and release builds
-        return sFullInfo.get();
+    public static boolean isFullInfo() {
+        return isFullInfo(sLogLevel.get());
+    }
+
+    private static boolean isFullInfo(final Level level) {
+        return level.ordinal() == Level.DEBUG.ordinal();
     }
 
     /**
-     * Sets the detailed logging flag.
+     * Sets the detailed logging mode; normally called only once from Application.onCreate()
+     * or some other starting point.
      *
      * @param fullInfo
      *        The value to set
      *
-     * @return  The previous value of the detailed logging flag
+     * @return  The previous state of the detailed logging mode
      */
     @SuppressWarnings("UnusedReturnValue")
-    public static boolean setFullInfo(final boolean fullInfo) { // normally should be set from Application.onCreate() only
-        sLogLevel.set(fullInfo ? Level.DEBUG: Level.ERROR);
-        return sFullInfo.getAndSet(fullInfo);
-    }
-
-    /**
-     * Sets the Android {@link Log}'s tag.
-     *
-     * @param tag
-     *        The value to set
-     *
-     * @return  The previous value of the {@link Log} tag
-     */
-    @SuppressWarnings("UnusedReturnValue")
-    public static String setTag(@NonNull final String tag) {    // same as above
-        return sTag.getAndSet(tag);
+    public static boolean setFullInfo(final boolean fullInfo) {
+        return isFullInfo(setLogLevel(fullInfo ? Level.DEBUG: Level.ERROR));
     }
 
     /**
@@ -191,13 +180,11 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static Level setLogLevel(@NonNull final Level level) {
-        if (!isFullInfo())
-            Log.w(getTag(), "new log level ignored: " + level);
-        return isFullInfo() ? sLogLevel.getAndSet(level): sLogLevel.get();
+        return sLogLevel.getAndSet(level);
     }
 
     /**
-     * Sets whether the stack trace should be logged.
+     * Sets whether the stack trace should be logged for all methods.
      *
      * @param showStack
      *        The value to set
@@ -206,13 +193,11 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static boolean setShowStack(final boolean showStack) {
-        if (!isFullInfo())
-            Log.w(getTag(), "new show stack ignored: " + showStack);
-        return isFullInfo() ? sShowStack.getAndSet(showStack): sShowStack.get();
+        return sForceShowStack.getAndSet(showStack);
     }
 
     /**
-     * Sets whether the thread info should be logged.
+     * Sets whether the thread info should be logged for all methods.
      *
      * @param showThread
      *        The value to set
@@ -221,7 +206,20 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static boolean setShowThread(final boolean showThread) {
-        return sShowThread.getAndSet(showThread);
+        return sForceShowThread.getAndSet(showThread);
+    }
+
+    /**
+     * Sets the Android {@link Log}'s tag.
+     *
+     * @param tag
+     *        The value to set
+     *
+     * @return  The previous value of the {@link Log} tag
+     */
+    @SuppressWarnings("UnusedReturnValue")
+    public static String setTag(@NonNull final String tag) {
+        return sTag.getAndSet(tag);
     }
 
     /**
@@ -235,40 +233,8 @@ public class CoreLogger {
         return tag == null ? CLASS_NAME: tag;
     }
 
-    private static StackTraceElement getStackTraceElement() {
-        final Exception exception = new RuntimeException();
-        final StackTraceElement[] stackTraceElements = exception.getStackTrace();
-
-        //noinspection ForLoopReplaceableByForEach
-        for (int i = 0; i < stackTraceElements.length; i++)
-            if (!stackTraceElements[i].getClassName().equals(CLASS_NAME))
-                return stackTraceElements[i];
-
-        // should never happen
-        Log.e(getTag(), "can not find StackTraceElement");
-        return null;
-    }
-
-    @NonNull
-    private static String stripPackageName(@NonNull final String fullName) {
-        return fullName.substring(fullName.lastIndexOf(".") + 1);
-    }
-
-    @NonNull
-    private static String addMethodInfo(@NonNull final Level level, @NonNull String str, final StackTraceElement stackTraceElement) {
-        if (isFullInfo()) {
-            final String methodInfo = stackTraceElement == null ? null: String.format(getLocale(), FORMAT_INFO,
-                    stripPackageName(stackTraceElement.getClassName()),
-                    stackTraceElement.getMethodName(),
-                    stackTraceElement.getLineNumber());
-            if (methodInfo != null) str = String.format(FORMAT, methodInfo, str);
-        }
-        return sShowThread.get() || level.ordinal() >= sForceShowThreadLevel.ordinal()
-                ? String.format(FORMAT_THREAD, Thread.currentThread().getName(), str): str;
-    }
-
     /**
-     * Performs logging (the default level).
+     * Performs logging with default ({@link Level#DEBUG DEBUG}) level.
      *
      * @param str
      *        The message to log
@@ -278,7 +244,7 @@ public class CoreLogger {
     }
 
     /**
-     * Performs logging (the default level).
+     * Performs logging with default ({@link Level#ERROR ERROR}) level.
      *
      * @param str
      *        The message to log
@@ -291,7 +257,7 @@ public class CoreLogger {
     }
 
     /**
-     * Performs logging (the "warning" level).
+     * Performs logging with ({@link Level#WARNING WARNING}) level.
      *
      * @param str
      *        The message to log
@@ -301,7 +267,7 @@ public class CoreLogger {
     }
 
     /**
-     * Performs logging (the "error" level).
+     * Performs logging with ({@link Level#ERROR ERROR}) level.
      *
      * @param str
      *        The message to log
@@ -311,7 +277,7 @@ public class CoreLogger {
     }
 
     /**
-     * Performs logging (the "error" level).
+     * Performs logging with ({@link Level#ERROR ERROR}) level.
      *
      * @param str
      *        The message to log
@@ -349,7 +315,7 @@ public class CoreLogger {
      *        The Throwable to log
      */
     public static void log(@NonNull final Level level, @NonNull final String str, final Throwable throwable) {
-        log(level, str, throwable, sShowStack.get() || level.ordinal() >= sForceShowStackLevel.ordinal());
+        log(level, str, throwable, sForceShowStack.get() || level.ordinal() >= LEVEL_STACK.ordinal());
     }
 
     /**
@@ -362,7 +328,7 @@ public class CoreLogger {
      *        The message to log
      *
      * @param showStack
-     *        Indicates whether the stack trace should be logged
+     *        Indicates whether the stack trace should be logged or not
      */
     public static void log(@SuppressWarnings("SameParameterValue") @NonNull final Level level,
                            @SuppressWarnings("SameParameterValue") @NonNull final String str,
@@ -371,25 +337,57 @@ public class CoreLogger {
     }
 
     private static void log(@NonNull final Level level, @NonNull final String str, Throwable throwable, final boolean showStack) {
-        final StackTraceElement stackTraceElement = isNotLog(level) ? null: getStackTraceElement();
+        final boolean isLog = level.ordinal() >= sLogLevel.get().ordinal();
 
-        if (sLoggerExtender != null && sLoggerExtender.log(level, str, throwable, showStack, stackTraceElement)) return;
+        final Exception stackTrace = isLog && (showStack || isMethodInfo()) ?
+                new RuntimeException("CoreLogger stack trace"): null;
+        final StackTraceElement traceElement = stackTrace == null ? null: getStackTraceElement(stackTrace);
 
-        log(level, str, throwable, showStack, stackTraceElement);
+        if (sLoggerExtender != null && sLoggerExtender.log(
+                level, str, throwable, showStack, traceElement)) return;
+
+        if (isLog) log(level, str, throwable, showStack, stackTrace, traceElement);
     }
 
-    private static boolean isNotLog(@NonNull final Level level) {
-        return level.ordinal() < sLogLevel.get().ordinal();
+    private static StackTraceElement getStackTraceElement(@NonNull final Exception exception) {
+        final StackTraceElement[] stackTraceElements = exception.getStackTrace();
+
+        //noinspection ForLoopReplaceableByForEach
+        for (int i = 0; i < stackTraceElements.length; i++)
+            if (!stackTraceElements[i].getClassName().equals(CLASS_NAME))
+                return stackTraceElements[i];
+
+        // should never happen
+        Log.e(getTag(), "can not find StackTraceElement");
+        return null;
+    }
+
+    @NonNull
+    private static String stripPackageName(@NonNull final String fullName) {
+        return fullName.substring(fullName.lastIndexOf(".") + 1);
+    }
+
+    private static boolean isMethodInfo() {
+        return isFullInfo();
+    }
+
+    @NonNull
+    private static String addMethodInfo(@NonNull final Level level, @NonNull String str, final StackTraceElement traceElement) {
+        if (isMethodInfo()) {
+            final String methodInfo = traceElement == null ? null: String.format(getLocale(), FORMAT_INFO,
+                    stripPackageName(traceElement.getClassName()),
+                    traceElement.getMethodName(),
+                    traceElement.getLineNumber());
+            if (methodInfo != null) str = String.format(FORMAT, methodInfo, str);
+        }
+        return sForceShowThread.get() || level.ordinal() >= LEVEL_THREAD.ordinal()
+                ? String.format(FORMAT_THREAD, Thread.currentThread().getName(), str): str;
     }
 
     private static void log(@NonNull final Level level, @NonNull final String str, Throwable throwable,
-                            final boolean showStack, final StackTraceElement stackTraceElement) {
-        if (isNotLog(level)) return;
-
-        if (throwable == null)
-            throwable = showStack && isFullInfo() ? new RuntimeException("CoreLogger stack trace"): null;
-
-        final String tag = getTag(), data = addMethodInfo(level, str, stackTraceElement);
+                            final boolean showStack, final Exception stackTrace, final StackTraceElement traceElement) {
+        if (throwable == null && showStack) throwable = stackTrace;
+        final String tag = getTag(), data = addMethodInfo(level, str, traceElement);
 
         switch (level) {
             case DEBUG:
@@ -479,7 +477,8 @@ public class CoreLogger {
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public static List<String> getLogCat(List<String> list, final boolean clearList, final String cmd) {
-        final List<String> listActual = (list == null) ? new ArrayList<>(): list;
+        @SuppressWarnings("Convert2Diamond")
+        final List<String> listActual = (list == null) ? new ArrayList<String>(): list;
         if (clearList) listActual.clear();
 
         //noinspection Anonymous2MethodRef,Convert2Lambda

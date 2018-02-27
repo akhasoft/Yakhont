@@ -37,8 +37,10 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.ImageSwitcher;
 import android.widget.ImageView;
+import android.widget.ViewSwitcher;
 
 import java.lang.ref.WeakReference;
 import java.util.Locale;
@@ -76,21 +78,35 @@ public class SlideShow {
 
         mContainer.setPersistentDrawingCache(ViewGroup.PERSISTENT_ANIMATION_CACHE);
 
-        ((AbsListView) mainView.findViewById(R.id.grid)).setOnItemClickListener((
-                parent, view, position, id) -> startSlideShow(
-                        (String) view.findViewById(R.id.image).getTag()));
+        //noinspection Convert2Lambda
+        ((AbsListView) mainView.findViewById(R.id.grid)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                startSlideShow((String) view.findViewById(R.id.image).getTag());
+            }
+        });
 
-        mImageView.setOnClickListener(view -> cleanUpSlideShow());
+        //noinspection Convert2Lambda
+        mImageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                cleanUpSlideShow();
+            }
+        });
     }
 
     public void init(MainFragment fragment) {
         mFragment       = new WeakReference<>(fragment);
         mLayoutInflater = LayoutInflater.from(fragment.getActivity());
 
-        mImageView.setFactory(() -> {
-            ImageView imageView = (ImageView) mLayoutInflater.inflate(R.layout.slide, mImageView, false);
-            imageView.setScaleX(-1);    // 'cause of 3D rotation side effect
-            return imageView;
+        //noinspection Convert2Lambda
+        mImageView.setFactory(new ViewSwitcher.ViewFactory() {
+            @Override
+            public View makeView() {
+                ImageView imageView = (ImageView) mLayoutInflater.inflate(R.layout.slide, mImageView, false);
+                imageView.setScaleX(-1);    // 'cause of 3D rotation side effect
+                return imageView;
+            }
         });
 
         mImageView.setInAnimation (AnimationUtils.loadAnimation(fragment.getActivity(), android.R.anim.fade_in ));
@@ -122,14 +138,18 @@ public class SlideShow {
 
                 if (getResourceId(getImageName(idx, ++mImageCounter)) == 0) mImageCounter = 1;
 
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    MainFragment fragment = mFragment.get();
-                    if (fragment == null) return;
+                //noinspection Convert2Lambda
+                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                    @Override
+                    public void run() {
+                        MainFragment fragment = mFragment.get();
+                        if (fragment == null) return;
 
-                    Rect rect = fragment.getSlideRect();
-                    mImageView.setImageDrawable(new BitmapDrawable(mResources, Utils.decodeBitmap(
-                            mResources, getResourceId(getImageName(idx, mImageCounter)),
-                            rect.height(), rect.width())));
+                        Rect rect = fragment.getSlideRect();
+                        mImageView.setImageDrawable(new BitmapDrawable(mResources, Utils.decodeBitmap(
+                                mResources, getResourceId(getImageName(idx, mImageCounter)),
+                                rect.height(), rect.width())));
+                    }
                 });
             }
         }, 0, SLIDE_SHOW_DELAY);

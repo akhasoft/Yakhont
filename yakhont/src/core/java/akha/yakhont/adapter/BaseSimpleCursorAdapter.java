@@ -16,6 +16,7 @@
 
 package akha.yakhont.adapter;
 
+import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.loader.BaseResponse;
@@ -147,5 +148,20 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     @SuppressWarnings({"unused", "UnusedReturnValue"})
     public void setAdapterViewBinder(final BaseCacheAdapter.ViewBinder viewBinder) {
         mViewBinder = viewBinder;
+    }
+
+    /**
+     * Please refer to the {@link android.widget.CursorAdapter#getItem(int) getItem()} description.
+     */
+    @Override
+    public Cursor getItemCursor(int position) {
+        final Object item = getItem(position);
+        if (item == null) return null;
+
+        if (!(item instanceof Cursor)) {
+            CoreLogger.logError("CursorAdapter.getItem(position) returned unexpected type: " + item.getClass().getName());
+            return null;
+        }
+        return (Cursor) item;
     }
 }

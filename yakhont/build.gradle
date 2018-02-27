@@ -41,13 +41,12 @@ ext {
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           26
-    buildToolsVersion          '26.0.2'
+    compileSdkVersion           27
+    buildToolsVersion          '27.0.3'
 
     defaultConfig {
         minSdkVersion           14
-        //noinspection OldTargetApi
-        targetSdkVersion        23
+        targetSdkVersion        27
         versionCode        verCode
         versionName        verName
     }
@@ -57,7 +56,7 @@ android {
         targetCompatibility     JavaVersion.VERSION_1_8
     }
 
-    flavorDimensions 'common'
+    flavorDimensions           'common'
 
     productFlavors {
         core {
@@ -110,22 +109,36 @@ ext.libVerRxJava                = rootProject.ext.projectLibVerRxJava
 ext.libVerRxJava2               = rootProject.ext.projectLibVerRxJava2
 
 ext.libVerDagger                = rootProject.ext.projectLibVerDagger
-                                                                             // in alphabetical order:
-dependencies {
-    api                 "com.google.dagger:dagger:${libVerDagger}"           // Dagger2
-    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDagger}"
 
-    api                 "com.android.support:appcompat-v7:${libVerSupport}"  // Google
-    api                 "com.android.support:design:${libVerSupport}"
+dependencies {
+    // v4 Support Libraries
+    // fragment has dependencies on compat, core-utils, core-ui, and media-compat
+    api                 "com.android.support:support-fragment:${libVerSupport}"
+    api                 "com.android.support:support-compat:${libVerSupport}"
+    api                 "com.android.support:support-core-utils:${libVerSupport}"
+    api                 "com.android.support:support-core-ui:${libVerSupport}"
+    api                 "com.android.support:support-media-compat:${libVerSupport}"
+    // v7 Support Libraries
+    // appcompat (includes support for material design) depends on the v4 Support Library
+    api                 "com.android.support:appcompat-v7:${libVerSupport}"
     api                 "com.android.support:recyclerview-v7:${libVerSupport}"
+    // v13 Support Library (support for the Fragment with the FragmentCompat)
+    api                 "com.android.support:support-v13:${libVerSupport}"
+
+    api                 "com.android.support:support-annotations:${libVerSupport}"
+    api                 "com.android.support:design:${libVerSupport}"
+    api                 "com.google.android.gms:play-services-location:${libVerLocation}"
     api                 "android.arch.lifecycle:common-java8:${libVerLifecycle}"
     api                 "android.arch.lifecycle:extensions:${libVerLifecycle}"
-    api                 "com.google.android.gms:play-services-location:${libVerLocation}"
 
+    // for debug package only
     fullApi             "com.android.support:leanback-v17:${libVerSupport}"
     fullApi             "com.android.support:mediarouter-v7:${libVerSupport}"
     fullApi             "com.android.support:preference-v14:${libVerSupport}"
     fullApi             "com.android.support:preference-leanback-v17:${libVerSupport}"
+
+    api                 "com.google.dagger:dagger:${libVerDagger}"           // Dagger2
+    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDagger}"
 
     api                 "com.google.code.gson:gson:2.8.2"                    // Gson
 

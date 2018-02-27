@@ -65,7 +65,7 @@ public class BaseConverter<D> implements Converter<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected               Type                mType;
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected interface Visitor {
         @SuppressWarnings("UnusedParameters")
         void init(JsonObject jsonObject);
@@ -174,22 +174,7 @@ public class BaseConverter<D> implements Converter<D> {
 
         final JsonArray jsonArray = new JsonArray();
         for (;;) {
-            final JsonObject jsonObject = new JsonObject();
-            for (int i = 0; i < cursor.getColumnCount(); i++) {
-                String value = cursor.getString(i), name = cursor.getColumnName(i);
-                if (value != null) {
-                    value = value.trim();
-                    if (value.startsWith("[") || value.startsWith("{")) {
-                        synchronized (mParserLock) {
-                            jsonObject.add(name, getJsonParser().parse(value));
-                        }
-                        continue;
-                    }
-                }
-                jsonObject.addProperty(name, value);
-            }
-            jsonArray.add(jsonObject);
-
+            jsonArray.add(getJsonObject(cursor));
             if (!cursor.moveToNext()) break;
         }
 
@@ -199,16 +184,35 @@ public class BaseConverter<D> implements Converter<D> {
         return isArray ? jsonArray: jsonArray.size() > 0 ? jsonArray.get(0): null;
     }
 
-    /** @exclude */
-    @NonNull
-    @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
-    protected Cursor getCursor(final JsonElement jsonElement) {
-        return ((CursorVisitor) accept(new CursorVisitor(), jsonElement)).getResult();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected JsonObject getJsonObject(final Cursor cursor) {
+        if (cursor == null) return null;
+
+        final JsonObject jsonObject = new JsonObject();
+        for (int i = 0; i < cursor.getColumnCount(); i++) {
+            String value = cursor.getString(i), name = cursor.getColumnName(i);
+            if (value != null) {
+                value = value.trim();
+                if (value.startsWith("[") || value.startsWith("{")) {
+                    synchronized (mParserLock) {
+                        jsonObject.add(name, getJsonParser().parse(value));
+                    }
+                    continue;
+                }
+            }
+            jsonObject.addProperty(name, value);
+        }
+        return jsonObject;
     }
 
-    /** @exclude */
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @NonNull
-    @SuppressWarnings({"JavaDoc", "unused"})
+    protected Cursor getCursor(final JsonElement jsonElement) {
+        return accept(new CursorVisitor(), jsonElement).getResult();
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    @NonNull
     public Cursor getCursor(@NonNull final Reader reader) {
         JsonElement jsonElement = null;
         try {
@@ -222,15 +226,40 @@ public class BaseConverter<D> implements Converter<D> {
         return getCursor(jsonElement);
     }
 
-    /** @exclude */
-    @NonNull
-    @SuppressWarnings({"JavaDoc", "unchecked", "WeakerAccess"})
-    protected ContentValues[] getContentValues(final JsonElement jsonElement) {
-        return ((ContentValuesVisitor) accept(new ContentValuesVisitor(), jsonElement)).getResult();
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public ContentValues getContentValues(final Cursor cursor) {
+        if (cursor == null)
+            CoreLogger.logError("cursor == null");
+        else {
+            final JsonObject jsonObject = getJsonObject(cursor);
+            if (jsonObject == null)
+                CoreLogger.logError("jsonObject == null");
+            else {
+                final ContentValues[] values = accept(new ContentValuesVisitor(),
+                        jsonObject).getResult();
+                if (values.length == 0)
+                    CoreLogger.logError("ContentValues[] are empty");
+                else {
+                    if (values.length > 1)
+                        CoreLogger.logWarning("length of ContentValues[] should be 1; actual size is " + values.length);
+                    return values[0];
+                }
+            }
+        }
+        return null;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Visitor accept(@NonNull final Visitor visitor, final JsonElement jsonElement) {
+    @NonNull
+    protected ContentValues[] getContentValues(final JsonElement jsonElement) {
+        return accept(new ContentValuesVisitor(), jsonElement).getResult();
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected <T extends Visitor> T accept(@NonNull final T visitor, final JsonElement jsonElement) {
         if (jsonElement == null) return visitor;
 
         if (jsonElement.isJsonObject())
@@ -244,14 +273,14 @@ public class BaseConverter<D> implements Converter<D> {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Visitor accept(@NonNull final Visitor visitor, @NonNull final JsonObject jsonObject) {
+    protected <T extends Visitor> T accept(@NonNull final T visitor, @NonNull final JsonObject jsonObject) {
         visitor.init(jsonObject);
         add(visitor, jsonObject);
         return visitor;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Visitor accept(@NonNull final Visitor visitor, @NonNull final JsonArray jsonArray) {
+    protected <T extends Visitor> T accept(@NonNull final T visitor, @NonNull final JsonArray jsonArray) {
         for (int i = 0; i < jsonArray.size(); i++) {
             if (jsonArray.get(i).isJsonNull())
                 continue;

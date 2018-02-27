@@ -17,7 +17,6 @@
 package akha.yakhont.demo.retrofit;
 
 import android.content.Context;
-import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.IOException;
@@ -71,9 +70,11 @@ public class LocalJsonClientHelper {
         String mimeType = URLConnection.guessContentTypeFromStream(inputStream);
         if (mimeType == null) mimeType = "application/json";
 
-        if (mEmulatedNetworkDelay > 0) SystemClock.sleep(mEmulatedNetworkDelay);
-
         return new Data(mimeType, "Content from res/raw/" + fileName, inputStream);
+    }
+
+    public int getDelay() {
+        return mEmulatedNetworkDelay;
     }
 
     public static class Data {

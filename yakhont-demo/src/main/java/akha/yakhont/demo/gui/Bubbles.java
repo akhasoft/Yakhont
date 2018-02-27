@@ -19,6 +19,7 @@ package akha.yakhont.demo.gui;
 import akha.yakhont.demo.R;
 
 import akha.yakhont.Core;
+import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 
 import android.animation.Animator;
 import android.animation.FloatEvaluator;
@@ -220,7 +221,13 @@ public class Bubbles {
         }
         getRootLayout().addView(textView);
 
-        Core.Utils.onAdjustMeasuredView(view -> startAnimation((TextView) view), textView);
+        //noinspection Convert2Lambda
+        Core.Utils.onAdjustMeasuredView(new MeasuredViewAdjuster() {
+            @Override
+            public void adjustMeasuredView(View view) {
+                startAnimation((TextView) view);
+            }
+        }, textView);
     }
 
     @SuppressWarnings("deprecation")
@@ -246,10 +253,15 @@ public class Bubbles {
         mainAnimator.setDuration(DURATION_MAX * 1000);
         mainAnimator.setInterpolator(new AccelerateInterpolator());
 
-        mainAnimator.addUpdateListener(valueAnimator -> {
-            int value = (Integer) valueAnimator.getAnimatedValue();
-            textView.setTranslationY(value);
+        //noinspection Convert2Lambda
+        mainAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+            @Override
+            public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                int value = (Integer) valueAnimator.getAnimatedValue();
+                textView.setTranslationY(value);
+            }
         });
+
         mainAnimator.addListener(new Animator.AnimatorListener() {
             @Override
             public void onAnimationCancel(Animator animator) {
@@ -272,14 +284,19 @@ public class Bubbles {
 
         ArrayList<AnimatorHelper> animators = new ArrayList<>();
 
-        animators.add(new AnimatorHelper(textView, "ScaleX",           true, 3.5,
-                0.9, () -> new float[] {0.6f, 1 + sRandom.nextFloat()}));
-        animators.add(new AnimatorHelper(textView, "ScaleY",           true, 3.5,
-                0.9, () -> new float[] {0.6f, 1 + sRandom.nextFloat()}));
-        animators.add(new AnimatorHelper(textView, "Rotation",         true, 2.5,
-                0.5, () -> new float[] {0, sRandom.nextInt(90) - 45}));
-        animators.add(new AnimatorHelper(textView, "TranslationX",    false, 2.5,
-                -1, new AnimatorData() {
+        //noinspection Convert2Lambda
+        animators.add(new AnimatorHelper(textView, "ScaleX",           true, 3.5, 0.9, new AnimatorData() { @Override public float[] getData() {
+            return new float[] {0.6f, 1 + sRandom.nextFloat()};
+        }}));
+        //noinspection Convert2Lambda
+        animators.add(new AnimatorHelper(textView, "ScaleY",           true, 3.5, 0.9, new AnimatorData() { @Override public float[] getData() {
+            return new float[] {0.6f, 1 + sRandom.nextFloat()};
+        }}));
+        //noinspection Convert2Lambda
+        animators.add(new AnimatorHelper(textView, "Rotation",         true, 2.5, 0.5, new AnimatorData() { @Override public float[] getData() {
+            return new float[] {   0, sRandom.nextInt(90) - 45};
+        }}));
+        animators.add(new AnimatorHelper(textView, "TranslationX",    false, 2.5,  -1, new AnimatorData() {
 
             private int start = getX();
 
@@ -485,7 +502,13 @@ public class Bubbles {
                 animator.setStartDelay    (animators.size() * 700        );
                 animator.setRepeatCount   (ValueAnimator.INFINITE        );
                 animator.setEvaluator     (new FloatEvaluator()          );
-                animator.addUpdateListener(valueAnimator -> view.setText(spannable));
+                //noinspection Convert2Lambda
+                animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                    @Override
+                    public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                        view.setText(spannable);
+                    }
+                });
                 animator.start();
 
                 animators.add(animator);
@@ -567,7 +590,13 @@ public class Bubbles {
                         
             ObjectAnimator animator = ObjectAnimator.ofInt(spanGroup, FIREWORKS_PROPERTY, 0, spanGroup.getSpans().size());
             animator.setDuration(duration);
-            animator.addUpdateListener(valueAnimator -> view.setText(spannable));
+            //noinspection Convert2Lambda
+            animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                @Override
+                public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                    view.setText(spannable);
+                }
+            });
             animator.addListener(new Animator.AnimatorListener() {
                 @Override
                 public void onAnimationEnd(Animator animator) {

@@ -24,7 +24,6 @@
 # -dontwarn com.google.android.gms.**
 # -dontnote com.google.android.gms.**
 
-
 -keep class akha.yakhont.demosimple.BuildConfig { *; }
 
 -keep class akha.yakhont.demosimple.model.** { *; }
