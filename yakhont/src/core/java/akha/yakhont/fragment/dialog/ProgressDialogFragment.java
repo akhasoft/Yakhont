@@ -38,6 +38,7 @@ import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.StringRes;
 
 import javax.inject.Provider;
@@ -49,6 +50,7 @@ import javax.inject.Provider;
  */
 @SuppressWarnings("unused")
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class ProgressDialogFragment extends CommonDialogFragment {
 
     private static final String         TAG                 = Utils.getTag(ProgressDialogFragment.class);

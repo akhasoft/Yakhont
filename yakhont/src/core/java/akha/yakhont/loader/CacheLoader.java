@@ -36,14 +36,11 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-//import android.provider.BaseColumns;
 import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
-//import java.util.LinkedHashSet;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -69,6 +66,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
 
     private   final     WeakReference<Fragment>       mFragment;
@@ -78,8 +76,6 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
 
     private   final     AtomicBoolean                 mForceCache               = new AtomicBoolean();
     private   final     AtomicBoolean                 mMerge                    = new AtomicBoolean();
-
-    private   final     ExecutorService               mExecutor                 = Executors.newSingleThreadExecutor();
 
     private   final     Converter<D>                  mConverter;
 
@@ -110,6 +106,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
      * @param uriResolver
      *        The URI resolver
      */
+    @SuppressWarnings("WeakerAccess")
     public CacheLoader(@NonNull final Context context,
                        @NonNull final WeakReference<Fragment> fragment, @NonNull final Converter<D> converter,
                        final int loaderId, @NonNull final String tableName, final String description, final BaseCursorAdapter adapter,
@@ -178,7 +175,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
      *
      * @return  The previous value
      */
-    @SuppressWarnings("UnusedReturnValue")
+    @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     public boolean setMerge(final boolean merge) {
         CoreLogger.log(addLoaderInfo("" + merge));
 
@@ -228,7 +225,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
         baseResponse.setValues(values);
 
         //noinspection Convert2Lambda
-        mExecutor.execute(new Runnable() {
+        Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -237,6 +234,11 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
                 catch (Exception e) {
                     CoreLogger.log(addLoaderInfo("can not store result"), e);
                 }
+            }
+
+            @Override
+            public String toString() {
+                return addLoaderInfo("CacheLoader.storeResult()");
             }
         });
     }

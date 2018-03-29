@@ -488,15 +488,11 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      */
     @SuppressWarnings("WeakerAccess")
     public LocationRequest createNewLocationRequest() {
-        LocationRequest locationRequest;
+        final LocationRequest locationRequest = LocationRequest.create();
 
-        if (mInterval == null) {
+        if (mInterval == null)
             mRequestingLocationUpdates = true;
-            locationRequest = LocationRequest.create(); // setLocationUpdatesParameters(true, false);
-        }
         else {
-            locationRequest = new LocationRequest();
-
             locationRequest.setInterval                (mInterval            );
             locationRequest.setFastestInterval         (mFastestInterval     );
             locationRequest.setPriority                (mPriority            );

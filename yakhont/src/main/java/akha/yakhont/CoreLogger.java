@@ -80,6 +80,13 @@ public class CoreLogger {
     private static final Level                          LEVEL_STACK              = Level.ERROR;
     private static final Level                          LEVEL_THREAD             = Level.WARNING;
 
+    /**
+     * Returned by {@link LoggerExtender#log} (if any) to prevent {@code CoreLogger}'s
+     * default logging (the value is {@value}).
+     */
+    @SuppressWarnings("WeakerAccess")
+    public  static final boolean                        EXTENDER_NO_DEFAULT_LOGS = true;
+
     private static       LoggerExtender                 sLoggerExtender;
 
     private static final AtomicReference<String>        sTag                     = new AtomicReference<>();
@@ -114,7 +121,8 @@ public class CoreLogger {
          * @param stackTraceElement
          *        The stack trace to log
          *
-         * @return  {@code true} to prevent {@code CoreLogger} from logging that info, {@code false} otherwise
+         * @return  {@link #EXTENDER_NO_DEFAULT_LOGS} to prevent {@code CoreLogger} from logging
+         * that info, {@code !EXTENDER_NO_DEFAULT_LOGS} otherwise
          */
         boolean log(Level level, String msg, Throwable throwable, boolean showStack, StackTraceElement stackTraceElement);
     }
@@ -315,7 +323,7 @@ public class CoreLogger {
      *        The Throwable to log
      */
     public static void log(@NonNull final Level level, @NonNull final String str, final Throwable throwable) {
-        log(level, str, throwable, sForceShowStack.get() || level.ordinal() >= LEVEL_STACK.ordinal());
+        log(level, str, throwable, null);
     }
 
     /**
@@ -336,15 +344,20 @@ public class CoreLogger {
         log(level, str, null, showStack);
     }
 
-    private static void log(@NonNull final Level level, @NonNull final String str, Throwable throwable, final boolean showStack) {
+    private static void log(@NonNull final Level level, @NonNull final String str, Throwable throwable,
+                            Boolean showStack) {
         final boolean isLog = level.ordinal() >= sLogLevel.get().ordinal();
+        if (!isLog && sLoggerExtender == null) return;
+
+        if (showStack == null) showStack = sForceShowStack.get() ||
+                (level.ordinal() >= LEVEL_STACK.ordinal() && isFullInfo());
 
         final Exception stackTrace = isLog && (showStack || isMethodInfo()) ?
                 new RuntimeException("CoreLogger stack trace"): null;
         final StackTraceElement traceElement = stackTrace == null ? null: getStackTraceElement(stackTrace);
 
         if (sLoggerExtender != null && sLoggerExtender.log(
-                level, str, throwable, showStack, traceElement)) return;
+                level, str, throwable, showStack, traceElement) == EXTENDER_NO_DEFAULT_LOGS) return;
 
         if (isLog) log(level, str, throwable, showStack, stackTrace, traceElement);
     }
@@ -484,7 +497,7 @@ public class CoreLogger {
         //noinspection Anonymous2MethodRef,Convert2Lambda
         getLog(cmd, new LogHandler() {
             @Override
-            public void handle(String line) throws IOException {
+            public void handle(String line) {
                 listActual.add(line);
             }
         });
@@ -650,6 +663,7 @@ public class CoreLogger {
         private       Sensor            mSensor;
         private       long              mLastShakeTime;
 
+        @SuppressWarnings("WeakerAccess")
         public ShakeEventListener(@NonNull final Context context, @NonNull final Runnable handler) {
             mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
             if (mSensorManager != null)
@@ -659,6 +673,7 @@ public class CoreLogger {
             mHandler = handler;
         }
 
+        @SuppressWarnings("WeakerAccess")
         public void register() {
             if (mSensorManager == null) return;
             mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
@@ -807,7 +822,7 @@ public class CoreLogger {
                 //noinspection Anonymous2MethodRef,Convert2Lambda
                 getLog(cmd, new LogHandler() {
                     @Override
-                    public void handle(String line) throws IOException {
+                    public void handle(String line) {
                         output.println(line);
                     }
                 });

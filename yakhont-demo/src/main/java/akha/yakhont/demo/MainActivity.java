@@ -16,6 +16,7 @@
 
 package akha.yakhont.demo;
 
+import akha.yakhont.demo.gui.SlideShow;
 import akha.yakhont.demo.retrofit.LocalJsonClient;
 import akha.yakhont.demo.retrofit.LocalJsonClient2;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
@@ -90,6 +91,8 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
     private final Retrofit <RetrofitApi>    mRetrofit                       = new Retrofit <>();
     private final Retrofit2<Retrofit2Api>   mRetrofit2                      = new Retrofit2<>();
+
+    private       SlideShow                 mSlideShow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -232,6 +235,18 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         overridePendingTransition(0, android.R.anim.fade_out);
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mSlideShow != null)
+            mSlideShow.cleanUpSlideShow();
+        else
+            super.onBackPressed();
+    }
+
+    public void setSlideShow(final SlideShow slideShow) {
+        mSlideShow = slideShow;
+    }
+
     // custom progress dialog (with background image) example (using custom view R.layout.progress)
 
     @Component(modules = {DemoLocationModule.class, DemoUiModule.class, DemoCallbacksValidationModule.class})
@@ -306,6 +321,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         }
 
         @NonNull
+        @SuppressWarnings("WeakerAccess")
         public static DemoProgress newInstance() {
             return (DemoProgress) ProgressDialogFragment.newInstance(new DemoProgress()
                     .setConfirmation(false) /* for demo only */ );

@@ -61,6 +61,7 @@ import android.support.annotation.AnyRes;
 import android.support.annotation.IdRes;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.StringRes;
 import android.support.design.widget.Snackbar;
 import android.util.TypedValue;
@@ -82,6 +83,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.text.DateFormat;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -91,10 +93,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -476,13 +481,13 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     private static void checkRx() {
-        final String msg = "before 'Core.init()' please call 'Core.setRxUncaughtExceptionBehavior()' " +
+        final String msg = "if you're using %s, before 'Core.init()' please call 'Core.setRxUncaughtExceptionBehavior()' " +
                 "method (or any of '%s.setErrorHandler*()' methods); " +
-                "ignore this error only if you know what you're doing";
+                "ignore this only if you know what you're doing";
         if (!Rx2.isErrorHandlerDefined())
-            CoreLogger.logError(String.format(msg, "Rx2"));
+            CoreLogger.logError  (String.format(msg, "Rx2", "Rx2"));
         if (!Rx .isErrorHandlerDefined())
-            CoreLogger.logError(String.format(msg, "Rx" ));
+            CoreLogger.logWarning(String.format(msg, "Rx",  "Rx" ));
     }
 
     /**
@@ -730,6 +735,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+        @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
         private static class ApplicationCallbacks2 extends ApplicationCallbacks implements ComponentCallbacks2 {
 
             /**
@@ -743,7 +749,7 @@ public class Core implements DefaultLifecycleObserver {
         }
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public static class BaseListeners {
 
         /** @exclude */
@@ -792,7 +798,7 @@ public class Core implements DefaultLifecycleObserver {
 
             if (!sRunNetworkMonitor) return;
 
-            new Timer("timer for network monitoring").scheduleAtFixedRate(new TimerTask() {
+            Utils.sExecutorHelper.runInBackground(new Runnable() {
 
                 private static final String PERMISSION = Manifest.permission.ACCESS_NETWORK_STATE;
 
@@ -832,9 +838,15 @@ public class Core implements DefaultLifecycleObserver {
                                 }
                             })
                             .request();
+
                     CoreLogger.log(PERMISSION + " request result: " + (result ? "already granted": "not granted yet"));
                 }
-            }, 0, TIMEOUT_NETWORK_MONITOR * 1000);
+
+                @Override
+                public String toString() {
+                    return "timer for network monitoring";
+                }
+            }, 0, TIMEOUT_NETWORK_MONITOR * 1000, false);
         }
 
         private static void onNetworkStatusChanged(final boolean isConnected) {
@@ -855,7 +867,7 @@ public class Core implements DefaultLifecycleObserver {
         Init.sRunNetworkMonitor = runNetworkMonitor;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public interface NetworkStatusListener {
         void onNetworkStatusChanged(boolean isConnected);
     }
@@ -893,8 +905,7 @@ public class Core implements DefaultLifecycleObserver {
             }
         };
 
-        private static final ThreadPostHelper           sThreadPostHelper               = new ThreadPostHelper   ();
-        private static final RequestCodesHandler        sRequestCodesHandler            = new RequestCodesHandler();
+        private static final ExecutorHelper             sExecutorHelper                 = new ExecutorHelper();
 
         private Utils() {
         }
@@ -1017,7 +1028,7 @@ public class Core implements DefaultLifecycleObserver {
         @NonNull
         @SuppressWarnings("unused")
         public static Handler getHandlerMainThread() {
-            return sThreadPostHelper.mHandler;
+            return ExecutorHelper.sHandler;
         }
 
         /**
@@ -1025,9 +1036,13 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @param runnable
          *        The Runnable that will be executed
+         *
+         * @return  Returns {@code true} if the Runnable was successfully placed in to the
+         *          message queue, {@code false} otherwise.
          */
-        public static void postToMainLoop(@NonNull final Runnable runnable) {
-            sThreadPostHelper.postToMainLoop(runnable);
+        @SuppressWarnings("UnusedReturnValue")
+        public static boolean postToMainLoop(@NonNull final Runnable runnable) {
+            return ExecutorHelper.postToMainLoop(runnable);
         }
 
         /**
@@ -1038,31 +1053,50 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @param runnable
          *        The Runnable that will be executed
+         *
+         * @return  Returns {@code true} if the Runnable was successfully placed in to the
+         *          message queue, {@code false} otherwise.
          */
         @SuppressWarnings("unused")
-        public static void postToMainLoop(final long delay, @NonNull final Runnable runnable) {
-            sThreadPostHelper.postToMainLoop(delay, runnable);
+        public static boolean postToMainLoop(final long delay, @NonNull final Runnable runnable) {
+            return ExecutorHelper.postToMainLoop(delay, runnable);
         }
 
         /**
          * Returns {@code true} if the current thread is the main thread of the application, {@code false} otherwise.
          *
-         * @return  The main thread flag
+         * @return  The main thread indication
          */
         public static boolean isCurrentThreadMain() {
-            return sThreadPostHelper.isCurrentThreadMain();
+            return ExecutorHelper.isCurrentThreadMain();
         }
 
-        /** @exclude */
-        @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
-        public static Thread runInBackground(@NonNull final Runnable runnable) {
-            return sThreadPostHelper.runInBackground(runnable);
+        /**
+         * Causes the runnable to run in background.
+         *
+         * @param runnable
+         *        The Runnable that will be executed
+         *
+         * @return  The {@link Future}
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        public static Future<?> runInBackground(@NonNull final Runnable runnable) {
+            return sExecutorHelper.runInBackground(runnable);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
-        public static Thread runInBackground(@SuppressWarnings("SameParameterValue") final boolean forceNewThread,
-                                             @NonNull final Runnable runnable) {
-            return sThreadPostHelper.runInBackground(forceNewThread, runnable);
+        /**
+         * Causes the runnable to run in background.
+         *
+         * @param delay
+         *        The delay (in milliseconds) until the Runnable will be executed
+         *
+         * @param runnable
+         *        The Runnable that will be executed
+         *
+         * @return  The {@link Future}
+         */
+        public static Future<?> runInBackground(final long delay, @NonNull final Runnable runnable) {
+            return sExecutorHelper.runInBackground(runnable, delay, false);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1077,18 +1111,18 @@ public class Core implements DefaultLifecycleObserver {
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static int getRequestCode(@NonNull final RequestCodes requestCode) {
-            return sRequestCodesHandler.getRequestCode(requestCode);
+            return RequestCodesHandler.getRequestCode(requestCode);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "SameParameterValue"})
         public static int getRequestCode(@NonNull final RequestCodes requestCode,
                                          @NonNull final Activity     activity) {
-            return sRequestCodesHandler.getRequestCode(requestCode, activity);
+            return RequestCodesHandler.getRequestCode(requestCode, activity);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static RequestCodes getRequestCode(int requestCode) {
-            return sRequestCodesHandler.getRequestCode(requestCode);
+            return RequestCodesHandler.getRequestCode(requestCode);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1108,7 +1142,7 @@ public class Core implements DefaultLifecycleObserver {
             return getUriResolver().getUri(tableName);
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @NonNull
         public static String getBaseUri() {
             return Init.sBaseUri;
@@ -1473,19 +1507,24 @@ public class Core implements DefaultLifecycleObserver {
             return Collections.synchronizedMap(new LinkedHashMap<K, V>());
         }
 
-        private static class RequestCodesHandler {
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public static class RequestCodesHandler {
 
             private static final RequestCodes[]         REQUEST_CODES_VALUES            = RequestCodes.values();
 
-            private int getRequestCode(@NonNull final RequestCodes requestCode) {
+            private RequestCodesHandler() {
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public static int getRequestCode(@NonNull final RequestCodes requestCode) {
                 return getRequestCode(requestCode, REQUEST_CODES_OFFSET);
             }
 
-            private int getRequestCode(@NonNull final RequestCodes requestCode, final int offset) {
+            private static int getRequestCode(@NonNull final RequestCodes requestCode, final int offset) {
                 return requestCode.ordinal() + offset;
             }
 
-            private Exception checkRequestCode(final int requestCode, final Activity activity, final Method method) {
+            private static Exception checkRequestCode(final int requestCode, final Activity activity, final Method method) {
                 try {
                     CoreReflection.invoke(activity, method, requestCode);
                     return null;
@@ -1496,7 +1535,8 @@ public class Core implements DefaultLifecycleObserver {
                 }
             }
 
-            private int getRequestCode(@NonNull final RequestCodes requestCode, @NonNull final Activity activity) {
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public static int getRequestCode(@NonNull final RequestCodes requestCode, @NonNull final Activity activity) {
                 int result = getRequestCode(requestCode);
 
                 final Method method = CoreReflection.findMethod(activity,
@@ -1513,32 +1553,63 @@ public class Core implements DefaultLifecycleObserver {
                 return result;
             }
 
-            private RequestCodes getRequestCode(int requestCode) {
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public static RequestCodes getRequestCode(int requestCode) {
                 final RequestCodes code = getRequestCode(requestCode, REQUEST_CODES_OFFSET);
                 return !code.equals(RequestCodes.UNKNOWN) ? code:
                         getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
             }
 
-            private RequestCodes getRequestCode(int requestCode, final int offset) {
+            private static RequestCodes getRequestCode(int requestCode, final int offset) {
                 requestCode -= offset;
                 return requestCode < 0 || requestCode >= REQUEST_CODES_VALUES.length ?
                         RequestCodes.UNKNOWN: REQUEST_CODES_VALUES[requestCode];
             }
         }
 
-        private static class ThreadPostHelper {
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static class ExecutorHelper {
 
-            private final Handler                       mHandler                        = new Handler(Looper.getMainLooper());
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public  static final int                    THREAD_POOL_SIZE                = 8;
 
-            private void postToMainLoop(@NonNull final Runnable runnable) {
-                mHandler.post(prepareRunnable(runnable));
+            private static final Handler                sHandler                        = new Handler(Looper.getMainLooper());
+
+            private final ScheduledExecutorService      mExecutorService;
+            private final ScheduledExecutorService      mExecutorServiceSingle;
+
+            private final List<Future<?>>               mTasks                          = new ArrayList<>();
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public ExecutorHelper() {
+                this(THREAD_POOL_SIZE, null);
             }
 
-            private void postToMainLoop(final long delay, @NonNull final Runnable runnable) {
-                mHandler.postDelayed(prepareRunnable(runnable), delay);
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "SameParameterValue", "WeakerAccess"})
+            public ExecutorHelper(final int corePoolSize, final ThreadFactory threadFactory) {
+                mExecutorService = threadFactory == null ?
+                        Executors.newScheduledThreadPool(corePoolSize):
+                        Executors.newScheduledThreadPool(corePoolSize, threadFactory);
+                mExecutorServiceSingle = threadFactory == null ?
+                        Executors.newSingleThreadScheduledExecutor():
+                        Executors.newSingleThreadScheduledExecutor(threadFactory);
             }
 
-            private Runnable prepareRunnable(@NonNull final Runnable runnable) {
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public static boolean postToMainLoop(@NonNull final Runnable runnable) {
+                final boolean result = sHandler.post(prepareRunnable(runnable));
+                CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "post result: " + result);
+                return result;
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public static boolean postToMainLoop(final long delay, @NonNull final Runnable runnable) {
+                final boolean result = sHandler.postDelayed(prepareRunnable(runnable), delay);
+                CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "postDelayed result: " + result);
+                return result;
+            }
+
+            private static Runnable prepareRunnable(@NonNull final Runnable runnable) {
                 //noinspection Convert2Lambda
                 return new Runnable() {
                     @Override
@@ -1547,32 +1618,84 @@ public class Core implements DefaultLifecycleObserver {
                             runnable.run();
                         }
                         catch (Exception e) {
-                            CoreLogger.log(Level.WARNING, "prepareRunnable failed", e);
+                            CoreLogger.log("Runnable failed: " + runnable, e);
                         }
+                    }
+
+                    @Override
+                    public String toString() {
+                        return runnable.toString();
                     }
                 };
             }
 
-            private boolean isCurrentThreadMain() {
-                return Thread.currentThread() == mHandler.getLooper().getThread();
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public static boolean isCurrentThreadMain() {
+                return Thread.currentThread() == sHandler.getLooper().getThread();
             }
 
-            private Thread runInBackground(@NonNull final Runnable runnable) {
-                return runInBackground(false, runnable);
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public Future<?> runInBackground(@NonNull final Runnable runnable) {
+                return runInBackground(runnable, 0, false);
             }
 
-            private Thread runInBackground(@SuppressWarnings("SameParameterValue") final boolean forceNewThread,
-                                           @NonNull final Runnable runnable) {
-                if (forceNewThread || isCurrentThreadMain()) {
-                    CoreLogger.log("about to run in new thread, forceNewThread " + forceNewThread);
-                    final Thread thread = new Thread(prepareRunnable(runnable));
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "SameParameterValue"})
+            public Future<?> runInBackground(@NonNull final Runnable runnable, final long delay,
+                                             final boolean singleThread) {
+                return runInBackground(runnable, delay, 0, singleThread);
+            }
 
-                    thread.start();
-                    return thread;
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public Future<?> runInBackground(@NonNull final Runnable runnable, final long delay,
+                                             final long period, final boolean singleThread) {
+                CoreLogger.log("about to run " + runnable + ", delay " + delay +
+                        ", period " + period + ", singleThread " + singleThread);
+                final Future<?> result = submit(singleThread ? mExecutorServiceSingle: mExecutorService,
+                        prepareRunnable(runnable), delay, period);
+                if (result != null) mTasks.add(result);
+
+                CoreLogger.log(result == null ? Level.ERROR: Level.DEBUG, "submit result: " + result);
+                return result;
+            }
+
+            private static Future<?> submit(@NonNull final ScheduledExecutorService service,
+                                            @NonNull final Runnable runnable,
+                                            final long delay, final long period) {
+                try {
+                    return period > 0 ? service.scheduleAtFixedRate(runnable, delay, period,
+                            TimeUnit.MILLISECONDS): delay > 0 ? service.schedule(runnable, delay,
+                            TimeUnit.MILLISECONDS): service.submit(runnable);
                 }
-                CoreLogger.log("about to run in current thread");
+                catch (Exception e) {
+                    CoreLogger.log("submit failed: " + runnable, e);
+                    return null;
+                }
+            }
 
-                prepareRunnable(runnable).run();
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+            public void cancel() {
+                cancel(false);
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "SameParameterValue", "WeakerAccess"})
+            public void cancel(final boolean forceStopTasks) {
+                CoreLogger.log("about to cancel executor " + this + ", forceStopTasks " + forceStopTasks);
+
+                if (!forceStopTasks) {
+                    for (final Future<?> task: mTasks)
+                        task.cancel(false);
+                    mTasks.clear();
+                }
+                cancel(mExecutorService,       forceStopTasks);
+                cancel(mExecutorServiceSingle, forceStopTasks);
+            }
+
+            @SuppressWarnings("UnusedReturnValue")
+            private static List<Runnable> cancel(@NonNull final ScheduledExecutorService service,
+                                                 final boolean forceStopTasks) {
+                if (forceStopTasks) return service.shutdownNow();
+
+                service.shutdown();
                 return null;
             }
         }
@@ -1722,7 +1845,10 @@ public class Core implements DefaultLifecycleObserver {
             @IdRes
             private static int                          sDefViewId                      = DEF_VIEW_ID;
 
-            /** @exclude */ @SuppressWarnings("JavaDoc")
+            private ViewHelper() {
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static void onAdjustMeasuredView(@NonNull final MeasuredViewAdjuster container,
                                                     @NonNull final View                 view) {
                 view.getViewTreeObserver().addOnGlobalLayoutListener(
@@ -1844,27 +1970,35 @@ public class Core implements DefaultLifecycleObserver {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static class TypeHelper {
 
+            private TypeHelper() {
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
             public static Type getParameterizedType(final Type type) {
                 return type instanceof ParameterizedType ?
                         ((ParameterizedType) type).getActualTypeArguments()[0]: type;
             }
 
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static Type getGenericComponentType(final Type type) {
                 return type instanceof GenericArrayType ?
                         ((GenericArrayType) type).getGenericComponentType(): type;
             }
 
+            /** @exclude */ @SuppressWarnings("JavaDoc")
             public static Type getParameterizedOrGenericComponentType(final Type type) {
                 final Type genericArrayType = getGenericComponentType(type);
                 return type != null && !type.equals(genericArrayType) ? genericArrayType: getParameterizedType(type);
             }
 
+            /** @exclude */ @SuppressWarnings("JavaDoc")
             public static boolean isCollection(final Type type) {
                 final Type typeRaw = getParameterizedRawType(type);
                 CoreLogger.log("typeRaw: " + typeRaw);
                 return typeRaw instanceof Class && Collection.class.isAssignableFrom((Class) typeRaw);
             }
 
+            /** @exclude */ @SuppressWarnings("JavaDoc")
             public static boolean checkType(@NonNull final Type typeResponse,
                                             @NonNull final Type typeMethod) {
                 CoreLogger.log("typeResponse: " + typeResponse);

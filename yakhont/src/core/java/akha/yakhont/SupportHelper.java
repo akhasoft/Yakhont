@@ -34,11 +34,13 @@ import android.app.FragmentManager;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.annotation.LayoutRes;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.support.annotation.StringRes;
 
 /** @exclude */ @SuppressWarnings("JavaDoc")
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
 public class SupportHelper {                    // core
 
     private SupportHelper() {

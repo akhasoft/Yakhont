@@ -520,6 +520,7 @@ public class CorePermissions implements ConfigurationChangedListener {
          * @param permissions
          *        The permissions
          */
+        @SuppressWarnings("WeakerAccess")
         public RequestBuilder(final Activity activity, final String[] permissions) {
             mActivity    = new WeakReference<>(activity);
             mPermissions = permissions;

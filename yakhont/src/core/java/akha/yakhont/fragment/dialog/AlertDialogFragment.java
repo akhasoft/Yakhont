@@ -35,6 +35,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.StringRes;
 
 /**
@@ -44,6 +45,7 @@ import android.support.annotation.StringRes;
  */
 @SuppressWarnings("unused")
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class AlertDialogFragment extends CommonDialogFragment implements DialogInterface.OnClickListener {
 
     private static final String             TAG                 = Utils.getTag(AlertDialogFragment.class);

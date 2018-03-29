@@ -35,6 +35,7 @@ import android.os.Build;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -624,6 +625,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The type of data in this adapter
      */
     @TargetApi(Build.VERSION_CODES.M)
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    @SuppressWarnings("WeakerAccess")
     public static class ApiMCacheAdapter<T, R, E, D> extends BaseCacheAdapter<T, R, E, D> implements ThemedSpinnerAdapter {
 
         /**
@@ -644,6 +647,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param arrayAdapter
          *        The BaseArrayAdapter
          */
+        @SuppressWarnings("WeakerAccess")
         public ApiMCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                 @NonNull @Size(min = 1) final String[]          from,
                                 @NonNull @Size(min = 1) final    int[]          to,
@@ -713,6 +717,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param arrayAdapter
          *        The BaseArrayAdapter
          */
+        @SuppressWarnings("WeakerAccess")
         public SupportCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
                                    @NonNull @Size(min = 1) final String[]        from,
                                    @NonNull @Size(min = 1) final    int[]        to,

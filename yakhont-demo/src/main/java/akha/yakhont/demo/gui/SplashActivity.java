@@ -19,12 +19,12 @@ package akha.yakhont.demo.gui;
 import akha.yakhont.demo.MainActivity;
 import akha.yakhont.demo.R;
 
+import akha.yakhont.Core.Utils;
 import akha.yakhont.SupportHelper;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 
 /**
  * not directly related to the Yakhont Demo - just some GUI stuff
@@ -44,7 +44,7 @@ public class SplashActivity extends /* Activity */ android.support.v7.app.AppCom
         overridePendingTransition(android.R.anim.fade_in, 0);
 
         //noinspection Convert2Lambda
-        new Handler().postDelayed(new Runnable() {
+        Utils.postToMainLoop(DELAY_ACTIVITY_START, new Runnable() {
             @Override
             public void run() {
                 final Activity activity = SplashActivity.this;
@@ -54,6 +54,6 @@ public class SplashActivity extends /* Activity */ android.support.v7.app.AppCom
                 
                 activity.finish();
             }
-        }, DELAY_ACTIVITY_START);
+        });
     }
 }

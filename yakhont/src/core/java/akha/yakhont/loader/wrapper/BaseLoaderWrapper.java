@@ -35,6 +35,7 @@ import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.support.annotation.WorkerThread;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -43,6 +44,7 @@ import android.view.View;
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
@@ -64,6 +66,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallbacks<D> {
 
     private static final String                             ARG_FORCE_CACHE             = "force_cache";
@@ -193,7 +196,6 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
      *
      * @return  The loader factory
      */
-//    @NonNull
     @SuppressWarnings("WeakerAccess")
     public LoaderFactory<D> geLoaderFactory() {
         return mLoaderFactory;
@@ -758,7 +760,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
          */
         @SuppressWarnings("unused")
         public static void register(@NonNull final Fragment fragment, @NonNull final FragmentData data) {
-            register(fragment, Arrays.asList(new FragmentData[]{data}));
+            register(fragment, Collections.singletonList(data));
         }
 
         /**

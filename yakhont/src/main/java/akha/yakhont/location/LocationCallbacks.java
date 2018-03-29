@@ -21,6 +21,7 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.ConfigurationChangedListener;
 import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.ExecutorHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CorePermissions;
@@ -49,10 +50,7 @@ import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.inject.Provider;
@@ -105,12 +103,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     protected final  AtomicInteger                                  mPauseResumeCounter = new AtomicInteger();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected final  Map<ActivityLifecycle, ScheduledFuture<?>>     mFutures            = Collections.synchronizedMap(
-            new EnumMap<ActivityLifecycle, ScheduledFuture<?>>(ActivityLifecycle.class));
+    protected final  Map<ActivityLifecycle, Future<?>>              mFutures            = Collections.synchronizedMap(
+            new EnumMap<ActivityLifecycle, Future<?>>(ActivityLifecycle.class));
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected final  ScheduledExecutorService
-                                                                    mExecutor           = Executors.newSingleThreadScheduledExecutor();
+    protected final  ExecutorHelper                                 mExecutor           = new ExecutorHelper();
+
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final  Object                                         mLock               = new Object();
 
@@ -133,6 +131,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     /**
      * Activity should implement this interface for receiving notifications when the location has changed.
      */
+    @SuppressWarnings("WeakerAccess")
     public interface LocationListener {
 
         /**
@@ -357,14 +356,14 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     }
 
     private void addTaskNotSync(@NonNull final ActivityLifecycle lifecycle, @NonNull final Runnable runnable) {
-        final ScheduledFuture<?> future = mFutures.get(lifecycle);
+        final Future<?> future = mFutures.get(lifecycle);
         if (future != null && !future.isDone() && !future.isCancelled()) {
             CoreLogger.logWarning("already scheduled " + lifecycle);
             return;
         }
 
         //noinspection Convert2Lambda
-        mFutures.put(lifecycle, mExecutor.schedule(new Runnable() {
+        mFutures.put(lifecycle, mExecutor.runInBackground(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -373,7 +372,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
                     CoreLogger.log("addTaskNotSync failed " + lifecycle, e);
                 }
             }
-        }, DELAY, TimeUnit.MILLISECONDS));
+
+            @Override
+            public String toString() {
+                return runnable.toString();
+            }
+        }, DELAY, true));
     }
 
     /**
@@ -751,6 +755,11 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
             @Override
             public void run() {
                 Utils.getPreferences(activity).edit().putBoolean(ARG_DECISION, decision).apply();
+            }
+
+            @Override
+            public String toString() {
+                return "save decision";
             }
         });
 

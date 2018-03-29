@@ -136,7 +136,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder> extends 
      * @param viewHolderCreator
      *        The ViewHolderCreator
      */
-    public void setViewHolderCreator(final ViewHolderCreator<VH> viewHolderCreator) {
+    public void setViewHolderCreator(@NonNull final ViewHolderCreator<VH> viewHolderCreator) {
         mViewHolderCreator = viewHolderCreator;
     }
 
@@ -144,21 +144,21 @@ public class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder> extends 
      * Please refer to the base method description.
      */
     @Override
-    public void onBindViewHolder(VH holder, int position) {
+    public void onBindViewHolder(@NonNull VH holder, int position) {
         mDataBinder.bind(position, mBaseCacheAdapter.getItem(position), holder.itemView);
     }
 
     /**
      * Please refer to the base method description.
      */
+    @NonNull
     @Override
-    public VH onCreateViewHolder(ViewGroup parent, int viewType) {
+    public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         if (mViewHolderCreator == null)
-            CoreLogger.logError("please set ViewHolder creator via call to setViewHolderCreator()");
+            throw new RuntimeException("please set ViewHolder creator via call to setViewHolderCreator()");
         if (mLayoutId == Core.NOT_VALID_RES_ID)
             CoreLogger.logWarning("item layout ID is not defined");
-        return mViewHolderCreator == null ? null:
-                mViewHolderCreator.onCreateViewHolder(parent, viewType, mLayoutId);
+        return mViewHolderCreator.onCreateViewHolder(parent, viewType, mLayoutId);
     }
 
     /**

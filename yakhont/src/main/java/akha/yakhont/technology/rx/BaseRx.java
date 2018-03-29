@@ -252,6 +252,7 @@ public abstract class BaseRx<D> {
         /**
          * Initialises a newly created {@code SubscriberRx} object.
          */
+        @SuppressWarnings("WeakerAccess")
         public SubscriberRx() {
         }
 
@@ -382,6 +383,7 @@ public abstract class BaseRx<D> {
         /**
          * Stops the receipt of notifications on the registered subscribers (and disposables).
          */
+        @SuppressWarnings("WeakerAccess")
         public void unsubscribe() {
             mRx2Disposable .unsubscribe();
             mRxSubscription.unsubscribe();
@@ -565,7 +567,7 @@ public abstract class BaseRx<D> {
          * @param activity
          *        The Activity
          */
-        @SuppressWarnings({"SameParameterValue", "Convert2Diamond"})
+        @SuppressWarnings({"SameParameterValue", "Convert2Diamond", "WeakerAccess"})
         public LocationRx(final boolean isRx2, final Activity activity) {
             this(isRx2 ? new Rx2<Location>(): new Rx<Location>(), activity);
         }
@@ -592,6 +594,7 @@ public abstract class BaseRx<D> {
          * @param activity
          *        The Activity
          */
+        @SuppressWarnings("WeakerAccess")
         public LocationRx(final CommonRx<Location> commonRx, final Activity activity) {
             super(commonRx, false);
             mActivity = (activity == null) ? null: new WeakReference<>(activity);
@@ -696,6 +699,7 @@ public abstract class BaseRx<D> {
         /**
          * Initialises a newly created {@code LoaderRx} object.
          */
+        @SuppressWarnings("WeakerAccess")
         public LoaderRx() {
             this(true);
         }
@@ -707,6 +711,7 @@ public abstract class BaseRx<D> {
          *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
          *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
          */
+        @SuppressWarnings("WeakerAccess")
         public LoaderRx(final boolean isRx2) {
             this(isRx2, DEFAULT_MODE_SINGLE);
         }
@@ -721,7 +726,7 @@ public abstract class BaseRx<D> {
          * @param isSingle
          *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
          */
-        @SuppressWarnings("Convert2Diamond")
+        @SuppressWarnings({"Convert2Diamond", "WeakerAccess"})
         public LoaderRx(final boolean isRx2, final boolean isSingle) {
             this(isRx2 ? new Rx2<BaseResponse<R, E, D>>(): new Rx<BaseResponse<R, E, D>>(), isSingle);
         }
@@ -732,6 +737,7 @@ public abstract class BaseRx<D> {
          * @param commonRx
          *        The {@link CommonRx} to use
          */
+        @SuppressWarnings("WeakerAccess")
         public LoaderRx(final CommonRx<BaseResponse<R, E, D>> commonRx) {
             this(commonRx, DEFAULT_MODE_SINGLE);
         }
@@ -745,6 +751,7 @@ public abstract class BaseRx<D> {
          * @param isSingle
          *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
          */
+        @SuppressWarnings("WeakerAccess")
         public LoaderRx(final CommonRx<BaseResponse<R, E, D>> commonRx, final boolean isSingle) {
             super(commonRx, isSingle);
         }

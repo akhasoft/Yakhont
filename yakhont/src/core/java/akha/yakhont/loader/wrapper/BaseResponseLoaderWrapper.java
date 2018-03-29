@@ -46,6 +46,7 @@ import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.support.annotation.StringRes;
 import android.text.TextUtils;
@@ -80,6 +81,7 @@ import java.util.Set;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<BaseResponse<R, E, D>> {
 
     // just a placeholder for the moment
@@ -120,6 +122,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *
      * @yakhont.see BaseLoaderWrapper#LoaderFactory LoaderFactory
      */
+    @SuppressWarnings("WeakerAccess")
     public interface BaseLoaderFactory<C, R, E, D> {
 
         /**
@@ -826,6 +829,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          *
          * @return  The data type
          */
+        @SuppressWarnings("WeakerAccess")
         public Type getType() {
             return mType != null ? mType: mConverter != null ? mConverter.getType(): null;
         }

@@ -16,9 +16,9 @@
 
 package akha.yakhont.demo.retrofit;
 
+import akha.yakhont.Core.Utils;
+
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import java.io.IOException;
@@ -81,12 +81,12 @@ public class LocalJsonClient2 extends OkHttpClient {
                 if (delay > 0) {
                     final Call call = this;
                     //noinspection Convert2Lambda
-                    new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                    Utils.runInBackground(delay * 1000, new Runnable() {
                         @Override
                         public void run() {
                             enqueueWrapper(call, responseCallback);
                         }
-                    }, delay * 1000);
+                    });
                 }
                 else
                     enqueueWrapper(this, responseCallback);

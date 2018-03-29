@@ -273,6 +273,11 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
                 getAdapter().resetArray();
                 mBaseRecyclerViewAdapter.notifyDataSetChanged();
             }
+
+            @Override
+            public String toString() {
+                return "ValuesCacheAdapterWrapper.resetArray()";
+            }
         });
     }
 
@@ -332,6 +337,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
          * @param baseCacheAdapter
          *        The {@link BaseCacheAdapter} to wrap
          */
+        @SuppressWarnings("WeakerAccess")
         public ContentValuesRecyclerViewAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
                                                 @NonNull @Size(min = 1) final String[] from,
                                                 @NonNull @Size(min = 1) final int   [] to,
@@ -344,8 +350,9 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
         /**
          * Please refer to the base method description.
          */
+        @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return mViewHolderCreator != null ?
                     super.onCreateViewHolder(parent, viewType):
                     new ViewHolder(mViewInflater.inflate(parent)) {};

@@ -103,7 +103,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 340 KB (except the _full_ version, which is about 560 KB).
+The Yakhont AAR is about 350 KB (except the _full_ version, which is about 570 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above.
 

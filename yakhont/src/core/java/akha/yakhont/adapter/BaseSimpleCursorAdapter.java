@@ -27,6 +27,7 @@ import android.database.Cursor;
 import android.os.Build;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.view.View;
 import android.widget.Checkable;
@@ -60,6 +61,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
      *        The views that should display data in the "from" parameter
      */
     @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
     public BaseSimpleCursorAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
                                    @NonNull @Size(min = 1) final String[]          from,
                                    @NonNull @Size(min = 1) final    int[]          to) {
@@ -126,7 +128,23 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isSupport() {
-        return SimpleCursorAdapter.class.getPackage().getName().equals("android.support.v4.widget");
+        final boolean result = isSupportBody();
+        CoreLogger.log("BaseSimpleCursorAdapter.isSupport() == " + result);
+        return result;
+    }
+
+    private static boolean isSupportBody() {
+        final String name = SimpleCursorAdapter.class.getName();
+        if (name != null) {
+            final int pos = name.lastIndexOf('.');
+            if (pos > 0) {
+                final String pkg = name.substring(0, pos);
+                CoreLogger.log("package for SimpleCursorAdapter is " + pkg);
+                return "android.support.v4.widget".equals(pkg);
+            }
+        }
+        CoreLogger.logError("can not define class name for SimpleCursorAdapter, returned name is " + name);
+        return true;
     }
 
     /**

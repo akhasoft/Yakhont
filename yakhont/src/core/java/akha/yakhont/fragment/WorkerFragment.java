@@ -45,6 +45,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -63,6 +64,7 @@ import javax.inject.Provider;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class WorkerFragment extends BaseFragment implements ConfigurationChangedListener, CoreLoad {
 
     /** The tag for this fragment. */
@@ -286,6 +288,11 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
             public void run() {
                 final Activity activity = getActivity();
                 if (activity != null) activity.onBackPressed();
+            }
+
+            @Override
+            public String toString() {
+                return "Activity.onBackPressed()";
             }
         });
     }

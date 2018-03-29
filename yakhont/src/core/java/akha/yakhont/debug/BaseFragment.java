@@ -32,6 +32,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.CallSuper;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,7 +48,9 @@ import java.util.Arrays;
  */
 @SuppressWarnings("JavaDoc")
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)           //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)   //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
 //YakhontPreprocessor:addToGenerated-SearchFragment-@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
+//YakhontPreprocessor:addToGenerated-SearchFragment-@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class BaseFragment extends Fragment {        // don't modify this line: it's subject to change by the Yakhont preprocessor
 
     /**

@@ -222,6 +222,7 @@ public interface Dagger2 {
          *
          * @return  The {@code Parameters} object
          */
+        @SuppressWarnings("WeakerAccess")
         public static Parameters getInstance() {
             return sInstance;
         }

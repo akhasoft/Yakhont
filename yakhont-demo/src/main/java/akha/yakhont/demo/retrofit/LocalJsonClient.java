@@ -16,13 +16,15 @@
 
 package akha.yakhont.demo.retrofit;
 
+import akha.yakhont.Core.Utils;
+
 import android.content.Context;
-import android.os.SystemClock;
 import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
 
 import retrofit.client.Client;
 import retrofit.client.Header;
@@ -49,7 +51,22 @@ public class LocalJsonClient implements Client {
     @Override
     public Response execute(Request request) throws IOException {
         final int delay = mLocalJsonClientHelper.getDelay();
-        if (delay > 0) SystemClock.sleep(delay * 1000);
+        if (delay > 0) {
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
+            //noinspection Convert2Lambda,Anonymous2MethodRef
+            Utils.runInBackground(delay * 1000, new Runnable() {
+                @Override
+                public void run() {
+                    countDownLatch.countDown();
+                }
+            });
+            try {
+                countDownLatch.await();
+            }
+            catch (InterruptedException e) {
+                Log.e("LocalJsonClient", "interrupted", e);
+            }
+        }
         LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.getUrl(), request.getMethod());
         //noinspection Convert2Diamond
         return new Response(request.getUrl(), LocalJsonClientHelper.HTTP_CODE_OK, data.message(),
@@ -81,7 +98,7 @@ public class LocalJsonClient implements Client {
         }
 
         @Override
-        public InputStream in() throws IOException {
+        public InputStream in() {
             return mData.stream();
         }
     }

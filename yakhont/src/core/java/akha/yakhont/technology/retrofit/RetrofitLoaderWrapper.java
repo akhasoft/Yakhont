@@ -37,6 +37,7 @@ import android.os.Build;
 import android.support.annotation.IntRange;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.util.AndroidException;
 import android.view.View;
 
@@ -60,6 +61,7 @@ import retrofit.client.Response;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<Callback<D>, Response, Exception, D> {
 
     /**

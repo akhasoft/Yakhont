@@ -27,6 +27,7 @@ import android.app.Fragment;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +45,7 @@ import java.util.Set;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed {
 
     /**

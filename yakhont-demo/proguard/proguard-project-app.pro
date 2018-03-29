@@ -23,3 +23,6 @@
 -keep class akha.yakhont.demo.model.** { *; }
 
 -keep interface akha.yakhont.demo.retrofit.** { *; }
+
+-dontwarn okhttp3.logging.HttpLoggingInterceptor
+-dontwarn okhttp3.logging.HttpLoggingInterceptor$Level

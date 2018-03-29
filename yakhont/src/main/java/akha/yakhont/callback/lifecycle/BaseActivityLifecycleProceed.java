@@ -30,6 +30,7 @@ import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 
@@ -407,6 +408,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * API version >= {@link android.os.Build.VERSION_CODES#ICE_CREAM_SANDWICH}.
      */
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public static class ActivityLifecycleProceed extends BaseActivityLifecycleProceed implements Application.ActivityLifecycleCallbacks {
 
         /**

@@ -19,6 +19,8 @@ package akha.yakhont.demo.gui;
 import akha.yakhont.demo.MainFragment;
 import akha.yakhont.demo.R;
 
+import akha.yakhont.Core.Utils.ExecutorHelper;
+
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
@@ -27,8 +29,7 @@ import android.content.res.Resources;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
+import android.support.annotation.RequiresApi;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -44,13 +45,12 @@ import android.widget.ViewSwitcher;
 
 import java.lang.ref.WeakReference;
 import java.util.Locale;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * not directly related to the Yakhont Demo - just some GUI stuff
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1) 
+@TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB_MR1)
 public class SlideShow {
 
     private static final int                SLIDE_SHOW_DELAY        = 2000;
@@ -62,7 +62,7 @@ public class SlideShow {
     private View                            mControlPanel;
     private View                            mControlPanelBtn;
 
-    private Timer                           mTimer;
+    private ExecutorHelper                  mTimer;
     private LayoutInflater                  mLayoutInflater;
     private int                             mImageCounter;
 
@@ -117,9 +117,9 @@ public class SlideShow {
 
     private void startSlideShow(final String idx) {
         cleanUpTimer();
-        mTimer = new Timer("slide show timer");
+        mTimer = new ExecutorHelper();
 
-        mTimer.scheduleAtFixedRate(new TimerTask() {
+        mTimer.runInBackground(new Runnable() {
 
             private String              mPackage;
             private Resources           mResources;
@@ -138,8 +138,7 @@ public class SlideShow {
 
                 if (getResourceId(getImageName(idx, ++mImageCounter)) == 0) mImageCounter = 1;
 
-                //noinspection Convert2Lambda
-                new Handler(Looper.getMainLooper()).post(new Runnable() {
+                ExecutorHelper.postToMainLoop(new Runnable() {
                     @Override
                     public void run() {
                         MainFragment fragment = mFragment.get();
@@ -150,14 +149,24 @@ public class SlideShow {
                                 mResources, getResourceId(getImageName(idx, mImageCounter)),
                                 rect.height(), rect.width())));
                     }
+
+                    @Override
+                    public String toString() {
+                        return "setImageDrawable()";
+                    }
                 });
             }
-        }, 0, SLIDE_SHOW_DELAY);
+
+            @Override
+            public String toString() {
+                return "slide show timer";
+            }
+        }, 0, SLIDE_SHOW_DELAY, true);
 
         applyRotation(true);
     }
 
-    private void cleanUpSlideShow() {
+    public void cleanUpSlideShow() {
         cleanUpTimer();
         applyRotation(false);
     }
@@ -257,6 +266,7 @@ public class SlideShow {
 
         private final boolean               mShowSlides;
 
+        @SuppressWarnings("WeakerAccess")
         public SwapViews(boolean showSlides) {
             mShowSlides = showSlides;
         }

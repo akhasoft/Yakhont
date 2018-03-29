@@ -53,6 +53,7 @@ import android.support.annotation.IntRange;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.MainThread;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.support.annotation.StringRes;
 import android.support.v7.widget.RecyclerView;
@@ -66,8 +67,7 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Type;
 import java.util.Collection;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Provider;
@@ -91,6 +91,7 @@ import javax.inject.Provider;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D>> {
 
     private final static    String                  FORMAT_ERROR                = "%s (%s)";
@@ -294,7 +295,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         doProgressSafe(true);
 
         //noinspection Convert2Lambda
-        Utils.runInBackground(true, new Runnable() {
+        Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -307,6 +308,11 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                     callbackHelper(false, new BaseResponse<R, E, D>(
                             null, null, null, null, Source.UNKNOWN, exception));
                 }
+            }
+
+            @Override
+            public String toString() {
+                return addLoaderInfo("BaseLoader.makeRequest()");
             }
         });
     }
@@ -327,15 +333,25 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             public void run() {
                 callback(success, baseResponse);
             }
+
+            @Override
+            public String toString() {
+                return "BaseLoader.callback()";
+            }
         });
     }
 
     private void callback(final boolean success, @NonNull final BaseResponse<R, E, D> baseResponse) {
-        synchronized (mTimerLock) {
-            final boolean waiting = mTimerTask != null;
+        synchronized (mTimeoutLock) {
+            final boolean waiting = mFuture != null;
             CoreLogger.log(waiting ? Level.DEBUG: Level.ERROR, addLoaderInfo(
                     "success " + success + ", waiting " + waiting));
-            if (!waiting) return;
+            if (!waiting) {
+                if (sRespectWaiting.get()) return;
+                CoreLogger.logWarning(addLoaderInfo(
+                        "Results were delivered while not waiting; anyway, results accepted. " +
+                                "To change this behaviour, use setWaitingMode() method."));
+            }
         }
         CoreLogger.log(addLoaderInfo("proceed"));
 
@@ -472,23 +488,39 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         doProgressSafe(show, true);
     }
 
-    private final    Timer      mTimer           = new Timer("loader timer", true);
-    private final    Object     mTimerLock       = new Object();
-    private volatile TimerTask  mTimerTask;
+    private static final boolean        MAY_INTERRUPT_IF_RUNNING    = true;
+
+    private final        Object         mTimeoutLock                = new Object();
+    private              Future<?>      mFuture;
+    private static final AtomicBoolean  sRespectWaiting             = new AtomicBoolean(true);
+
+    /**
+     * Sets waiting mode: {@code true} to ignore delivered results if not waiting for them;
+     * {@code false} otherwise. The default value is {@code true}.
+     *
+     * @param value
+     *        The value to set
+     *
+     * @return  The previous value
+     */
+    @SuppressWarnings("unused")
+    public static boolean setWaitingMode(final boolean value) {
+        return sRespectWaiting.getAndSet(value);
+    }
 
     private void doProgressTimer(final boolean start, final boolean cancel) {
-        synchronized (mTimerLock) {
+        synchronized (mTimeoutLock) {
             doProgressTimerAsync(start, cancel);
         }
     }
 
     private void doProgressTimerAsync(final boolean start, final boolean cancel) {
-        if (mTimerTask != null) {
-            final boolean result = !cancel || mTimerTask.cancel();
-            mTimerTask = null;
+        if (mFuture != null) {
+            final boolean result = !cancel || mFuture.cancel(MAY_INTERRUPT_IF_RUNNING);
+            mFuture = null;
 
-            if (start)   CoreLogger.logError(addLoaderInfo("previous TimerTask is not null"));
-            if (!result) CoreLogger.logError(addLoaderInfo("TimerTask cancel problem"));
+            if (start)   CoreLogger.logError(addLoaderInfo("previous timeout task is not null"));
+            if (!result) CoreLogger.logError(addLoaderInfo("timeout task cancel problem"));
         }
         if (!start) return;
 
@@ -501,7 +533,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         // (normally should never happen)
         final int timeout = (mTimeout + Core.TIMEOUT_CONNECTION_TIMER) * 1000;
 
-        mTimerTask = new TimerTask() {
+        mFuture = Utils.runInBackground(timeout, new Runnable() {
             @Override
             public void run() {
                 CoreLogger.log(Level.ERROR, addLoaderInfo("forced to stop"), false);
@@ -514,10 +546,19 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                         //noinspection Convert2Diamond
                         onFailure(new BaseResponse<R, E, D>(Source.TIMEOUT));
                     }
+
+                    @Override
+                    public String toString() {
+                        return "BaseLoader.onFailure()";
+                    }
                 });
             }
-        };
-        mTimer.schedule(mTimerTask, timeout);
+
+            @Override
+            public String toString() {
+                return addLoaderInfo("loader timeout");
+            }
+        });
     }
 
     private void postDeliverResult(@NonNull final BaseResponse<R, E, D> result) {
@@ -526,6 +567,11 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             @Override
             public void run() {
                 deliverResult(result);
+            }
+
+            @Override
+            public String toString() {
+                return "BaseLoader.deliverResult()";
             }
         });
     }
@@ -649,6 +695,11 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
 
                 if (isReload() || mResult == null)
                     forceLoad();
+            }
+
+            @Override
+            public String toString() {
+                return "BaseLoader.onStartLoading()";
             }
         });
     }
@@ -1021,7 +1072,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("UnusedReturnValue")
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         public CoreLoadBuilder<R, E, D> setLoaderBuilder(final LoaderBuilder<BaseResponse<R, E, D>> loaderBuilder) {
             mLoaderBuilder = loaderBuilder;
             return this;

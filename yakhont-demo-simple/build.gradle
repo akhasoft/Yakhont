@@ -27,6 +27,49 @@ buildscript {
 
 apply plugin: 'com.android.application'
 
+ext.libVerDemoSimpleDefault     = rootProject.ext.projectLibVerDefault
+
+ext.libVerDemoSimpleSupport     = rootProject.ext.projectLibVerSupport
+ext.libVerDemoSimpleLifecycle   = rootProject.ext.projectLibVerLifecycle
+ext.libVerDemoSimpleLocation    = rootProject.ext.projectLibVerLocation
+
+ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
+
+ext.libVerDemoSimpleOkHttp3     = rootProject.ext.projectLibVerOkHttp3
+ext.libVerDemoSimpleGson        = rootProject.ext.projectLibVerGson
+
+ext.libVerDemoSimpleRxJava      = rootProject.ext.projectLibVerRxJava
+ext.libVerDemoSimpleRxJava2     = rootProject.ext.projectLibVerRxJava2
+
+ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
+
+def dependenciesStrategy = { DependencyResolveDetails details ->
+    if (details.requested.group == 'com.android.support') {
+        details.useVersion          libVerDemoSimpleSupport
+//      details.because 'To enforce releasable units for Support Libraries'
+    }
+    if (details.requested.group.startsWith('android.arch.')) {
+        details.useVersion          libVerDemoSimpleLifecycle
+//      details.because 'To enforce releasable units for Support Libraries (arch)'
+    }
+    if (details.requested.group == 'com.google.android.gms') {
+        details.useVersion          libVerDemoSimpleLocation
+//      details.because 'To enforce releasable units for Google Play Services'
+    }
+    if (details.requested.group == 'com.squareup.retrofit2') {
+        details.useVersion          libVerDemoSimpleRetrofit2
+//      details.because 'To enforce releasable units for Retrofit 2'
+    }
+    if (details.requested.group == 'com.squareup.okhttp3') {
+        details.useVersion          libVerDemoSimpleOkHttp3
+//      details.because 'To enforce releasable units for okhttp3'
+    }
+    if (details.requested.group == 'com.google.dagger') {
+        details.useVersion          libVerDemoSimpleDagger
+//      details.because 'To enforce releasable units for Dagger 2'
+    }
+}
+
 //noinspection GroovyMissingReturnStatement
 android {
     compileSdkVersion           27
@@ -36,7 +79,6 @@ android {
     defaultConfig {
         applicationId           'akha.yakhont.demosimple'
         minSdkVersion           14
-        //noinspection OldTargetApi
         targetSdkVersion        27
         versionCode            10101
         versionName           '1.1'
@@ -55,7 +97,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       true
+            minifyEnabled       rootProject.ext.projectDebug != '1'
 
             rootProject.ext.projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
@@ -72,52 +114,63 @@ android {
     repositories {
         flatDir dirs: '../yakhont/build/outputs/aar'
     }
+
+    applicationVariants.all { variant ->
+        String prefix = variant.buildType.name
+        configurations.getByName(prefix + 'UnitTestCompileClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        configurations.getByName(prefix + 'UnitTestRuntimeClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.runtimeConfiguration                 .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getAnnotationProcessorConfiguration().resolutionStrategy.eachDependency dependenciesStrategy
+    }
+    testVariants      .all { variant ->
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getRuntimeConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+    }
 }
-
-ext.libVerDemoSimpleSupport     = rootProject.ext.projectLibVerSupport
-ext.libVerDemoSimpleLifecycle   = rootProject.ext.projectLibVerLifecycle
-ext.libVerDemoSimpleLocation    = rootProject.ext.projectLibVerLocation
-
-ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
-
-ext.libVerDemoSimpleRxJava      = rootProject.ext.projectLibVerRxJava
-ext.libVerDemoSimpleRxJava2     = rootProject.ext.projectLibVerRxJava2
-
-ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
 
 dependencies {
     // v4 Support Libraries
     // fragment has dependencies on compat, core-utils, core-ui, and media-compat
-    implementation      "com.android.support:support-fragment:${libVerDemoSimpleSupport}"
-    implementation      "com.android.support:support-compat:${libVerDemoSimpleSupport}"
-    implementation      "com.android.support:support-core-utils:${libVerDemoSimpleSupport}"
-    implementation      "com.android.support:support-core-ui:${libVerDemoSimpleSupport}"
-    implementation      "com.android.support:support-media-compat:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:support-fragment:${libVerDemoSimpleDefault}"
+    implementation      "com.android.support:support-compat:${libVerDemoSimpleDefault}"
+    implementation      "com.android.support:support-core-utils:${libVerDemoSimpleDefault}"
+    implementation      "com.android.support:support-core-ui:${libVerDemoSimpleDefault}"
+    implementation      "com.android.support:support-media-compat:${libVerDemoSimpleDefault}"
     // v7 Support Libraries
     // appcompat (includes support for material design) depends on the v4 Support Library
-    implementation      "com.android.support:appcompat-v7:${libVerDemoSimpleSupport}"
-    implementation      "com.android.support:recyclerview-v7:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:appcompat-v7:${libVerDemoSimpleDefault}"
+    implementation      "com.android.support:recyclerview-v7:${libVerDemoSimpleDefault}"
     // v13 Support Library (support for the Fragment with the FragmentCompat)
-    implementation      "com.android.support:support-v13:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:support-v13:${libVerDemoSimpleDefault}"
 
-    implementation      "com.android.support:support-annotations:${libVerDemoSimpleSupport}"
-//    implementation      "com.android.support:design:${libVerDemoSimpleSupport}"
+    implementation      "com.android.support:support-annotations:${libVerDemoSimpleDefault}"
+//    implementation      "com.android.support:design:${libVerDemoSimpleDefault}"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
-    implementation      "com.google.android.gms:play-services-location:${libVerDemoSimpleLocation}"
-    implementation      "android.arch.lifecycle:common-java8:${libVerDemoSimpleLifecycle}"
-    implementation      "android.arch.lifecycle:extensions:${libVerDemoSimpleLifecycle}"
+    implementation      "com.google.android.gms:play-services-location:${libVerDemoSimpleDefault}"
+    implementation      "android.arch.lifecycle:common-java8:${libVerDemoSimpleDefault}"
+    implementation      "android.arch.lifecycle:extensions:${libVerDemoSimpleDefault}"
 
-    implementation      "com.google.dagger:dagger:${libVerDemoSimpleDagger}"           // Dagger2
-    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoSimpleDagger}"
+    implementation      "com.google.dagger:dagger:${libVerDemoSimpleDefault}"           // Dagger 2
+    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoSimpleDefault}"
 
-    implementation      "com.squareup.retrofit2:retrofit:${libVerDemoSimpleRetrofit2}" // Retrofit
-    implementation      "com.squareup.retrofit2:converter-gson:${libVerDemoSimpleRetrofit2}"
+    implementation      "com.google.code.gson:gson:${libVerDemoSimpleGson}"             // Gson
 
-    implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoSimpleRxJava2}"       // Rx
+    implementation     ("com.squareup.retrofit2:retrofit:${libVerDemoSimpleDefault}") { // Retrofit
+        exclude group:  "com.squareup.okhttp3", module: "okhttp"
+    }
+    implementation     ("com.squareup.retrofit2:converter-gson:${libVerDemoSimpleDefault}") {
+        exclude group:  "com.google.code.gson", module: "gson"
+    }
+    implementation      "com.squareup.okhttp3:okhttp:${libVerDemoSimpleDefault}"
+
+    implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoSimpleRxJava2}"        // Rx
     implementation      "io.reactivex:rxjava:${libVerDemoSimpleRxJava}"
 
-    implementation      name:'yakhont', ext:'aar'                                      // Yakhont
+    implementation      name:'yakhont', ext:'aar'                                       // Yakhont
 }
 
 // for demo simple let's build both release and debug - just to be sure the weaver is working fine

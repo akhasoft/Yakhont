@@ -39,6 +39,56 @@ ext {
                                    'http://square.github.io/retrofit/2.x/retrofit/']
 }
 
+ext.libVerDefault               = rootProject.ext.projectLibVerDefault
+
+ext.libVerSupport               = rootProject.ext.projectLibVerSupport
+ext.libVerLifecycle             = rootProject.ext.projectLibVerLifecycle
+ext.libVerLocation              = rootProject.ext.projectLibVerLocation
+
+ext.libVerRetrofit              = rootProject.ext.projectLibVerRetrofit
+ext.libVerRetrofit2             = rootProject.ext.projectLibVerRetrofit2
+
+ext.libVerGson                  = rootProject.ext.projectLibVerGson
+
+ext.libVerOkHttp3               = rootProject.ext.projectLibVerOkHttp3
+ext.libVerOkHttp                = '2.7.5'
+
+ext.libVerRxJava                = rootProject.ext.projectLibVerRxJava
+ext.libVerRxJava2               = rootProject.ext.projectLibVerRxJava2
+
+ext.libVerDagger                = rootProject.ext.projectLibVerDagger
+
+def dependenciesStrategy = { DependencyResolveDetails details ->
+    if (details.requested.group == 'com.android.support') {
+        details.useVersion          libVerSupport
+//      details.because 'To enforce releasable units for Support Libraries'
+    }
+    if (details.requested.group.startsWith('android.arch.')) {
+        details.useVersion          libVerLifecycle
+//      details.because 'To enforce releasable units for Support Libraries (arch)'
+    }
+    if (details.requested.group == 'com.google.android.gms') {
+        details.useVersion          libVerLocation
+//      details.because 'To enforce releasable units for Google Play Services'
+    }
+    if (details.requested.group == 'com.squareup.retrofit2') {
+        details.useVersion          libVerRetrofit2
+//      details.because 'To enforce releasable units for Retrofit 2'
+    }
+    if (details.requested.group == 'com.squareup.okhttp3') {
+        details.useVersion          libVerOkHttp3
+//      details.because 'To enforce releasable units for okhttp3'
+    }
+    if (details.requested.group == 'com.squareup.okhttp') {
+        details.useVersion          libVerOkHttp
+//      details.because 'To enforce releasable units for okhttp'
+    }
+    if (details.requested.group == 'com.google.dagger') {
+        details.useVersion          libVerDagger
+//      details.because 'To enforce releasable units for Dagger 2'
+    }
+}
+
 //noinspection GroovyMissingReturnStatement
 android {
     compileSdkVersion           27
@@ -78,7 +128,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       true
+            minifyEnabled       rootProject.ext.projectDebug != '1'
 
             rootProject.ext.projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
@@ -93,70 +143,77 @@ android {
             consumerProguardFiles       './proguard/proguard-consumer.pro'
         }
     }
+
+    libraryVariants.all { variant ->
+        String prefix = variant.getVariantData().getVariantConfiguration().getFlavorName() +
+            variant.buildType.name.capitalize()
+        configurations.getByName(prefix + 'UnitTestCompileClasspath')              
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        configurations.getByName(prefix + 'UnitTestRuntimeClasspath')              
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.runtimeConfiguration                 .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getAnnotationProcessorConfiguration().resolutionStrategy.eachDependency dependenciesStrategy
+    }
+    testVariants   .all { variant ->
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getRuntimeConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+    }
 }
-
-ext.libVerSupport               = rootProject.ext.projectLibVerSupport
-ext.libVerLifecycle             = rootProject.ext.projectLibVerLifecycle
-ext.libVerLocation              = rootProject.ext.projectLibVerLocation
-
-ext.libVerRetrofit              = rootProject.ext.projectLibVerRetrofit
-ext.libVerRetrofit2             = rootProject.ext.projectLibVerRetrofit2
-
-ext.libVerOkHttp3               = rootProject.ext.projectLibVerOkHttp3
-ext.libVerOkHttp                = '2.7.5'
-
-ext.libVerRxJava                = rootProject.ext.projectLibVerRxJava
-ext.libVerRxJava2               = rootProject.ext.projectLibVerRxJava2
-
-ext.libVerDagger                = rootProject.ext.projectLibVerDagger
 
 dependencies {
     // v4 Support Libraries
     // fragment has dependencies on compat, core-utils, core-ui, and media-compat
-    api                 "com.android.support:support-fragment:${libVerSupport}"
-    api                 "com.android.support:support-compat:${libVerSupport}"
-    api                 "com.android.support:support-core-utils:${libVerSupport}"
-    api                 "com.android.support:support-core-ui:${libVerSupport}"
-    api                 "com.android.support:support-media-compat:${libVerSupport}"
+    api                 "com.android.support:support-fragment:${libVerDefault}"
+    api                 "com.android.support:support-compat:${libVerDefault}"
+    api                 "com.android.support:support-core-utils:${libVerDefault}"
+    api                 "com.android.support:support-core-ui:${libVerDefault}"
+    api                 "com.android.support:support-media-compat:${libVerDefault}"
     // v7 Support Libraries
     // appcompat (includes support for material design) depends on the v4 Support Library
-    api                 "com.android.support:appcompat-v7:${libVerSupport}"
-    api                 "com.android.support:recyclerview-v7:${libVerSupport}"
+    api                 "com.android.support:appcompat-v7:${libVerDefault}"
+    api                 "com.android.support:recyclerview-v7:${libVerDefault}"
     // v13 Support Library (support for the Fragment with the FragmentCompat)
-    api                 "com.android.support:support-v13:${libVerSupport}"
+    api                 "com.android.support:support-v13:${libVerDefault}"
 
-    api                 "com.android.support:support-annotations:${libVerSupport}"
-    api                 "com.android.support:design:${libVerSupport}"
-    api                 "com.google.android.gms:play-services-location:${libVerLocation}"
-    api                 "android.arch.lifecycle:common-java8:${libVerLifecycle}"
-    api                 "android.arch.lifecycle:extensions:${libVerLifecycle}"
+    api                 "com.android.support:support-annotations:${libVerDefault}"
+    api                 "com.android.support:design:${libVerDefault}"
+    api                 "com.google.android.gms:play-services-location:${libVerDefault}"
+    api                 "android.arch.lifecycle:common-java8:${libVerDefault}"
+    api                 "android.arch.lifecycle:extensions:${libVerDefault}"
 
     // for debug package only
-    fullApi             "com.android.support:leanback-v17:${libVerSupport}"
-    fullApi             "com.android.support:mediarouter-v7:${libVerSupport}"
-    fullApi             "com.android.support:preference-v14:${libVerSupport}"
-    fullApi             "com.android.support:preference-leanback-v17:${libVerSupport}"
+    fullApi             "com.android.support:leanback-v17:${libVerDefault}"
+    fullApi             "com.android.support:mediarouter-v7:${libVerDefault}"
+    fullApi             "com.android.support:preference-v14:${libVerDefault}"
+    fullApi             "com.android.support:preference-leanback-v17:${libVerDefault}"
 
-    api                 "com.google.dagger:dagger:${libVerDagger}"           // Dagger2
-    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDagger}"
+    api                 "com.google.dagger:dagger:${libVerDefault}"             // Dagger 2
+    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDefault}"
 
-    api                 "com.google.code.gson:gson:2.8.2"                    // Gson
+    api                 "com.google.code.gson:gson:${libVerGson}"               // Gson
 
-    api                 "com.squareup.picasso:picasso:2.5.2"                 // Picasso
+    api                 "com.squareup.picasso:picasso:2.5.2"                    // Picasso
 
-    api                 "com.squareup.retrofit2:retrofit:${libVerRetrofit2}" // Retrofit
-    api                 "com.squareup.retrofit2:converter-gson:${libVerRetrofit2}"
-    api                 "com.squareup.okhttp3:okhttp:${libVerOkHttp3}"
-    api                 "com.squareup.okhttp3:logging-interceptor:${libVerOkHttp3}"
+    api                ("com.squareup.retrofit2:retrofit:${libVerDefault}") {   // Retrofit
+        exclude group:  "com.squareup.okhttp3", module: "okhttp"
+    }
+    api                ("com.squareup.retrofit2:converter-gson:${libVerDefault}") {
+        exclude group:  "com.google.code.gson", module: "gson"
+    }
+    api                 "com.squareup.okhttp3:okhttp:${libVerDefault}"
+    api                 "com.squareup.okhttp3:logging-interceptor:${libVerDefault}"
 
-    api                 "com.squareup.retrofit2:adapter-rxjava:${libVerRetrofit2}"
-    api                 "com.squareup.retrofit2:adapter-rxjava2:${libVerRetrofit2}"
+    api                 "com.squareup.retrofit2:adapter-rxjava:${libVerDefault}"
+    api                 "com.squareup.retrofit2:adapter-rxjava2:${libVerDefault}"
 
-    api                 "com.squareup.retrofit:retrofit:${libVerRetrofit}"
-    api                 "com.squareup.okhttp:okhttp:${libVerOkHttp}"
-    api                 "com.squareup.okhttp:okhttp-urlconnection:${libVerOkHttp}"
+    api                ("com.squareup.retrofit:retrofit:${libVerRetrofit}") {
+        exclude group:  "com.google.code.gson", module: "gson"
+    }
+    api                 "com.squareup.okhttp:okhttp:${libVerDefault}"
+    api                 "com.squareup.okhttp:okhttp-urlconnection:${libVerDefault}"
 
-    api                 "io.reactivex.rxjava2:rxjava:${libVerRxJava2}"       // Rx
+    api                 "io.reactivex.rxjava2:rxjava:${libVerRxJava2}"          // Rx
     api                 "io.reactivex:rxjava:${libVerRxJava}"
 }
 

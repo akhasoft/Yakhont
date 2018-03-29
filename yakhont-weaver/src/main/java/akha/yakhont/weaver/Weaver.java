@@ -268,6 +268,7 @@ public class Weaver {
     }
 
     private void searchClasses(File[] files) throws NotFoundException, CannotCompileException, IOException {
+        if (files == null) return;
         for (File file: files)
             if (file.isDirectory())
                 searchClasses(file.listFiles());

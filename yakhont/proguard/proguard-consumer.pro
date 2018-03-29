@@ -56,3 +56,6 @@
 -keep class * extends android.support.v4.app.FragmentManager {
     public void noteStateNotSaved(...);
 }
+
+-keep class **.SimpleCursorAdapter { <init>(...); }
+-dontnote **.SimpleCursorAdapter

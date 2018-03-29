@@ -46,6 +46,7 @@ import android.os.Build;
 import android.support.annotation.IntRange;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.view.View;
 
 import com.google.gson.reflect.TypeToken;
@@ -72,6 +73,7 @@ import retrofit2.Response;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<Callback<D>, Response<D>, Throwable, D> {
 
     private           Method                                                            mMethod;
@@ -338,7 +340,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
             return null;
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static Type getType(final Method method) {
             return TypeHelper.getParameterizedType(method == null ? null: method.getGenericReturnType());
         }
@@ -487,6 +489,7 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
          *
          * @return  The {@link CallbackRx}
          */
+        @SuppressWarnings("WeakerAccess")
         public static <D> CallbackRx<D> getRxWrapper(final Callback<D> callback) {
             if (callback == null) CoreLogger.logError("callback == null");
 

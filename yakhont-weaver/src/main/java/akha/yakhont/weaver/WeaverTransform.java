@@ -138,7 +138,7 @@ public class WeaverTransform extends Transform {
     @Override
     public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs,
                           TransformOutputProvider outputProvider, boolean isIncremental)
-            throws IOException, TransformException, InterruptedException {
+            throws IOException, TransformException {
 
         StringBuilder classPath = new StringBuilder();
         for (TransformInput input: referencedInputs) {

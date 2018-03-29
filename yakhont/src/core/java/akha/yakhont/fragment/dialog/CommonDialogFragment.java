@@ -36,6 +36,7 @@ import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.annotation.StringRes;
 
 import java.lang.ref.WeakReference;
@@ -49,6 +50,7 @@ import java.lang.ref.WeakReference;
  * @author akha
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class CommonDialogFragment extends BaseDialogFragment implements BaseDialog {
 
     private   static final String       TAG                 = Utils.getTag(CommonDialogFragment.class);
@@ -233,6 +235,7 @@ public abstract class CommonDialogFragment extends BaseDialogFragment implements
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static class LocationErrorDialogFragment extends DialogFragment {
 
+        @SuppressWarnings("WeakerAccess")
         public  static final String     TAG                 = LocationErrorDialogFragment.class.getName();
 
         private static final int        REQUEST_CODE        = Utils.getRequestCode(Core.RequestCodes.LOCATION_CLIENT);

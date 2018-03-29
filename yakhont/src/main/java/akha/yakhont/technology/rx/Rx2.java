@@ -98,7 +98,7 @@ public class Rx2<D> extends CommonRx<D> {
         //noinspection Convert2Lambda
         setErrorHandler(new Consumer<Throwable>() {
             @Override
-            public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
+            public void accept(@io.reactivex.annotations.NonNull Throwable throwable) {
                 CoreLogger.log("RxJavaPlugins Error handler", throwable);
             }
         });
@@ -252,7 +252,7 @@ public class Rx2<D> extends CommonRx<D> {
         //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Consumer<D>() {
             @Override
-            public void accept(@io.reactivex.annotations.NonNull D data) throws Exception {
+            public void accept(@io.reactivex.annotations.NonNull D data) {
                 callback.onResult(data);
             }
         };
@@ -263,7 +263,7 @@ public class Rx2<D> extends CommonRx<D> {
         //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Consumer<Throwable>() {
             @Override
-            public void accept(@io.reactivex.annotations.NonNull Throwable throwable) throws Exception {
+            public void accept(@io.reactivex.annotations.NonNull Throwable throwable) {
                 callback.onError(throwable);
             }
         };
@@ -679,6 +679,7 @@ public class Rx2<D> extends CommonRx<D> {
          *
          * @return  {@code true} if Disposable was successfully added, {@code false} otherwise
          */
+        @SuppressWarnings("WeakerAccess")
         public boolean add(final Disposable disposable) {
             if (disposable == null) {
                 CoreLogger.logError("Disposable is null");

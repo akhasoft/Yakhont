@@ -409,7 +409,7 @@ public abstract class BaseCallbacks<T> {
         /**
          * Initialises a newly created {@code BaseCacheCallbacks} object.
          */
-        public BaseCacheCallbacks() {
+        protected BaseCacheCallbacks() {
         }
 
         /**
@@ -674,7 +674,7 @@ public abstract class BaseCallbacks<T> {
             //noinspection Convert2Lambda
             if (proceed(callbacks, created, object, new Callable<Boolean>() {
                 @Override
-                public Boolean call() throws Exception {
+                public Boolean call() {
                     final Set<E> lifeCycles = callbacksMap.get(callbacks);
                     return lifeCycles == null || lifeCycles.size() == 0 || lifeCycles.contains(lifeCycle);
                 }

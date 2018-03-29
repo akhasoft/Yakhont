@@ -540,6 +540,7 @@ public class Rx<D> extends CommonRx<D> {
          * @param subscription
          *        The {@link Subscription} to add
          */
+        @SuppressWarnings("WeakerAccess")
         public void add(final Subscription subscription) {
             if (subscription == null)
                 CoreLogger.logError("subscription is null");

@@ -68,6 +68,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 public class MainFragment extends /* android.app.Fragment */ android.support.v4.app.Fragment
         implements MeasuredViewAdjuster {
@@ -351,7 +352,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         mSlideShow.init(this);
 
-        Bubbles.init(getActivity());
+        Bubbles.init(Objects.requireNonNull(getActivity()));
     }
 
     @Override
@@ -369,11 +370,12 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
     
     public void onSlideShow(final boolean isStarted) {
+        getMainActivity().setSlideShow(isStarted ? mSlideShow: null);
         setBubblesState(isStarted);
     }
 
     private void setBubblesState(final boolean cancel) {
-        Bubbles.setState(cancel);
+        Bubbles.setState(cancel, false);
     }
 
     @Override

@@ -20,6 +20,7 @@ import akha.yakhont.demo.R;
 
 import akha.yakhont.Core;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
+import akha.yakhont.Core.Utils.ExecutorHelper;
 
 import android.animation.Animator;
 import android.animation.FloatEvaluator;
@@ -42,14 +43,12 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Message;
 import android.os.Parcel;
+import android.support.annotation.RequiresApi;
 import android.text.Html;
 import android.text.Spanned;
 import android.text.SpannableString;
 import android.text.TextPaint;
-import android.text.format.DateUtils;
 import android.text.style.CharacterStyle;
 import android.text.style.ForegroundColorSpan;
 import android.text.style.StyleSpan;
@@ -67,19 +66,21 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * not directly related to the Yakhont Demo - just some GUI stuff
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB) 
+@TargetApi(Build.VERSION_CODES.HONEYCOMB)
+@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
 public class Bubbles {
 
-    private static final int                BUBBLES_INTERVAL_MAX    = 10;
-    private static final int                BUBBLES_INTERVAL_MIN    = 10;
-    private static final int                DURATION_MAX            = 10;
+    private static final float              BUBBLES_INTERVAL_MAX    =  10   ;
+    private static final float              BUBBLES_INTERVAL_MIN    =  10   ;
+    private static final float              DURATION_MAX            =  10   ;
+    private static final float              DURATION_FADE           =   2.5f;
+    private static final float              DURATION_FIREWORKS      =   2   ;
+    private static final float              DURATION_RAINBOW        = 180   ;
 
     @SuppressLint("StaticFieldLeak")
     private static ViewGroup                sRootLayout;
@@ -94,9 +95,8 @@ public class Bubbles {
 
     private static final List<TextView>     sViews                  = Collections.synchronizedList(new ArrayList<TextView>());
 
-    private static       Timer              sTimer;
+    private static       ExecutorHelper     sTimer;
     private static final Random             sRandom                 = new Random();
-    private static final Handler            sHandler                = new BubblesHandler();
     private static final AtomicBoolean      sIsCancel               = new AtomicBoolean();
 
     private static final String             sNewLine                = System.getProperty("line.separator");
@@ -109,7 +109,8 @@ public class Bubbles {
     }
 
     public static void init(Activity activity) {
-        sTimer                  = new Timer("bubbles timer");
+        sTimer                  = new ExecutorHelper();
+
         sIsCancel.set(false);
         synchronized (sViews) {
             sViews.clear();
@@ -127,36 +128,75 @@ public class Bubbles {
     }
 
     private static void scheduleNextBubble() {
-        sTimer.schedule(new TimerTask() {
+        sTimer.runInBackground(new Runnable() {
             @Override
             public void run() {
                 scheduleNextBubble();
-                if (!sIsCancel.get()) sHandler.sendEmptyMessage(1);
+                if (sIsCancel.get()) return;
+
+                ExecutorHelper.postToMainLoop(new Runnable() {
+                    @Override
+                    public void run() {
+                        startAnimation();
+                    }
+
+                    @Override
+                    public String toString() {
+                        return "startAnimation()";
+                    }
+                });
             }
-        }, getBubblesInterval());
+
+            @Override
+            public String toString() {
+                return "bubbles timer";
+            }
+        }, getBubblesInterval(), true);
     }
 
     private static int getBubblesInterval() {
-        int interval    = sRandom.nextInt(BUBBLES_INTERVAL_MAX * 1000);
-        int intervalMin = BUBBLES_INTERVAL_MIN * 1000;
+        int interval    = sRandom.nextInt((int) (BUBBLES_INTERVAL_MAX * 1000));
+        int intervalMin = (int) (BUBBLES_INTERVAL_MIN * 1000);
         return interval < intervalMin ? intervalMin: interval;
     }
 
-    public static void setState(final boolean cancel) {
+    public static void setState(final boolean cancel, final boolean clear) {
         sIsCancel.set(cancel);
         if (!cancel) return;
 
         synchronized (sViews) {
-            for (TextView view: sViews.toArray(new TextView[sViews.size()])) {
-                cancelRainbow(view);
+            for (TextView view: sViews.toArray(new TextView[sViews.size()]))
+                if (clear) {
+                    cancelRainbow(view);
 
-                AnimatorHelper[] animators = (AnimatorHelper[]) view.getTag(R.id.animators);
-                if (animators != null) for (AnimatorHelper animator: animators)
-                    animator.cancel();
+                    AnimatorHelper[] animators = (AnimatorHelper[]) view.getTag(R.id.animators);
+                    if (animators != null) for (AnimatorHelper animator : animators)
+                        animator.cancel();
 
-                ValueAnimator animator = (ValueAnimator) view.getTag(R.id.animator_main);
-                if (animator != null) animator.cancel();
-            }
+                    ValueAnimator animator = (ValueAnimator) view.getTag(R.id.animator_main);
+                    if (animator != null) animator.cancel();
+                }
+                else {
+                    int size = 15;
+                    float[] values = new float[size + 1];
+                    for (int i = 0; i < size - 2; i++)
+                        values[i] = 1f / size * (size - i);
+                    values[size - 2] = 0.8f;
+                    values[size - 1] = 0.6f;
+                    values[size    ] = 0;
+
+                    ValueAnimator animatorFade = ValueAnimator.ofFloat(values);
+                    animatorFade.setDuration((int) (DURATION_FADE * 1000));
+                    animatorFade.setInterpolator(new LinearInterpolator());
+                    //noinspection Convert2Lambda
+                    animatorFade.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
+                        @Override
+                        public void onAnimationUpdate(ValueAnimator valueAnimator) {
+                            view.setAlpha((Float) valueAnimator.getAnimatedValue());
+                        }
+                    });
+                    animatorFade.start();
+                }
         }
     }
 
@@ -167,7 +207,7 @@ public class Bubbles {
     }
 
     public static void cleanUp() {
-        setState(true);
+        setState(true, true);
 
         sTimer.cancel();
 
@@ -250,15 +290,14 @@ public class Bubbles {
         textView.setTop (0);
 
         ValueAnimator mainAnimator = ValueAnimator.ofInt(0, sDisplayMetrics.heightPixels);
-        mainAnimator.setDuration(DURATION_MAX * 1000);
+        mainAnimator.setDuration((int) (DURATION_MAX * 1000));
         mainAnimator.setInterpolator(new AccelerateInterpolator());
 
         //noinspection Convert2Lambda
         mainAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
             @Override
             public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                int value = (Integer) valueAnimator.getAnimatedValue();
-                textView.setTranslationY(value);
+                textView.setTranslationY((Integer) valueAnimator.getAnimatedValue());
             }
         });
 
@@ -339,11 +378,13 @@ public class Bubbles {
             view.setTag(R.id.animators_rainbow, tmp);
 
             if (spannable == null) spannable = new SpannableString(text);
-            AnimatedFireworks.run(view, spannable, color, 2000, animators);
+            AnimatedFireworks.run(view, spannable, color,
+                    (int) (DURATION_FIREWORKS * 1000), animators);
         }        
 
         if (spannable == null) {
             text = text.replace(target, "<b>" + target + "</b>").replace(sNewLine, "<br>");
+            //noinspection ConstantConditions
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 @SuppressLint("InlinedApi") int flags = Html.FROM_HTML_MODE_LEGACY;
                 view.setText(Html.fromHtml(text, flags));
@@ -356,14 +397,6 @@ public class Bubbles {
     @SuppressWarnings("deprecation")
     private static void viewSetText(TextView view, String text) {
         view.setText(Html.fromHtml(text));
-    }
-
-    private static class BubblesHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-            startAnimation();
-        }
     }
 
     private static class OrderHelper {
@@ -383,6 +416,7 @@ public class Bubbles {
             Collections.shuffle(mList);
         }
 
+        @SuppressWarnings("WeakerAccess")
         public int get() {
             mLastValue = mList.get(0);
             mList.remove(0);
@@ -429,7 +463,8 @@ public class Bubbles {
         private static int toInt(double d) {
             return (int) (d * 1000);
         }
-        
+
+        @SuppressWarnings("WeakerAccess")
         public void start() {
             synchronized (mLock) {
                 startAsync();
@@ -454,6 +489,7 @@ public class Bubbles {
             mTimeInterpolator = timeInterpolator;
         }
 
+        @SuppressWarnings("WeakerAccess")
         public void cancel() {
             synchronized (mLock) {
                 mIsCancel = true;
@@ -478,8 +514,10 @@ public class Bubbles {
      * @author Chiu-Ki Chan
      */
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private static class AnimatedRainbow {
 
+        @SuppressWarnings("WeakerAccess")
         public static SpannableString run(final TextView view, String text, String toSpan,
                                           List<ObjectAnimator> animators) {
             final SpannableString spannable = new SpannableString(text);
@@ -497,11 +535,11 @@ public class Bubbles {
                 spannable.setSpan(boldSpan         , pos, pos + toSpan.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                 ObjectAnimator animator = ObjectAnimator.ofFloat(animatedColorSpan, RAINBOW_PROPERTY, 0, 100);
-                animator.setInterpolator  (new LinearInterpolator()      );
-                animator.setDuration      (DateUtils.MINUTE_IN_MILLIS * 3);
-                animator.setStartDelay    (animators.size() * 700        );
-                animator.setRepeatCount   (ValueAnimator.INFINITE        );
-                animator.setEvaluator     (new FloatEvaluator()          );
+                animator.setInterpolator  (new LinearInterpolator()       );
+                animator.setDuration      ((int) (DURATION_RAINBOW * 1000));
+                animator.setStartDelay    (animators.size() *  700        );
+                animator.setRepeatCount   (ValueAnimator.INFINITE         );
+                animator.setEvaluator     (new FloatEvaluator()           );
                 //noinspection Convert2Lambda
                 animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
                     @Override
@@ -513,7 +551,6 @@ public class Bubbles {
 
                 animators.add(animator);
             }
-
             return animators.size() > 0 ? spannable: null;
         }
         
@@ -537,14 +574,17 @@ public class Bubbles {
             private final Matrix            mMatrix                 = new Matrix();
             private float                   mTranslateXPercentage;
 
+            @SuppressWarnings("WeakerAccess")
             public AnimatedColorSpan(Context context) {
                 if (sColors == null) sColors = context.getResources().getIntArray(R.array.rainbow_colors);
             }
 
+            @SuppressWarnings("WeakerAccess")
             public void setTranslateXPercentage(float percentage) {
                 mTranslateXPercentage = percentage;
             }
 
+            @SuppressWarnings("WeakerAccess")
             public float getTranslateXPercentage() {
                 return mTranslateXPercentage;
             }
@@ -572,9 +612,10 @@ public class Bubbles {
      * @author Flavien Laurent (+ some corrections by akha)
      */
     @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private static class AnimatedFireworks {
         
-        @SuppressWarnings("SameParameterValue")
+        @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
         public static void run(final TextView view, final SpannableString spannable, int color, int duration,
                                List<ObjectAnimator> animators) {
             final FireworksSpanGroup spanGroup = new FireworksSpanGroup();
@@ -630,18 +671,22 @@ public class Bubbles {
             private final ArrayList<MutableForegroundColorSpan> 
                                             mSpans                  = new ArrayList<>();
 
+            @SuppressWarnings("WeakerAccess")
             public void addSpan(MutableForegroundColorSpan span) {
                 mSpans.add(span);
             }
 
+            @SuppressWarnings("WeakerAccess")
             public ArrayList<MutableForegroundColorSpan> getSpans() {
                 return mSpans;
             }
 
+            @SuppressWarnings("WeakerAccess")
             public void init() {
                 Collections.shuffle(mSpans);
             }
 
+            @SuppressWarnings("WeakerAccess")
             public void setProgress(int progress) {
                 mProgress = progress;
 
@@ -649,6 +694,7 @@ public class Bubbles {
                     mSpans.get(i).setAlpha(255);
             }
 
+            @SuppressWarnings("WeakerAccess")
             public int getProgress() {
                 return mProgress;
             }
@@ -660,7 +706,7 @@ public class Bubbles {
             private int                     mAlpha;
             private int                     mForegroundColor;
 
-            @SuppressWarnings("SameParameterValue")
+            @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
             public MutableForegroundColorSpan(int alpha, int color) {
                 super(color);
                 
@@ -688,7 +734,7 @@ public class Bubbles {
                 textPaint.setColor(getForegroundColor());
             }
 
-            @SuppressWarnings("SameParameterValue")
+            @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
             public void setAlpha(int alpha) {
                 mAlpha = alpha;
             }
