@@ -20,6 +20,7 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.LogDebug;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -43,6 +44,8 @@ import java.util.Arrays;
 /**
  * The <code>BaseFragment</code> class is intended for debug purposes. Overridden methods most of the time just adds lifecycle logging.
  * Some additional debug Fragments can be found in the full version.    {@yakhont.preprocessor.remove.in.generated}
+ *
+ * @see LogDebug
  *
  * @author akha
  */

@@ -13,6 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+-keep class akha.yakhont.BuildConfig { *; }
 
 # The "Exceptions" attribute has to be preserved, so the compiler knows which exceptions methods may throw.
 # The "InnerClasses" attribute (or more precisely, its source name part) has to be preserved too, for any inner classes that can be
@@ -27,5 +28,3 @@
 -keep public class * {
     public protected *;
 }
-
--keep class akha.yakhont.BuildConfig { *; }

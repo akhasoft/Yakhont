@@ -135,6 +135,7 @@ public class WeaverTransform extends Transform {
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("deprecation")
     @Override
     public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs,
                           TransformOutputProvider outputProvider, boolean isIncremental)

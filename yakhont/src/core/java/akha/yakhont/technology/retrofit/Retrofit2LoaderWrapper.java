@@ -245,12 +245,14 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
         @Override
         public Requester<Callback<D>> getDefaultRequester() {
             return getRequester(new RequesterHelper<Callback<D>, T>(mType) {
+                @SuppressWarnings("unused")
                 @Override
                 public void init() {
                     mMethod  = findMethod(mRetrofit.getService(), mType);
                     mHandler = mRetrofit.getApi();
                 }
 
+                @SuppressWarnings("unused")
                 @Override
                 public void request(Callback<D> callback) throws Exception {
                     final Class<?> returnType = mMethod.getReturnType();
@@ -494,11 +496,13 @@ public class Retrofit2LoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper
             if (callback == null) CoreLogger.logError("callback == null");
 
             return callback == null ? null: new CallbackRx<D>() {
+                @SuppressWarnings("unused")
                 @Override
                 public void onResult(D result) {
                     callback.onResponse(null, Response.success(result));
                 }
 
+                @SuppressWarnings("unused")
                 @Override
                 public void onError(Throwable throwable) {
                     callback.onFailure(null, throwable);

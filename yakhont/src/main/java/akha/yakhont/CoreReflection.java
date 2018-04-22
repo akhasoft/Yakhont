@@ -16,6 +16,8 @@
 
 package akha.yakhont;
 
+import akha.yakhont.CoreLogger.Level;
+
 import android.support.annotation.NonNull;
 
 import java.lang.annotation.Annotation;
@@ -116,7 +118,7 @@ public class CoreReflection {
             //noinspection ConstantConditions
             classes[i] = args[i] == null ? null: args[i].getClass();
 
-        final Method method = findMethod(object, methodName, classes);
+        final Method method = findMethod(Level.ERROR, object, methodName, classes);
         //noinspection RedundantTypeArguments
         return method == null ? null: CoreReflection.<T>invoke(getObject(object), method, args);
     }
@@ -202,7 +204,17 @@ public class CoreReflection {
      */
     @SuppressWarnings("WeakerAccess")
     public static Method findMethod(@NonNull final Object object, @NonNull final String methodName, @NonNull final Class... args) {
-        Class tmpClass = getClass(object);
+        return findMethod(Level.WARNING, object, methodName, args);
+    }
+
+    private static Method findMethod(Level level, @NonNull final Object object, @NonNull final String methodName, @NonNull final Class... args) {
+        Class<?> tmpClass = getClass(object);
+        try {
+            return tmpClass.getMethod(methodName, args);
+        }
+        catch (NoSuchMethodException e) {
+            CoreLogger.log(Level.DEBUG, "Class.getMethod('" + methodName + "') failed", e);
+        }
 
         for (;;) {
             final Method[] methods = tmpClass.getDeclaredMethods();
@@ -216,24 +228,22 @@ public class CoreReflection {
                 if (args.length == 0) return method;
 
                 for (int i = 0; i < params.length; i++) {
-                    Class currentClass = args[i];
+                    Class<?> currentClass = args[i];
 
                     if (params[i].isPrimitive()) {
                         if (currentClass == null) break;
 
                         if (UNBOXING.containsKey(currentClass)) currentClass = UNBOXING.get(currentClass);
                     }
-
                     if (currentClass != null && !params[i].isAssignableFrom(currentClass)) break;
 
                     if (i == params.length - 1) return method;
                 }
             }
-
             if ((tmpClass = tmpClass.getSuperclass()) == null) break;
         }
 
-        CoreLogger.logWarning("class " + getClass(object).getName() + ", method " + methodName + " not found");
+        CoreLogger.log(level,"class " + getClass(object).getName() + ", method " + methodName + " not found");
         return null;
     }
 
@@ -637,7 +647,7 @@ public class CoreReflection {
     @SuppressWarnings("unused")
     public static boolean isAnnotatedMethod(@NonNull final Object object, @NonNull final Class<? extends Annotation> annotation,
                                             @NonNull final String methodName, @NonNull final Class... args) {
-        final Method method = findMethod(object, methodName, args);
+        final Method method = findMethod(Level.ERROR, object, methodName, args);
         checkForNull(method, "method == null");
 
         return method.isAnnotationPresent(annotation);

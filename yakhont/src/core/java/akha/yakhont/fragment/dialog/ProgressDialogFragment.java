@@ -433,7 +433,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
                 Utils.runInBackground(new Runnable() {
                     @Override
                     public void run() {
-                        coreLoad.cancelLoaders();
+                        coreLoad.cancelLoading();
                     }
                 });
             }

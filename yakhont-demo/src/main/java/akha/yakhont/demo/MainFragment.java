@@ -25,6 +25,7 @@ import akha.yakhont.demo.retrofit.RetrofitApi;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
+import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
@@ -116,6 +117,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                     // in general, it's an optional callback -
                     //   but normally you'll want to provide some customization here
                     .setLoaderCallback(new Retrofit2CoreLoadBuilder.LoaderCallback<List<Beer>>() {
+                        @SuppressWarnings("unused")
                         @Override
                         public void onLoadFinished(List<Beer> data, Source source) {
                             MainFragment.this.onLoadFinished(data, source);
@@ -152,6 +154,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
                     // see comment above
                     .setLoaderCallback(new RetrofitCoreLoadBuilder.LoaderCallback<List<Beer>>() {
+                        @SuppressWarnings("unused")
                         @Override
                         public void onLoadFinished(List<Beer> data, Source source) {
                             MainFragment.this.onLoadFinished(data, source);
@@ -181,8 +184,9 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         mCoreLoad.setGoBackOnLoadingCanceled(!byUserRequest);
 
-        mCoreLoad.startLoading(byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
-            !byUserRequest, mCheckBoxMerge.isChecked(), false, mNotDisplayLoadingErrors);
+        mCoreLoad.startLoading(new LoadParameters(null, byUserRequest ? mCheckBoxForce.isChecked():
+                savedInstanceState != null, !byUserRequest, mCheckBoxMerge.isChecked(),
+                mNotDisplayLoadingErrors, false));
     }
 
     private void onLoadFinished(List<Beer> data, Source source) {   // called from LoaderManager.LoaderCallbacks.onLoadFinished()
@@ -314,8 +318,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     private void registerSwipeRefresh() {
         SwipeRefreshWrapper.register(MainFragment.this, new FragmentData(
-                MainFragment.this, R.id.swipeContainer, mCheckBoxForce.isChecked(),
-                mCheckBoxMerge.isChecked(), null, mNotDisplayLoadingErrors));
+                MainFragment.this, R.id.swipeContainer, new LoadParameters(null, mCheckBoxForce.isChecked(),
+                false, mCheckBoxMerge.isChecked(), mNotDisplayLoadingErrors, false), null));
     }
 
     // just a boilerplate code
@@ -378,6 +382,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         Bubbles.setState(cancel, false);
     }
 
+    @SuppressWarnings("unused")
     @Override
     public void adjustMeasuredView(View view) {
         mSlideRect = new Rect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());

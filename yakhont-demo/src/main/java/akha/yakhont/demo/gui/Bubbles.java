@@ -179,10 +179,9 @@ public class Bubbles {
                 else {
                     int size = 15;
                     float[] values = new float[size + 1];
-                    for (int i = 0; i < size - 2; i++)
+                    for (int i = 0; i < size - 1; i++)
                         values[i] = 1f / size * (size - i);
-                    values[size - 2] = 0.8f;
-                    values[size - 1] = 0.6f;
+                    values[size - 1] = 0.8f;
                     values[size    ] = 0;
 
                     ValueAnimator animatorFade = ValueAnimator.ofFloat(values);
@@ -263,6 +262,7 @@ public class Bubbles {
 
         //noinspection Convert2Lambda
         Core.Utils.onAdjustMeasuredView(new MeasuredViewAdjuster() {
+            @SuppressWarnings("unused")
             @Override
             public void adjustMeasuredView(View view) {
                 startAnimation((TextView) view);

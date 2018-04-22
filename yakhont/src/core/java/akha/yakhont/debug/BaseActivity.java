@@ -20,6 +20,7 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.BackKeyInActionModeHandler;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.LogDebug;
 import akha.yakhont.debug.BaseApplication;
 
 import android.annotation.SuppressLint;
@@ -42,6 +43,8 @@ import java.util.Arrays;
 /**
  * The <code>BaseActivity</code> class is intended for debug purposes. Overridden methods most of the time just adds lifecycle logging.
  * Some additional debug Activities can be found in the full version.   {@yakhont.preprocessor.remove.in.generated}
+ *
+ * @see LogDebug
  *
  * @author akha
  */

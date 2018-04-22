@@ -105,6 +105,7 @@ public abstract class BaseRx<D> {
      *
      * @return  {@code true} if given Rx component has some registered observers, {@code false} otherwise
      */
+    @SuppressWarnings("unused")
     public boolean hasObservers() {
         return !mCallbacks.isEmpty();
     }

@@ -144,7 +144,7 @@ public class Core implements DefaultLifecycleObserver {
 
     private static final String                         BASE_URI                    = "content://%s.provider";
     @SuppressWarnings("unused")
-    private static final String                         LOG_TAG_FORMAT              = "%s-v.%d-%d-%s";
+    private static final String                         LOG_TAG_FORMAT              = "v.%d-%d-%s";
 
     private static final String                         PREFERENCES_NAME            = "BasePreferences";
 
@@ -774,17 +774,20 @@ public class Core implements DefaultLifecycleObserver {
         private static String                           sBaseUri;
 
         private static void logging(@NonNull final Application application, final boolean fullInfo) {
+            final String  pkgName    = application.getPackageName();
+            final boolean debugBuild = Utils.isDebugMode(pkgName);
+
             int version = -1;
             try {
-                version = application.getPackageManager().getPackageInfo(
-                        application.getPackageName(), 0).versionCode;
+                version = application.getPackageManager().getPackageInfo(pkgName, 0).versionCode;
             }
             catch (PackageManager.NameNotFoundException e) {
                 CoreLogger.log("can not define version code", e);
             }
-            CoreLogger.setTag(String.format(CoreLogger.getLocale(), LOG_TAG_FORMAT,
-                    application.getClass().getSimpleName(), version,
-                    akha.yakhont.BuildConfig.VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
+
+            if (!debugBuild)
+                CoreLogger.setTag(String.format(CoreLogger.getLocale(), LOG_TAG_FORMAT, version,
+                        akha.yakhont.BuildConfig.VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
 
             CoreLogger.setFullInfo(fullInfo);
 
@@ -1301,8 +1304,17 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static String getTag(@NonNull final Class c) {
-            return String.format("%s-%s", "yakhont", c.getName());
+        @NonNull
+        public static String getTag(@NonNull final Class cl) {
+            return getTag(cl.getSimpleName());
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        @NonNull
+        public static String getTag(final String name) {
+            final String prefix = "yakhont";
+            return name == null || name.trim().length() == 0 ? prefix:
+                    String.format("%s-%s", prefix, name);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")

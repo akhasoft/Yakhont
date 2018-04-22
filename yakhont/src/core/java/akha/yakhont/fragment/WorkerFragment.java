@@ -23,12 +23,11 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
-import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 import akha.yakhont.debug.BaseFragment;
 import akha.yakhont.loader.BaseLoader;
+import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
-import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
@@ -38,8 +37,6 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
-import android.app.LoaderManager;
-import android.content.Loader;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
@@ -48,8 +45,6 @@ import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -71,7 +66,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     @SuppressWarnings("WeakerAccess")
     public static final String                              TAG                         = Utils.getTag(WorkerFragment.class);
 
-    private       final Set<BaseLoaderWrapper>              mLoaders                    = Utils.newSet();
+    private       final Collection<BaseLoaderWrapper>       mLoaders                    = Utils.newSet();
     private             Provider<BaseDialog>                mProgressProvider;
 
     /**
@@ -89,7 +84,6 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
         super.onCreate(savedInstanceState);
 
         setRetainInstance(true);
-
         Core.register(this);
     }
 
@@ -105,23 +99,9 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
 
         if (mLoadersCounterSave.get() <= 0) return;
 
-        final LoaderManager loaderManager = getLoaderManager();
-        if (loaderManager == null)
-            CoreLogger.logError("loaderManager == null");
-        
-        else {
-            CoreLogger.log("restore loaders callbacks");
-
-            for (final BaseLoaderWrapper baseLoaderWrapper: getLoaders()) {
-                if (!baseLoaderWrapper.isLoading()) return;
-
-                final Loader loader = loaderManager.getLoader(baseLoaderWrapper.getLoaderId());
-                if (loader != null)
-                    restoreCallbacks(loaderManager, loader.getId(), baseLoaderWrapper);
-                else
-                    CoreLogger.logError("can not find loader, id " + baseLoaderWrapper.getLoaderId());
-             }
-        }
+        for (final BaseLoaderWrapper baseLoaderWrapper: getLoaders())
+            if (baseLoaderWrapper.isLoading())
+                baseLoaderWrapper.restoreCallbacks();
 
         showProgress(mTextSave.get());
 
@@ -148,47 +128,20 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
         for (final BaseLoaderWrapper loader: getLoaders()) {
             loader.setSwipeRefreshWrapper(null);
             loader.setProgress(null);
-            setAdapter(loader, null);
+            if (loader instanceof BaseResponseLoaderWrapper)
+                ((BaseResponseLoaderWrapper<?,?,?,?>) loader).setAdapter(null);
         }
-
         super.onDetach();
     }
 
-    private void restoreCallbacks(@NonNull final LoaderManager loaderManager, final int id,
-                                  @NonNull final BaseLoaderWrapper<?> callback) {
-        loaderManager.initLoader(id, null, callback);
-    }
+    private <C, R, E, D> void clearRx(@NonNull final BaseResponseLoaderWrapper<C, R, E, D> loader) {
+        final LoaderRx<R, E, D> prevRx = loader.getRx();
+        if (prevRx == null) return;
 
-    @SuppressWarnings("unchecked")
-    private void setAdapter(@NonNull final BaseLoaderWrapper loader, final CacheAdapter adapter) {
-        if (loader instanceof BaseResponseLoaderWrapper)
-            ((BaseResponseLoaderWrapper) loader).setAdapter(adapter);
-        else
-            CoreLogger.logError("can not set adapter, class " + loader.getClass().getName());
-    }
-
-    @SuppressWarnings("unchecked")
-    private void setRxUnchecked(@NonNull final BaseResponseLoaderWrapper baseResponseLoaderWrapper,
-                                final LoaderRx rx) {
-        baseResponseLoaderWrapper.setRx(rx);
-    }
-
-    private void setRx(@NonNull final BaseLoaderWrapper loader, final LoaderRx rx) {
-        if (!(loader instanceof BaseResponseLoaderWrapper)) return;
-
-        final BaseResponseLoaderWrapper baseResponseLoaderWrapper = (BaseResponseLoaderWrapper) loader;
-
-        final LoaderRx prevRx = baseResponseLoaderWrapper.getRx();
-        if (prevRx == rx) return;
-
-        if (prevRx != null && rx != null && !rx.hasObservers()) {
-            CoreLogger.logWarning("no observers in Rx passed; Rx ignored");
-            return;
-        }
-        if (prevRx != null) prevRx.cleanup();
+        prevRx.cleanup();
         CommonRx.unsubscribeAnonymous();
 
-        setRxUnchecked(baseResponseLoaderWrapper, rx);
+        loader.setRx(null);
     }
 
     /**
@@ -197,10 +150,10 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     @Override
     public void onDestroy() {
         for (final BaseLoaderWrapper loader: mLoaders)
-            setRx(loader, null);
+            if (loader instanceof BaseResponseLoaderWrapper)
+                clearRx((BaseResponseLoaderWrapper<?,?,?,?>) loader);
 
         destroyLoaders();
-
         Core.unregister(this);
 
         super.onDestroy();
@@ -263,7 +216,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public Set<BaseLoaderWrapper> getLoaders() {
+    public Collection<BaseLoaderWrapper> getLoaders() {
         return mLoaders;
     }
 
@@ -271,15 +224,13 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public void cancelLoaders() {
-        CoreLogger.logWarning("cancelled");
+    public void cancelLoading() {
+        CoreLogger.logWarning("about to cancel loading");
 
         hideProgress(true);
-
         destroyLoaders();
 
         if (!isGoBackOnLoadingCanceled()) return;
-
         CoreLogger.logWarning("isGoBackOnLoadingCanceled: about to call Activity.onBackPressed()");
 
         //noinspection Convert2Lambda
@@ -297,143 +248,56 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
         });
     }
 
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public void destroyLoaders() {
-        CoreLogger.logWarning("destroyed");
-
-        final Collection<Integer> loadersIds = new HashSet<>();
-
-        for (final BaseLoaderWrapper loader: mLoaders)
-            loadersIds.add(loader.getLoaderId());
-
-        BaseLoader.destroyLoaders(getLoaderManager(), loadersIds);
+    private void destroyLoaders() {
+        BaseLoaderWrapper.destroyLoaders(getLoaderManager(), mLoaders, true);
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public void clearLoaders() {
-        mLoaders.clear();
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, @NonNull final LoaderBuilder builder) {
-        return addLoader(adapter, null, builder);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final LoaderRx rx, @NonNull final LoaderBuilder builder) {
-        return addLoader(adapter, rx, builder.create());
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, @NonNull final BaseLoaderWrapper loader) {
-        return addLoader(adapter, null, loader);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public BaseLoaderWrapper addLoader(final CacheAdapter adapter, final LoaderRx rx,
-                                       @NonNull final BaseLoaderWrapper loader) {
-        @SuppressWarnings("unchecked")
-        BaseLoaderWrapper foundLoader = loader.findLoader(mLoaders), loaderToSet = loader;
-
-        if (foundLoader == null)
-            mLoaders.add(loader);
-        else {
-            if (!foundLoader.isLoading()) {
-                mLoaders.remove(foundLoader);
-                mLoaders.add(loader);
-
-                foundLoader = null;
-                CoreLogger.log("loader replaced (" + loader + ")");
-            }
-            else {
-                loaderToSet = foundLoader;
-                CoreLogger.logWarning("loader already exist and busy with data loading, new loader ignored (" + loader + ")");
-            }
+    public boolean addLoader(final BaseLoaderWrapper<?> loader, final boolean replace) {
+        if (loader == null) {
+            CoreLogger.logWarning("loader == null");
+            return false;
         }
 
-        setAdapter(loaderToSet, adapter);
-        setRx     (loaderToSet, rx     );
-
-        return foundLoader;
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public void startLoading() {
-        startLoading(false, false, false, false, false);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public void startLoading(final boolean forceCache, final boolean noProgress,
-                             final boolean merge, final boolean sync, final boolean noErrors) {
-        final Collection<BaseLoaderWrapper> loaders = mLoaders;
-        if (sync)
-            //noinspection Convert2Lambda
-            Utils.runInBackground(new Runnable() {
-                @Override
-                public void run() {
-                    BaseLoaderWrapper.startSync(loaders, forceCache, noProgress, merge, noErrors);
-                }
-            });
-        else
-            for (final BaseLoaderWrapper loader: loaders)
-                loader.start(forceCache, noProgress, merge, noErrors);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public BaseLoaderWrapper startLoading(final int loaderId, final boolean forceCache, final boolean noProgress,
-                                          final boolean merge, final boolean sync, final boolean noErrors) {
-        setGoBackOnLoadingCanceled(false);
-
-        for (final BaseLoaderWrapper loader: mLoaders)
-            if (loader.getLoaderId() == loaderId) {
-                if (sync)
-                    //noinspection Convert2Lambda
-                    Utils.runInBackground(new Runnable() {
-                        @Override
-                        public void run() {
-                            loader.startSync(forceCache, noProgress, merge);
-                        }
-                    });
-                else
-                    loader.start(forceCache, noProgress, merge, noErrors);
-
-                return loader;
+        final BaseLoaderWrapper foundLoader = loader.findLoader(mLoaders);
+        if (foundLoader != null)
+            if (replace) {
+                CoreLogger.logWarning("existing loader will be destroyed and replaced: " + foundLoader);
+                BaseLoader.destroyLoader(getLoaderManager(), foundLoader.getLoaderId(), true);
+                mLoaders.remove(foundLoader);
+            }
+            else {
+                CoreLogger.logError("loader already exist: " + foundLoader);
+                return false;
             }
 
-        CoreLogger.logError("not found loader with id " + loaderId);
-        return null;
+        final boolean result = mLoaders.add(loader);
+        CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "mLoaders.add result == " + result);
+        return result;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public boolean startLoading() {
+        return startLoading(new LoadParameters());
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public boolean startLoading(final LoadParameters parameters) {
+        return BaseLoaderWrapper.start(getLoaders(), parameters);
     }
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public static boolean isWorkerFragment(Level level, @NonNull final Fragment fragment) {
+    public static boolean isWorkerFragment(@NonNull final Level level, @NonNull final Fragment fragment) {
         final boolean result = fragment instanceof WorkerFragment;
         if (!result)
             CoreLogger.log(level, "fragment is instance of " + fragment.getClass().getName() +
@@ -507,9 +371,8 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public CoreLoad setGoBackOnLoadingCanceled(final boolean isGoBackOnLoadingCanceled) {
+    public void setGoBackOnLoadingCanceled(final boolean isGoBackOnLoadingCanceled) {
         mGoBackOnLoadingCanceled.set(isGoBackOnLoadingCanceled);
-        return this;
     }
 
     // normally loading starts 'cause of initialization of a new fragment

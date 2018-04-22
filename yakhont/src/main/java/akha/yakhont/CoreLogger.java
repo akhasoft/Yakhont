@@ -25,6 +25,8 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
+import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.v4.util.ArrayMap;
 import android.text.TextUtils;
@@ -39,17 +41,21 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The <code>CoreLogger</code> class is responsible for logging.
- * Call {@link #setLogLevel} or {@link #setFullInfo} to set {@link Level log level}.
- * Call {@link #setShowStack} to force stack trace logging.
- * Call {@link #setShowThread} to force thread info logging.
+ * <br>Call {@link #setLogLevel} or {@link #setFullInfo} to set {@link Level log level}.
+ * <br>Call {@link #setShowStack} to force stack trace logging.
+ * <br>Call {@link #setShowThread} to force thread info logging.
+ *
+ * @see LogDebug
  *
  * @author akha
  */
@@ -72,13 +78,20 @@ public class CoreLogger {
     }
 
     private static final String                         FORMAT                   = "%s: %s";
-    private static final String                         FORMAT_INFO              = "%s.%s(line %d)";
+    private static final String                         FORMAT_INFO              = "%s.%s(line %s)";
     private static final String                         FORMAT_THREAD            = "[%s] %s";
 
     private static final String                         CLASS_NAME               = CoreLogger.class.getName();
 
     private static final Level                          LEVEL_STACK              = Level.ERROR;
     private static final Level                          LEVEL_THREAD             = Level.WARNING;
+
+    /** The maximum tag length (before API 25); the value is {@value}. */
+    @SuppressWarnings("WeakerAccess")
+    public  static final int                            MAX_TAG_LENGTH           =   23;
+    /** The maximum log record length; the value is {@value}. */
+    public  static final int                            MAX_LOG_LENGTH           = 4000;
+    private static final int                            MAX_LOG_LENGTH_DEF       =  128;
 
     /**
      * Returned by {@link LoggerExtender#log} (if any) to prevent {@code CoreLogger}'s
@@ -91,9 +104,17 @@ public class CoreLogger {
 
     private static final AtomicReference<String>        sTag                     = new AtomicReference<>();
 
+    private static final String                         sNewLine                 = System.getProperty("line.separator");
+
     private static final AtomicReference<Level>         sLogLevel                = new AtomicReference<>(Level.ERROR);
     private static final AtomicBoolean                  sForceShowStack          = new AtomicBoolean();
     private static final AtomicBoolean                  sForceShowThread         = new AtomicBoolean();
+    private static final AtomicBoolean                  sNoSilentBackDoor        = new AtomicBoolean();
+
+    private static final AtomicInteger                  sMaxLogLength            = new AtomicInteger(MAX_LOG_LENGTH_DEF);
+    private static final AtomicBoolean                  sSplitToNewLine          = new AtomicBoolean(true);
+    private static final List<String>                   sLinesList               = new ArrayList<>();
+    private static final Object                         sLock                    = new Object();
 
     /**
      * Allows usage of 3-rd party loggers. Please refer to {@link #setLoggerExtender(LoggerExtender)}.
@@ -108,6 +129,9 @@ public class CoreLogger {
          *
          * @param level
          *        The logging priority level
+         *
+         * @param tag
+         *        The tag
          *
          * @param msg
          *        The message to log
@@ -124,7 +148,8 @@ public class CoreLogger {
          * @return  {@link #EXTENDER_NO_DEFAULT_LOGS} to prevent {@code CoreLogger} from logging
          * that info, {@code !EXTENDER_NO_DEFAULT_LOGS} otherwise
          */
-        boolean log(Level level, String msg, Throwable throwable, boolean showStack, StackTraceElement stackTraceElement);
+        boolean log(Level level, String tag, String msg, Throwable throwable, boolean showStack,
+                    StackTraceElement stackTraceElement);
     }
 
     private CoreLogger() {
@@ -148,7 +173,33 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static void setLoggerExtender(final LoggerExtender loggerExtender) {
+        if (sLoggerExtender != null)
+            Log.w(getTag("CoreLogger"), "already set LoggerExtender " + sLoggerExtender);
         sLoggerExtender = loggerExtender;
+    }
+
+    /**
+     * Returns maximum log record length.
+     *
+     * @return  The maximum log record length
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static int getMaxLogLength() {
+        return sMaxLogLength.get();
+    }
+
+    /**
+     * Sets maximum log record length.
+     *
+     * @param value
+     *        The value to set
+
+     * @return  The previous value
+     */
+    @SuppressWarnings("unused")
+    public static int setMaxLogLength(@IntRange(from = 1, to = MAX_LOG_LENGTH) final int value) {
+        return value >= 1 && value <= MAX_LOG_LENGTH ?
+                sMaxLogLength.getAndSet(value): sMaxLogLength.get();
     }
 
     /**
@@ -184,11 +235,21 @@ public class CoreLogger {
      * @param level
      *        The value to set
      *
-     * @return  The previous value of the log level
+     * @return  The previous log level
      */
     @SuppressWarnings("unused")
     public static Level setLogLevel(@NonNull final Level level) {
         return sLogLevel.getAndSet(level);
+    }
+
+    /**
+     * Gets the log level.
+     *
+     * @return  The current log level
+     */
+    @SuppressWarnings("unused")
+    public static Level getLogLevel() {
+        return sLogLevel.get();
     }
 
     /**
@@ -217,6 +278,25 @@ public class CoreLogger {
         return sForceShowThread.getAndSet(showThread);
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static boolean setNoSilentLogging(final boolean value) {
+        return sNoSilentBackDoor.getAndSet(value);
+    }
+
+    /**
+     * Sets the split mode (the default value is {@code true}).
+     *
+     * @param value
+     *        The split mode: {@code true} to just insert 'new line' character in string,
+     *        {@code false} to really split it
+     *
+     * @return  The previous value
+     */
+    @SuppressWarnings("unused")
+    public static boolean setSplitToNewLine(final boolean value) {
+        return sSplitToNewLine.getAndSet(value);
+    }
+
     /**
      * Sets the Android {@link Log}'s tag.
      *
@@ -231,14 +311,27 @@ public class CoreLogger {
     }
 
     /**
-     * Gets the Android {@link Log}'s tag.
+     * Gets the user defined Android {@link Log}'s tag (if any).
      *
-     * @return  The tag's value
+     * @return  The tag's value (or null)
      */
-    @NonNull
+    @SuppressWarnings("WeakerAccess")
     public static String getTag() {
-        final String tag = sTag.get();
-        return tag == null ? CLASS_NAME: tag;
+        return sTag.get();
+    }
+
+    @NonNull
+    private static String getTag(final String className) {
+        final boolean lengthLimited = Build.VERSION.SDK_INT <= Build.VERSION_CODES.N;
+
+        String tag = getTag();
+        if (tag == null)
+            tag = className == null ? Utils.getTag((String) null): className;
+
+        final int idx = tag.indexOf('$');
+        tag = idx < 0 ? tag: tag.substring(0, idx);
+
+        return !lengthLimited || tag.length() <= MAX_TAG_LENGTH ? tag: tag.substring(0, MAX_TAG_LENGTH);
     }
 
     /**
@@ -352,18 +445,21 @@ public class CoreLogger {
         if (showStack == null) showStack = sForceShowStack.get() ||
                 (level.ordinal() >= LEVEL_STACK.ordinal() && isFullInfo());
 
-        final Exception stackTrace = isLog && (showStack || isMethodInfo()) ?
-                new RuntimeException("CoreLogger stack trace"): null;
+        final Throwable stackTrace = isLog && (showStack || isMethodInfo()) ?
+                new Throwable("Yakhont CoreLogger stack trace"): null;
         final StackTraceElement traceElement = stackTrace == null ? null: getStackTraceElement(stackTrace);
 
-        if (sLoggerExtender != null && sLoggerExtender.log(
-                level, str, throwable, showStack, traceElement) == EXTENDER_NO_DEFAULT_LOGS) return;
+        final String className = traceElement == null ? null: stripPackageName(traceElement.getClassName());
+        final String tag       = getTag(className);
 
-        if (isLog) log(level, str, throwable, showStack, stackTrace, traceElement);
+        if (sLoggerExtender != null && sLoggerExtender.log(level, tag, str, throwable, showStack,
+                traceElement) == EXTENDER_NO_DEFAULT_LOGS) return;
+
+        if (isLog) log(level, tag, str, throwable, showStack, stackTrace, traceElement, className);
     }
 
-    private static StackTraceElement getStackTraceElement(@NonNull final Exception exception) {
-        final StackTraceElement[] stackTraceElements = exception.getStackTrace();
+    private static StackTraceElement getStackTraceElement(@NonNull final Throwable throwable) {
+        final StackTraceElement[] stackTraceElements = throwable.getStackTrace();
 
         //noinspection ForLoopReplaceableByForEach
         for (int i = 0; i < stackTraceElements.length; i++)
@@ -371,73 +467,180 @@ public class CoreLogger {
                 return stackTraceElements[i];
 
         // should never happen
-        Log.e(getTag(), "can not find StackTraceElement");
+        Log.e(getTag("CoreLogger"), "can not find StackTraceElement");
         return null;
     }
 
-    @NonNull
-    private static String stripPackageName(@NonNull final String fullName) {
-        return fullName.substring(fullName.lastIndexOf(".") + 1);
+    private static String stripPackageName(final String name) {
+        if (name == null) return null;
+        final int idx = name.lastIndexOf('.');
+        return idx < 0 ? name: name.substring(idx + 1);
     }
 
     private static boolean isMethodInfo() {
         return isFullInfo();
     }
 
-    @NonNull
-    private static String addMethodInfo(@NonNull final Level level, @NonNull String str, final StackTraceElement traceElement) {
-        if (isMethodInfo()) {
-            final String methodInfo = traceElement == null ? null: String.format(getLocale(), FORMAT_INFO,
-                    stripPackageName(traceElement.getClassName()),
-                    traceElement.getMethodName(),
-                    traceElement.getLineNumber());
-            if (methodInfo != null) str = String.format(FORMAT, methodInfo, str);
-        }
-        return sForceShowThread.get() || level.ordinal() >= LEVEL_THREAD.ordinal()
-                ? String.format(FORMAT_THREAD, Thread.currentThread().getName(), str): str;
+    /**
+     * Splits message to log into parts (the maximum part length is defined by {@link #getMaxLogLength()}).
+     *
+     * @param list
+     *        The list to collect parts (if null, the new one will be created)
+     *
+     * @param text
+     *        The text to split
+     *
+     * @return  The list of parts
+     *
+     * @see     #split(List, String, int, boolean)
+     */
+    @SuppressWarnings({"UnusedReturnValue", "unused", "WeakerAccess"})
+    public static List<String> split(final List<String> list, final String text) {
+        return split(list, text, getMaxLogLength(), true);
     }
 
-    private static void log(@NonNull final Level level, @NonNull final String str, Throwable throwable,
-                            final boolean showStack, final Exception stackTrace, final StackTraceElement traceElement) {
-        if (throwable == null && showStack) throwable = stackTrace;
-        final String tag = getTag(), data = addMethodInfo(level, str, traceElement);
+    /**
+     * Splits message to log into parts. Keeps in mind spaces, tabs and line separators.
+     *
+     * @param list
+     *        The list to collect parts (if null, the new one will be created)
+     *
+     * @param text
+     *        The text to split
+     *
+     * @param maxLength
+     *        The maximum length of part
+     *
+     * @param clearList
+     *        if {@code true} the list will be cleared before adding parts, otherwise not
+     *
+     * @return  The list of parts
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static List<String> split(List<String> list, String text, final int maxLength, final boolean clearList) {
+        if (text == null) return list;
+        if (list == null) list = new ArrayList<>(); else if (clearList) list.clear();
+        for (;;) {
+            String       tmp = text;
+            StringBuilder sb = null;
+            for (;;) {
+                final int idx = tmp.indexOf(sNewLine);
+                if (idx < 0 || idx > maxLength) break;
 
+                if (sb == null) sb = new StringBuilder();
+                sb.append(tmp.substring(0, idx + 1));
+                tmp = tmp.substring(idx + 1);
+            }
+            final String line = sb != null ? sb.append(getSubStr(tmp)).toString(): getSubStr(tmp);
+
+            list.add(line);
+
+            if (text.length() == line.length()) break;
+            text = text.substring(line.length());
+        }
+        return list;
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static void reSplit(final List<String> list) {
+        if (list == null || list.isEmpty()) return;
+        final StringBuilder sb = new StringBuilder(list.get(0));
+        for (int i = 1 ; i < list.size(); i++)
+            sb.append(sNewLine).append(list.get(i));
+        split(list, sb.toString(), MAX_LOG_LENGTH, true);
+    }
+
+    private static String getSubStr(@NonNull final String strOriginal) {
+        final int maxLength = getMaxLogLength();
+        if (strOriginal.length() <= maxLength) return strOriginal;
+
+        final String str = strOriginal.substring(0, maxLength);
+        final char endChar = strOriginal.charAt(maxLength);
+        if (endChar == ' ' || endChar == '\t') return str;
+
+        final int idx = Math.max(str.lastIndexOf(' '), str.lastIndexOf('\t'));
+        return idx < 0 ? str: str.substring(0, idx + 1);
+    }
+
+    @NonNull
+    private static String addMethodInfo(@NonNull final Level level, @NonNull String str,
+                                        final String className, final String methodName, final Integer line) {
+        if (isMethodInfo()) {
+            final String methodInfo = String.format(getLocale(), FORMAT_INFO,
+                    className  == null ? "<unknown class>" : className,
+                    methodName == null ? "<unknown method>": methodName,
+                    line       == null ? "unknown"         : line.toString());
+            str = String.format(FORMAT, methodInfo, str);
+        }
+        return sForceShowThread.get() || level.ordinal() >= LEVEL_THREAD.ordinal() ?
+                String.format(FORMAT_THREAD, Thread.currentThread().getName(), str): str;
+    }
+
+    private static void log(@NonNull final Level level, @NonNull final String tag,
+                            @NonNull final String msg, Throwable throwable, final boolean showStack,
+                            final Throwable stackTrace, final StackTraceElement traceElement,
+                            final String className) {
+        if (throwable == null && showStack) throwable = stackTrace;
+
+        final int maxLength = getMaxLogLength();
+        final String text = addMethodInfo(level, msg, className,
+                traceElement == null ? null: traceElement.getMethodName(),
+                traceElement == null ? null: traceElement.getLineNumber());
+        if (text.length() <= maxLength) {
+            log(tag, text, throwable, level);
+            return;
+        }
+
+        synchronized (sLock) {
+            split(sLinesList, text, maxLength, true);
+            if (sSplitToNewLine.get() && maxLength < MAX_LOG_LENGTH) reSplit(sLinesList);
+
+            for (int i = 0 ; i < sLinesList.size(); i++)
+                log(tag, sLinesList.get(i), throwable != null && i == sLinesList.size() - 1 ?
+                        throwable: null, level);
+        }
+    }
+
+    private static void log(@NonNull final String tag, @NonNull final String msg,
+                            final Throwable throwable, @NonNull final Level level) {
         switch (level) {
             case DEBUG:
-                if (throwable == null)
-                    Log.d(tag, data);
+                if (throwable != null)
+                    Log.d(tag, msg, throwable);
                 else
-                    Log.d(tag, data, throwable);
+                    Log.d(tag, msg);
                 break;
 
             case INFO:
-                if (throwable == null)
-                    Log.i(tag, data);
+                if (throwable != null)
+                    Log.i(tag, msg, throwable);
                 else
-                    Log.i(tag, data, throwable);
+                    Log.i(tag, msg);
                 break;
 
             case WARNING:
-                if (throwable == null)
-                    Log.w(tag, data);
+                if (throwable != null)
+                    Log.w(tag, msg, throwable);
                 else
-                    Log.w(tag, data, throwable);
+                    Log.w(tag, msg);
                 break;
 
             default:            // should never happen
                 Log.e(tag, "unknown log level " + level.name());
 
             case SILENT:        // backdoor for logging - even in silent mode
-//                break;        // uncomment break to close the backdoor
+                if (sNoSilentBackDoor.get()) break;
 
             case ERROR:
-                if (throwable == null)
-                    Log.e(tag, data);
+                if (throwable != null)
+                    Log.e(tag, msg, throwable);
                 else
-                    Log.e(tag, data, throwable);
+                    Log.e(tag, msg);
                 break;
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static Locale getLocale() {
@@ -540,7 +743,7 @@ public class CoreLogger {
     public static void sendLogCat(@NonNull final Activity activity,
                                   @NonNull final String address, @NonNull final String subject,
                                   final boolean clearList, final String cmd) {
-        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(System.getProperty("line.separator"),
+        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(sNewLine,
                 getLogCat(null, clearList, cmd)), null);
     }
 
@@ -763,9 +966,8 @@ public class CoreLogger {
                 final File zipFile = getTmpFile(ZIP_PREFIX, suffix, "zip", tmpDir);
                 if (!Utils.zip(list.toArray(new String[list.size()]), zipFile.getAbsolutePath(), errors)) return;
 
-                final String newLine = System.getProperty("line.separator");
                 for (final String error: errors.keySet())
-                    body.append(newLine).append(newLine).append(error).append(newLine).append(errors.get(error));
+                    body.append(sNewLine).append(sNewLine).append(error).append(sNewLine).append(errors.get(error));
 
                 Utils.sendEmail(activity, addresses, subjectToSend, body.toString(), zipFile);
             }
@@ -867,5 +1069,48 @@ public class CoreLogger {
                 return null;
             }
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // @LogDebug support
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final boolean[] ret) { return toString(Arrays.toString(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final char   [] ret) { return toString(Arrays.toString(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final byte   [] ret) { return toString(Arrays.toString(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final short  [] ret) { return toString(Arrays.toString(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final int    [] ret) { return toString(Arrays.toString(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final long   [] ret) { return toString(Arrays.toString(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final float  [] ret) { return toString(Arrays.toString(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final double [] ret) { return toString(Arrays.toString(ret)); }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final boolean ret) { return toString(Boolean  .valueOf(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final char    ret) { return toString(Character.valueOf(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final byte    ret) { return toString(Byte     .valueOf(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final short   ret) { return toString(Short    .valueOf(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final int     ret) { return toString(Integer  .valueOf(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final long    ret) { return toString(Long     .valueOf(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final float   ret) { return toString(Float    .valueOf(ret)); }
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String toString(final double  ret) { return toString(Double   .valueOf(ret)); }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static String toString(final Object ret) {
+        return ret == null ? "null": ret instanceof Object[] ?
+                Arrays.deepToString((Object[]) ret): ret.toString();
     }
 }

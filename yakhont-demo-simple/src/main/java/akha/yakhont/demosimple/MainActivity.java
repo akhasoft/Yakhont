@@ -52,10 +52,12 @@ public class MainActivity extends Activity implements LocationListener {
 
         // uncomment if you're using Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
-//        Core.setRxUncaughtExceptionBehavior(false);
+//      Core.setRxUncaughtExceptionBehavior(false);
 
         Core.init(getApplication());                        // initializes the Yakhont library
-        LocationCallbacks.allowAccessToLocation(true);      // suppress confirmation dialog
+
+        // uncomment to suppress location access confirmation dialog
+//      LocationCallbacks.allowAccessToLocation(true);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -81,7 +83,7 @@ public class MainActivity extends Activity implements LocationListener {
         if (mAdvertisementShown) return;
         mAdvertisementShown = true;
 
-        final Toast toast = new Toast(this);
+        Toast toast = new Toast(this);
         toast.setDuration(Toast.LENGTH_SHORT);
         toast.setGravity(Gravity.CENTER, 0, 0);
         toast.setView(LayoutInflater.from(this).inflate(R.layout.advertisement, null, false));

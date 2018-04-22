@@ -292,6 +292,8 @@ if (isAndroidApp || isAndroidLib) {
             String  flavorAdded         = '-' + flavorName
             String  flavorArtifactId    = getPropertyExt('publishedArtifactId') + (isDefaultFlavor ? '': flavorAdded)
 
+            File    docsDest            = new File(project.docsDir, 'javadoc-' + variant.name)
+
             outputFileName = archivesBaseName + (isDefaultFlavor ? '': '-' + flavorName) +
                     (isAndroidApp ? '.apk': '.aar')
 
@@ -304,7 +306,7 @@ if (isAndroidApp || isAndroidLib) {
                 classpath       = variant.javaCompiler.classpath + project.files(android.getBootClasspath().join(File.pathSeparator))
                 
                 //noinspection GroovyAssignabilityCheck
-                destinationDir  = new File(project.docsDir, 'javadoc-' + variant.name)
+                destinationDir  = docsDest
 
                 options {
                     javadocConfig(options, flavorName)
@@ -320,13 +322,19 @@ if (isAndroidApp || isAndroidLib) {
             }
 
             //noinspection GroovyAssignabilityCheck
-            Task javadocJar = task('generate' + variant.name.capitalize() + 'JavadocJar', type: Jar, dependsOn: javadoc) {
-                //noinspection GroovyAssignabilityCheck
-                from javadoc.destinationDir
+            Task javadocJar   = task('generate' + variant.name.capitalize() + 'JavadocJar', type: Jar, dependsOn: javadoc) {
+            }
 
-                baseName                = getPropertyExt('publishedArtifactId')
-                appendix                = appendixValue
-                classifier              = classifierJavadoc
+            Task javadocJarMh = task('mh'       + variant.name.capitalize() + 'JavadocJar', type: Jar) {
+            }
+
+            [javadocJar, javadocJarMh].each { task ->
+                //noinspection GroovyAssignabilityCheck
+                task.from               docsDest
+
+                task.baseName           = getPropertyExt('publishedArtifactId')
+                task.appendix           = appendixValue
+                task.classifier         = classifierJavadoc
             }
 
             //noinspection GroovyAssignabilityCheck

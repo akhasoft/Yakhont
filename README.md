@@ -192,13 +192,16 @@ dependencies {
 4. The code which runs Yakhont Weaver:
 
 ```groovy
+// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
+
+String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     AbstractCompile javaCompile = variant.javaCompiler
     javaCompile.doLast {
-        new akha.yakhont.weaver.Weaver().run(weaverDebug, android.defaultConfig.applicationId,
+        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
             android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig)
     }
@@ -299,7 +302,7 @@ $ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:
 
 To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code):
 
-- add **yakhont.link,yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc issues -> Declaration has Javadoc problems -> Additional Javadoc Tags
+- add **yakhont.link, yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc issues -> Declaration has Javadoc problems -> Additional Javadoc Tags
 - add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling -> Dictionaries
 
 ## Communication

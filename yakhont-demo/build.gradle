@@ -198,13 +198,14 @@ android.variantFilter { variant ->
 }
 
 String[] weaverConfigFiles = null   // use default one; or something like "new String[] {projectDir.absolutePath + '/weaver.config'}"
+String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     AbstractCompile javaCompile = variant.javaCompiler
     javaCompile.doLast {
         //noinspection UnnecessaryQualifiedReference
-        new akha.yakhont.weaver.Weaver().run(weaverDebug, android.defaultConfig.applicationId,
+        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
                 javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
                 android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig)
     }

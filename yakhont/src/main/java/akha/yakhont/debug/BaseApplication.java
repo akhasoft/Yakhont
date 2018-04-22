@@ -19,6 +19,7 @@ package akha.yakhont.debug;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.LogDebug;
 
 import android.annotation.SuppressLint;
 import android.app.Application;
@@ -30,6 +31,8 @@ import android.support.annotation.NonNull;
 
 /**
  * The <code>BaseApplication</code> class is intended for debug purposes. Overridden methods most of the time just adds some logging.
+ *
+ * @see LogDebug
  *
  * @author akha
  */

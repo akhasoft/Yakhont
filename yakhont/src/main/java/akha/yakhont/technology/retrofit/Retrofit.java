@@ -57,7 +57,7 @@ import retrofit.client.Response;
 @SuppressWarnings("unused")
 public class Retrofit<T> extends BaseRetrofit<T, Builder> {
 
-    private static final String                     LOG_RETROFIT_SUFFIX        = "-Retrofit";
+    private static final String                     LOG_RETROFIT               = "Yakhont-Retrofit";
 
     private YakhontRestAdapter<T>                   mYakhontRestAdapter;
 
@@ -133,7 +133,7 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
                                      @Nullable final Map<String, String>    headers) {
 
         final Builder builder = new Builder()
-                .setLog(new AndroidLog(CoreLogger.getTag() + LOG_RETROFIT_SUFFIX))
+                .setLog(new AndroidLog(LOG_RETROFIT))
                 .setLogLevel(CoreLogger.isFullInfo() ? LogLevel.FULL: LogLevel.NONE)
                 .setEndpoint(retrofitBase);
 

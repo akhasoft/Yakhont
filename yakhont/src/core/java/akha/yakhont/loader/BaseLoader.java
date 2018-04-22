@@ -31,7 +31,8 @@ import akha.yakhont.fragment.WorkerFragment;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.Source;
-import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderBuilder;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderBuilder;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoaderFactory;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.BaseResponseLoaderBuilder;
@@ -597,27 +598,29 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      * @param loaderManager
      *        The loader manager
      *
-     * @param loaderIds
-     *        The list of loaders to destroy
+     * @param ids
+     *        The list of loader's IDs
+     *
+     * @param forceDestroy
+     *        Force to destroy all (including already started) loaders
+     *
+     * @return  The quantity of destroyed loaders
      */
-    @SuppressWarnings("WeakerAccess")
-    public static void destroyLoaders(final LoaderManager loaderManager, final Collection<Integer> loaderIds) {
-        if (loaderManager == null) {
-            CoreLogger.logError("loaderManager == null");
-            return;
-        }
-        if (loaderIds == null) {
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    public static int destroyLoaders(final LoaderManager loaderManager, final Collection<Integer> ids,
+                                     final boolean forceDestroy) {
+        if (ids == null) {
             CoreLogger.logError("loaderIds == null");
-            return;
+            return 0;
         }
-
-        CoreLogger.log("loader ids qty " + loaderIds.size());
+        CoreLogger.log("loader ids qty " + ids.size());
 
         int qty = 0;
-        for (final int i: loaderIds)
-            if (destroyLoader(loaderManager, i)) qty++;
+        for (final int i: ids)
+            if (destroyLoader(loaderManager, i, forceDestroy)) qty++;
 
-        CoreLogger.log(qty + " loader" + (qty != 1 ? "s": "") + " destroyed");
+        CoreLogger.log(qty + " loader" + (qty != 1 ? "s": "") + " has been destroyed");
+        return qty;
     }
 
     /**
@@ -626,24 +629,40 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      * @param loaderManager
      *        The loader manager
      *
-     * @param loaderId
+     * @param id
      *        The loader ID
+     *
+     * @param forceDestroy
+     *        Force to destroy loader even if it was started
      *
      * @return  {@code true} if loader was successfully destroyed, {@code false} otherwise
      */
     @SuppressWarnings("WeakerAccess")
-    public static boolean destroyLoader(final LoaderManager loaderManager, final int loaderId) {
-        final Loader loader = loaderManager.getLoader(loaderId);
-
-        if (loader != null && loader.isStarted()) {
-            CoreLogger.log("about to destroy loader with id " + loader.getId());
-            loaderManager.destroyLoader(loaderId);
-            return true;
+    public static boolean destroyLoader(final LoaderManager loaderManager, final int id,
+                                        final boolean forceDestroy) {
+        if (loaderManager == null) {
+            CoreLogger.logError("loaderManager == null");
+            return false;
         }
 
-        return false;
+        final Loader loader = loaderManager.getLoader(id);
+        if (loader == null) {
+            CoreLogger.logError("can't find loader wth ID " + id);
+            return false;
+        }
+
+        final boolean started = loader.isStarted();
+        if (started && !forceDestroy) {
+            CoreLogger.logError("can't destroy started loader " + loader);
+            return false;
+        }
+        CoreLogger.log(started ? Level.WARNING: Level.DEBUG, "about to destroy " +
+                (started ? "started ": "") + "loader " + loader);
+
+        loaderManager.destroyLoader(id);
+        return true;
     }
-    
+
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static void enableLoaderManagerDebugLogging(final boolean enable) {
         LoaderManager.enableDebugLogging(enable);
@@ -654,7 +673,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      */
     @Override
     public String toString() {
-        return String.format(CoreLogger.getLocale(), FORMAT_INFO, getId(), mLogDescription);
+        return String.format(CoreLogger.getLocale(), FORMAT_INFO, getId(), mLogDescription != null &&
+                mLogDescription.length() > 0 ? mLogDescription: "description N/A");
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -990,6 +1010,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     /**
      * Builder class for {@link CoreLoad} objects.
      *
+     * @param <C>
+     *        The type of callback
+     *
      * @param <R>
      *        The type of network response
      *
@@ -999,7 +1022,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      * @param <D>
      *        The type of data
      */
-    public static class CoreLoadBuilder<R, E, D> {
+    public static class CoreLoadBuilder<C, R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final WeakReference<Fragment>         mFragment;
@@ -1007,7 +1030,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         protected LoaderRx<R, E, D>                     mRx;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected LoaderBuilder<BaseResponse<R, E, D>>  mLoaderBuilder;
+        protected LoaderBuilder<C, R, E, D>             mLoaderBuilder;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ValuesCacheAdapterWrapper<R, E, D>    mAdapterWrapper;
 
@@ -1058,7 +1081,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<R, E, D> setRx(final LoaderRx<R, E, D> rx) {
+        public CoreLoadBuilder<C, R, E, D> setRx(final LoaderRx<R, E, D> rx) {
             mRx = rx;
             return this;
         }
@@ -1073,7 +1096,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-        public CoreLoadBuilder<R, E, D> setLoaderBuilder(final LoaderBuilder<BaseResponse<R, E, D>> loaderBuilder) {
+        public CoreLoadBuilder<C, R, E, D> setLoaderBuilder(final LoaderBuilder<C, R, E, D> loaderBuilder) {
             mLoaderBuilder = loaderBuilder;
             return this;
         }
@@ -1088,7 +1111,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"UnusedReturnValue", "unused"})
-        public CoreLoadBuilder<R, E, D> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
+        public CoreLoadBuilder<C, R, E, D> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
             mAdapterWrapper = adapterWrapper;
             return this;
         }
@@ -1103,7 +1126,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<R, E, D> setViewBinder(final ViewBinder viewBinder) {
+        public CoreLoadBuilder<C, R, E, D> setViewBinder(final ViewBinder viewBinder) {
             mViewBinder = viewBinder;
             return this;
         }
@@ -1118,7 +1141,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<R, E, D> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
+        public CoreLoadBuilder<C, R, E, D> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
             mViewHolderCreator = viewHolderCreator;
             return this;
         }
@@ -1136,7 +1159,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<R, E, D> setListView(@IdRes final int listViewId) {
+        public CoreLoadBuilder<C, R, E, D> setListView(@IdRes final int listViewId) {
             mListViewId = listViewId;
             return this;
         }
@@ -1161,7 +1184,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<R, E, D> setListItem(@LayoutRes final int layoutItemId) {
+        public CoreLoadBuilder<C, R, E, D> setListItem(@LayoutRes final int layoutItemId) {
             mLayoutItemId = layoutItemId;
             return this;
         }
@@ -1176,7 +1199,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<R, E, D> setNoBinding(final boolean noBinding) {
+        public CoreLoadBuilder<C, R, E, D> setNoBinding(final boolean noBinding) {
             mNoBinding = noBinding;
             return this;
         }
@@ -1199,9 +1222,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         }
 
         /**
-         * Creates a {@link CoreLoad} with the arguments supplied to this builder.
+         * Returns the {@link CoreLoad} with the arguments supplied to this builder.
          *
-         * @return  The newly created {@code CoreLoad} object
+         * @return  The {@code CoreLoad} object
          */
         public CoreLoad create() {
             if (mLoaderBuilder == null) {
@@ -1238,9 +1261,19 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             else
                 if (!create(fragment, coreLoad)) return null;
 
-            coreLoad.addLoader(mAdapterWrapper, mRx, mLoaderBuilder);
+            final boolean result = coreLoad.addLoader(getLoader(), true);
+            CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "add loader result == " + result);
 
             return coreLoad;
+        }
+
+        private BaseLoaderWrapper<?> getLoader() {
+            final BaseResponseLoaderWrapper<C, R, E, D> loader = mLoaderBuilder.createBaseResponseLoader();
+            if (loader == null) return mLoaderBuilder.createBaseLoader();
+
+            if (mRx             != null) loader.setRx(mRx);
+            if (mAdapterWrapper != null) loader.setAdapter(mAdapterWrapper);
+            return loader;
         }
 
         private boolean create(final Fragment fragment, final CoreLoad coreLoad) {
@@ -1318,7 +1351,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      * @param <T>
      *        The type of API
      */
-    public static abstract class CoreLoadExtendedBuilder<C, R, E, D, T> extends CoreLoadBuilder<R, E, D>
+    public static abstract class CoreLoadExtendedBuilder<C, R, E, D, T> extends CoreLoadBuilder<C, R, E, D>
             implements Requester<C>{
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})

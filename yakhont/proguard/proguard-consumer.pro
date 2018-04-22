@@ -38,9 +38,8 @@
     public void onActivityResult(...);
 }
 
-# below is 3rd-party stuff
 
--keep class android.support.v4.app.FragmentActivity {
+-keep class * extends android.support.v4.app.FragmentActivity {
     public void validateRequestPermissionsRequestCode(...);
 }
 

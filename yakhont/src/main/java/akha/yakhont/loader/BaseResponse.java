@@ -32,6 +32,7 @@ import android.support.annotation.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The <code>BaseResponse</code> class represents the results of loading data.
@@ -64,6 +65,8 @@ public class BaseResponse<R, E, D> {
         /** The loading process was cancelled because of some unknown reason. */
         UNKNOWN
     }
+
+    private static final String                   sNewLine                = System.getProperty("line.separator");
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -277,25 +280,24 @@ public class BaseResponse<R, E, D> {
     public String toString() {
         final StringBuilder builder = new StringBuilder();
         final Locale locale = CoreLogger.getLocale();
-        final String newLine = System.getProperty("line.separator");
 
         builder.append(String.format(locale, "%s, class: %s, error: %s%s",
                 mSource.name(), mData == null ? null: mData.getClass().getSimpleName(),
-                mError, newLine));
-        builder.append(String.format(locale, "more error info: %s%s", mThrowable, newLine));
+                mError, sNewLine));
+        builder.append(String.format(locale, "more error info: %s%s", mThrowable, sNewLine));
 
         if (mData == null)
-            builder.append("no data").append(newLine);
+            builder.append("no data").append(sNewLine);
         else {
             if (mData.getClass().isArray()) {
                 final Object[] array = (Object[]) mData;
-                builder.append(String.format(locale, "data: length %d%s", array.length, newLine));
+                builder.append(String.format(locale, "data: length %d%s", array.length, sNewLine));
 
                 for (int i = 0; i < array.length; i++)
-                    builder.append(String.format(locale, "[%d] %s%s", i, array[i], newLine));
+                    builder.append(String.format(locale, "[%d] %s%s", i, array[i], sNewLine));
             }
             else
-                builder.append("data ").append(mData).append(newLine);
+                builder.append("data ").append(mData).append(sNewLine);
         }
 
         final int nPos = (mCursor == null) ? -1: mCursor.getPosition();
@@ -305,13 +307,13 @@ public class BaseResponse<R, E, D> {
         else if (!mCursor.moveToFirst())
             builder.append("empty cursor");
         else {
-            builder.append("cursor:").append(newLine);
+            builder.append("cursor:").append(sNewLine);
 
             for (;;) {
                 for (int i = 0; i < mCursor.getColumnCount(); i++)
                     builder.append(String.format(locale, "%s%s == %s", i == 0 ? "": ", ",
                             mCursor.getColumnName(i), getString(mCursor, i)));
-                builder.append(newLine);
+                builder.append(sNewLine);
 
                 if (!mCursor.moveToNext()) break;
             }
@@ -386,5 +388,182 @@ public class BaseResponse<R, E, D> {
         CoreLogger.logWarning("about to clear cache table " + tableName);
         //noinspection ConstantConditions
         contextWrapper.getContentResolver().delete(Utils.getUri(tableName), null, null);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * The class representing data loading parameters.
+     */
+    public static class LoadParameters {
+
+        private final Integer               mLoaderId;
+        private final boolean               mForceCache, mNoProgress, mMerge, mNoErrors, mSync, mOK;
+
+        private final static AtomicBoolean sSafe   = new AtomicBoolean(true);
+
+        /**
+         * Initialises a newly created {@code LoadParameters} object.
+         */
+        public LoadParameters() {
+            this(null, false, false, false, false, false);
+        }
+
+        /**
+         * Initialises a newly created {@code LoadParameters} object.
+         *
+         * @param loaderId
+         *        The loader ID (or null)
+         *
+         * @param forceCache
+         *        {@code true} to force loading data from cache, {@code false} otherwise
+         *
+         * @param noProgress
+         *        {@code true} to not display loading progress, {@code false} otherwise
+         *
+         * @param merge
+         *        {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
+         *
+         * @param noErrors
+         *        {@code true} to not display loading errors, {@code false} otherwise
+         *
+         * @param sync
+         *        {@code true} to load data synchronously, {@code false} otherwise
+         */
+        public LoadParameters(final Integer loaderId,
+                              final boolean forceCache, final boolean noProgress, final boolean merge,
+                              final boolean noErrors,   final boolean sync) {
+            mLoaderId       = loaderId;
+            mForceCache     = forceCache;
+            mNoProgress     = noProgress;
+            mMerge          = merge;
+            mNoErrors       = noErrors;
+            mSync           = sync;
+
+            CoreLogger.log("loader ID: " + loaderId + ", force cache: " + forceCache +
+                    ", no progress: " + noProgress + ", merge: " + merge + ", no errors: " +
+                    noErrors + ", sync: " + sync);
+
+            if (mForceCache && mMerge) {
+                reportBadArguments("wrong combination: force cache and merge");
+                mOK = false;
+            }
+            else
+                mOK = true;
+        }
+
+        @SuppressWarnings("SameParameterValue")
+        private void reportBadArguments(@NonNull final String msg) {
+            if (sSafe.get())
+                CoreLogger.logError(msg);
+            else
+                throw new LoadParametersException(msg);
+        }
+
+        /**
+         * Validates the data loading parameters provided.
+         *
+         * @return  {@code true} if the parameters are consistent, {@code false} otherwise
+         */
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+        public boolean checkArguments() {
+            return mOK;
+        }
+
+        /**
+         * Gets the loader ID.
+         *
+         * @return  The loader ID
+         */
+        public Integer getLoaderId() {
+            return mLoaderId;
+        }
+
+        /**
+         * Gets the "force cache" flag.
+         *
+         * @return  The "force cache" flag
+         */
+        public boolean getForceCache() {
+            return mForceCache;
+        }
+
+        /**
+         * Gets the "no progress" flag.
+         *
+         * @return  The "no progress" flag
+         */
+        public boolean getNoProgress() {
+            return mNoProgress;
+        }
+
+        /**
+         * Gets the "merge" flag.
+         *
+         * @return  The "merge" flag
+         */
+        public boolean getMerge() {
+            return mMerge;
+        }
+
+        /**
+         * Gets the "no errors" flag.
+         *
+         * @return  The "no errors" flag
+         */
+        public boolean getNoErrors() {
+            return mNoErrors;
+        }
+
+        /**
+         * Gets the "sync" flag.
+         *
+         * @return  The "sync" flag
+         */
+        public boolean getSync() {
+            return mSync;
+        }
+
+        /**
+         * Sets safe mode: if {@code false}, the {@link LoadParametersException} will be thrown
+         * in case of not consistent parameters. The default value is {@code true}.
+         *
+         * @param value
+         *        The value to set
+         *
+         * @return  The previous value
+         */
+        @SuppressWarnings("unused")
+        public static boolean setSafeMode(final boolean value) {
+            return sSafe.getAndSet(value);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public String toString() {
+            return String.format(CoreLogger.getLocale(),
+                    "force cache %b, no progress %b, no errors %b, merge %b, sync %b, OK %b, loader id %s",
+                    mForceCache, mNoProgress, mNoErrors, mMerge, mSync, mOK,
+                    mLoaderId == null ? "null": mLoaderId.toString());
+        }
+
+        /**
+         * The exception which indicates not consistent loading parameters.
+         */
+        @SuppressWarnings("WeakerAccess")
+        public static class LoadParametersException extends RuntimeException {
+
+            /**
+             * Initialises a newly created {@code LoadParametersException} object.
+             *
+             * @param msg
+             *        The message
+             */
+            public LoadParametersException(@NonNull final String msg) {
+                super(msg);
+            }
+        }
     }
 }

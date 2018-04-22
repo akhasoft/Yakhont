@@ -238,12 +238,14 @@ public class RetrofitLoaderWrapper<D> extends BaseResponseLoaderExtendedWrapper<
         @Override
         public Requester<Callback<D>> getDefaultRequester() {
             return getRequester(new RequesterHelper<Callback<D>, T>(mType) {
+                @SuppressWarnings("unused")
                 @Override
                 public void init() {
                     mMethod  = mRetrofit.getYakhontRestAdapter().findMethod(mType);
                     mHandler = mRetrofit.getYakhontRestAdapter().getHandler();
                 }
 
+                @SuppressWarnings("unused")
                 @Override
                 public void request(@NonNull final Callback<D> callback) throws Exception {
                     CoreReflection.invoke(mHandler, mMethod, callback);

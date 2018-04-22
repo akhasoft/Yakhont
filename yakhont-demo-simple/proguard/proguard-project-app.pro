@@ -13,13 +13,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
--allowaccessmodification
-
--dontwarn io.reactivex.**
--dontwarn okhttp3.logging.**
-
--dontnote rx.schedulers.**
-
 # uncomment if you don't need Location API
 # -dontwarn com.google.android.gms.**
 # -dontnote com.google.android.gms.**
@@ -29,3 +22,15 @@
 -keep class akha.yakhont.demosimple.model.** { *; }
 
 -keep interface akha.yakhont.demosimple.retrofit.** { *; }
+
+
+-allowaccessmodification
+
+-dontwarn io.reactivex.**
+-dontwarn okhttp3.logging.**
+
+-dontnote android.os.WorkSource$WorkChain
+-dontnote rx.schedulers.**
+
+-keep class com.google.android.gms.common.images.ImageManager$OnImageLoadedListener
+-keep class com.google.android.gms.common.images.internal.LoadingImageView$ClipPathProvider
