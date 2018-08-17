@@ -14,19 +14,14 @@
  * limitations under the License.
  */
 
-package akha.yakhont.demo.retrofit;
+package akha.yakhont.demosimple.retrofit;
 
-import akha.yakhont.Core.Utils;
-import akha.yakhont.technology.retrofit.Retrofit2;
-import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
-import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor;
-
-import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -45,53 +40,34 @@ import okhttp3.ResponseBody;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
-import okhttp3.logging.HttpLoggingInterceptor;
-
 import okio.ByteString;
 
-// for Retrofit 2
-public class LocalJsonClient2 extends OkHttpClient {
+public abstract class LocalJsonClient2Base extends OkHttpClient {
 
-    private static final String             TAG                         = "LocalJsonClient2";
+    private static final String         TAG                         = "LocalJsonClient2";
 
-    private final List<Interceptor>         mInterceptors               = new ArrayList<>();
-    private final LocalJsonClientHelper     mLocalJsonClientHelper;
+    private final List<Interceptor>     mInterceptors               = new ArrayList<>();
+    private int                         mEmulatedNetworkDelay;
 
-    private final Retrofit2                 mRetrofit2;
+    protected abstract String getJson();
 
-    public LocalJsonClient2(Context context, Retrofit2 retrofit2) {
-        this(context, retrofit2, true);
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    public LocalJsonClient2(Context context, Retrofit2 retrofit2, boolean addInterceptors) {
-        mLocalJsonClientHelper = new LocalJsonClientHelper(context);
-        mRetrofit2 = retrofit2;
-        if (!addInterceptors) return;
-
-        final HttpLoggingInterceptor logger = new HttpLoggingInterceptor();
-        logger.setLevel(HttpLoggingInterceptor.Level.BODY);
-        add(logger);
-
-        add(new BodySaverInterceptor() {
-            @Override
-            public void set(BodyCache data) {
-                mRetrofit2.setData(data);
-            }
-        });
+    @SuppressWarnings("unused")
+    public LocalJsonClient2Base setEmulatedNetworkDelay(int delay) {
+        mEmulatedNetworkDelay = delay;
+        return this;
     }
 
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    public LocalJsonClient2 add(Interceptor interceptor) {
+    public LocalJsonClient2Base add(Interceptor interceptor) {
         return handle(interceptor, true);
     }
 
     @SuppressWarnings("unused")
-    public LocalJsonClient2 remove(Interceptor interceptor) {
+    public LocalJsonClient2Base remove(Interceptor interceptor) {
         return handle(interceptor, false);
     }
 
-    private LocalJsonClient2 handle(Interceptor interceptor, boolean add) {
+    private LocalJsonClient2Base handle(Interceptor interceptor, boolean add) {
         if (interceptor == null)
             Log.w(TAG, "interceptor == null");
         else {
@@ -101,29 +77,14 @@ public class LocalJsonClient2 extends OkHttpClient {
         return this;
     }
 
-    public LocalJsonClientHelper getLocalJsonClientHelper() {
-        return mLocalJsonClientHelper;
-    }
-
-    private Response handle(final Request request) throws IOException {
-        LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.url().toString(),
-                request.method());
-
-        InputStream stream = data.stream();
-        byte[] content = new byte[stream.available()];
-
-        int result = stream.read(content);
-        if (result <= 0) {
-            Log.e(TAG, "can't read input stream");
-            return null;
-        }
-
+    private Response handle(final Request request) {
         return new Response.Builder()
-                .code(LocalJsonClientHelper.HTTP_CODE_OK)
+                .code(200)
                 .protocol(Protocol.HTTP_1_0)
                 .request(request)
-                .message(data.message())
-                .body(ResponseBody.create(MediaType.parse(data.mimeType()), content))
+                .message("")
+                .body(ResponseBody.create(MediaType.parse("application/json"),
+                        getJson().getBytes()))
                 .build();
     }
 
@@ -136,7 +97,7 @@ public class LocalJsonClient2 extends OkHttpClient {
         }
 
         @Override
-        public Response execute() throws IOException {
+        public Response execute() {
             final Response response = handle(mRequest);
             if (mInterceptors.size() > 0) {
                 final ChainI chain = new ChainI(response);
@@ -152,27 +113,31 @@ public class LocalJsonClient2 extends OkHttpClient {
         }
 
         @Override
-        public void enqueue(final Callback callback) {
-            @SuppressWarnings("Convert2Lambda")
+        public void enqueue(final Callback responseCallback) {
+            @SuppressWarnings({"Anonymous2MethodRef", "Convert2Lambda"})
             final Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
-                    enqueueWrapper(callback);
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            enqueueWrapper(responseCallback);
+                        }
+                    }.start();
                 }
             };
-            final int delay = mLocalJsonClientHelper.getDelay();
-            if (delay > 0)
-                Utils.runInBackground(delay * 1000, runnable);
+            if (mEmulatedNetworkDelay <= 0)
+                runnable.run();
             else
-                Utils.runInBackground(runnable);
+                new Handler(Looper.getMainLooper()).postDelayed(runnable, mEmulatedNetworkDelay * 1000);
         }
 
-        private void enqueueWrapper(Callback callback) {
+        private void enqueueWrapper(Callback responseCallback) {
             try {
-                callback.onResponse(this, execute());
+                responseCallback.onResponse(this, execute());
             }
             catch (IOException exception) {
-                callback.onFailure(this, exception);
+                responseCallback.onFailure(this, exception);
             }
         }
 
@@ -203,7 +168,6 @@ public class LocalJsonClient2 extends OkHttpClient {
             @Override public int        writeTimeoutMillis  (                 ) { return          0; }
             @Override public Chain      withWriteTimeout    (int i, TimeUnit t) { return       this; }
         }
-
     }
 
     @Override

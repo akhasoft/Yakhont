@@ -17,6 +17,7 @@
 package akha.yakhont.technology.retrofit;
 
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.loader.BaseResponse;
@@ -32,34 +33,48 @@ import android.support.annotation.Size;
 
 import com.squareup.okhttp.OkHttpClient;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import retrofit.Callback;
 import retrofit.RequestInterceptor;
 import retrofit.RestAdapter.Builder;
+import retrofit.RestAdapter.Log;
 import retrofit.RestAdapter.LogLevel;
-import retrofit.YakhontRestAdapter;
-import retrofit.android.AndroidLog;
+import retrofit.RetrofitError;
 import retrofit.client.OkClient;
 import retrofit.client.Response;
+
+import retrofit.YakhontRestAdapter;
 
 /**
  * The component to work with
  * {@link <a href="http://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>} 1.x APIs.
  *
+ * <p>Every loader should have unique Retrofit object; don't share it with other loaders.
+ *
  * @param <T>
  *        The type of Retrofit API
+ *
+ * @param <D>
+ *        The type of data
  *
  * @yakhont.see BaseResponseLoaderWrapper.CoreLoad
  *
  * @author akha
  */
 @SuppressWarnings("unused")
-public class Retrofit<T> extends BaseRetrofit<T, Builder> {
+public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
-    private static final String                     LOG_RETROFIT               = "Yakhont-Retrofit";
+    private static final Callback                   EMPTY_CALLBACK          = new Callback() {
+        @Override public void success(Object object, Response response) {}
+        @Override public void failure(RetrofitError error             ) {}
+    };
 
-    private YakhontRestAdapter<T>                   mYakhontRestAdapter;
+    private              YakhontRestAdapter<T>      mYakhontRestAdapter;
+    private              String                     mData;
 
     /**
      * Initialises a newly created {@code Retrofit} object.
@@ -67,6 +82,83 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
     @SuppressWarnings("unused")
     public Retrofit() {
         CoreLogger.logWarning("please consider using Retrofit 2");
+    }
+
+    /**
+     * Returns server response.
+     *
+     * @return  The server response
+     */
+    public String getData() {
+        return mData;
+    }
+
+    /**
+     * Returns empty Retrofit callback.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The empty callback
+     */
+    @SuppressWarnings({"unchecked", "WeakerAccess"})
+    public static <D> Callback<D> emptyCallback() {
+        return (Callback<D>) EMPTY_CALLBACK;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    protected Callback<D> getEmptyCallback() {
+        return emptyCallback();
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    protected void checkForDefaultRequesterOnlyHandler(@NonNull final Method method)
+            throws InvocationTargetException, IllegalAccessException {
+        CoreReflection.invoke(mWrappedApi, method, getEmptyCallback());
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    public <R, E> Object request(@NonNull final Method method, final Object[] args,
+                                 final LoaderRx<R, E, D> rx) throws Exception {
+        final Callback<D> callback = getCallback();
+        if (callback == null) {
+            CoreLogger.logError("callback == null for method " + method);
+            return null;
+        }
+        CoreLogger.log("about to handle method " + method);
+
+        final T proxy = mOriginalApi;
+
+        final Class<?>[] params = method.getParameterTypes();
+        if (params == null || params.length == 0 ||
+                !Callback.class.isAssignableFrom(params[params.length - 1])) {
+            CoreLogger.logError("unsupported (not accepts Callback) method " + method);
+            return null;
+        }
+
+        if (args == null || args.length == 0) {
+            if (params.length == 1) {
+                CoreLogger.logWarning("missed callback argument for method " + method);
+                return CoreReflection.invoke(proxy, method, callback);
+            }
+            else {
+                CoreLogger.logError("no arguments for method " + method);
+                return null;
+            }
+        }
+
+        final Object last = args[args.length - 1];
+        if (last == null) {
+            CoreLogger.logError("parameter callback == null for method " + method);
+            args[args.length - 1] = callback;
+        }
+        else if (!last.equals(callback))
+            CoreLogger.logWarning("unexpected callback for method " + method);
+
+        return CoreReflection.invoke(proxy, method, args);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -78,11 +170,12 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
      * Please refer to the base method description.
      */
     @Override
-    public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
-                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
-                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
-                     @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers) {
-        init(service, getDefaultBuilder(retrofitBase, headers),
+    public Retrofit<T, D> init(
+            @NonNull final Class<T> service, @NonNull final String retrofitBase,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
+            @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers) {
+        return init(service, getDefaultBuilder(retrofitBase, headers),
                 connectTimeout, readTimeout, true);
     }
 
@@ -91,10 +184,10 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
      */
     @SuppressWarnings("WeakerAccess")
     @Override
-    public void init(@NonNull final Class<T> service, @NonNull final Builder builder,
-                     @IntRange(from = 1) final int connectTimeout,
-                     @IntRange(from = 1) final int readTimeout,
-                     final boolean makeOkHttpClient) {
+    public Retrofit<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder,
+                               @IntRange(from = 1) final int connectTimeout,
+                               @IntRange(from = 1) final int readTimeout,
+                               final boolean makeOkHttpClient) {
 
         super.init(service, builder, connectTimeout, readTimeout, makeOkHttpClient);
 
@@ -107,7 +200,40 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
         }
 
         mYakhontRestAdapter     = new YakhontRestAdapter<>();
-        mRetrofitApi            = mYakhontRestAdapter.create(service, builder.build());
+        mOriginalApi            = mYakhontRestAdapter.create(service, builder.build());
+
+        adjustApi(service);
+
+        return this;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Retrofit<T, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
+        super.init(service, retrofitBase);
+        return this;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Retrofit<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder) {
+        super.init(service, builder);
+        return this;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Retrofit<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder,
+                               @IntRange(from = 1) final int connectTimeout,
+                               @IntRange(from = 1) final int readTimeout) {
+        super.init(service, builder, connectTimeout, readTimeout);
+        return this;
     }
 
     /**
@@ -133,8 +259,16 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
                                      @Nullable final Map<String, String>    headers) {
 
         final Builder builder = new Builder()
-                .setLog(new AndroidLog(LOG_RETROFIT))
-                .setLogLevel(CoreLogger.isFullInfo() ? LogLevel.FULL: LogLevel.NONE)
+                .setLog(new BodySaverLogger() {
+                    @Override
+                    public void set(String data) {
+                        mData = data;
+                    }
+                })
+
+                .setLogLevel(LogLevel.FULL)         // for BodySaverLogger
+//              .setLogLevel(CoreLogger.isFullInfo() ? LogLevel.FULL: LogLevel.NONE)
+
                 .setEndpoint(retrofitBase);
 
         if (headers != null && !headers.isEmpty())
@@ -148,6 +282,49 @@ public class Retrofit<T> extends BaseRetrofit<T, Builder> {
             });
 
         return builder;
+    }
+
+    /**
+     * Saves server response (can be retrieved via {@link #getData}).
+     */
+    public static abstract class BodySaverLogger implements Log {
+
+        // well, it's a hack - but why not? For outdated technology which will never be updated...
+
+        private String      mPrevMessage, mUrl;
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public void log(final String message) {
+            if (message != null) {
+                if (message.endsWith("ms)")) {
+                    final String tmp = message.substring(0, message.lastIndexOf(' '));
+                    mUrl = tmp.substring(tmp.lastIndexOf(' ') + 1);
+                }
+                if (message.startsWith("<--- END HTTP (")) {
+                    if (mUrl == null)
+                        CoreLogger.logError("url == null for " + mPrevMessage);
+                    else if (mPrevMessage == null)
+                        CoreLogger.logError("previous message == null for " + mUrl);
+                    else
+                        set(mPrevMessage);
+
+                    mUrl = null;
+                }
+                CoreLogger.log(message);
+            }
+            mPrevMessage = message;
+        }
+
+        /**
+         * Saves server response.
+         *
+         * @param data
+         *        The data to save
+         */
+        public abstract void set(final String data);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -36,7 +36,7 @@ Now you can load data in just one line of code (please refer to the
 for the working example):
 
 ```
-new Retrofit2CoreLoadBuilder<>(/* your parameters here */).create().startLoading();
+new Retrofit2CoreLoadBuilder<>(...).setRequester(YourRetrofit::yourMethod).create().load();
 ```
 
 And take location in just a couple of lines (the working example is in the
@@ -231,7 +231,7 @@ By the way, Jack is no longer supported too.
 </application>        
 ```
 
-**Note:** "your_package_name" is a placeholder, you should provide real name, e.g. "com.mypackage". 
+**Note:** "your_package_name" is a placeholder, you should provide real name, e.g. "com.yourpackage". 
 
 ## Weaver: usage and configuration
 
@@ -245,6 +245,8 @@ to replace default configuration with yours (even if null).
 
 The Yakhont Weaver is a standalone utility which means it can be used in any application even without 
 Yakhont library - just specify "weaverAddConfig = false" and provide your own configuration file.
+
+Please refer to [weaver.config](yakhont/weaver.config) for more details.
 
 ## Proguard
 
@@ -302,7 +304,7 @@ $ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:
 
 To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code):
 
-- add **yakhont.link, yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc issues -> Declaration has Javadoc problems -> Additional Javadoc Tags
+- add **yakhont.link,yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc issues -> Declaration has Javadoc problems -> Additional Javadoc Tags
 - add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling -> Dictionaries
 
 ## Communication
@@ -325,7 +327,7 @@ kill the Gradle daemon (or just restart your PC).
 
 ```
 Execution failed for task ':app:transformClassesWithWeaverTransformForDebug'.
-> com.myproject.MyActivity class is frozen
+> com.yourproject.YourActivity class is frozen
 ```
 
 ## Bugs and Feedback

@@ -25,5 +25,5 @@ public interface Retrofit2Api {
 
     @GET("/data")
     @SuppressWarnings("unused")
-    Call<Beer[]> data();
+    Call<Beer[]> getData();
 }

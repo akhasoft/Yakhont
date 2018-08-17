@@ -296,6 +296,7 @@ public class Weaver {
         if (methodName.length() == 0 ||
                 methodName.equals(CONDITION_RELEASE) || methodName.equals(CONDITION_DEBUG)) {
             Condition condition;
+
             switch (methodName.toUpperCase()) {
                 case CONDITION_RELEASE:
                     condition = Condition.RELEASE;
@@ -446,8 +447,9 @@ public class Weaver {
                 if (before) Collections.reverse(conditions);
 
                 for (int j = 0; j < conditions.size(); j++) {
-                    if (!mDebugBuild && conditions.get(j) == Condition.DEBUG ||
-                         mDebugBuild && conditions.get(j) == Condition.RELEASE) continue;
+                    Condition condition = conditions.get(j);
+                    if (!mDebugBuild && condition == Condition.DEBUG ||
+                         mDebugBuild && condition == Condition.RELEASE) continue;
 
                     List<String> methodData = map.get(conditions.get(j));
                     if (before) Collections.reverse(methodData);
@@ -527,6 +529,7 @@ public class Weaver {
 
         for (int i = methodData.size() - 1; i >= 0; i--)
             insertMethods(clsDest, clsSrc, methodName, pool, methodData.get(i), true);
+
         for (int i = 0; i < methodData.size(); i++)
             insertMethods(clsDest, clsSrc, methodName, pool, methodData.get(i), false);
     }

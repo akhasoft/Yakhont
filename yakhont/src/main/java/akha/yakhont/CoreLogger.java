@@ -544,9 +544,11 @@ public class CoreLogger {
     @SuppressWarnings("SameParameterValue")
     private static void reSplit(final List<String> list) {
         if (list == null || list.isEmpty()) return;
+
         final StringBuilder sb = new StringBuilder(list.get(0));
         for (int i = 1 ; i < list.size(); i++)
             sb.append(sNewLine).append(list.get(i));
+
         split(list, sb.toString(), MAX_LOG_LENGTH, true);
     }
 
@@ -582,8 +584,8 @@ public class CoreLogger {
                             final String className) {
         if (throwable == null && showStack) throwable = stackTrace;
 
-        final int maxLength = getMaxLogLength();
-        final String text = addMethodInfo(level, msg, className,
+        final int    maxLength = getMaxLogLength();
+        final String text      = addMethodInfo(level, msg, className,
                 traceElement == null ? null: traceElement.getMethodName(),
                 traceElement == null ? null: traceElement.getLineNumber());
         if (text.length() <= maxLength) {
@@ -644,7 +646,7 @@ public class CoreLogger {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static Locale getLocale() {
-        return Locale.getDefault();
+        return Utils.getLocale();
     }
 
     private static final String                         LOGCAT_CMD               = "logcat -d";
@@ -669,8 +671,8 @@ public class CoreLogger {
             while ((line = reader.readLine()) != null)
                 handler.handle(line);
         }
-        catch (IOException e) {
-            log("failed running logcat", e);
+        catch (IOException exception) {
+            log("failed running logcat", exception);
         }
         finally {
             if (process != null) process.destroy();
@@ -783,8 +785,8 @@ public class CoreLogger {
                 try {
                     Sender.sendEmailSync(context, addresses, subject, cmd, hasScreenShot, hasDb, moreFiles);
                 }
-                catch (Exception e) {
-                    log("failed sending email", e);
+                catch (Exception exception) {
+                    log("failed sending email", exception);
                 }
             }
         });
@@ -861,10 +863,10 @@ public class CoreLogger {
         private static final float                      THRESHOLD                =    2;
         private static final int                        DELAY                    = 1000;
 
-        private final Runnable          mHandler;
-        private final SensorManager     mSensorManager;
-        private       Sensor            mSensor;
-        private       long              mLastShakeTime;
+        private        final Runnable                   mHandler;
+        private        final SensorManager              mSensorManager;
+        private              Sensor                     mSensor;
+        private              long                       mLastShakeTime;
 
         @SuppressWarnings("WeakerAccess")
         public ShakeEventListener(@NonNull final Context context, @NonNull final Runnable handler) {
@@ -918,7 +920,7 @@ public class CoreLogger {
 
         private static final String                     ANR_TRACES               = "/data/anr/traces.txt";
         private static final String                     ZIP_PREFIX               = "data_yakhont";
-        private static final int                        SCREENSHOT_JPEG_QUALITY  = 100;
+        private static final int                        SCREENSHOT_QUALITY       = 100;
 
         private static void sendEmailSync(final Context context, final String[] addresses, final String subject,
                                           final String cmd, final boolean hasScreenShot, final boolean hasDb,
@@ -971,8 +973,8 @@ public class CoreLogger {
 
                 Utils.sendEmail(activity, addresses, subjectToSend, body.toString(), zipFile);
             }
-//            catch (IOException e) {
-//                log("failed creating tmp ZIP file", e);
+//            catch (IOException exception) {
+//                log("failed creating tmp ZIP file", exception);
 //            }
             finally {
                 delete(db);
@@ -1032,8 +1034,8 @@ public class CoreLogger {
 
                 return tmpFile;
             }
-            catch (Exception e) {
-                handleError("failed creating log file", e, errors);
+            catch (Exception exception) {
+                handleError("failed creating log file", exception, errors);
             }
             return null;
         }
@@ -1051,12 +1053,12 @@ public class CoreLogger {
                 final View view = activity.getWindow().getDecorView().getRootView();
                 final boolean savedValue = view.isDrawingCacheEnabled();
 
-                final File tmpFile = getTmpFile("screen", suffix, "jpg", tmpDir);
+                final File tmpFile = getTmpFile("screen", suffix, "png", tmpDir);
                 final FileOutputStream outputStream = new FileOutputStream(tmpFile);
 
                 try {
                     view.setDrawingCacheEnabled(true);
-                    view.getDrawingCache().compress(Bitmap.CompressFormat.JPEG, SCREENSHOT_JPEG_QUALITY, outputStream);
+                    view.getDrawingCache().compress(Bitmap.CompressFormat.PNG, SCREENSHOT_QUALITY, outputStream);
                     outputStream.close();
                     return tmpFile;
                 }

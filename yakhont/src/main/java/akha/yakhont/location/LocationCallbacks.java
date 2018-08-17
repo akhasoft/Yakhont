@@ -66,7 +66,7 @@ import javax.inject.Provider;
  * import android.location.Location;
  *
  * &#064;CallbacksInherited(LocationCallbacks.class)
- * public class MyActivity extends Activity implements LocationListener {
+ * public class YourActivity extends Activity implements LocationListener {
  *
  *     &#064;Override
  *     public void onLocationChanged(Location location, Date date) {

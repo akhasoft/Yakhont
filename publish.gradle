@@ -272,9 +272,6 @@ if (isAndroidApp || isAndroidLib) {
     //noinspection GroovyAssignabilityCheck
     linkOfflineList.add(new JavadocOfflineLink('http://developer.android.com/reference/',
             android.sdkDirectory.path + '/docs/reference/'))
-    //noinspection GroovyAssignabilityCheck
-    linkOfflineList.add(new JavadocOfflineLink('https://developers.google.com/android/reference/',
-            android.sdkDirectory.path + '/extras/google/google_play_services/docs/reference/'))
 
     def makeArtifactsAndroid = { variant ->
         variant.outputs.all { output ->

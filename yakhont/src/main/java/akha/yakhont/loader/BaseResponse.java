@@ -19,12 +19,13 @@ package akha.yakhont.loader;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.CursorHandler;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
-import android.content.ContextWrapper;
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.net.Uri;
 import android.os.Build;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
@@ -77,11 +78,52 @@ public class BaseResponse<R, E, D> {
 
     private final           R                     mResponse;
     private final           E                     mError;
-    private final           D                     mData;
+    private                 D                     mData;
     private final           Cursor                mCursor;
     private                 ContentValues[]       mContentValues;
     private final           Source                mSource;
     private final           Throwable             mThrowable;
+
+    /**
+     * The API for data conversion.
+     *
+     * @param <D>
+     *        The type of data
+     */
+    public interface ConverterHelper<D> {
+
+        /**
+         * Converts serialized data to object.
+         *
+         * @param string
+         *        The additional information
+         *
+         * @param data
+         *        The serialized data
+         *
+         * @return  The data object
+         */
+        D get(String string, byte[] data);
+    }
+
+    /**
+     * Allows to get instance of {@link ConverterHelper}.
+     *
+     * @param <D>
+     *        The type of data
+     */
+    public interface ConverterGetter<D> {
+
+        /**
+         * Returns instance of {@link ConverterHelper}.
+         *
+         * @param type
+         *        The data type
+         *
+         * @return  The ConverterHelper
+         */
+        ConverterHelper<D> get(Type type);
+    }
 
     /**
      * The API to convert data.
@@ -94,51 +136,45 @@ public class BaseResponse<R, E, D> {
     public interface Converter<D> {
 
         /**
-         * Converts cursor to data.
+         * Sets {@code ConverterGetter}.
          *
-         * @param cursor
-         *        The cursor
-         *
-         * @return  The data
+         * @param getter
+         *        The {@code ConverterGetter}
          */
-        D get(Cursor cursor);
+        void setConverterGetter(ConverterGetter<D> getter);
 
         /**
-         * Converts cursor to ContentValues.
+         * Returns the data to store in cache.
          *
-         * @param cursor
-         *        The cursor
+         * @param string
+         *        The string data
+         *
+         * @param bytes
+         *        The bytes data
+         *
+         * @param cls
+         *        The type of data
          *
          * @return  The ContentValues
          */
-        ContentValues getContentValues(Cursor cursor);
+        ContentValues getValues(String string, byte[] bytes, Class cls);
 
         /**
-         * Converts data to content values.
+         * Converts cursor to data.
          *
-         * @param src
-         *        The data to convert
+         * @param cursor
+         *        The Cursor
          *
-         * @return  The content values
+         * @return  The data
          */
-        ContentValues[] get(D src);
+        D getData(Cursor cursor);
 
         /**
-         * Returns the type of data.
+         * Returns the type of last converted data.
          *
-         * @return  The type of data (or null, if type detection failed)
+         * @return  The type of data (or null)
          */
         Type getType();
-
-        /**
-         * Sets the type of data.
-         *
-         * @param type
-         *        The type of data
-         *
-         * @return  This {@code Converter} object
-         */
-        Converter<D> setType(Type type);
     }
 
     /**
@@ -183,15 +219,6 @@ public class BaseResponse<R, E, D> {
     }
 
     /**
-     * Returns the loaded data.
-     *
-     * @return  The loaded data
-     */
-    public D getResult() {
-        return mData;
-    }
-
-    /**
      * Returns the network response.
      *
      * @return  The network response
@@ -210,14 +237,28 @@ public class BaseResponse<R, E, D> {
         return mCursor;
     }
 
+    /**
+     * Returns the loaded data.
+     *
+     * @return  The loaded data
+     */
+    public D getResult() {
+        return mData;
+    }
+
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public ContentValues[] getValues() {
-        return mContentValues;
+    public void setResult(final D data) {
+        mData = data;
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public void setValues(final ContentValues[] values) {
         mContentValues = values;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public ContentValues[] getValues() {
+        return mContentValues;
     }
 
     /**
@@ -279,10 +320,10 @@ public class BaseResponse<R, E, D> {
     @Override
     public String toString() {
         final StringBuilder builder = new StringBuilder();
-        final Locale locale = CoreLogger.getLocale();
+        final Locale locale = Utils.getLocale();
 
         builder.append(String.format(locale, "%s, class: %s, error: %s%s",
-                mSource.name(), mData == null ? null: mData.getClass().getSimpleName(),
+                mSource.name(), mData == null ? null: mData.getClass().getName(),
                 mError, sNewLine));
         builder.append(String.format(locale, "more error info: %s%s", mThrowable, sNewLine));
 
@@ -300,34 +341,44 @@ public class BaseResponse<R, E, D> {
                 builder.append("data ").append(mData).append(sNewLine);
         }
 
-        final int nPos = (mCursor == null) ? -1: mCursor.getPosition();
-
         if (mCursor == null)
             builder.append("no cursor");
-        else if (!mCursor.moveToFirst())
-            builder.append("empty cursor");
-        else {
-            builder.append("cursor:").append(sNewLine);
-
-            for (;;) {
-                for (int i = 0; i < mCursor.getColumnCount(); i++)
-                    builder.append(String.format(locale, "%s%s == %s", i == 0 ? "": ", ",
-                            mCursor.getColumnName(i), getString(mCursor, i)));
-                builder.append(sNewLine);
-
-                if (!mCursor.moveToNext()) break;
-            }
+        else if (Utils.cursorHelper(mCursor, new LogCursorHandler(builder, locale),
+                true, false, true))
             builder.delete(builder.length() - 1, builder.length());
-        }
-
-        if (mCursor != null) mCursor.moveToPosition(nPos);
+        else
+            builder.append("can't log cursor");
 
         return builder.toString();
     }
 
-    private static String getString(@NonNull final Cursor cursor, final int columnIndex) {
-        final Object data = getData(cursor, columnIndex);
-        return data == null ? null: data instanceof byte[] ? "BLOB": data instanceof Exception ? "error": String.valueOf(data);
+    private static class LogCursorHandler implements CursorHandler {
+
+        private final StringBuilder         mBuilder;
+        private final Locale                mLocale;
+
+        private LogCursorHandler(@NonNull final StringBuilder builder, @NonNull final Locale locale) {
+            mLocale     = locale;
+            mBuilder    = builder;
+            mBuilder.append("cursor:").append(sNewLine);
+        }
+
+        @Override
+        public boolean handle(Cursor cursor) {
+            for (int i = 0; i < cursor.getColumnCount(); i++)
+                mBuilder.append(String.format(mLocale, "%s%s == %s", i == 0 ? "": ", ",
+                        cursor.getColumnName(i), getString(cursor, i, mLocale)));
+            mBuilder.append(sNewLine);
+            return true;
+        }
+
+        private static String getString(@NonNull final Cursor cursor, final int columnIndex,
+                                        @NonNull final Locale locale) {
+            final Object data = getData(cursor, columnIndex);
+            return data == null ? null: data instanceof byte[] ? String.format(locale, "[%s]",
+                    Utils.toHex((byte[]) data, 8, false, locale, null)):
+                    data instanceof Throwable ? "error": String.valueOf(data);
+        }
     }
 
     /**
@@ -371,23 +422,32 @@ public class BaseResponse<R, E, D> {
     /**
      * Clears cache table.
      *
-     * @param contextWrapper
-     *        The {@code ContextWrapper}
-     *
      * @param tableName
      *        The table name
      */
-    @SuppressWarnings("unused")
-    public static void clearCache(ContextWrapper contextWrapper, final String tableName) {
+    public static void clearCache(final String tableName) {
         if (tableName == null) {
             CoreLogger.logError("tableName == null");
             return;
         }
-        if (contextWrapper == null) contextWrapper = Utils.getApplication();
+        clearCache(Utils.getUri(tableName));
+    }
 
-        CoreLogger.logWarning("about to clear cache table " + tableName);
+    /**
+     * Clears cache table.
+     *
+     * @param uri
+     *        The URI
+     */
+    public static void clearCache(final Uri uri) {
+        final String table = Utils.getLoaderTableName(uri);
+        if (table == null) {
+            CoreLogger.logWarning("not defined cache table name for clearing");
+            return;
+        }
+        CoreLogger.logWarning("about to clear cache table " + table);
         //noinspection ConstantConditions
-        contextWrapper.getContentResolver().delete(Utils.getUri(tableName), null, null);
+        Utils.getApplication().getContentResolver().delete(uri, null, null);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,7 +458,8 @@ public class BaseResponse<R, E, D> {
     public static class LoadParameters {
 
         private final Integer               mLoaderId;
-        private final boolean               mForceCache, mNoProgress, mMerge, mNoErrors, mSync, mOK;
+        private final boolean               mForceCache, mNoProgress, mMerge, mNoErrors, mSync;
+        private final String                mError;
 
         private final static AtomicBoolean sSafe   = new AtomicBoolean(true);
 
@@ -445,19 +506,16 @@ public class BaseResponse<R, E, D> {
                     noErrors + ", sync: " + sync);
 
             if (mForceCache && mMerge) {
-                reportBadArguments("wrong combination: force cache and merge");
-                mOK = false;
+                mError = "wrong combination: force cache and merge";
+                reportNotSafe();
+                CoreLogger.logError(mError);
             }
             else
-                mOK = true;
+                mError = null;
         }
 
-        @SuppressWarnings("SameParameterValue")
-        private void reportBadArguments(@NonNull final String msg) {
-            if (sSafe.get())
-                CoreLogger.logError(msg);
-            else
-                throw new LoadParametersException(msg);
+        private void reportNotSafe() {
+            if (!sSafe.get()) throw new LoadParametersException(mError);
         }
 
         /**
@@ -467,7 +525,8 @@ public class BaseResponse<R, E, D> {
          */
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public boolean checkArguments() {
-            return mOK;
+            reportNotSafe();
+            return mError == null;
         }
 
         /**
@@ -544,8 +603,8 @@ public class BaseResponse<R, E, D> {
         @Override
         public String toString() {
             return String.format(CoreLogger.getLocale(),
-                    "force cache %b, no progress %b, no errors %b, merge %b, sync %b, OK %b, loader id %s",
-                    mForceCache, mNoProgress, mNoErrors, mMerge, mSync, mOK,
+                    "force cache %b, no progress %b, no errors %b, merge %b, sync %b, params error %s, loader id %s",
+                    mForceCache, mNoProgress, mNoErrors, mMerge, mSync, mError,
                     mLoaderId == null ? "null": mLoaderId.toString());
         }
 

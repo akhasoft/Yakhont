@@ -16,14 +16,9 @@
 
 package akha.yakhont.demosimple;
 
-import akha.yakhont.demosimple.retrofit.LocalJsonClient2;
-import akha.yakhont.demosimple.retrofit.Retrofit2Api;
-
-import akha.yakhont.Core;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
-import akha.yakhont.technology.retrofit.Retrofit2;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -41,34 +36,18 @@ public class MainActivity extends Activity implements LocationListener {
 
     private boolean mAdvertisementShown;
 
-    private final Retrofit2<Retrofit2Api> mRetrofit2     = new Retrofit2<>();
-
-    public Retrofit2<Retrofit2Api> getRetrofit() {
-        return mRetrofit2;
-    }
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         // uncomment if you're using Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
-//      Core.setRxUncaughtExceptionBehavior(false);
-
-        Core.init(getApplication());                        // initializes the Yakhont library
+//      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false);
 
         // uncomment to suppress location access confirmation dialog
 //      LocationCallbacks.allowAccessToLocation(true);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        // local JSON client, so URL doesn't matter
-        // uncomment network delay emulation for the progress dialog etc.
-        mRetrofit2.init(Retrofit2Api.class, mRetrofit2.getDefaultBuilder("http://localhost/")
-                .client(new LocalJsonClient2() /* .setEmulatedNetworkDelay(20) */ ));
-
-        // for normal HTTP requests you can use something like this
-//      sRetrofit2.init(Retrofit2Api.class, "http://...");
     }
 
     @Override

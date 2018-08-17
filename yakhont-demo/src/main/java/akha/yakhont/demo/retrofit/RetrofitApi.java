@@ -28,5 +28,5 @@ public interface RetrofitApi {
 
     @GET("/data")
     @SuppressWarnings("unused")
-    void data(Callback<List<Beer>> callback);
+    void getData(Callback<List<Beer>> callback);
 }

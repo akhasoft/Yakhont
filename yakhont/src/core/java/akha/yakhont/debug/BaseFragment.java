@@ -432,7 +432,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      * The callback helper for calling {@link #adjustMeasuredView(View)}. For example:
      *
      * <pre style="background-color: silver; border: thin solid black;">
-     * public class MyFragment extends BaseFragment {
+     * public class YourFragment extends BaseFragment {
      *
      *     &#064;Override
      *     public View onCreateView(LayoutInflater inflater, ViewGroup container,

@@ -26,6 +26,9 @@ import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
 import android.location.Location;
+import android.support.annotation.NonNull;
+import android.support.annotation.RestrictTo;
+import android.support.annotation.RestrictTo.Scope;
 
 import java.lang.ref.WeakReference;
 import java.util.Set;
@@ -332,9 +335,20 @@ public abstract class BaseRx<D> {
 
         /**
          * Initialises a newly created {@code CommonRx} object.
+         *
+         * @param errMgsParam
+         *        The error message parameter
+         *
+         * @param nok
+         *        The error message trigger
          */
         @SuppressWarnings("WeakerAccess")
-        protected CommonRx() {
+        @RestrictTo(Scope.LIBRARY)
+        protected CommonRx(@NonNull final String errMgsParam, final boolean nok) {
+            if (nok) CoreLogger.logError(String.format(
+                    "in your application initialization code please call "                   +
+                    "'Core.setRxUncaughtExceptionBehavior()' (or any of '%s.setErrorHandler*()'" +
+                    " methods); ignore this information only if you know what you're doing", errMgsParam));
         }
 
         /**
@@ -396,6 +410,7 @@ public abstract class BaseRx<D> {
          */
         public static void unsubscribeAnonymous() {
             final String msg ="about to unregister anonymous %s";
+
             if (sRx2Disposable.notEmpty()) {
                 CoreLogger.logWarning(String.format(msg, "disposables"));
                 sRx2Disposable.unsubscribe();
@@ -500,7 +515,7 @@ public abstract class BaseRx<D> {
      * import android.location.Location;
      *
      * &#064;CallbacksInherited(LocationCallbacks.class)
-     * public class MyActivity extends Activity {
+     * public class YourActivity extends Activity {
      *
      *     private LocationCallbacks mLocationCallbacks;
      *     private LocationRx        mRx;
@@ -508,7 +523,8 @@ public abstract class BaseRx<D> {
      *     &#064;Override
      *     protected void onCreate(Bundle savedInstanceState) {
      *         super.onCreate(savedInstanceState);
-     *         ...
+     *
+     *         // your code here: setContentView(...) etc.
      *
      *         mLocationCallbacks = LocationCallbacks.getLocationCallbacks(this);
      *
@@ -631,43 +647,41 @@ public abstract class BaseRx<D> {
      * Extends the {@link BaseRx} class to provide {@link BaseResponse} support. For example, in Fragment:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
+     * import com.yourpackage.model.YourData;
+     * import com.yourpackage.retrofit.YourRetrofit;
+     *
      * import akha.yakhont.technology.retrofit.Retrofit2;
      * import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
      * import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
      * import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
      *
-     * import com.mypackage.model.MyData;
-     * import com.mypackage.retrofit.Retrofit2Api;
+     * public class YourFragment extends Fragment {
      *
-     * public class MyFragment extends Fragment {
-     *
-     *     private Retrofit2Rx&lt;MyData[]&gt; mRx;
+     *     private Retrofit2Rx&lt;YourData[]&gt; mRx;
      *
      *     &#064;Override
      *     public void onActivityCreated(Bundle savedInstanceState) {
      *         super.onActivityCreated(savedInstanceState);
-     *         ...
      *
      *         boolean useRxJava2 = true;
      *         mRx = new Retrofit2Rx&lt;&gt;(useRxJava2);
      *
-     *         mRx.subscribeSimple(new SubscriberRx&lt;MyData[]&gt;() {
+     *         mRx.subscribeSimple(new SubscriberRx&lt;YourData[]&gt;() {
      *
      *             &#064;Override
-     *             public void onNext(final MyData[] data) {
+     *             public void onNext(final YourData[] data) {
      *                 // your code here
      *             }
      *         });
      *
-     *         new Retrofit2CoreLoadBuilder&lt;&gt;(this, MyData[].class, getRetrofitApi())
-     *             .setRx(mRx).create().startLoading();
+     *         new Retrofit2CoreLoadBuilder&lt;&gt;(this, getRetrofit())
+     *             .setRequester(YourRetrofit::yourMethod).setRx(mRx).create().load();
      *     }
      *
-     *     private Retrofit2&lt;Retrofit2Api&gt; getRetrofitApi() {
-     *         // something like below but not exactly -
-     *         //   Retrofit2 object should be cached somewhere
-     *         // and don't forget to call Retrofit2.init()
-     *         return new Retrofit2&lt;&gt;();
+     *     private Retrofit2&lt;YourRetrofit, YourData[]&gt; getRetrofit() {
+     *         // something like this
+     *         return new Retrofit2&lt;YourRetrofit, YourData[]&gt;().init(
+     *             YourRetrofit.class, "http://...");
      *     }
      *
      *     &#064;Override

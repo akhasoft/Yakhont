@@ -378,9 +378,9 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class) simple Activity} ones):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
-     * package com.mypackage;
+     * package com.yourpackage;
      *
-     * public class MyFragmentCallbacks extends BaseCallbacks.BaseFragmentCallbacks {
+     * public class YourFragmentCallbacks extends BaseCallbacks.BaseFragmentCallbacks {
      *
      *     &#064;Override
      *     public void onFragmentCreated(Fragment fragment, Bundle savedInstanceState) {
@@ -396,8 +396,8 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * <p><pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.callback.annotation.CallbacksInherited;
      *
-     * &#064;CallbacksInherited(com.mypackage.MyFragmentCallbacks.class)
-     * public class MyFragment extends Fragment {
+     * &#064;CallbacksInherited(com.yourpackage.YourFragmentCallbacks.class)
+     * public class YourFragment extends Fragment {
      *     ...
      * }
      * </pre>
@@ -407,21 +407,19 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * <p><pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.Core;
      *
-     * import com.mypackage.MyFragmentCallbacks;
+     * import com.yourpackage.YourFragmentCallbacks;
      *
-     * public class MyApplication extends Application {
+     * public class YourApplication extends Application {
      *
      *     &#064;Override
      *     public void onCreate() {
      *         super.onCreate();
-     *         ...
-     *         Core.init(this);
      *
-     *         BaseFragmentLifecycleProceed.register(new MyFragmentCallbacks());
-     *         // OR
+     *         BaseFragmentLifecycleProceed.register(new YourFragmentCallbacks());
+     *         // or
      *         // BaseFragmentLifecycleProceed.register(
-     *         //     (BaseFragmentCallbacks) new MyFragmentCallbacks().setForceProceed(true));
-     *         // to apply callback handlers to ALL fragments (annotated or not)
+     *         //     (BaseFragmentCallbacks) new YourFragmentCallbacks().setForceProceed(true));
+     *         // to apply callback handlers to all fragments (annotated or not)
      *     }
      * }
      * </pre>

@@ -22,6 +22,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.SupportHelper;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.Source;
 
 import android.annotation.SuppressLint;
@@ -88,7 +89,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     private final       BaseArrayAdapter<T>                 mArrayAdapter;
     private final       BaseCursorAdapter                   mCursorAdapter;
 
-    private             DataConverter<T, R, E, D>           mConverter;
+    private final       DataConverter<T, R, E, D>           mConverter;
 
     /**
      * The API to convert a {@code BaseResponse} to collection.
@@ -124,9 +125,30 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param cursor
          *        The {@code Cursor}
          *
+         * @param position
+         *        The position
+         *
          * @return  The Collection
          */
-        T convert(Cursor cursor);
+        T convert(Cursor cursor, int position);
+
+        /**
+         * Swaps cursor.
+         *
+         * @param cursor
+         *        The {@code Cursor}
+         *
+         * @return  The {@code Cursor}
+         */
+        @SuppressWarnings("unused")
+        Cursor swapCursor(Cursor cursor);
+
+        /**
+         * Returns {@code Converter} for data.
+         *
+         * @return  The Converter
+         */
+        Converter<D> getConverter();
     }
     
     /**
@@ -138,9 +160,16 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @yakhont.see BaseSimpleCursorAdapter
      */
     public interface BaseCursorAdapter extends ListAdapter, SpinnerAdapter, Filterable {
-        @SuppressWarnings("UnusedReturnValue")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
         Cursor swapCursor(Cursor cursor);
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         void setAdapterViewBinder(ViewBinder viewBinder);
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        void setDataConverter(DataConverter dataConverter);
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         Cursor getItemCursor(int position);
     }
 
@@ -239,14 +268,19 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The views that should display data in the "from" parameter
      *
      * @param arrayAdapter
-     *        The BaseArrayAdapter
+     *        The {@code BaseArrayAdapter}
+     *
+     * @param converter
+     *        The {@code DataConverter}
      */
     @SuppressWarnings("WeakerAccess")
-    public BaseCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
+    public BaseCacheAdapter(@NonNull                final Activity          context,
+                            @LayoutRes              final    int            layoutId,
                             @NonNull @Size(min = 1) final String[]          from,
                             @NonNull @Size(min = 1) final    int[]          to,
-                            @NonNull final BaseArrayAdapter<T>              arrayAdapter) {
-        this(SupportHelper.getBaseCursorAdapter(context, layoutId, from, to), arrayAdapter);
+                            @NonNull final BaseArrayAdapter<T>              arrayAdapter,
+                            @NonNull final DataConverter<T, R, E, D>        converter) {
+        this(SupportHelper.getBaseCursorAdapter(context, layoutId, from, to), arrayAdapter, converter);
     }
 
     /**
@@ -257,39 +291,38 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      */
     @SuppressWarnings({"unused", "WeakerAccess"})
     public BaseCacheAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter) {
-        this(baseCacheAdapter.mCursorAdapter, baseCacheAdapter.mArrayAdapter);
-        setConverter(baseCacheAdapter.mConverter);
+        this(baseCacheAdapter.mCursorAdapter, baseCacheAdapter.mArrayAdapter, baseCacheAdapter.mConverter);
     }
 
     /**
      * Initialises a newly created {@code BaseCacheAdapter} object.
      *
      * @param cursorAdapter
-     *        The BaseCursorAdapter
+     *        The {@code BaseCursorAdapter}
      *
      * @param arrayAdapter
-     *        The BaseArrayAdapter
-     */
-    @SuppressWarnings("WeakerAccess")
-    public BaseCacheAdapter(@NonNull final BaseCursorAdapter                   cursorAdapter,
-                            @NonNull final BaseArrayAdapter<T>                 arrayAdapter) {
-
-        mArrayAdapter   = arrayAdapter;
-        mCursorAdapter  = cursorAdapter;
-
-        setCurrentAdapter(false);
-    }
-
-    /**
-     * Sets the {@code DataConverter}.
+     *        The {@code BaseArrayAdapter}
      *
      * @param converter
      *        The {@code DataConverter}
      */
-    public void setConverter(@NonNull final DataConverter<T, R, E, D> converter) {
-        if (mConverter != null)
-            CoreLogger.logError("DataConverter already set");
+    @SuppressWarnings("WeakerAccess")
+    public BaseCacheAdapter(@NonNull final BaseCursorAdapter                   cursorAdapter,
+                            @NonNull final BaseArrayAdapter<T>                 arrayAdapter,
+                            @NonNull final DataConverter<T, R, E, D>           converter) {
+
+        mArrayAdapter   = arrayAdapter;
+        mCursorAdapter  = cursorAdapter;
         mConverter      = converter;
+
+        mCursorAdapter.setDataConverter(converter);
+
+        setCurrentAdapter(false);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public DataConverter<T, R, E, D> getConverter() {
+        return mConverter;
     }
 
     /**
@@ -323,15 +356,26 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param isMerge
      *        {@code true} if new data should be merged with existing ones, {@code false} otherwise
      */
-    public void update(@NonNull final BaseResponse<R, E, D> data, final boolean isMerge) {
+    public void update(@NonNull final BaseResponse<R, E, D> data, boolean isMerge) {
         final Source source = data.getSource();
         switch (source) {
-            case NETWORK:
-                updateArray(mConverter.convert(data), isMerge);
-                break;
 
             case CACHE:
-                updateCursor(data.getCursor());
+                final Cursor cursor = data.getCursor();
+                D            result = data.getResult();
+
+                if (result == null) result = mConverter.getConverter().getData(cursor);
+                if (result == null) {
+                    updateCursor(cursor);
+                    break;
+                }
+                else {                          // fall through
+                    data.setResult(result);
+                    isMerge = false;
+                }
+
+            case NETWORK:
+                updateArray(mConverter.convert(data), isMerge);
                 break;
 
             case TIMEOUT:
@@ -468,15 +512,16 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 return !ViewHelper.VIEW_FOUND;
             }
         });
-
         CoreLogger.log(map.size() > 0 ? Level.DEBUG: Level.ERROR, "views binding: totally " + map.size());
+
         final int[] ids = new int[map.size()];
         set.clear();
 
         for (final Map.Entry<Integer, String> entry: map.entrySet()) {
-            ids[set.size()] = entry.getKey();
-            set.add(entry.getValue());
-            CoreLogger.log("views binding: added " + entry.getValue());
+            ids[set.size()]    = entry.getKey();
+            final String value = entry.getValue();
+            set.add(value);
+            CoreLogger.log("views binding: added " + value);
         }
         return ids;
     }
@@ -538,7 +583,12 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected T getItemCursor(int position) {
-        return mConverter.convert(mCursorAdapter.getItemCursor(position));
+        final Cursor cursor = mCursorAdapter.getItemCursor(position);
+        if (cursor == null) {
+            CoreLogger.logError("can't retrieve item for cursor position " + position);
+            return null;
+        }
+        return mConverter.convert(cursor, position);
     }
 
     /**
@@ -645,14 +695,19 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *        The views that should display data in the "from" parameter
          *
          * @param arrayAdapter
-         *        The BaseArrayAdapter
+         *        The {@code BaseArrayAdapter}
+         *
+         * @param converter
+         *        The {@code DataConverter}
          */
         @SuppressWarnings("WeakerAccess")
-        public ApiMCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
+        public ApiMCacheAdapter(@NonNull                final Activity          context,
+                                @LayoutRes              final    int            layoutId,
                                 @NonNull @Size(min = 1) final String[]          from,
                                 @NonNull @Size(min = 1) final    int[]          to,
-                                @NonNull final BaseArrayAdapter<T>              arrayAdapter) {
-            super(context, layoutId, from, to, arrayAdapter);
+                                @NonNull final BaseArrayAdapter<T>              arrayAdapter,
+                                @NonNull final DataConverter<T, R, E, D>        converter) {
+            super(context, layoutId, from, to, arrayAdapter, converter);
         }
 
         /**
@@ -715,14 +770,19 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *        The views that should display data in the "from" parameter
          *
          * @param arrayAdapter
-         *        The BaseArrayAdapter
+         *        The {@code BaseArrayAdapter}
+         *
+         * @param converter
+         *        The {@code DataConverter}
          */
         @SuppressWarnings("WeakerAccess")
-        public SupportCacheAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
-                                   @NonNull @Size(min = 1) final String[]        from,
-                                   @NonNull @Size(min = 1) final    int[]        to,
-                                   @NonNull final BaseArrayAdapter<T>            arrayAdapter) {
-            super(context, layoutId, from, to, arrayAdapter);
+        public SupportCacheAdapter(@NonNull                final Activity       context,
+                                   @LayoutRes              final    int         layoutId,
+                                   @NonNull @Size(min = 1) final String[]       from,
+                                   @NonNull @Size(min = 1) final    int[]       to,
+                                   @NonNull final BaseArrayAdapter<T>           arrayAdapter,
+                                   @NonNull final DataConverter<T, R, E, D>     converter) {
+            super(context, layoutId, from, to, arrayAdapter, converter);
 
             mDropDownHelper = new android.support.v7.widget.ThemedSpinnerAdapter.Helper(context);
             mLayoutId       = layoutId;
@@ -795,7 +855,10 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *        The views that should display data in the "from" parameter
          *
          * @param arrayAdapter
-         *        The BaseArrayAdapter
+         *        The {@code BaseArrayAdapter}
+         *
+         * @param converter
+         *        The {@code DataConverter}
          *
          * @param support
          *        {@code true} to return the {@code SupportCacheAdapter} instance, {@code false} otherwise
@@ -803,37 +866,42 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @return  The {@code BaseCacheAdapter} instance
          */
         @SuppressLint("ObsoleteSdkInt")
-        public BaseCacheAdapter<T, R, E, D> getAdapter(@NonNull final Activity context, @LayoutRes final int layoutId,
-                                                       @NonNull @Size(min = 1) final String[]         from,
-                                                       @NonNull @Size(min = 1) final    int[]         to,
-                                                       @NonNull final BaseArrayAdapter<T>             arrayAdapter,
-                                                       final boolean support) {
+        public BaseCacheAdapter<T, R, E, D> getAdapter(
+                @NonNull                final Activity                          context,
+                @LayoutRes              final    int                            layoutId,
+                @NonNull @Size(min = 1) final String[]                          from,
+                @NonNull @Size(min = 1) final    int[]                          to,
+                @NonNull                final BaseArrayAdapter<T>               arrayAdapter,
+                @NonNull                final DataConverter<T, R, E, D>         converter,
+                                        final boolean                           support) {
             if (support)
-                return new SupportCacheAdapter<>(context, layoutId, from, to, arrayAdapter);
+                return new SupportCacheAdapter<>(context, layoutId, from, to, arrayAdapter, converter);
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                return new ApiMCacheAdapter   <>(context, layoutId, from, to, arrayAdapter);
+                return new ApiMCacheAdapter   <>(context, layoutId, from, to, arrayAdapter, converter);
             else
-                return new BaseCacheAdapter   <>(context, layoutId, from, to, arrayAdapter);
+                return new BaseCacheAdapter   <>(context, layoutId, from, to, arrayAdapter, converter);
         }
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static void bindImageView(@NonNull final Context context,
-                                     @NonNull final ImageView imageView, final Object value) {
+    public static void bindImageView(final Context context, @NonNull final ImageView imageView, final Object value) {
         final String strValue = getString(value);
         try {
             imageView.setImageResource(Integer.parseInt(strValue));
         }
         catch (NumberFormatException e) {
-            Picasso.with(context).load(getString(value)).into(imageView);
+            if (context == null)
+                CoreLogger.logError("context for Picasso == null");
+            else
+                Picasso.with(context).load(strValue).into(imageView);
         }
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static String getString(final Object value) {
         return value == null ? null: value instanceof Exception ? null:
-                value instanceof byte[] ? "": value.toString();
+               value instanceof byte[] ? "": value.toString();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

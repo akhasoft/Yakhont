@@ -17,10 +17,6 @@
 package akha.yakhont.demo;
 
 import akha.yakhont.demo.gui.SlideShow;
-import akha.yakhont.demo.retrofit.LocalJsonClient;
-import akha.yakhont.demo.retrofit.LocalJsonClient2;
-import akha.yakhont.demo.retrofit.Retrofit2Api;
-import akha.yakhont.demo.retrofit.RetrofitApi;
 
 import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
@@ -34,8 +30,6 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.Dagger2;
-import akha.yakhont.technology.retrofit.Retrofit;
-import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.rx.BaseRx.LocationRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
@@ -86,12 +80,6 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     private static final boolean            USE_SNACKBAR_ISO_ALERT          = false;
     private static final boolean            USE_SNACKBAR_ISO_TOAST          = false;
 
-    private       LocalJsonClient           mJsonClient;
-    private       LocalJsonClient2          mJsonClient2;
-
-    private final Retrofit <RetrofitApi>    mRetrofit                       = new Retrofit <>();
-    private final Retrofit2<Retrofit2Api>   mRetrofit2                      = new Retrofit2<>();
-
     private       SlideShow                 mSlideShow;
 
     @Override
@@ -121,21 +109,6 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        if (isRetrofit2())
-            mJsonClient2 = new LocalJsonClient2(this);
-        else
-            mJsonClient  = new LocalJsonClient (this);
-
-        // local JSON client, so URL doesn't matter
-        String url = "http://localhost/";
-        if (isRetrofit2())
-            mRetrofit2.init(Retrofit2Api.class, mRetrofit2.getDefaultBuilder(url).   client(mJsonClient2));
-        else
-            mRetrofit .init(RetrofitApi.class,  mRetrofit .getDefaultBuilder(url).setClient(mJsonClient));
-
-        // for normal HTTP requests you can use something like this
-//      mRetrofit2.init(Retrofit2Api.class, url);
 
         initLocationRx();   // optional
 
@@ -207,28 +180,6 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         Log.w("MainActivity", "onLocationChanged: " + location);
     }
 
-    public Retrofit <RetrofitApi>  getRetrofit() {
-        return mRetrofit;
-    }
-
-    public Retrofit2<Retrofit2Api> getRetrofit2() {
-        return mRetrofit2;
-    }
-
-    public void setScenario(String scenario) {
-        if (isRetrofit2())
-            mJsonClient2.getLocalJsonClientHelper().setScenario(scenario);
-        else
-            mJsonClient .getLocalJsonClientHelper().setScenario(scenario);
-    }
-
-    public void setNetworkDelay(@SuppressWarnings("SameParameterValue") int delay) {
-        if (isRetrofit2())
-            mJsonClient2.getLocalJsonClientHelper().setEmulatedNetworkDelay(delay);
-        else
-            mJsonClient .getLocalJsonClientHelper().setEmulatedNetworkDelay(delay);
-    }
-
     @Override
     public void finish() {
         super.finish();
@@ -259,6 +210,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
         @Provides
@@ -267,6 +219,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoLocationModule extends Dagger2.LocationModule {
         @Provides
@@ -275,6 +228,7 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoUiModule extends Dagger2.UiModule {
         @Override

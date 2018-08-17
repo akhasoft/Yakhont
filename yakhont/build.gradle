@@ -32,7 +32,6 @@ ext {
 
     projectDefaultFlavor        = 'core'
     projectJavaDocLinks         = ['http://google.github.io/dagger/api/latest/'             ,
-                                   'http://google.github.io/gson/apidocs/'                  ,
                                    'http://reactivex.io/RxJava/1.x/javadoc/'                ,
                                    'http://reactivex.io/RxJava/2.x/javadoc/'                ,
                                    'http://square.github.io/retrofit/1.x/retrofit/'         ,
@@ -47,8 +46,6 @@ ext.libVerLocation              = rootProject.ext.projectLibVerLocation
 
 ext.libVerRetrofit              = rootProject.ext.projectLibVerRetrofit
 ext.libVerRetrofit2             = rootProject.ext.projectLibVerRetrofit2
-
-ext.libVerGson                  = rootProject.ext.projectLibVerGson
 
 ext.libVerOkHttp3               = rootProject.ext.projectLibVerOkHttp3
 ext.libVerOkHttp                = '2.7.5'
@@ -191,25 +188,21 @@ dependencies {
     api                 "com.google.dagger:dagger:${libVerDefault}"             // Dagger 2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDefault}"
 
-    api                 "com.google.code.gson:gson:${libVerGson}"               // Gson
-
     api                 "com.squareup.picasso:picasso:2.5.2"                    // Picasso
 
     api                ("com.squareup.retrofit2:retrofit:${libVerDefault}") {   // Retrofit
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
-    api                ("com.squareup.retrofit2:converter-gson:${libVerDefault}") {
-        exclude group:  "com.google.code.gson", module: "gson"
-    }
+    api                 "com.squareup.retrofit2:converter-gson:${libVerDefault}"
+
     api                 "com.squareup.okhttp3:okhttp:${libVerDefault}"
     api                 "com.squareup.okhttp3:logging-interceptor:${libVerDefault}"
 
     api                 "com.squareup.retrofit2:adapter-rxjava:${libVerDefault}"
     api                 "com.squareup.retrofit2:adapter-rxjava2:${libVerDefault}"
 
-    api                ("com.squareup.retrofit:retrofit:${libVerRetrofit}") {
-        exclude group:  "com.google.code.gson", module: "gson"
-    }
+    api                 "com.squareup.retrofit:retrofit:${libVerRetrofit}"
+
     api                 "com.squareup.okhttp:okhttp:${libVerDefault}"
     api                 "com.squareup.okhttp:okhttp-urlconnection:${libVerDefault}"
 

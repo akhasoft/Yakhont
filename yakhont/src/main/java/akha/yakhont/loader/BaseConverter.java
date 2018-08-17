@@ -17,30 +17,23 @@
 package akha.yakhont.loader;
 
 import akha.yakhont.Core.Utils;
-import akha.yakhont.Core.Utils.TypeHelper;
+import akha.yakhont.Core.Utils.CursorHandler;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse.Converter;
+import akha.yakhont.loader.BaseResponse.ConverterGetter;
+import akha.yakhont.loader.BaseResponse.ConverterHelper;
 
-import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.database.MatrixCursor;
-import android.os.Build;
-import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
-import java.io.Reader;
-import java.lang.reflect.GenericArrayType;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.lang.reflect.Type;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * The data converter.
@@ -52,51 +45,82 @@ import java.util.Set;
  */
 public class BaseConverter<D> implements Converter<D> {
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static final  Gson                sGson           = new GsonBuilder().serializeNulls().create();
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static final  Object              sGsonLock       = new Object();
+    private static final String                     CACHE_STRING              = "data_string";
+    private static final String                     CACHE_BYTES               = "data_bytes";
+
+    private static final String                     CLASS_STRING              = "class_string";
+    private static final String                     CLASS_BYTES               = "class_bytes";
+
+    private static final byte[]                     EMPTY_BYTES               = new byte[0];
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected        final  JsonParser          mJsonParser     = new JsonParser();
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected        final  Object              mParserLock     = new Object();
+    protected               Class                   mClass;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected               Type                mType;
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected interface Visitor {
-        @SuppressWarnings("UnusedParameters")
-        void init(JsonObject jsonObject);
-        void add (String key, String value);
-    }
+    protected               ConverterGetter<D>      mBaseConverterGetter;
 
     /**
-     * Initialises a newly created {@code JsonConverter} object.
+     * Initialises a newly created {@code BaseConverter} object.
      */
     public BaseConverter() {
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "SameReturnValue"})
-    protected Gson getGson() {
-        return sGson;
+    private static byte[] getClassBytes(@NonNull final Class cls) {
+        try {
+            final ByteArrayOutputStream bytes  = new ByteArrayOutputStream();
+            final ObjectOutputStream    stream = new ObjectOutputStream(bytes);
+            stream.writeObject(cls);
+            stream.close();
+            return bytes.toByteArray();
+        }
+        catch (Exception exception) {
+            CoreLogger.log("failed", exception);
+        }
+        return EMPTY_BYTES;
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected JsonParser getJsonParser() {
-        return mJsonParser;
+    private static Class getClass(final byte[] data) {
+        if (data == null) {
+            CoreLogger.logWarning("bytes for class == null");
+            return null;
+        }
+        try {
+            final ObjectInputStream stream = new ObjectInputStream(new ByteArrayInputStream(data));
+            final Class cls = (Class) stream.readObject();
+            stream.close();
+            return cls;
+        }
+        catch (Exception exception) {
+            CoreLogger.log(Level.WARNING, "failed", exception);
+        }
+        return null;
+    }
+
+    private static String getClassString(@NonNull final Class cls) {
+        return cls.getName();
+    }
+
+    private static Class getClass(final String data) {
+        if (data == null) {
+            CoreLogger.logWarning("string for class == null");
+            return null;
+        }
+        try {
+            return Class.forName(data);
+        }
+        catch (/*ClassNotFound*/ Exception exception) {
+            CoreLogger.log(Level.WARNING, "failed", exception);
+        }
+        return null;
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public Converter<D> setType(final Type type) {
-        CoreLogger.log("set type to " + type);
-        mType = type;
-
-        return this;
+    public void setConverterGetter(final ConverterGetter<D> getter) {
+        if (getter == null) CoreLogger.logWarning("getter == null");
+        mBaseConverterGetter = getter;
     }
 
     /**
@@ -104,293 +128,111 @@ public class BaseConverter<D> implements Converter<D> {
      */
     @Override
     public Type getType() {
-        return mType;
+        return mClass;
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public ContentValues[] get(final D src) {
-        return src == null ? null: getContentValues(getJsonElement(src));
-    }
-
-    /**
-     * Converts data to {@code JsonElement}.
-     *
-     * @param src
-     *        The data to convert
-     *
-     * @return  The {@code JsonElement}
-     */
-    @SuppressWarnings("WeakerAccess")
-    protected JsonElement getJsonElement(@NonNull final D src) {
-        if (mType == null) setType(src.getClass());
-
-        synchronized (sGsonLock) {
-            //noinspection ConstantConditions
-            return getGson().toJsonTree(src, getType());
+    public ContentValues getValues(String string, byte[] bytes, Class cls) {
+        if (cls == null) {
+            CoreLogger.logError("data class == null");
+            return null;
         }
+        final ContentValues contentValues = new ContentValues();
+
+        contentValues.put(CACHE_BYTES , bytes  != null ? bytes : EMPTY_BYTES);
+        contentValues.put(CACHE_STRING, string != null ? string:          "");
+
+        contentValues.put(CLASS_BYTES , getClassBytes (cls));
+        contentValues.put(CLASS_STRING, getClassString(cls));
+
+        return contentValues;
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public D get(final Cursor cursor) {
-        D result                = null;
-        JsonElement jsonElement = null;
+    public D getData(final Cursor cursor) {
+        mClass = null;
 
-        try {
-            jsonElement = getJsonElement(cursor);
-            if (jsonElement == null) //noinspection ConstantConditions
-                return result;
-
-            synchronized (sGsonLock) {
-                result = getGson().fromJson(jsonElement, getType());
-            }
-        }
-        catch (Exception e) {
-            CoreLogger.log("failed, jsonElement == " + jsonElement, e);
+        if (mBaseConverterGetter == null) {
+            CoreLogger.logError("mBaseConverterGetter == null");
+            return null;
         }
 
-        return result;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected boolean isArray() {
-        final Type type = getType();
-        return type instanceof GenericArrayType || TypeHelper.isCollection(type) ||
-                (type instanceof Class && ((Class) type).isArray());
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected JsonElement getJsonElement(final Cursor cursor) {
-        if (cursor == null)           return null;
-        if (!cursor.moveToFirst())    return null;
-
-        final boolean isArray = isArray();
-        CoreLogger.log("isArray == " + isArray);
-
-        final JsonArray jsonArray = new JsonArray();
-        for (;;) {
-            jsonArray.add(getJsonObject(cursor));
-            if (!cursor.moveToNext()) break;
-        }
-
-        if (!isArray && jsonArray.size() > 1)
-            CoreLogger.logError("class is not array but jsonArray.size() = " + jsonArray.size());
-
-        return isArray ? jsonArray: jsonArray.size() > 0 ? jsonArray.get(0): null;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected JsonObject getJsonObject(final Cursor cursor) {
-        if (cursor == null) return null;
-
-        final JsonObject jsonObject = new JsonObject();
-        for (int i = 0; i < cursor.getColumnCount(); i++) {
-            String value = cursor.getString(i), name = cursor.getColumnName(i);
-            if (value != null) {
-                value = value.trim();
-                if (value.startsWith("[") || value.startsWith("{")) {
-                    synchronized (mParserLock) {
-                        jsonObject.add(name, getJsonParser().parse(value));
-                    }
-                    continue;
-                }
-            }
-            jsonObject.addProperty(name, value);
-        }
-        return jsonObject;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    @NonNull
-    protected Cursor getCursor(final JsonElement jsonElement) {
-        return accept(new CursorVisitor(), jsonElement).getResult();
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    @NonNull
-    public Cursor getCursor(@NonNull final Reader reader) {
-        JsonElement jsonElement = null;
-        try {
-            synchronized (mParserLock) {
-                jsonElement = getJsonParser().parse(reader);
-            }
-        }
-        catch (Exception e) {
-            CoreLogger.log("getCursor failed", e);
-        }
-        return getCursor(jsonElement);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public ContentValues getContentValues(final Cursor cursor) {
-        if (cursor == null)
-            CoreLogger.logError("cursor == null");
-        else {
-            final JsonObject jsonObject = getJsonObject(cursor);
-            if (jsonObject == null)
-                CoreLogger.logError("jsonObject == null");
-            else {
-                final ContentValues[] values = accept(new ContentValuesVisitor(),
-                        jsonObject).getResult();
-                if (values.length == 0)
-                    CoreLogger.logError("ContentValues[] are empty");
-                else {
-                    if (values.length > 1)
-                        CoreLogger.logWarning("length of ContentValues[] should be 1; actual size is " + values.length);
-                    return values[0];
-                }
-            }
-        }
-        return null;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    @NonNull
-    protected ContentValues[] getContentValues(final JsonElement jsonElement) {
-        return accept(new ContentValuesVisitor(), jsonElement).getResult();
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected <T extends Visitor> T accept(@NonNull final T visitor, final JsonElement jsonElement) {
-        if (jsonElement == null) return visitor;
-
-        if (jsonElement.isJsonObject())
-            return accept(visitor, jsonElement.getAsJsonObject());
-
-        if (jsonElement.isJsonArray())
-            return accept(visitor, jsonElement.getAsJsonArray());
-
-        CoreLogger.logError("unknown json element " + jsonElement);
-        return visitor;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected <T extends Visitor> T accept(@NonNull final T visitor, @NonNull final JsonObject jsonObject) {
-        visitor.init(jsonObject);
-        add(visitor, jsonObject);
-        return visitor;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected <T extends Visitor> T accept(@NonNull final T visitor, @NonNull final JsonArray jsonArray) {
-        for (int i = 0; i < jsonArray.size(); i++) {
-            if (jsonArray.get(i).isJsonNull())
-                continue;
-            else if (!jsonArray.get(i).isJsonObject()) {  // should never happen
-                CoreLogger.logError("unknown json array element type " + jsonArray.get(i));
-                continue;
-            }
-            final JsonObject jsonObject = jsonArray.get(i).getAsJsonObject();
-
-            visitor.init(jsonObject);
-            add(visitor, jsonObject);
-        }
-        return visitor;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected void add(@NonNull final Visitor visitor, @NonNull final JsonObject jsonObject) {
-        for (final Map.Entry<String, JsonElement> entry: jsonObject.entrySet()) {
-            final String      key         = entry.getKey();
-            final JsonElement jsonElement = entry.getValue();
-
-            if (jsonElement.isJsonPrimitive())
-                visitor.add(key, jsonElement.getAsString());
-
-            else if (jsonElement.isJsonNull())
-                visitor.add(key, null);
-
-            else if (jsonElement.isJsonArray())
-                visitor.add(key, jsonElement.getAsJsonArray().toString());
-
-            else if (jsonElement.isJsonObject())
-                visitor.add(key, jsonElement.getAsJsonObject().toString());
-
-            else {  // should never happen
-                CoreLogger.logError("unknown json element type " + jsonElement);
-                visitor.add(key, null);
-            }
-        }
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public class ContentValuesVisitor implements Visitor {
-
-        private final       Set<ContentValues>              mResult             = Utils.newSet();
-        private             ContentValues                   mContentValues;
-
-        @NonNull
-        private ContentValues[] getResult() {
-            store();
-            return mResult.toArray(new ContentValues[mResult.size()]);
-        }
-
-        @Override
-        public void init(@NonNull final JsonObject jsonObject) {
-            store();
-            mContentValues = new ContentValues();
-        }
-
-        @Override
-        public void add(@NonNull final String key, final String value) {
-            mContentValues.put(key, value);
-        }
-
-        private void store() {
-            if (mContentValues != null && mContentValues.size() > 0) mResult.add(mContentValues);
-        }
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public class CursorVisitor implements Visitor {
-
-        private             MatrixCursor                    mCursor;
-        private             MatrixCursor.RowBuilder         mBuilder;
-        private             int                             mIndex;
-
-        @NonNull
-        private Cursor getResult() {
-            return mCursor == null ? BaseResponse.EMPTY_CURSOR: mCursor;
-        }
-
-        @Override
-        public void init(@NonNull final JsonObject jsonObject) {
-            if (mCursor == null) mCursor = getCursor(jsonObject);
-
-            mBuilder = mCursor.newRow();
-            addColumn(BaseColumns._ID, String.valueOf(++mIndex));
-        }
-
-        @Override
-        public void add(@NonNull final String key, final String value) {
-            addColumn(key, value);
-        }
-
-        @NonNull
-        private MatrixCursor getCursor(@NonNull final JsonObject jsonObject) {
-            final Set<String> columns = Utils.newSet();
-            columns.add(BaseColumns._ID);
-
-            for (final Map.Entry<String, JsonElement> entry: jsonObject.entrySet())
-                columns.add(entry.getKey());
-
-            return new MatrixCursor(columns.toArray(new String[columns.size()]));
-        }
-
-        @SuppressLint("ObsoleteSdkInt")
-        private void addColumn(@NonNull final String name, final String value) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT)
-                mBuilder.add(name, value);
+        final ConverterCursorHandler handler = new ConverterCursorHandler();
+        if (Utils.cursorHelper(cursor, handler, true, false, null)) {
+            if (handler.mData == null)
+                CoreLogger.logError("can't convert cursor to the data object");
             else
-                mBuilder.add(value);
+                mClass = handler.mData.getClass();
+
+            return handler.mData;
+        }
+        else {
+            CoreLogger.logError("error during converting cursor to the data object");
+            return null;
+        }
+    }
+
+    private static byte[] getBytes(@NonNull final Cursor cursor, @NonNull final String column) {
+        final int idx = cursor.getColumnIndex(column);
+        return cursor.isNull(idx) ? null: cursor.getBlob(idx);
+    }
+
+    private static String getString(@NonNull final Cursor cursor, @NonNull final String column) {
+        final int idx = cursor.getColumnIndex(column);
+        return cursor.isNull(idx) ? null: cursor.getString(idx);
+    }
+
+    private class ConverterCursorHandler implements CursorHandler {
+
+        private D                                   mData;
+
+        @Override
+        public boolean handle(Cursor cursor) {
+
+            ConverterHelper<D> converterHelper = mBaseConverterGetter.get(null);
+            if (converterHelper == null) {
+                CoreLogger.log("default type not defined, the one from cache will be used");
+
+                Type type = BaseConverter.getClass(getBytes (cursor, CLASS_BYTES ));
+                if (type == null)
+                    type  = BaseConverter.getClass(getString(cursor, CLASS_STRING));
+
+                if (type == null)
+                    CoreLogger.logError("type == null");
+                else
+                    converterHelper = mBaseConverterGetter.get(type);
+            }
+
+            if (converterHelper == null)
+                CoreLogger.logError("converter == null");
+            else {
+                final D data = converterHelper.get(
+                        getString(cursor, CACHE_STRING), getBytes(cursor, CACHE_BYTES));
+                if (data == null)
+                    CoreLogger.logError("converter returned null");
+                else {
+
+                    if (mData == null)
+                        mData = data;
+                    else if (CoreReflection.isNotSingle(mData)) {
+                        @SuppressWarnings("unchecked")
+                        final D tmp = (D) CoreReflection.mergeObjects(mData, data);
+                        mData = tmp;
+                    }
+                    else {
+                        CoreLogger.logError("not mergeable objects: " + mData.getClass() +
+                                ", " + data.getClass());
+                        return false;
+                    }
+                }
+            }
+            return true;
         }
     }
 }

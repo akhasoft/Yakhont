@@ -18,15 +18,25 @@ package akha.yakhont.demo.retrofit;
 
 import akha.yakhont.demo.model.Beer;
 
-import io.reactivex.Observable;
-
 import java.util.List;
 
+import io.reactivex.Observable;
+
+import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.Query;
 
 public interface Retrofit2Api {
 
     @GET("/data")
     @SuppressWarnings("unused")
-    Observable<List<Beer>> data();  // Flowable, Maybe and Single works too - as well as a Call
+    Observable<List<Beer>>      getDataRx   ();  // Flowable, Maybe and Single works too
+
+    @GET("/data")
+    @SuppressWarnings("unused")
+    rx.Observable<List<Beer>>   getDataOldRx();  // Single works too
+
+    @GET("/data")
+    @SuppressWarnings("unused")
+    Call<List<Beer>>            getData(@Query("not_used") String notUsed /* just for demo */ );
 }

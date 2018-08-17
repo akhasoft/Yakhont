@@ -17,6 +17,10 @@
 package akha.yakhont.demosimple;
 
 import akha.yakhont.demosimple.model.Beer;
+import akha.yakhont.demosimple.retrofit.LocalJsonClient2;
+import akha.yakhont.demosimple.retrofit.Retrofit2Api;
+
+import akha.yakhont.technology.retrofit.Retrofit2;
 
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 
@@ -49,10 +53,28 @@ public class MainFragment extends Fragment {
         ((RecyclerView) getActivity().findViewById(R.id.recycler))
                 .setLayoutManager(new LinearLayoutManager(activity));
 
-        new Retrofit2CoreLoadBuilder<>(this, Beer[].class, activity.getRetrofit())
+        new Retrofit2CoreLoadBuilder<>(this, createRetrofit())
+                .setRequester(Retrofit2Api::getData)
                 .create()
+
                 // uncomment to stay in application if user cancelled data loading
 //              .setGoBackOnLoadingCanceled(false)
-                .startLoading();
+
+                .load();
+    }
+
+    // every loader should have unique Retrofit2 object; don't share it with other loaders
+    private Retrofit2<Retrofit2Api, Beer[]> createRetrofit() {
+        final Retrofit2<Retrofit2Api, Beer[]> retrofit2 = new Retrofit2<>();
+
+        // local JSON client, so URL doesn't matter
+        // uncomment network delay emulation for the progress dialog etc.
+        retrofit2.init(Retrofit2Api.class, retrofit2.getDefaultBuilder("http://localhost/")
+                .client(new LocalJsonClient2(retrofit2) /* .setEmulatedNetworkDelay(10) */ ));
+
+        // for normal HTTP requests you can do something like this
+//      return new Retrofit2<Retrofit2Api, Beer[]>().init(Retrofit2Api.class, "http://...");
+
+        return retrofit2;
     }
 }

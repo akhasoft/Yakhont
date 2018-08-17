@@ -47,11 +47,7 @@ import javax.inject.Provider;
  * The helper class for work with Android Permissions API. Usage example:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
- * import akha.yakhont.CorePermissions;
- *
- * import android.Manifest;
- *
- * new CorePermissions.RequestBuilder(activity, Manifest.permission.ACCESS_FINE_LOCATION)
+ * new CorePermissions.RequestBuilder(activity, android.Manifest.permission.ACCESS_FINE_LOCATION)
  *     .setOnGranted(new Runnable() {
  *         &#064;Override
  *         public void run() {

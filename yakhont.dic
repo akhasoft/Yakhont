@@ -19,7 +19,6 @@ jcenter
 Kharitonov
 landroid
 mergeable
-mypackage
 nand
 neenbedankt
 okhttp
@@ -27,15 +26,20 @@ okio
 parameterized
 reactivex
 recyclerview
+rootpage
+rowid
 rxjava
 snackbar
+sqlite
 squareup
 steppenwolf
 unsubscribe
 unsubscribed
 unsubscribes
 xlint
+Xdiags
 Yakhont
+yourpackage
 
 abbaye
 blanc

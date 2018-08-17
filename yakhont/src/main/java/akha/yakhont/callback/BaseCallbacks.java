@@ -59,19 +59,19 @@ import java.util.concurrent.Callable;
  * {@link #proceed(Object, Class) simple Activity} ones):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
- * package com.mypackage;
+ * package com.yourpackage;
  *
  * import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
  *
- * public class MyCallbacks extends BaseCallbacks.BaseActivityCallbacks {
+ * public class YourCallbacks extends BaseCallbacks.BaseActivityCallbacks {
  *
- *     private static final MyCallbacks sInstance = new MyCallbacks();
+ *     private static final YourCallbacks sInstance = new YourCallbacks();
  *
- *     private MyCallbacks() {
+ *     private YourCallbacks() {
  *         BaseActivityLifecycleProceed.register(this);
  *     }
  *
- *     public static void myHandler(Activity activity, ActionMode mode) {
+ *     public static void yourHandler(Activity activity, ActionMode mode) {
  *    
  *         // proceed annotated Activities only
  *         if (!BaseCallbacks.BaseProceed.proceed(sInstance, activity)) return;
@@ -87,18 +87,18 @@ import java.util.concurrent.Callable;
  * <p><pre style="background-color: silver; border: thin solid black;">
  * import akha.yakhont.callback.annotation.CallbacksInherited;
  *
- * &#064;CallbacksInherited(com.mypackage.MyCallbacks.class)
- * public class MyActivity extends Activity {
+ * &#064;CallbacksInherited(com.yourpackage.YourCallbacks.class)
+ * public class YourActivity extends Activity {
  *     ...
  * }
  * </pre>
  *
  * And add the following line to the <code>weaver.config</code> (which says to the Yakhont Weaver to insert the call to
- * <code>MyCallbacks.myHandler()</code> in the compiled <code>Activity.onActionModeStarted()</code>
+ * <code>YourCallbacks.yourHandler()</code> in the compiled <code>Activity.onActionModeStarted()</code>
  * method body - at the beginning or at the end, depending on the 2nd parameter - see below):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
- * android.app.Activity.onActionModeStarted before 'com.mypackage.MyCallbacks.myHandler($0, $$);'
+ * android.app.Activity.onActionModeStarted before 'com.yourpackage.YourCallbacks.yourHandler($0, $$);'
  * </pre>
  *
  * Here $0 means 'this', $$ - the list of method arguments
@@ -230,14 +230,14 @@ public abstract class BaseCallbacks<T> {
      * {@link BaseCallbacks general Activity} ones):
      *
      * <pre style="background-color: silver; border: thin solid black;">
-     * package com.mypackage;
+     * package com.yourpackage;
      *
-     * public class MyCallbacks { // you can create new class or add handler(s) to the existing one
+     * public class YourCallbacks { // you can create new class or add handler(s) to the existing one
      *
-     *     public static void myHandler(Service service, Intent intent, int flags, int startId) {
+     *     public static void yourHandler(Service service, Intent intent, int flags, int startId) {
      *    
      *         // proceed annotated Services only
-     *         if (!BaseCallbacks.proceed(service, MyCallbacks.class)) return;
+     *         if (!BaseCallbacks.proceed(service, YourCallbacks.class)) return;
      *
      *         // your code here (NOTE: you don't have to call service.onStartCommand() -
      *         //   it's already done by the Weaver)
@@ -250,8 +250,8 @@ public abstract class BaseCallbacks<T> {
      * <pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.callback.annotation.CallbacksInherited;
      *
-     * &#064;CallbacksInherited(com.mypackage.MyCallbacks.class)
-     * public class MyService extends Service {
+     * &#064;CallbacksInherited(com.yourpackage.YourCallbacks.class)
+     * public class YourService extends Service {
      *     ...
      * }
      * </pre>
@@ -259,7 +259,7 @@ public abstract class BaseCallbacks<T> {
      * And add the following line to the <code>weaver.config</code>:
      *
      * <pre style="background-color: silver; border: thin solid black;">
-     * android.app.Service.onStartCommand  true  'com.mypackage.MyCallbacks.myHandler($0, $$);'
+     * android.app.Service.onStartCommand  true  'com.yourpackage.YourCallbacks.yourHandler($0, $$);'
      * </pre>
      *
      * Please refer to the {@link BaseCallbacks} for more details.
@@ -380,8 +380,8 @@ public abstract class BaseCallbacks<T> {
             sValidator.validate(object, callbackClasses);
 
         if (callbackClasses != null)
-            for (final Class<? extends BaseCallbacks> tmpClass: callbackClasses)
-                if (tmpClass.isAssignableFrom(callbackClass)) return true;
+            for (final Class<? extends BaseCallbacks> baseCallbacksClass: callbackClasses)
+                if (baseCallbacksClass.isAssignableFrom(callbackClass)) return true;
 
         return false;
     }

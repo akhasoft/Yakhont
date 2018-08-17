@@ -243,7 +243,6 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         CoreLogger.log("onConnected");
 
         final Activity activity = LocationCallbacks.getActivity();
-
 /*
         try {
             onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));

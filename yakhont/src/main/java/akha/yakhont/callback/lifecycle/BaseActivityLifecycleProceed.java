@@ -501,9 +501,9 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class) simple Activity} ones):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
-     * package com.mypackage;
+     * package com.yourpackage;
      *
-     * public class MyActivityCallbacks extends BaseCallbacks.BaseActivityCallbacks {
+     * public class YourActivityCallbacks extends BaseCallbacks.BaseActivityCallbacks {
      *
      *     &#064;Override
      *     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
@@ -519,8 +519,8 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * <p><pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.callback.annotation.CallbacksInherited;
      *
-     * &#064;CallbacksInherited(com.mypackage.MyActivityCallbacks.class)
-     * public class MyActivity extends Activity {
+     * &#064;CallbacksInherited(com.yourpackage.YourActivityCallbacks.class)
+     * public class YourActivity extends Activity {
      *     ...
      * }
      * </pre>
@@ -530,21 +530,19 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * <p><pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.Core;
      *
-     * import com.mypackage.MyActivityCallbacks;
+     * import com.yourpackage.YourActivityCallbacks;
      *
-     * public class MyApplication extends Application {
+     * public class YourApplication extends Application {
      *
      *     &#064;Override
      *     public void onCreate() {
      *         super.onCreate();
-     *         ...
-     *         Core.init(this);
      *
-     *         BaseActivityLifecycleProceed.register(new MyActivityCallbacks());
-     *         // OR
+     *         BaseActivityLifecycleProceed.register(new YourActivityCallbacks());
+     *         // or
      *         // BaseActivityLifecycleProceed.register(
-     *         //     (BaseActivityCallbacks) new MyActivityCallbacks().setForceProceed(true));
-     *         // to apply callback handlers to ALL activities (annotated or not)
+     *         //     (BaseActivityCallbacks) new YourActivityCallbacks().setForceProceed(true));
+     *         // to apply callback handlers to all activities (annotated or not)
      *     }
      * }
      * </pre>

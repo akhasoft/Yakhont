@@ -25,7 +25,7 @@ ext {
     publishedPackaging          = 'jar'
     publishedVersion            = '0.9.19'
 
-    projectJavaDocLinks         = ['http://jboss-javassist.github.io/javassist/html/',
+    projectJavaDocLinks         = ['http://www.javassist.org/html/javassist/',
                                    'http://google.github.io/android-gradle-dsl/javadoc/current/']
 }
 

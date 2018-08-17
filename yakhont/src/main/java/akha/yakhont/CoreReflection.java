@@ -16,20 +16,25 @@
 
 package akha.yakhont;
 
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger.Level;
 
 import android.support.annotation.NonNull;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The helper class for work with Java Reflection API.
@@ -113,6 +118,7 @@ public class CoreReflection {
     @SuppressWarnings("WeakerAccess")
     public static <T> T invoke(@NonNull final Object object, @NonNull final String methodName, final Object... args)
             throws InvocationTargetException, IllegalAccessException {
+
         final Class[] classes = new Class[args == null ? 0: args.length];
         for (int i = 0; i < classes.length; i++)
             //noinspection ConstantConditions
@@ -192,7 +198,7 @@ public class CoreReflection {
      * Finds method to invoke.
      *
      * @param object
-     *        The object on which to call this method
+     *        The object (or object's class) on which to find method
      *
      * @param methodName
      *        The method name
@@ -248,6 +254,153 @@ public class CoreReflection {
     }
 
     /**
+     * Checks if parameter is array or {@link Collection}.
+     *
+     * @param object
+     *        The object (or object's class) on which to check
+     *
+     * @return  {@code true} if parameter is a container for other objects, {@code false} otherwise
+     */
+    public static boolean isNotSingle(@NonNull final Object object) {
+        final Class<?> cls = getClass(object);
+
+        // should be consistent with getObjects(Object)
+        return cls.isArray() || Collection.class.isAssignableFrom(cls);
+    }
+
+    /**
+     * Returns the size of parameter (if it's an array or {@link Collection}).
+     *
+     * @param object
+     *        The object
+     *
+     * @return  the object's size
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static int getSize(@NonNull final Object object) {
+        final Class<?> cls = getClass(object);
+
+        if (cls.isArray())                          return Array.getLength(object);
+        if (Collection.class.isAssignableFrom(cls)) return ((Collection) object).size();
+
+        CoreLogger.logError("failed getSize() for class " + cls.getName());
+        return 0;
+    }
+
+    /**
+     * Returns contained objects if parameter is array or {@link Collection} (null otherwise).
+     *
+     * @param object
+     *        The object
+     *
+     * @return  The list of objects (or null)
+     */
+    public static List<Object> getObjects(final Object object) {
+        if (object == null) {
+            CoreLogger.log("getObjects(): parameter is null");
+            return null;
+        }
+        final Class<?>  cls = object.getClass();    // not getClass(object)
+        List<Object> result = null;
+
+        // should be consistent with isSingle(Object)
+        try {
+            if (cls.isArray()) {
+                result = new ArrayList<>();
+                for (int i = 0; i < Array.getLength(object); i++)
+                    result.add(Array.get(object, i));
+            }
+            else if (Collection.class.isAssignableFrom(cls))
+                result = new ArrayList<>((Collection<?>) object);
+        }
+        catch (Exception exception) {
+            CoreLogger.log("failed getObjects() for class " + cls.getName(), exception);
+            return null;
+        }
+
+        if (result == null) CoreLogger.logWarning("neither array nor Collection: " + cls.getName());
+        return result;
+    }
+
+    /**
+     * Merges data (if parameters are arrays or Collections).
+     *
+     * @param object1
+     *        The array or {@link Collection}
+     *
+     * @param object2
+     *        The array or {@link Collection}
+     *
+     * @return  The merged data (or null)
+     */
+    @SuppressWarnings("unchecked")
+    public static Object mergeObjects(final Object object1, final Object object2) {
+        if (object1 == null) return object2;
+        if (object2 == null) return object1;
+
+        if (!isNotSingle(object1))
+            if (!isNotSingle(object2)) {
+                CoreLogger.logWarning("about to merge single objects: " + object1.getClass() +
+                        ", " + object2.getClass());
+                final Object tmp = Array.newInstance(object1.getClass(), 1);
+                Array.set(tmp, 0, object1);
+                return mergeObjects(tmp, object2);
+            }
+            else
+                return mergeObjects(object2, object1);
+
+        int size2 = getSize(object2);
+
+        // not getClass(object)
+        final Class<?> cls1 = object1.getClass();
+        final Class<?> cls2 = object2.getClass();
+
+        if (Collection.class.isAssignableFrom(cls1)) {
+
+            if (Collection.class.isAssignableFrom(cls2))  // @SuppressWarnings("unchecked")
+                ((Collection) object1).addAll((Collection) object2);
+
+            else if (cls2.isArray())
+                for (int i = 0; i < size2; i++)             // @SuppressWarnings("unchecked")
+                    ((Collection) object1).add(Array.get(object2, i));
+
+            else
+                ((Collection) object1).add(object2);
+
+            return object1;
+        }
+
+        if (cls1.isArray()) {
+            if (!isNotSingle(object2)) size2 = 1;
+
+            final int     size1 = Array.getLength(object1);
+            final Object result = Array.newInstance(cls1.getComponentType(), size1 + size2);
+
+            for (int i = 0; i < size1; i++)
+                Array.set(result, i, Array.get(object1, i));
+
+            if (Collection.class.isAssignableFrom(cls2)) {
+                int i = size1;
+                final Iterator iterator = ((Collection) object2).iterator();
+                //noinspection WhileLoopReplaceableByForEach
+                while (iterator.hasNext())
+                    Array.set(result, i++, iterator.next());
+            }
+            else if (cls2.isArray())
+                for (int i = 0; i < size2; i++)
+                    Array.set(result, i + size1, Array.get(object2, i));
+            else
+                Array.set(result, size1, object2);
+
+            return result;
+        }
+
+        // should never happen
+        CoreLogger.logError("can't merge objects: " + cls1 + ", " + cls2);
+        return null;
+    }
+
+    /**
      * Finds list of the overridden methods.
      *
      * @param derivedClass
@@ -298,7 +451,7 @@ public class CoreReflection {
                 if (Modifier.isStatic(baseModifiers) ||
                     Modifier.isFinal (baseModifiers)) continue;
 
-                final Boolean check = methodsEquals(baseMethod, derivedMethod);
+                final Boolean check = equalsMethods(baseMethod, derivedMethod);
                 if (check != null && check) {
                     methods.add(derivedMethod);
                     break;
@@ -323,7 +476,7 @@ public class CoreReflection {
      *          (it's not possible in source code - but possible on the JVM level)
      */
     @SuppressWarnings("WeakerAccess")
-    public static Boolean methodsEquals(final Method method1, final Method method2) {
+    public static Boolean equalsMethods(final Method method1, final Method method2) {
         if (method1 == null)
             CoreLogger.logError("method1 == null");
         else if (method2 == null)
@@ -359,13 +512,25 @@ public class CoreReflection {
      *
      * @return  {@code true} if the method has "package-private" (default) scope, {@code false} otherwise
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public static boolean isPackagePrivate(final Method method) {
         if (method == null) {
             CoreLogger.logError("method == null");
             return false;
         }
-        final int modifiers = method.getModifiers();
+        return isPackagePrivate(method.getModifiers());
+    }
+
+    /**
+     * Checks the scope of the modifiers (field / method / etc).
+     *
+     * @param modifiers
+     *        The modifiers to check
+     *
+     * @return  {@code true} if the modifiers has "package-private" (default) scope, {@code false} otherwise
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static boolean isPackagePrivate(final int modifiers) {
         return !Modifier.isPublic (modifiers) && !Modifier.isProtected(modifiers) &&
                !Modifier.isPrivate(modifiers);
     }
@@ -405,25 +570,22 @@ public class CoreReflection {
      */
     @SuppressWarnings({"ConstantConditions" /* lint complains: method too complex to analyze :-) */, "WeakerAccess", "SameParameterValue"})
     @NonNull
-    public static List<Method> findMethods(final Class<?> methodsClass, final Class<?> stopClass,
-                                           final boolean includePublic,    final boolean includeProtected,
-                                           final boolean includePrivate,   final boolean includePackage,
-                                           final Boolean includeSynthetic, final Boolean includeBridge) {
+    public static List<Method> findMethods(final Class<?> methodsClass,     final Class<?> stopClass,
+                                           final boolean  includePublic,    final boolean  includeProtected,
+                                           final boolean  includePrivate,   final boolean  includePackage,
+                                           final Boolean  includeSynthetic, final Boolean  includeBridge) {
         final List<Method> methods = new ArrayList<>();
         if (methodsClass == null) {
             CoreLogger.logError("class == null");
             return methods;
         }
+
         Class tmpClass = methodsClass;
         for (;;) {
             final Method[] tmpMethods = tmpClass.getDeclaredMethods();
             for (final Method method: tmpMethods) {
-                final int modifiers = method.getModifiers();
-
-                if (!includePublic    && Modifier.isPublic   (modifiers)) continue;
-                if (!includeProtected && Modifier.isProtected(modifiers)) continue;
-                if (!includePrivate   && Modifier.isPrivate  (modifiers)) continue;
-                if (!includePackage   && isPackagePrivate    (method))    continue;
+                if (!checkModifiers(method.getModifiers(), includePublic, includeProtected,
+                        includePrivate, includePackage))   continue;
 
                 if (includeSynthetic == null) {
                     if (skipBridge(includeBridge, method)) continue;
@@ -442,6 +604,7 @@ public class CoreReflection {
 
                 methods.add(method);
             }
+
             if (methodsClass.equals(stopClass)) break;
 
             tmpClass = tmpClass.getSuperclass();
@@ -454,13 +617,25 @@ public class CoreReflection {
         return includeBridge != null && includeBridge != method.isBridge();
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    private static boolean checkModifiers(final int modifiers,
+                                          final boolean includePublic, final boolean includeProtected,
+                                          final boolean includePrivate, final boolean includePackage) {
+        if (!includePublic    && Modifier.isPublic   (modifiers)) return false;
+        if (!includeProtected && Modifier.isProtected(modifiers)) return false;
+        if (!includePrivate   && Modifier.isPrivate  (modifiers)) return false;
+        //noinspection RedundantIfStatement
+        if (!includePackage   && isPackagePrivate    (modifiers)) return false;
+        return true;
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Finds field.
      *
      * @param object
-     *        The object on which to find this field
+     *        The object (or object's class) on which to find this field
      *
      * @param fieldName
      *        The field name
@@ -594,13 +769,162 @@ public class CoreReflection {
         return null;
     }
 
+    /**
+     * Returns object's fields as a map (name / value). Hidden fields are prefixed with the class name.
+     *
+     * @param object
+     *        The object on which to get fields
+     *
+     * @param stopClass
+     *        The super class(es) fields are retrieved too; specifies at which (if any) of super class
+     *        algorithm should stop retrieving fields
+     *
+     * @param prefixWithClass
+     *        {@code true} to prefix field with the class name, {@code false} otherwise
+     *
+     * @param includeHidden
+     *        {@code true} to include hidden fields, {@code false} otherwise
+     *
+     * @param includePublic
+     *        {@code true} to include public fields, {@code false} otherwise
+     *
+     * @param includeProtected
+     *        {@code true} to include protected fields, {@code false} otherwise
+     *
+     * @param includePrivate
+     *        {@code true} to include private fields, {@code false} otherwise
+     *
+     * @param includePackage
+     *        {@code true} to include package-private fields, {@code false} otherwise
+     *
+     * @param includeStatic
+     *        {@code true} to include static fields only, {@code false} to exclude them,
+     *        {@code null} to include all (no check for 'static' flag)
+     *
+     * @param includeSynthetic
+     *        {@code true} to include synthetic fields only, {@code false} to exclude them,
+     *        {@code null} to include all (no check for 'synthetic' flag)
+     *
+     * @return  The object's fields as a map
+     */
+    public static Map<String, Object> getFields(@NonNull final Object object,  final Class<?> stopClass,
+                                                final boolean prefixWithClass, final boolean includeHidden,
+                                                final boolean includePublic,   final boolean includeProtected,
+                                                final boolean includePrivate,  final boolean includePackage,
+                                                final Boolean includeStatic,   final Boolean includeSynthetic) {
+        final Map<String, Object> map = Utils.newMap();
+
+        final Collection<Field> fields = getFields(object, stopClass, includeHidden,
+                includePublic, includeProtected, includePrivate, includePackage,
+                includeStatic, includeSynthetic);
+
+        for (final Field field: fields) {
+            final String key   = field.getName();
+            final Object value = getField(object, field);
+
+            if (map.containsKey(key))
+                map.put(adjustFieldName(key, field.getDeclaringClass()), value);
+            else
+                map.put(prefixWithClass && key.indexOf('.') < 0 ?
+                        adjustFieldName(key, field.getDeclaringClass()): key, value);
+        }
+
+        return map;
+    }
+
+    /**
+     * Returns object's fields as a collection.
+     *
+     * @param object
+     *        The object on which to get fields
+     *
+     * @param stopClass
+     *        The super class(es) fields are retrieved too; specifies at which (if any) of super class
+     *        algorithm should stop retrieving fields
+     *
+     * @param includeHidden
+     *        {@code true} to include hidden fields, {@code false} otherwise
+     *
+     * @param includePublic
+     *        {@code true} to include public fields, {@code false} otherwise
+     *
+     * @param includeProtected
+     *        {@code true} to include protected fields, {@code false} otherwise
+     *
+     * @param includePrivate
+     *        {@code true} to include private fields, {@code false} otherwise
+     *
+     * @param includePackage
+     *        {@code true} to include package-private fields, {@code false} otherwise
+     *
+     * @param includeStatic
+     *        {@code true} to include static fields only, {@code false} to exclude them,
+     *        {@code null} to include all (no check for 'static' flag)
+     *
+     * @param includeSynthetic
+     *        {@code true} to include synthetic fields only, {@code false} to exclude them,
+     *        {@code null} to include all (no check for 'synthetic' flag)
+     *
+     * @return  The object's fields as a collection
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static Collection<Field> getFields(@NonNull final Object object, final Class<?> stopClass,
+                                              final boolean includeHidden,
+                                              final boolean includePublic, final boolean includeProtected,
+                                              final boolean includePrivate, final boolean includePackage,
+                                              final Boolean includeStatic, final Boolean includeSynthetic) {
+        final Map<String, Field > map = Utils.newMap();
+
+        final Class fieldsClass = object.getClass();    // not getClass(object)
+        Class tmpClass = fieldsClass;
+        for (;;) {
+            final Field[] fields = tmpClass.getDeclaredFields();
+            for (final Field field: fields) {
+                final int modifiers = field.getModifiers();
+                if (!checkModifiers(modifiers, includePublic, includeProtected,
+                        includePrivate, includePackage))    continue;
+
+                if (includeStatic != null) {
+                    final boolean isStatic = Modifier.isStatic(modifiers);
+                    if (!includeStatic &&  isStatic ||
+                         includeStatic && !isStatic)        continue;
+                }
+                if (includeSynthetic != null) {
+                    final boolean isSynthetic = field.isSynthetic();
+                    if (!includeSynthetic &&  isSynthetic ||
+                         includeSynthetic && !isSynthetic)  continue;
+                }
+
+                String key = field.getName();
+                if (map.containsKey(key)) {
+                    if (!includeHidden) continue;
+                    key = adjustFieldName(key, tmpClass);
+                }
+                map.put(key, field);
+            }
+
+            if (fieldsClass.equals(stopClass)) break;
+
+            tmpClass = tmpClass.getSuperclass();
+            if (tmpClass == null || tmpClass.equals(stopClass)) break;
+        }
+
+        final Set<Field> set = Utils.newSet();
+        set.addAll(map.values());
+        return set;
+    }
+
+    private static String adjustFieldName(@NonNull final String name, @NonNull final Class c) {
+        return String.format("%s.%s", c.getName(), name);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Gets the object's annotation.
      *
      * @param object
-     *        The object on which to get this annotation
+     *        The object (or object's class) on which to get this annotation
      *
      * @param annotation
      *        The annotation class
@@ -615,7 +939,7 @@ public class CoreReflection {
      * Checks whether the object was annotated.
      *
      * @param object
-     *        The object to check
+     *        The object (or object's class) to check
      *
      * @param annotation
      *        The annotation class
@@ -631,7 +955,7 @@ public class CoreReflection {
      * Checks whether the method was annotated.
      *
      * @param object
-     *        The object to check
+     *        The object (or object's class) to check
      *
      * @param annotation
      *        The annotation class
@@ -657,7 +981,7 @@ public class CoreReflection {
      * Checks whether the field was annotated.
      *
      * @param object
-     *        The object to check
+     *        The object (or object's class) to check
      *
      * @param annotation
      *        The annotation class

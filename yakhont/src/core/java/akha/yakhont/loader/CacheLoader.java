@@ -21,13 +21,11 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
 import akha.yakhont.loader.BaseResponse;
-import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.Source;
 
 import android.annotation.TargetApi;
 import android.app.Fragment;
 import android.app.LoaderManager;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.CursorLoader;
@@ -69,15 +67,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
 
-    private   final     WeakReference<Fragment>       mFragment;
-    private   final     Uri                           mUri;
-    private   final     int                           mLoaderId;
-    private             BaseCursorAdapter             mAdapter;
+    private        final WeakReference<Fragment>       mFragment;
+    private        final Uri                           mUri;
+    private        final int                           mLoaderId;
+    private              BaseCursorAdapter             mAdapter;
 
-    private   final     AtomicBoolean                 mForceCache               = new AtomicBoolean();
-    private   final     AtomicBoolean                 mMerge                    = new AtomicBoolean();
-
-    private   final     Converter<D>                  mConverter;
+    private        final AtomicBoolean                 mForceCache               = new AtomicBoolean();
+    private        final AtomicBoolean                 mMerge                    = new AtomicBoolean();
 
     /**
      * Initialises a newly created {@code CacheLoader} object.
@@ -87,9 +83,6 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
      *
      * @param fragment
      *        The fragment
-     *
-     * @param converter
-     *        The converter
      *
      * @param loaderId
      *        The loader ID
@@ -107,23 +100,15 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
      *        The URI resolver
      */
     @SuppressWarnings("WeakerAccess")
-    public CacheLoader(@NonNull final Context context,
-                       @NonNull final WeakReference<Fragment> fragment, @NonNull final Converter<D> converter,
-                       final int loaderId, @NonNull final String tableName, final String description, final BaseCursorAdapter adapter,
-                       @NonNull final UriResolver uriResolver) {
+    public CacheLoader(@NonNull final Context context, @NonNull final WeakReference<Fragment> fragment,
+                       final int loaderId, final String tableName, final String description,
+                       final BaseCursorAdapter adapter, @NonNull final UriResolver uriResolver) {
         super(context, description, tableName);
 
         mFragment           = fragment;
         mUri                = uriResolver.getUri(tableName);
         mLoaderId           = loaderId;
         mAdapter            = adapter;
-        mConverter          = converter;
-    }
-
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused"})
-    protected Converter<D> getConverter() {
-        return mConverter;
     }
 
     /**
@@ -154,32 +139,32 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
      * Sets the "force cache" flag. Setting to {@code true} forces loading data from cache.
      * <br>The default value is {@code false}.
      *
-     * @param forceCache
+     * @param value
      *        The value to set
      *
      * @return  The previous value
      */
     @SuppressWarnings("UnusedReturnValue")
-    public boolean setForceCache(final boolean forceCache) {
-        CoreLogger.log(addLoaderInfo("" + forceCache));
+    public boolean setForceCache(final boolean value) {
+        CoreLogger.log(addLoaderInfo("" + value));
 
-        return mForceCache.getAndSet(forceCache);
+        return mForceCache.getAndSet(value);
     }
 
     /**
      * Sets the "merge" flag. If set to {@code true} the loaded data will be merged with already existing.
      * <br>The default value is {@code false}.
      *
-     * @param merge
+     * @param value
      *        The value to set
      *
      * @return  The previous value
      */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    public boolean setMerge(final boolean merge) {
-        CoreLogger.log(addLoaderInfo("" + merge));
+    public boolean setMerge(final boolean value) {
+        CoreLogger.log(addLoaderInfo("" + value));
 
-        return mMerge.getAndSet(merge);
+        return mMerge.getAndSet(value);
     }
 
     /**
@@ -204,35 +189,35 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
     @CallSuper
     @Override
     protected void onSuccess(@NonNull final BaseResponse<R, E, D> baseResponse) {
-        storeResult(baseResponse);
+        storeResult(baseResponse.getSource(), baseResponse.getValues());
 
         super.onSuccess(baseResponse);
     }
 
-    private void storeResult(@NonNull final BaseResponse<R, E, D> baseResponse) {
-        switch (baseResponse.getSource()) {
-            case NETWORK:
-                break;
-            default:
-                return;
+    private void storeResult(@NonNull final Source source, final ContentValues[] values) {
+        if (source != Source.NETWORK) return;
+
+        if (Utils.getLoaderTableName(mUri) == null) {
+            CoreLogger.logError(addLoaderInfo("can't store in cache, empty table name"));
+            return;
         }
-
-        final D result = baseResponse.getResult();
-
-        CoreLogger.logWarning(addLoaderInfo("about to store in cache"));
-
-        final ContentValues[] values = mConverter.get(result);
-        baseResponse.setValues(values);
+        if (values == null || values.length == 0) {
+            CoreLogger.logError(addLoaderInfo("nothing to store in cache, empty values"));
+            return;
+        }
+        CoreLogger.log(addLoaderInfo("about to store in cache"));
 
         //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 try {
-                    storeResult(values);
+                    if (!mMerge.get()) BaseResponse.clearCache(mUri);
+
+                    getContext().getContentResolver().bulkInsert(mUri, values);
                 }
-                catch (Exception e) {
-                    CoreLogger.log(addLoaderInfo("can not store result"), e);
+                catch (Exception exception) {
+                    CoreLogger.log(addLoaderInfo("can not store result"), exception);
                 }
             }
 
@@ -241,16 +226,6 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
                 return addLoaderInfo("CacheLoader.storeResult()");
             }
         });
-    }
-
-    private void storeResult(final ContentValues[] values) {
-        final ContentResolver contentResolver = getContext().getContentResolver();
-
-        if (!mMerge.get()) contentResolver.delete(mUri, null, null);
-
-        if (values == null || values.length == 0) return;
-
-        contentResolver.bulkInsert(mUri, values);
     }
 
     /**
@@ -282,29 +257,19 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
             mError = error;
         }
 
-        /**
-         * Please refer to the base method description.
-         */
         @Override
         public Loader<Cursor> onCreateLoader(int id, Bundle args) {
             return new CursorLoader(getContext(), mUri, null, null, null, null);
         }
 
-        /**
-         * Please refer to the base method description.
-         */
         @Override
         public void onLoadFinished(Loader<Cursor> loader, Cursor cursor) {
             CoreLogger.log(addLoaderInfo("from cache"));
 
-            //noinspection Convert2Diamond
-            deliver(new BaseResponse<R, E, D>(mConverter.get(cursor), null, cursor,
-                    mError.getError(), Source.CACHE, mError.getThrowable()));
+            deliver(new BaseResponse<>(null, null, cursor, mError.getError(),
+                    Source.CACHE, mError.getThrowable()));
         }
 
-        /**
-         * Please refer to the base method description.
-         */
         @Override
         public void onLoaderReset(Loader<Cursor> loader) {
             CoreLogger.log(addLoaderInfo(null));

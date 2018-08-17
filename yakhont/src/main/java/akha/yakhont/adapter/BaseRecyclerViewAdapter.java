@@ -53,8 +53,10 @@ public class BaseRecyclerViewAdapter<T, R, E, D, VH extends ViewHolder> extends 
     private final   BaseCacheAdapter<T, R, E, D>    mBaseCacheAdapter;
     private final   DataBinder      <T>             mDataBinder;
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     protected       ViewHolderCreator<VH>           mViewHolderCreator;
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     @LayoutRes
     protected final int                             mLayoutId;
 

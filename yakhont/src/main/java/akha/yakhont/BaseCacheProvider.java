@@ -17,6 +17,7 @@
 package akha.yakhont;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.CursorHandler;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 
@@ -40,8 +41,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -55,13 +58,13 @@ import java.util.Set;
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * &lt;manifest xmlns:android="http://schemas.android.com/apk/res/android"
- *     package="com.mypackage" &gt;
+ *     package="com.yourpackage" &gt;
  *
  *     &lt;application ... &gt;
  *     ...
  *
  *     &lt;provider
- *         android:authorities="com.mypackage.provider"
+ *         android:authorities="com.yourpackage.provider"
  *         android:name="akha.yakhont.BaseCacheProvider"
  *         android:enabled="true"
  *         android:exported="false" /&gt;
@@ -81,21 +84,17 @@ import java.util.Set;
 public class BaseCacheProvider extends ContentProvider {
 
     private static final String         DB_NAME           = "cache.db";
-    private static final int            DB_VERSION        = 1;
+    private static final int            DB_VERSION        = 2;
 
     private static final String         MIME_DIR          = "vnd.android.cursor.dir";
     private static final String         MIME_ITEM         = "vnd.android.cursor.item";
     private static final String         MIME_SUBTYPE      = "/vnd.%s.%s";
 
-    private static final String         SELECTION_ID      = BaseColumns._ID + "=?";
+    private static final String         SELECTION_ID      = BaseColumns._ID + " = ?";
 
-    private static final String         CREATE_INDEX      = "CREATE INDEX IF NOT EXISTS idx_%s_id ON %s (" +
-                                                            BaseColumns._ID + " ASC);";
     private static final String         CREATE_TABLE      = "CREATE TABLE IF NOT EXISTS %s (" + BaseColumns._ID +
-                                                            " INTEGER PRIMARY KEY AUTOINCREMENT";
+                                                            " INTEGER PRIMARY KEY";     // alias for rowid
     private static final String         ALTER_TABLE       = "ALTER TABLE %s ADD COLUMN %s %s;";
-
-    private final Matcher               mUriMatcher       = new Matcher();
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -139,10 +138,6 @@ public class BaseCacheProvider extends ContentProvider {
         return true;
     }
 
-    private static String[] getSelectionIdArgs(@NonNull final Uri uri) {
-        return new String[] {uri.getLastPathSegment()};
-    }
-
     /**
      * Please refer to the base method description.
      */
@@ -154,6 +149,10 @@ public class BaseCacheProvider extends ContentProvider {
     private Uri insert(@NonNull final Uri uri, @NonNull final ContentValues values, final boolean silent,
                        final ContentValues[] bulkValues) {
         final String tableName = Utils.getLoaderTableName(uri);
+        if (tableName == null) {
+            CoreLogger.logError("insert failed");
+            return null;
+        }
 
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         long id = insert(db, tableName, values);
@@ -176,13 +175,8 @@ public class BaseCacheProvider extends ContentProvider {
     private boolean isMissedColumnsOrTable(@NonNull final SQLiteDatabase db, @NonNull final String tableName,
                                            @NonNull final ContentValues[] bulkValues) {
         final Map<String, CreateTableScriptBuilder.DataType> columns = getColumns(tableName, bulkValues);
-
-        if (!isTableExist(tableName)) {
-            createTable(db, tableName, columns);
-            return true;
-        }
-
-        return addColumns(db, tableName, columns);
+        return isTableExist(tableName) ?
+                addColumns(db, tableName, columns): createTable(db, tableName, columns);
     }
 
     /**
@@ -203,11 +197,9 @@ public class BaseCacheProvider extends ContentProvider {
                                  @NonNull final Map<String, CreateTableScriptBuilder.DataType> columns) {
         boolean columnsAdded = false;
         for (final String columnName: columns.keySet())
-            if (!isColumnExist(tableName, columnName)) {
-                execSQL(db, String.format(ALTER_TABLE, tableName, columnName,
+            if (!isColumnExist(tableName, columnName))
+                columnsAdded = execSQL(db, String.format(ALTER_TABLE, tableName, columnName,
                         columns.get(columnName).name()));
-                columnsAdded = true;
-            }
         return columnsAdded;
     }
 
@@ -245,13 +237,16 @@ public class BaseCacheProvider extends ContentProvider {
             if (values.size() == columns.size()) return columns;
         }
 
+        // set columns with nulls to TEXT
         for (final String key: getKeySet(bulkValues[0]))
             if (!columns.containsKey(key)) {
                 final CreateTableScriptBuilder.DataType type = CreateTableScriptBuilder.DataType.TEXT;
-                CoreLogger.logWarning(String.format("table %s, column %s: no data found, column type forced to %s",
+                CoreLogger.logError(String.format(
+                        "table %s, column %s: no data found, column type forced to %s",
                         tableName, key, type.name()));
                 columns.put(key, type);
             }
+
         return columns;
     }
 
@@ -264,13 +259,17 @@ public class BaseCacheProvider extends ContentProvider {
         if (bulkValues == null || bulkValues.length == 0) return 0;
 
         final String tableName = Utils.getLoaderTableName(uri);
-        CoreLogger.log(String.format(getLocale(), "table %s, %d rows", tableName, bulkValues.length));
+        if (tableName == null) {
+            CoreLogger.logError("bulkInsert failed");
+            return 0;
+        }
+        CoreLogger.log(String.format(getLocale(), "table: %s, number of rows to add: %d", tableName, bulkValues.length));
 
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         if (!isTableExist(tableName))
-            createTable(db, tableName, getColumns(tableName, bulkValues));
+            if (!createTable(db, tableName, getColumns(tableName, bulkValues))) return 0;
 
-        switch (mUriMatcher.match(uri)) {
+        switch (Matcher.match(uri)) {
             case ALL:
                 //noinspection Convert2Lambda
                 runTransaction(db, new Runnable() {
@@ -278,15 +277,60 @@ public class BaseCacheProvider extends ContentProvider {
                     public void run() {
                         for (final ContentValues values: bulkValues)
                             insert(uri, values, true, bulkValues);
-                        CoreLogger.log("bulkInsert completed");
+                        CoreLogger.log("bulkInsert completed, number of added rows: " + bulkValues.length);
                     }
                 });
                 return bulkValues.length;
 
-            case ID:        // fall through
-            default:
-                CoreLogger.logError("uri " + uri);
+            case ID:
+                CoreLogger.logError("failed bulk insert with ID, uri " + uri);
                 return 0;
+
+            default:
+                CoreLogger.logError("wrong uri " + uri);
+                return 0;
+        }
+    }
+
+    private interface CallableHelper<V> {
+        V call(String table, String condition, String[] args, String[] columns, String order, ContentValues data);
+    }
+
+    private static String[] getSelectionIdArgs(@NonNull final Uri uri) {
+        return new String[] {uri.getLastPathSegment()};
+    }
+
+    private <V> V handle(@NonNull final CallableHelper<V> callable, final V defValue, @NonNull final Uri uri,
+                         String condition, String[] args, final String[] columns, final String order,
+                         final ContentValues data) {
+        final String table = Utils.getLoaderTableName(uri);
+        if (table == null) {
+            CoreLogger.logError("handle data failed");
+            return defValue;
+        }
+
+        switch (Matcher.match(uri)) {
+            case ID:                        // fall through
+                if (!TextUtils.isEmpty(condition))
+                    CoreLogger.logError(String.format("selection %s will be replaced with %s, uri %s",
+                            condition, SELECTION_ID, uri.toString()));
+
+                condition = SELECTION_ID;
+                args      = getSelectionIdArgs(uri);
+
+            case ALL:
+                try {
+                    return callable.call(table, condition, args, columns, order, data);
+                }
+                catch (Exception exception) {
+                    CoreLogger.log(String.format("uri %s, selection %s, selection args %s",
+                            uri.toString(), condition, Arrays.deepToString(args)), exception);
+                    return defValue;
+                }
+
+            default:
+                CoreLogger.logError("wrong uri " + uri);
+                return defValue;
         }
     }
 
@@ -295,27 +339,15 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @Override
     public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        final String tableName = Utils.getLoaderTableName(uri);
-
-        switch (mUriMatcher.match(uri)) {       // fall through
-            case ID:
-                selection       = SELECTION_ID;
-                selectionArgs   = getSelectionIdArgs(uri);
-
-            case ALL:
-                try {
-                    return mDbHelper.getReadableDatabase().query(tableName, projection, selection, selectionArgs, null, null, sortOrder);
-                }
-                catch (Exception e) {
-                    CoreLogger.log(Level.WARNING, String.format("table %s, selection %s, selection args %s",
-                            tableName, selection, Arrays.deepToString(selectionArgs)), e);
-                    return BaseResponse.EMPTY_CURSOR;
-                }
-
-            default:
-                CoreLogger.logError("unknown uri " + uri);
-                return BaseResponse.EMPTY_CURSOR;
-        }
+        //noinspection Convert2Lambda
+        return handle(new CallableHelper<Cursor>() {
+            @Override
+            public Cursor call(String table, String condition, String[] args, String[] columns,
+                               String order, ContentValues data) {
+                return mDbHelper.getReadableDatabase().query(table, columns, condition, args,
+                        null, null, order);
+            }
+        }, BaseResponse.EMPTY_CURSOR, uri, selection, selectionArgs, projection, sortOrder, null);
     }
 
     /**
@@ -323,27 +355,23 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @Override
     public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
-        final String tableName = Utils.getLoaderTableName(uri);
+        //noinspection Convert2Lambda
+        return handle(new CallableHelper<Integer>() {
+            @Override
+            public Integer call(String table, String condition, String[] args, String[] columns,
+                                String order, ContentValues data) {
+                if (!isTableExist(table)) {
+                    CoreLogger.logWarning("tried to remove rows from not existing table " + table);
+                    return 0;
+                }
+                // from docs: To remove all rows and get a count pass "1" as the whereClause
+                if (condition == null) condition = "1";
+                final int rows = mDbHelper.getWritableDatabase().delete(table, condition, args);
 
-        if (!isTableExist(tableName)) return 0;
-
-        switch (mUriMatcher.match(uri)) {       // fall through
-            case ID:
-                selection       = SELECTION_ID;
-                selectionArgs   = getSelectionIdArgs(uri);
-
-            case ALL:
-                // from docs: To remove all rows and get a count pass "1" as the whereClause.
-                if (selection == null) selection = "1";
-                final int rows = mDbHelper.getWritableDatabase().delete(tableName, selection, selectionArgs);
-
-                CoreLogger.log(String.format(getLocale(), "table %s, %d rows", tableName, rows));
+                CoreLogger.log(String.format(getLocale(), "table: %s, number of deleted rows: %d", table, rows));
                 return rows;
-
-            default:
-                CoreLogger.logError("unknown uri " + uri);
-                return 0;
-        }
+            }
+        }, 0, uri, selection, selectionArgs, null, null, null);
     }
 
     /**
@@ -351,25 +379,17 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @Override
     public int update(@NonNull Uri uri, ContentValues values, String selection, String[] selectionArgs) {
-        final String tableName = Utils.getLoaderTableName(uri);
+        //noinspection Convert2Lambda
+        return handle(new CallableHelper<Integer>() {
+            @Override
+            public Integer call(String table, String condition, String[] args, String[] columns,
+                                String order, ContentValues data) {
+                final int rows = mDbHelper.getWritableDatabase().update(table, data, condition, args);
 
-        if (!isTableExist(tableName)) return 0;
-
-        switch (mUriMatcher.match(uri)) {       // fall through
-            case ID:
-                selection       = SELECTION_ID;
-                selectionArgs   = getSelectionIdArgs(uri);
-
-            case ALL:
-                final int rows = mDbHelper.getWritableDatabase().update(tableName, values, selection, selectionArgs);
-
-                CoreLogger.log(String.format(getLocale(), "table %s, %d rows", tableName, rows));
+                CoreLogger.log(String.format(getLocale(), "table: %s, number of updated rows: %d", table, rows));
                 return rows;
-
-            default:
-                CoreLogger.logError("unknown uri " + uri);
-                return 0;
-        }
+            }
+        }, 0, uri, selection, selectionArgs, null, null, values);
     }
 
     /**
@@ -377,52 +397,127 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @Override
     public String getType(@NonNull Uri uri) {
-        final String table = String.format(MIME_SUBTYPE, uri.getAuthority(), Utils.getLoaderTableName(uri));
+        final String param = Utils.getLoaderTableName(uri);
+        if (param == null) {
+            CoreLogger.logError("getType failed");
+            return null;
+        }
+        final String table = String.format(MIME_SUBTYPE, uri.getAuthority(), param);
 
-        switch (mUriMatcher.match(uri)) {
+        switch (Matcher.match(uri)) {
             case ALL:
                 return MIME_DIR + table;
             case ID:
                 return MIME_ITEM + table;
             default:
-                CoreLogger.logError("unknown uri " + uri);
+                CoreLogger.logError("wrong uri " + uri);
                 return null;
         }
     }
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isTableExist(@NonNull final String tableName) {
-        return isExist(tableName, BaseColumns._ID);
+    private boolean isTableExist(@NonNull final String table) {
+        return isExist(getDbForIsExist(), table /*, BaseColumns._ID */ );
     }
 
-    private boolean isColumnExist(@NonNull final String tableName, @NonNull final String columnName) {
-        return isExist(tableName, columnName);
+    private boolean isColumnExist(@NonNull final String table, @NonNull final String column) {
+        return isExist(getDbForIsExist(), table, column);
+    }
+
+    private SQLiteDatabase getDbForIsExist() {
+        // writable to trigger onCreate
+        return mDbHelper.getWritableDatabase();
+    }
+
+    /**
+     * Checks whether the given table exists or not.
+     *
+     * @param db
+     *        The database
+     *
+     * @param table
+     *        The table name
+     *
+     * @return  {@code true} if the table exists, {@code false} otherwise
+     */
+    public static boolean isExist(@NonNull final SQLiteDatabase db, @NonNull final String table) {
+        final Cursor cursor = db.rawQuery(
+                "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?",
+                new String[] {table});
+        if (cursor == null) return false;
+
+        final boolean result = cursor.getCount() > 0;
+        cursor.close();
+        return result;
     }
 
     /**
      * Checks whether the given column exists or not.
      *
-     * @param tableName
+     * @param db
+     *        The database
+     *
+     * @param table
      *        The table name
      *
-     * @param columnName
+     * @param column
      *        The column name
      *
      * @return  {@code true} if the column exists, {@code false} otherwise
      */
-    protected boolean isExist(@NonNull final String tableName, @NonNull final String columnName) {
+    public static boolean isExist(@NonNull final SQLiteDatabase db,
+                                  @NonNull final String table, @NonNull final String column) {
+        if (!isExist(db, table)) {
+            CoreLogger.logError("not existing table: " + table);
+            return false;
+        }
+        return sUsePragma ? isExist2(db, table, column): isExist1(db, table, column);
+    }
+
+    private static boolean              sUsePragma;
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static void setPragmaUsage(final boolean value) {
+        sUsePragma = value;
+    }
+
+    private static boolean isExist1(@NonNull final SQLiteDatabase db,
+                                    @NonNull final String table, @NonNull final String column) {
+        boolean result = false;
+        Cursor  cursor = null;
         try {
-            // writable to trigger onCreate
-            mDbHelper.getWritableDatabase().query(tableName, new String[] {columnName}, null, null, null, null, null, "1");
-            return true;
+            cursor = db.query(table, new String[] {column}, null,
+                    null, null, null, null, "1");
+            result = true;
         }
         catch (SQLException exception) {
-            CoreLogger.log(Level.DEBUG, tableName, exception);
+            CoreLogger.log(Level.DEBUG, table, exception);
         }
-        catch (Exception exception) {
-            CoreLogger.log(tableName, exception);
+        finally {
+            if (cursor != null) cursor.close();
         }
-        return false;
+        return result;
+    }
+
+    private static boolean isExist2(@NonNull final SQLiteDatabase db,
+                                    @NonNull final String table, @NonNull final String column) {
+        final boolean[] result = new boolean[] {false};
+        final Cursor cursor = db.rawQuery(String.format("PRAGMA table_info(%s)", table), null);
+        final int idx = cursor.getColumnIndex("name");
+
+        //noinspection Convert2Lambda
+        if (Utils.cursorHelper(cursor, new Utils.CursorHandler() {
+                    @Override
+                    public boolean handle(Cursor cursor) {
+                        if (column.equals(cursor.getString(idx))) result[0] = true;
+                        return !result[0];
+                    }
+                }, true, false, null))
+            return result[0];
+        else {
+            CoreLogger.logError(String.format("can't read columns list for %s", table));
+            return false;
+        }
     }
 
     /**
@@ -431,22 +526,23 @@ public class BaseCacheProvider extends ContentProvider {
      * @param db
      *        The database
      *
-     * @param tableName
+     * @param table
      *        The table name
      *
      * @param columns
      *        The list of columns
+     *
+     * @return  {@code true} if table was created successfully, {@code false} otherwise
      */
-    protected void createTable(@NonNull final SQLiteDatabase db, @NonNull final String tableName,
-                               @NonNull @Size(min = 1) final Map<String, CreateTableScriptBuilder.DataType> columns) {
-        CoreLogger.log(String.format("%s", tableName));
+    protected boolean createTable(@NonNull final SQLiteDatabase db, @NonNull final String table,
+                                  @NonNull @Size(min = 1) final Map<String, CreateTableScriptBuilder.DataType> columns) {
+        CoreLogger.log(String.format("%s", table));
 
-        final CreateTableScriptBuilder builder = new CreateTableScriptBuilder(tableName);
+        final CreateTableScriptBuilder builder = new CreateTableScriptBuilder(table);
         for (final String columnName: columns.keySet())
             builder.addColumn(columnName, columns.get(columnName));
-        execSQL(db, builder.create());
 
-        execSQL(db, String.format(CREATE_INDEX, tableName, tableName));
+        return execSQL(db, builder.create());
     }
 
     /**
@@ -534,10 +630,6 @@ public class BaseCacheProvider extends ContentProvider {
             runnable.run();
             db.setTransactionSuccessful();
         }
-        catch (Exception exception) {
-            CoreLogger.log("transaction failed", exception);
-            throw exception;
-        }
         finally {
             db.endTransaction();
         }
@@ -551,10 +643,23 @@ public class BaseCacheProvider extends ContentProvider {
      *
      * @param sql
      *        The SQL statement(s) to execute
+     *
+     * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    protected void execSQL(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
-        CoreLogger.log(sql);
-        db.execSQL(sql);
+    public static boolean execSQL(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
+        return execSQLWrapper(db, sql);
+    }
+
+    private static boolean execSQLWrapper(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
+        try {
+            CoreLogger.log(sql);
+            db.execSQL(sql);
+            return true;
+        }
+        catch (Exception exception) {
+            CoreLogger.log(sql, exception);
+            return false;
+        }
     }
 
     /**
@@ -571,7 +676,8 @@ public class BaseCacheProvider extends ContentProvider {
      *
      * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    protected boolean executeSQLScript(@NonNull final Context context, @NonNull final SQLiteDatabase db, @NonNull final String scriptName) {
+    public static boolean executeSQLScript(@NonNull final Context context, @NonNull final SQLiteDatabase db,
+                                           @NonNull final String scriptName) {
         try {
             final InputStream inputStream = context.getAssets().open(scriptName);
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -582,19 +688,154 @@ public class BaseCacheProvider extends ContentProvider {
             outputStream.close();
             inputStream.close();
 
-            final String[] script = outputStream.toString().split(";");
+            return executeSQLScript(db, outputStream.toString().split(";"));
+        }
+        catch (IOException exception) {
+            CoreLogger.log(scriptName, exception);
+            return false;
+        }
+    }
+
+    /**
+     * Executes SQL provided.
+     *
+     * @param db
+     *        The database
+     *
+     * @param script
+     *        The script to execute
+     *
+     * @return  {@code true} if script was executed successfully, {@code false} otherwise
+     */
+    public static boolean executeSQLScript(@NonNull final SQLiteDatabase db, final String[] script) {
+        if (script == null || script.length == 0) {
+            CoreLogger.logWarning("nothing to do");
+            return false;
+        }
+        try {
+            boolean result = true;
             //noinspection ForLoopReplaceableByForEach
             for (int i = 0; i < script.length; i++) {
                 final String sqlStatement = script[i].trim();
                 if (sqlStatement.length() > 0)
-                    execSQL(db, sqlStatement + ";");
+                    if (!execSQLWrapper(db, sqlStatement + ";")) result = false;
+            }
+            return result;
+        }
+        catch (Exception exception) {
+            CoreLogger.log(Arrays.deepToString(script), exception);
+            return false;
+        }
+    }
+
+    /**
+     * Executes SQL provided.
+     *
+     * @param db
+     *        The database
+     *
+     * @param script
+     *        The script to execute
+     *
+     * @return  {@code true} if script was executed successfully, {@code false} otherwise
+     */
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public static boolean executeSQLScript(@NonNull final SQLiteDatabase db, final String script) {
+        return executeSQLScript(db, new String[] { script });
+    }
+
+    /**
+     * Clears (drops) tables, virtual tables and views based on information from sqlite_master.
+     *
+     * @param db
+     *        The database
+     *
+     * @return  {@code true} if tables and views removing was executed successfully, {@code false} otherwise
+     */
+    public static boolean clear(@NonNull final SQLiteDatabase db) {
+        final Cursor cursor = db.rawQuery(
+                "SELECT type, name, rootpage FROM sqlite_master", null);
+
+        final CacheClearCursorHandler handler = new CacheClearCursorHandler();
+        if (Utils.cursorHelper(cursor, handler, true, false, null)) {
+            try {
+                boolean result = true;
+
+                if (handler.mTables.isEmpty())
+                    CoreLogger.logWarning("no cache tables found");
+
+                for (final String view: handler.mViews) {
+                    CoreLogger.log("about to drop view " + view);
+                    if (!executeSQLScript(db, "DROP VIEW IF EXISTS " + view))   result = false;
+                }
+                for (final String table: handler.mVTables) {
+                    CoreLogger.log("about to drop virtual table " + table);
+                    if (!executeSQLScript(db, "DROP TABLE IF EXISTS " + table)) result = false;
+                }
+                for (final String table: handler.mTables) {
+                    CoreLogger.log("about to drop table " + table);
+                    if (!executeSQLScript(db, "DROP TABLE IF EXISTS " + table)) result = false;
+                }
+
+                if (result)
+                    CoreLogger.log("db clear completed successfully");
+                else
+                    CoreLogger.logWarning("there's some issues during db clear");
+
+                return result;
+            }
+            catch (Exception exception) {
+                CoreLogger.log("db clear failed", exception);
+                return false;
+            }
+        }
+        else {
+            CoreLogger.logError("db clear failed");
+            return false;
+        }
+    }
+
+    private static class CacheClearCursorHandler implements CursorHandler {
+
+        private final List<String> mTables = new ArrayList<>(),
+                mVTables = new ArrayList<>(), mViews = new ArrayList<>();
+
+        private Integer mIdxType, mIdxName, mIdxPage;
+
+        @Override
+        public boolean handle(Cursor cursor) {
+            if (mIdxType == null) mIdxType = cursor.getColumnIndex("type");
+            if (mIdxName == null) mIdxName = cursor.getColumnIndex("name");
+            if (mIdxPage == null) mIdxPage = cursor.getColumnIndex("rootpage");
+
+            final String name = cursor.getString(mIdxName);
+            if (!name.toLowerCase(getLocale()).startsWith("sqlite_")) {
+
+                final String type = cursor.getString(mIdxType).toLowerCase(getLocale());
+                switch (type) {
+                    case "table":
+                        if (cursor.isNull(mIdxPage) || cursor.getInt(mIdxPage) == 0)
+                            mVTables.add(name);
+                        else
+                            mTables.add(name);
+                        break;
+
+                    case "view":
+                        mViews.add(name);
+                        break;
+                }
             }
             return true;
         }
-        catch (/*IOException | SQL*/Exception exception) {
-            CoreLogger.log(scriptName, exception);
-            return false;
-        }
+    }
+
+    /**
+     * Gets the {@code SQLiteOpenHelper} object.
+     *
+     * @return  The {@code SQLiteOpenHelper}
+     */
+    public SQLiteOpenHelper getDbHelper() {
+        return mDbHelper;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -622,19 +863,11 @@ public class BaseCacheProvider extends ContentProvider {
      *        The version of the DB after upgrade
      */
     protected void onUpgrade(@SuppressWarnings("UnusedParameters") @NonNull final SQLiteDatabase db, final int oldVersion, final int newVersion) {
-        CoreLogger.log(String.format(getLocale(), "on upgrade database %s from version %d to %d", DB_NAME, oldVersion, newVersion));
-    /*
-        if (newVersion > oldVersion) {  // handles upgrade
-            switch (oldVersion) {
-                case 1:        // fall through
-                    executeSQLScript(database, "update_v2.sql");
-                case 2:
-                    executeSQLScript(database, "update_v3.sql");
-                ...
-            }
-        }
-        else ...                        // handles downgrade
-     */
+        CoreLogger.log(String.format(getLocale(),
+                "on upgrade database %s from version %d to %d", DB_NAME, oldVersion, newVersion));
+        if (newVersion == 2 && oldVersion == 1)
+            if (!clear(mDbHelper.getWritableDatabase()))
+                CoreLogger.logError(String.format(getLocale(), "error during clear database %s", DB_NAME));
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -684,7 +917,7 @@ public class BaseCacheProvider extends ContentProvider {
         }
 
         @NonNull
-        private Match match(@NonNull final Uri uri) {
+        private static Match match(@NonNull final Uri uri) {
             final List<String> pathSegments     = uri.getPathSegments();
             final int pathSegmentsSize          = pathSegments.size();
 

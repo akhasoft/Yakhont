@@ -72,36 +72,38 @@ import javax.inject.Provider;
  * import dagger.Module;
  * import dagger.Provides;
  *
- * public class MyActivity extends Activity {
+ * public class YourActivity extends Activity {
  *
  *     &#064;Override
  *     protected void onCreate(Bundle savedInstanceState) {
- *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger
+ *
+ *         Core.init(getApplication(), null, DaggerYourActivity_YourDagger
  *             .builder()
  *             .parameters(Dagger2.Parameters.create())
  *             .build()
  *         );
  *
  *         super.onCreate(savedInstanceState);
- *         ...
+ *
+ *         // your code here: setContentView(...) etc.
  *     }
  *
  *     // custom progress dialog example (with custom view R.layout.progress)
  *
- *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class,
- *                                MyCallbacksValidationModule.class})
- *     interface MyDagger extends Dagger2 {
+ *     &#064;Component(modules = {YourLocationModule.class, YourUiModule.class,
+ *                                YourCallbacksValidationModule.class})
+ *     interface YourDagger extends Dagger2 {
  *
  *         &#064;Component.Builder
  *         interface Builder {
  *             &#064;BindsInstance
  *             Builder parameters(Dagger2.Parameters parameters);
- *             MyDagger build();
+ *             YourDagger build();
  *         }
  *     }
  *
  *     &#064;Module
- *     static class MyCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
+ *     static class YourCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
  *
  *         &#064;Provides
  *         Validator provideCallbacksValidator() {
@@ -110,7 +112,7 @@ import javax.inject.Provider;
  *     }
  *
  *     &#064;Module
- *     static class MyLocationModule extends Dagger2.LocationModule {
+ *     static class YourLocationModule extends Dagger2.LocationModule {
  *
  *         &#064;Provides
  *         LocationClient provideLocationClient(Dagger2.Parameters parameters) {
@@ -119,15 +121,15 @@ import javax.inject.Provider;
  *     }
  *
  *     &#064;Module
- *     static class MyUiModule extends Dagger2.UiModule {
+ *     static class YourUiModule extends Dagger2.UiModule {
  *
  *         &#064;Override
  *         protected Core.BaseDialog getProgress() {
- *             return MyProgress.newInstance();
+ *             return YourProgress.newInstance();
  *         }
  *     }
  *
- *     public static class MyProgress extends ProgressLoaderDialogFragment {
+ *     public static class YourProgress extends ProgressLoaderDialogFragment {
  *
  *         &#064;Override
  *         public Dialog onCreateDialog(Bundle savedInstanceState) {
@@ -140,8 +142,8 @@ import javax.inject.Provider;
  *             return builder.setView(view).create();
  *         }
  *
- *         public static MyProgress newInstance() {
- *             return (MyProgress) ProgressDialogFragment.newInstance(new MyProgress());
+ *         public static YourProgress newInstance() {
+ *             return (YourProgress) ProgressDialogFragment.newInstance(new YourProgress());
  *         }
  *     }
  * }
@@ -277,6 +279,7 @@ public interface Dagger2 {
         /**
          * Initialises a newly created {@code CallbacksValidationModule} object.
          */
+        @SuppressWarnings("WeakerAccess")
         public CallbacksValidationModule() {
         }
 
@@ -331,6 +334,7 @@ public interface Dagger2 {
         /**
          * Initialises a newly created {@code LocationModule} object.
          */
+        @SuppressWarnings("WeakerAccess")
         public LocationModule() {
         }
 

@@ -16,27 +16,15 @@
 
 package akha.yakhont.demosimple.retrofit;
 
-import akha.yakhont.Core.Utils;
+import akha.yakhont.technology.retrofit.Retrofit2;
+import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
+import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor;
 
-import android.util.Log;
+import okhttp3.logging.HttpLoggingInterceptor;
 
-import java.io.IOException;
+public class LocalJsonClient2 extends LocalJsonClient2Base {
 
-import okhttp3.Call;
-import okhttp3.Callback;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
-import okhttp3.WebSocket;
-import okhttp3.WebSocketListener;
-import okio.ByteString;
-
-public class LocalJsonClient2 extends OkHttpClient {
-
-    private static final String[] DATA = new String[] {
+    private static final    String[]        DATA    = new String[] {
             "Duvel",
             "Abbaye de Brogne",
             "Chimay",
@@ -56,128 +44,27 @@ public class LocalJsonClient2 extends OkHttpClient {
             "Wilderen Goud"
     };
 
-    private int mEmulatedNetworkDelay;
+    private final   Retrofit2   mRetrofit2;
 
-    private static String getJson() {
+    public LocalJsonClient2(Retrofit2 retrofit2) {
+        mRetrofit2 = retrofit2;
+        final HttpLoggingInterceptor logger = new HttpLoggingInterceptor();
+        logger.setLevel(HttpLoggingInterceptor.Level.BODY);
+        add(logger);
+
+        add(new BodySaverInterceptor() {
+            @Override
+            public void set(BodyCache data) {
+                mRetrofit2.setData(data);
+            }
+        });
+    }
+
+    @Override
+    protected String getJson() {
         StringBuilder builder = new StringBuilder("[");
         for (String str: DATA)
             builder.append("{\"title\":\"").append(str).append("\"},");
         return builder.replace(builder.length() - 1, builder.length(), "]").toString();
-    }
-
-    @SuppressWarnings("unused")
-    public LocalJsonClient2 setEmulatedNetworkDelay(int delay) {
-        mEmulatedNetworkDelay = delay;
-        return this;
-    }
-
-    private Response execute(final Request request) {
-        return new Response.Builder()
-                .code(200)
-                .protocol(Protocol.HTTP_1_0)
-                .request(request)
-                .message("")
-                .body(ResponseBody.create(MediaType.parse("application/json"),
-                        getJson().getBytes()))
-                .build();
-    }
-
-    @Override
-    public Call newCall(final Request request) {
-        return new Call() {
-            @Override
-            public Response execute() {
-                return LocalJsonClient2.this.execute(request);
-            }
-
-            @Override
-            public void enqueue(final Callback responseCallback) {
-                if (mEmulatedNetworkDelay > 0) {
-                    final Call call = this;
-                    //noinspection Convert2Lambda
-                    Utils.runInBackground(mEmulatedNetworkDelay * 1000, new Runnable() {
-                        @Override
-                        public void run() {
-                            enqueueWrapper(call, responseCallback);
-                        }
-                    });
-                }
-                else
-                    enqueueWrapper(this, responseCallback);
-            }
-
-            private void enqueueWrapper(Call call, Callback responseCallback) {
-                try {
-                    responseCallback.onResponse(call, execute());
-                }
-                catch (IOException e) {
-                    responseCallback.onFailure(call, e);
-                }
-            }
-
-            @Override
-            public Call clone() {
-                try {
-                    return (Call) super.clone();
-                }
-                catch (CloneNotSupportedException e) {      // should never happen
-                    Log.e("LocalJsonClient2", "clone failed", e);
-                    return null;
-                }
-            }
-
-            @Override
-            public Request request() {
-                return request;
-            }
-
-            @Override
-            public void cancel() {
-            }
-
-            @Override
-            public boolean isExecuted() {
-                return false;
-            }
-
-            @Override
-            public boolean isCanceled() {
-                return false;
-            }
-        };
-    }
-
-    @Override
-    public WebSocket newWebSocket(final Request request, WebSocketListener listener) {
-        return new WebSocket() {
-            @Override
-            public Request request() {
-                return request;
-            }
-
-            @Override
-            public long queueSize() {
-                return 0;
-            }
-
-            @Override
-            public boolean send(String text) {
-                return true;
-            }
-
-            @Override
-            public boolean send(ByteString bytes) {
-                return true;
-            }
-
-            @Override
-            public boolean close(int code, String reason) {
-                return true;
-            }
-
-            @Override
-            public void cancel() {
-            }
-        };
     }
 }

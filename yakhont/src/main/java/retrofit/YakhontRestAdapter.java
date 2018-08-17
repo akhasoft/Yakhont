@@ -17,60 +17,45 @@
 package retrofit;
 
 import akha.yakhont.Core.Utils.TypeHelper;
-import akha.yakhont.CoreReflection;
 
 import android.support.annotation.NonNull;
 
-import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
 import java.util.Map;
+
+import retrofit.converter.Converter;
 
 /** @exclude */ @SuppressWarnings("JavaDoc")
 public class YakhontRestAdapter<T> {
 
-    private T                               mHandler;
     private Class<T>                        mService;
-    private Map<Method, RestMethodInfo>     mMethodInfoCache;
-
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public interface YakhontCallback<D> extends Callback<D> {
-        boolean setType(Type type);
-    }
+    private Map<Method, RestMethodInfo>     mCache;
+    private Converter                       mConverter;
 
     public T create(@NonNull final Class<T> service, @NonNull final RestAdapter restAdapter) {
-        mHandler            = restAdapter.create(service);
-        mService            = service;
-        mMethodInfoCache    = restAdapter.getMethodInfoCache(service);
+        mService   = service;
+        mCache     = restAdapter.getMethodInfoCache(service);
+        mConverter = restAdapter.converter;
 
-        @SuppressWarnings("unchecked")
-        final T result = (T) Proxy.newProxyInstance(service.getClassLoader(), new Class<?>[] {service}, new YakhontHandler());
-        return result;
+        return restAdapter.create(service);
     }
 
-    private class YakhontHandler implements InvocationHandler {
-        @Override
-        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            final boolean notInvoke = (!method.getDeclaringClass().equals(Object.class)
-                    && args != null && args.length > 0 && args[args.length - 1] instanceof YakhontCallback)
-                    && ((YakhontCallback) args[args.length - 1]).setType(getType(method));
-            return notInvoke ? null: CoreReflection.invoke(mHandler, method, args);
-        }
+    public Type getType(final Method method) {
+        return method == null ? null: RestAdapter.getMethodInfo(mCache, method).responseObjectType;
     }
 
-    private Type getType(@NonNull final Method method) {
-        return RestAdapter.getMethodInfo(mMethodInfoCache, method).responseObjectType;
-    }
-
-    public Method findMethod(@NonNull final Type typeResponse) {
-        for (final Method method: mService.getMethods())
-            if (TypeHelper.checkType(typeResponse, getType(method)))
+    public Method findDefaultMethod(@NonNull final Type typeResponse) {
+        for (final Method method: mService.getMethods()) {
+            final Class<?>[] params = method.getParameterTypes();
+            if (params != null && params.length == 1 && Callback.class.isAssignableFrom(params[0]) &&
+                    TypeHelper.checkType(typeResponse, getType(method)))
                 return method;
+        }
         return null;
     }
 
-    public T getHandler() {
-        return mHandler;
+    public Converter getConverter() {
+        return mConverter;
     }
 }

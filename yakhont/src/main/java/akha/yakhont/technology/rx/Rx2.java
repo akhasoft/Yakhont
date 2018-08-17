@@ -75,6 +75,8 @@ public class Rx2<D> extends CommonRx<D> {
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public Rx2(final Disposable disposable) {
+        super("Rx2", !isErrorHandlerDefined());
+
         mDisposable = disposable;
     }
 
@@ -135,6 +137,7 @@ public class Rx2<D> extends CommonRx<D> {
      *
      * @see RxJavaPlugins#setErrorHandler
      */
+    @SuppressWarnings("WeakerAccess")
     public static boolean isErrorHandlerDefined() {
         return sIsErrorHandlerDefined;
     }
@@ -207,9 +210,8 @@ public class Rx2<D> extends CommonRx<D> {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public static <D> Disposable handle(
-            final Object handler, final Method method, final CallbackRx<D> callback)
-            throws Exception {
+    public static <D> Disposable handle(final Object handler, final Method method, final Object[] args,
+                                        final CallbackRx<D> callback) throws Exception {
         if (handler == null) {
             CoreLogger.logError("handler == null");
             return null;
@@ -220,23 +222,23 @@ public class Rx2<D> extends CommonRx<D> {
         }
         final Class<?> returnType = method.getReturnType();
 
-        if (returnType.isAssignableFrom(Flowable.class)) {
-            final Flowable<D> result = CoreReflection.invoke(handler, method);
+        if (Flowable.class.isAssignableFrom(returnType)) {
+            final Flowable<D> result = CoreReflection.invoke(handler, method, args);
             checkNull(result, "Flowable == null");
             return handle(result, callback);
         }
-        if (returnType.isAssignableFrom(Observable.class)) {
-            final Observable<D> result = CoreReflection.invoke(handler, method);
+        if (Observable.class.isAssignableFrom(returnType)) {
+            final Observable<D> result = CoreReflection.invoke(handler, method, args);
             checkNull(result, "Observable == null");
             return handle(result, callback);
         }
-        if (returnType.isAssignableFrom(Single.class)) {
-            final Single<D> result = CoreReflection.invoke(handler, method);
+        if (Single.class.isAssignableFrom(returnType)) {
+            final Single<D> result = CoreReflection.invoke(handler, method, args);
             checkNull(result, "Single == null");
             return handle(result, callback);
         }
-        if (returnType.isAssignableFrom(Maybe.class)) {
-            final Maybe<D> result = CoreReflection.invoke(handler, method);
+        if (Maybe.class.isAssignableFrom(returnType)) {
+            final Maybe<D> result = CoreReflection.invoke(handler, method, args);
             checkNull(result, "Maybe == null");
             return handle(result, callback);
         }

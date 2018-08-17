@@ -20,10 +20,15 @@ import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.technology.rx.BaseRx.CallbackRx;
+import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
+import akha.yakhont.technology.rx.Rx;
+import akha.yakhont.technology.rx.Rx2;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -34,6 +39,9 @@ import android.support.annotation.Nullable;
 import android.support.annotation.Size;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,11 +51,20 @@ import okhttp3.Cookie;
 import okhttp3.CookieJar;
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.ResponseBody;
+import okhttp3.internal.http.HttpHeaders;
 import okhttp3.logging.HttpLoggingInterceptor;
 
+import okio.Buffer;
+import okio.BufferedSource;
+import okio.GzipSource;
+
+import retrofit2.Call;
 import retrofit2.CallAdapter.Factory;
+import retrofit2.Callback;
 import retrofit2.Converter;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -60,16 +77,46 @@ import retrofit2.converter.gson.GsonConverterFactory;
  * The component to work with
  * {@link <a href="http://square.github.io/retrofit/2.x/retrofit/">Retrofit</a>} 2.x APIs.
  *
+ * <p>Every loader should have unique Retrofit2 object; don't share it with other loaders.
+ *
  * @param <T>
  *        The type of Retrofit API
+ *
+ * @param <D>
+ *        The type of data
  *
  * @yakhont.see BaseResponseLoaderWrapper.CoreLoad
  *
  * @author akha
  */
-public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
+public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
-    private Class<T>                        mService;
+    private static final Charset                UTF8            = Charset.forName("UTF-8");
+
+    private static final Callback               EMPTY_CALLBACK  = new Callback() {
+        @Override public void onResponse(Call call, Response  response ) {}
+        @Override public void onFailure (Call call, Throwable throwable) {}
+    };
+
+    private              BodyCache              mData;
+
+    private final BodySaverInterceptor          mBodySaver      = new BodySaverInterceptor() {
+        @Override
+        public void set(final BodyCache data) {
+            setData(data);
+        }
+    };
+/*
+    @SuppressWarnings({"Convert2Lambda", "Anonymous2MethodRef"})
+    private static final Logger                 LOGGER          = new Logger() {
+        @Override
+        public void log(final String message) {
+            CoreLogger.log(message);
+        }
+    };
+*/
+    private Class<T>                            mService;
+    private Retrofit                            mRetrofit;
 
     /**
      * Initialises a newly created {@code Retrofit2} object.
@@ -88,15 +135,166 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
     }
 
     /**
+     * Returns Retrofit 2 component.
+     *
+     * @return  The Retrofit 2 component
+     */
+    public Retrofit getRetrofit() {
+        return mRetrofit;
+    }
+
+    /**
+     * Returns server response.
+     *
+     * @return  The server response
+     */
+    public BodyCache getData() {
+        return mData;
+    }
+
+    /**
+     * Sets server response.
+     *
+     * @param data
+     *        The server response
+     */
+    @SuppressWarnings("WeakerAccess")
+    public void setData(final BodyCache data) {
+        mData = data;
+    }
+
+    /**
+     * Returns empty Retrofit callback.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The empty callback
+     */
+    @SuppressWarnings({"unchecked", "WeakerAccess"})
+    public static <D> Callback<D> emptyCallback() {
+        return (Callback<D>) EMPTY_CALLBACK;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    protected Callback<D> getEmptyCallback() {
+        return emptyCallback();
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    protected void checkForDefaultRequesterOnlyHandler(@NonNull final Method method)
+            throws InvocationTargetException, IllegalAccessException {
+        CoreReflection.invoke(mWrappedApi, method);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    public <R, E> Object request(@NonNull final Method method, final Object[] args,
+                                 final LoaderRx<R, E, D> rx) throws Exception {
+        final Callback<D> callback = getCallback();
+        if (callback == null) {
+            CoreLogger.logError("callback == null for method " + method);
+            return null;
+        }
+        CoreLogger.log("about to handle method " + method);
+
+        final T proxy = mOriginalApi;
+
+        final Class<?> returnType = method.getReturnType();
+        try {
+            if (Call.class.isAssignableFrom(returnType)) {
+                final Call<D> call = CoreReflection.invoke(proxy, method, args);
+                if (call == null) throw new Exception("Call == null");
+
+                call.enqueue(callback);
+                return call;
+            }
+
+            final CallbackRx<D> callbackRx = getRxWrapper(callback);
+
+            Object resultRx = Rx2.handle(proxy, method, args, callbackRx);
+            if (resultRx != null) {
+                getRx2DisposableHandler(rx).add(resultRx);
+                return resultRx;
+            }
+
+            resultRx = Rx.handle(proxy, method, args, callbackRx);
+            if (resultRx != null) {
+                getRxSubscriptionHandler(rx).add(resultRx);
+                return resultRx;
+            }
+
+            throw new Exception("unknown " + returnType + " (usually in Retrofit API)");
+        }
+        catch (InvocationTargetException exception) {
+            CoreLogger.logError("please check your build.gradle: maybe " +
+                    "\"implementation 'com.squareup.retrofit2:adapter-rxjava:...'\" and / or " +
+                    "\"implementation 'com.squareup.retrofit2:adapter-rxjava2:...'\" are missing");
+            throw exception;
+        }
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static <R, E, D> Rx2.Rx2Disposable getRx2DisposableHandler(final LoaderRx<R, E, D> rx) {
+        checkRxComponent(rx);
+        return rx == null ? CommonRx.getRx2DisposableHandlerAnonymous():
+                rx.getRx().getRx2DisposableHandler();
+    }
+
+    private static void checkRxComponent(final LoaderRx rx) {
+        if (rx == null) CoreLogger.logWarning(
+                "Rx component was not defined, so anonymous handler will be used");
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static <R, E, D> Rx.RxSubscription getRxSubscriptionHandler(final LoaderRx<R, E, D> rx) {
+        checkRxComponent(rx);
+        return rx == null ? CommonRx.getRxSubscriptionHandlerAnonymous():
+                rx.getRx().getRxSubscriptionHandler();
+    }
+
+    /**
+     * Creates {@link CallbackRx} from {@link Callback}.
+     *
+     * @param callback
+     *        The {@link Callback}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link CallbackRx}
+     */
+    public static <D> CallbackRx<D> getRxWrapper(final Callback<D> callback) {
+        if (callback == null) CoreLogger.logError("callback == null");
+
+        return callback == null ? null: new CallbackRx<D>() {
+            @SuppressWarnings("unused")
+            @Override
+            public void onResult(D result) {
+                callback.onResponse(null, Response.success(result));
+            }
+
+            @SuppressWarnings("unused")
+            @Override
+            public void onError(Throwable throwable) {
+                callback.onFailure(null, throwable);
+            }
+        };
+    }
+
+    /**
      * Please refer to the base method description.
      */
     @Override
-    public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
-                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
-                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
-                     @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers) {
+    public Retrofit2<T, D> init(
+            @NonNull final Class<T> service, @NonNull final String retrofitBase,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
+            @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers) {
 
-        init(service, retrofitBase, connectTimeout, readTimeout, headers, null);
+        return init(service, retrofitBase, connectTimeout, readTimeout, headers, null);
     }
 
     /**
@@ -119,15 +317,18 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
      *
      * @param cookies
      *        The optional cookies (or null)
+     *
+     * @return  This {@code Retrofit2} object to allow for chaining of calls
      */
     @SuppressWarnings("WeakerAccess")
-    public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
-                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
-                     @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
-                     @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers,
-                     @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> cookies) {
+    public Retrofit2<T, D> init(
+            @NonNull final Class<T> service, @NonNull final String retrofitBase,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
+            @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers,
+            @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> cookies) {
 
-        init(service, getDefaultBuilder(retrofitBase).client(getDefaultOkHttpClientBuilder(
+        return init(service, getDefaultBuilder(retrofitBase).client(getDefaultOkHttpClientBuilder(
                 connectTimeout, readTimeout, headers, cookies).build()),
                 connectTimeout, readTimeout, false);
     }
@@ -137,20 +338,52 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
      */
     @SuppressWarnings("WeakerAccess")
     @Override
-    public void init(@NonNull final Class<T> service, @NonNull final Builder builder,
-                     @IntRange(from = 1) final int connectTimeout,
-                     @IntRange(from = 1) final int readTimeout,
-                     final boolean makeOkHttpClient) {
-
+    public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder,
+                                @IntRange(from = 1) final int connectTimeout,
+                                @IntRange(from = 1) final int readTimeout,
+                                final boolean makeOkHttpClient) {
         super.init(service, builder, connectTimeout, readTimeout, makeOkHttpClient);
 
-        mService = service;
+        mService        = service;
 
         if (makeOkHttpClient) builder.client(getDefaultOkHttpClientBuilder(
                 connectTimeout, readTimeout, null, null).build());
 
-        final Retrofit retrofit = builder.build();
-        mRetrofitApi = retrofit.create(service);
+        mRetrofit       = builder.build();
+        mOriginalApi    = mRetrofit.create(service);
+
+        adjustApi(service);
+
+        return this;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
+        super.init(service, retrofitBase);
+        return this;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder) {
+        super.init(service, builder);
+        return this;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder,
+                                @IntRange(from = 1) final int connectTimeout,
+                                @IntRange(from = 1) final int readTimeout) {
+        super.init(service, builder, connectTimeout, readTimeout);
+        return this;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -243,10 +476,9 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
                 .connectTimeout(connectTimeout, TimeUnit.SECONDS)
                 .readTimeout   (readTimeout,    TimeUnit.SECONDS);
 
-        final HttpLoggingInterceptor logger = new HttpLoggingInterceptor();
+        final HttpLoggingInterceptor logger = new HttpLoggingInterceptor( /* LOGGER */ );
         logger.setLevel(CoreLogger.isFullInfo() ?
-                HttpLoggingInterceptor.Level.BODY:
-                HttpLoggingInterceptor.Level.NONE);
+                HttpLoggingInterceptor.Level.BODY: HttpLoggingInterceptor.Level.NONE);
         builder.addInterceptor(logger);
 
         if (headers != null && !headers.isEmpty())
@@ -262,6 +494,8 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
                     return chain.proceed(requestBuilder.build());
                 }
             });
+
+        builder.addInterceptor(mBodySaver);
 
         if (cookies != null && !cookies.isEmpty())
             builder.cookieJar(new CookieJar() {
@@ -326,6 +560,240 @@ public class Retrofit2<T> extends BaseRetrofit<T, Builder> {
                 .name(name)
                 .value(value)
                 .build();
+    }
+
+    /**
+     * The server response (can be retrieved via {@link #getData}).
+     */
+    public static class BodyCache {
+
+        private final String    mType;
+        private final byte[]    mResponse;
+
+        /**
+         * Initialises a newly created {@code BodyCache} object.
+         *
+         * @param type
+         *        The {@link MediaType}
+         *
+         * @param response
+         *        The server response
+         */
+        private BodyCache(@NonNull final String type, @NonNull final byte[] response) {
+            mType       = type;
+            mResponse   = response;
+        }
+
+        /**
+         * Returns media type.
+         *
+         * @return  The media type
+         */
+        public String getType() {
+            return mType;
+        }
+
+        /**
+         * Returns server response.
+         *
+         * @return  The server response
+         */
+        public byte[] getResponse() {
+            return mResponse;
+        }
+    }
+
+    /**
+     * Saves server response (can be retrieved via {@link #getData}).
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static abstract class BodySaverInterceptor implements Interceptor {
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public okhttp3.Response intercept(final Chain chain) throws IOException {
+            final Request request = chain.request();
+//          final String url = request.url().toString();
+
+            final okhttp3.Response response = chain.proceed(request);
+            final String url = getUrl(response);
+
+            final String[] type = new String[1];
+            final byte[][] data = new byte[1][];
+
+            if (getResponse(response, url, type, data))
+                set(new BodyCache(type[0], data[0]));
+
+            return response;
+        }
+
+        /**
+         * Saves server response.
+         *
+         * @param data
+         *        The data to save
+         */
+        public abstract void set(final BodyCache data);
+    }
+
+    private static String getUrl(final okhttp3.Response response) {
+        return response.request().url().toString();
+    }
+
+    /**
+     * Returns server response as string.
+     *
+     * @param response
+     *        The server response
+     *
+     * @return  The server response as string
+     */
+    @SuppressWarnings("unused")
+    public static String getResponseString(final okhttp3.Response response) {
+        final byte[][] data = new byte[1][];
+        final String[] type = new String[1];
+
+        if (!getResponseSafe(response, null, type, data)) return null;
+
+        try {
+            final MediaType mediaType = getMediaType(type[0]);
+            final Charset charset = mediaType == null ? UTF8: mediaType.charset(UTF8);
+
+            return charset == null ? null: new String(data[0], charset);
+        }
+        catch (Exception exception) {
+            CoreLogger.log("getResponseString() failed", exception);
+            return null;
+        }
+    }
+
+    /**
+     * Returns server response as byte array.
+     *
+     * @param response
+     *        The server response
+     *
+     * @return  The server response as byte array
+     */
+    @SuppressWarnings("unused")
+    public static byte[] getResponseBytes(final okhttp3.Response response) {
+        final byte[][] data = new byte[1][];
+        return getResponseSafe(response, null, null, data) ? data[0]: null;
+    }
+
+    /**
+     * Returns media type of server response.
+     *
+     * @param response
+     *        The server response
+     *
+     * @return  The media type
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static String getResponseType(final okhttp3.Response response) {
+        final String[] type = new String[1];
+        return getResponseSafe(response, null, type, null) ? type[0]: null;
+    }
+
+    /**
+     * Returns media type of server response.
+     *
+     * @param response
+     *        The server response
+     *
+     * @return  The media type
+     */
+    @SuppressWarnings("unused")
+    public static MediaType getResponseMediaType(final okhttp3.Response response) {
+        return getMediaType(getResponseType(response));
+    }
+
+    /**
+     * Converts string to media type.
+     *
+     * @param type
+     *        The media type to parse
+     *
+     * @return  The media type
+     */
+    public static MediaType getMediaType(final String type) {
+        if (type == null || type.trim().length() == 0) {
+            CoreLogger.logWarning("empty media type");
+            return null;
+        }
+        try {
+            final MediaType mediaType = MediaType.parse(type);
+            if (mediaType == null)
+                CoreLogger.logWarning("media type == null for " + type);
+            return mediaType;
+        }
+        catch (Exception exception) {
+            CoreLogger.log("getMediaType() failed", exception);
+            return null;
+        }
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static boolean getResponseSafe(final okhttp3.Response response, final String url,
+                                           final String[] type, final byte[][] data) {
+        try {
+            return getResponse(response, url, type, data);
+        }
+        catch (Exception exception) {
+            CoreLogger.log("getResponse() failed", exception);
+            return false;
+        }
+    }
+
+    private static boolean getResponse(final okhttp3.Response response, String url,
+                                       final String[] type, final byte[][] data) throws IOException {
+        if (url == null && response != null) url = response.request().url().toString();
+
+        if (response == null)             return logProblem(Level.ERROR, "response == null", url);
+        if (data == null && type == null) return logProblem(Level.ERROR, "nothing to do"   , url);
+
+        if (type != null && type.length != 1) return logProblem(Level.ERROR, "type length should be 1", url);
+        if (data != null && data.length != 1) return logProblem(Level.ERROR, "data length should be 1", url);
+
+        if (!HttpHeaders.hasBody(response)) return logProblem(Level.WARNING, "response has no body", url);
+
+        final ResponseBody body = response.body();
+        if (body == null) return logProblem(Level.WARNING, "response body == null", url);
+
+        if (data != null) {
+            final BufferedSource source = body.source();
+            source.request(Long.MAX_VALUE);
+
+            Buffer buffer = source.buffer();
+            if ("gzip".equalsIgnoreCase(response.headers().get("Content-Encoding"))) {
+                GzipSource gzip = null;
+                try {
+                    gzip = new GzipSource(buffer.clone());
+                    buffer = new Buffer();
+                    buffer.writeAll(gzip);
+                }
+                finally {
+                    if (gzip != null) gzip.close();
+                }
+            }
+            data[0] = buffer.clone().readByteArray();
+        }
+
+        if (type != null) {
+            final MediaType contentType = body.contentType();
+            if (contentType == null) logProblem(Level.WARNING, "content type == null", url);
+            type[0] = contentType == null ? null: contentType.toString();
+        }
+
+        return true;
+    }
+
+    @SuppressWarnings("SameReturnValue")
+    private static boolean logProblem(final Level level, final String text, final String url) {
+        CoreLogger.log(level, text + ", url " + url);
+        return false;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

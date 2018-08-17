@@ -19,6 +19,8 @@ package akha.yakhont.demo;
 import akha.yakhont.demo.gui.Bubbles;
 import akha.yakhont.demo.gui.SlideShow;
 import akha.yakhont.demo.model.Beer;
+import akha.yakhont.demo.retrofit.LocalJsonClient;
+import akha.yakhont.demo.retrofit.LocalJsonClient2;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 
@@ -27,13 +29,15 @@ import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.technology.retrofit.Retrofit;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
+import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
-import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper;
+// import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.support.technology.retrofit.RetrofitLoaderWrapper.RetrofitCoreLoadBuilder;
 import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
@@ -46,12 +50,13 @@ import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2
 /*
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
-import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
+// import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitCoreLoadBuilder;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 */
 
+import android.content.Context;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -74,13 +79,42 @@ import java.util.Objects;
 public class MainFragment extends /* android.app.Fragment */ android.support.v4.app.Fragment
         implements MeasuredViewAdjuster {
 
-    private CoreLoad                    mCoreLoad;
+    private       CoreLoad                              mCoreLoad;
     @SuppressWarnings("unused")
-    private boolean                     mNotDisplayLoadingErrors;
+    private       boolean                               mNotDisplayLoadingErrors;
+
+    private       LocalJsonClient                       mJsonClient;
+    private       LocalJsonClient2                      mJsonClient2;
+
+    private       Retrofit <RetrofitApi,  List<Beer>>   mRetrofit;
+    private       Retrofit2<Retrofit2Api, List<Beer>>   mRetrofit2;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         return initGui(inflater, container);
+    }
+
+    // every loader should have unique Retrofit object; don't share it with other loaders
+    private void createRetrofit(Context context) {
+
+        // local JSON client, so URL doesn't matter
+        String url = "http://localhost/";
+
+        if (getMainActivity().isRetrofit2()) {
+            mRetrofit2   = new Retrofit2<>();
+            mJsonClient2 = new LocalJsonClient2(context, mRetrofit2);
+            mRetrofit2.init(Retrofit2Api.class, mRetrofit2.getDefaultBuilder(url).client(mJsonClient2));
+        }
+        else {
+            mRetrofit   = new Retrofit<>();
+            mJsonClient = new LocalJsonClient(context);
+            mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder(url).setClient(mJsonClient));
+        }
+
+        // for normal HTTP requests you can do something like this
+//      return new Retrofit2<Retrofit2Api, List<Beer>>().init(Retrofit2Api.class, "http://...");
+
+        setPartToLoad(mPartCounter);
     }
 
     @Override
@@ -88,93 +122,102 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         super.onActivityCreated(savedInstanceState);
         initGui(savedInstanceState);
 
+        createRetrofit(getActivity());
+
         registerSwipeRefresh();     // SwipeRefreshLayout handling (optional)
 
         initRx();                   // optional
 
-        final TypeToken type = new TypeToken<List<Beer>>() {};
-
         if (getMainActivity().isRetrofit2())
-            //noinspection Anonymous2MethodRef,Convert2Lambda
-            mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(
-                    this, type, getMainActivity().getRetrofit2()) /* {
+            //noinspection Convert2Diamond
+            mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(this, mRetrofit2) /* {
 
-                        @Override
-                        public void makeRequest(@NonNull Callback<List<Beer>> callback) {
-                            // if the default request is not OK (by some reason),
-                            // you can provide your own here, e.g. for Retrofit2 Call:
-                            //     getApi().data().enqueue(callback);
-                            // or for Rx2 Flowable:
-                            //     getRx2DisposableHandler().add(Rx2.handle(getApi().data(), getRxWrapper(callback)));
-                            // or for Rx Observable:
-                            //     getRxSubscriptionHandler().add(Rx.handle(getApi().data(), getRxWrapper(callback)));
-                            // or ...
-                        }
-                    } */
+                // usage examples ('raw calls' means - without default Yakhont pre- and postprocessing)
+                @Override
+                public void makeRequest(@NonNull retrofit2.Callback<List<Beer>> callback) {
+                    // typical call for Retrofit2 API (Rx2 / Rx / Call) - but for such simple calls
+                    //   it's better to use 'setRequester(Retrofit2Api::getDataRx)'
+//                  getApi(callback).getDataRx();
 
-                    .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
+                    // raw call for Retrofit2 API with Rx2   ('getApi()' takes null)
+                    //   it's exactly the same as 'setRequester(Retrofit2Api::getDataRx)' below
+                    //   and 'getApi(callback).getDataRx()' above
+                    getRx2DisposableHandler().add(akha.yakhont.technology.rx.Rx2.handle(
+                            getApi(null).getDataRx(), getRxWrapper(callback)));
 
-                    // in general, it's an optional callback -
-                    //   but normally you'll want to provide some customization here
-                    .setLoaderCallback(new Retrofit2CoreLoadBuilder.LoaderCallback<List<Beer>>() {
-                        @SuppressWarnings("unused")
-                        @Override
-                        public void onLoadFinished(List<Beer> data, Source source) {
-                            MainFragment.this.onLoadFinished(data, source);
-                        }
-                        /*
-                        @Override
-                        public void onLoadError(Throwable error, Source source) {
-                            // customize your error reporting here
-                            // set 'mNotDisplayLoadingErrors = true' to suppress default
-                            //   error reporting (Toast)
-                            // also, you can do such customization in Rx onError() below
-                        } */
-                    })
+                    // raw call for Retrofit2 API without Rx ('getApi()' takes null)
+//                  getApi(null).getData("not used parameter").enqueue(callback);
+                }
+            } */
 
-                    .setViewBinder(new ViewBinder() {                       // data binding (optional too)
-                        @Override
-                        public boolean setViewValue(View view, Object data, String textRepresentation) {
-                            return MainFragment.this.setViewValue(view, data, textRepresentation);
-                        }
-                    })
+            // for raw calls you should set cache table name and data type
+//          .setTableName("your_cache_table_name")
+//          .setType(new TypeToken<List<Beer>>() {}.getType())
 
-                    .setRx(mRxRetrofit2)                                    // optional
+            .setRequester(Retrofit2Api::getDataRx)
+// or       .setRequester(retrofit2Api -> retrofit2Api.getData("not used parameter"))
 
-                    .create();
+            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
+
+            // it's optional - but sometimes you need to provide some customization here
+            .setLoaderCallback(MainFragment.this::onLoadFinished)
+/*
+            // just an example: it does exactly the same, but provides more options to customize
+            .setLoaderCallback(new Retrofit2CoreLoadBuilder.LoaderCallback<List<Beer>>() {
+                @Override
+                public void onLoadFinished(List<Beer> data, Source source) {
+                    MainFragment.this.onLoadFinished(data, source);
+                }
+                @Override
+                public void onLoadError(Throwable error, Source source) {
+                    // customize your error reporting here (e.g. set 'mNotDisplayLoadingErrors = true'
+                    //   to suppress Toast-based default error reporting)
+                    // also, you can do such customization in 'Rx.onError()' below
+                }
+            })
+*/
+            .setViewBinder(MainFragment.this::setViewValue)         // data binding (optional too)
+
+            .setRx(mRxRetrofit2)                                    // optional
+
+            .create();
         else
-            //noinspection Anonymous2MethodRef,Convert2Lambda
-            mCoreLoad = new RetrofitCoreLoadBuilder<List<Beer>, RetrofitApi>(
-                    this, type, getMainActivity().getRetrofit())
+            //noinspection Anonymous2MethodRef,Convert2Lambda,Convert2Diamond
+            mCoreLoad = new RetrofitCoreLoadBuilder<List<Beer>, RetrofitApi>(this, mRetrofit) /* {
 
-                    // for the moment the default request doesn't support Rx Observables etc. -
-                    //   please consider to switch to Retrofit2 (or override makeRequest)
+                // 'setRequester(...)' doesn't work for Retrofit 1
+                @Override
+                public void makeRequest(@NonNull retrofit.Callback<List<Beer>> callback) {
+                    getApi(callback).getData(callback);
+                }
+            } */
 
-                    .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
+            // this is not related to Retrofit 1 - just demo without overriding makeRequest(callback):
+            //   Retrofit API method to call will be selected based on the method return type
+            //
+            // Note: default requester for Retrofit 1 doesn't support Rx -
+            //   please consider to switch to Retrofit 2 (or override makeRequest)
+            .setType(new TypeToken<List<Beer>>() {}.getType())
 
-                    // see comment above
-                    .setLoaderCallback(new RetrofitCoreLoadBuilder.LoaderCallback<List<Beer>>() {
-                        @SuppressWarnings("unused")
-                        @Override
-                        public void onLoadFinished(List<Beer> data, Source source) {
-                            MainFragment.this.onLoadFinished(data, source);
-                        }
-                    })
+            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
-                    .setViewBinder(new ViewBinder() {                       // data binding (optional too)
-                        @Override
-                        public boolean setViewValue(View view, Object data, String textRepresentation) {
-                            return MainFragment.this.setViewValue(view, data, textRepresentation);
-                        }
-                    })
+            .setLoaderCallback(MainFragment.this::onLoadFinished)
 
-                    .setRx(mRxRetrofit)                                     // optional
+            // Java 7 style
+            .setViewBinder(new ViewBinder() {                       // data binding (optional too)
+                @Override
+                public boolean setViewValue(View view, Object data, String textRepresentation) {
+                    return MainFragment.this.setViewValue(view, data, textRepresentation);
+                }
+            })
 
-                    .create();
+            .setRx(mRxRetrofit)                                     // optional
 
-        // clear cache (optional)
-        if (savedInstanceState == null) BaseResponseLoaderWrapper.clearCache(mCoreLoad);
-        // or akha.yakhont.loader.BaseResponse.clearCache(getActivity(), "your_table_name");
+            .create();
+
+        // uncomment to clear cache
+//      if (savedInstanceState == null) BaseResponseLoaderWrapper.clearCache(mCoreLoad);
+// or   akha.yakhont.loader.BaseResponse.clearCache("your_table_name");
 
         startLoading(savedInstanceState, false);
     }
@@ -184,7 +227,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         mCoreLoad.setGoBackOnLoadingCanceled(!byUserRequest);
 
-        mCoreLoad.startLoading(new LoadParameters(null, byUserRequest ? mCheckBoxForce.isChecked():
+        mCoreLoad.load(new LoadParameters(null, byUserRequest ? mCheckBoxForce.isChecked():
                 savedInstanceState != null, !byUserRequest, mCheckBoxMerge.isChecked(),
                 mNotDisplayLoadingErrors, false));
     }
@@ -229,11 +272,19 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     private void setPartToLoad(int counter) {
-        getMainActivity().setScenario("part" + counter);
+        String scenario = "part" + counter;
+
+        if (getMainActivity().isRetrofit2())
+            mJsonClient2.getLocalJsonClientHelper().setScenario(scenario);
+        else
+            mJsonClient .getLocalJsonClientHelper().setScenario(scenario);
     }
 
     private void setNetworkDelay() {
-        getMainActivity().setNetworkDelay(EMULATED_NETWORK_DELAY);
+        if (getMainActivity().isRetrofit2())
+            mJsonClient2.getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
+        else
+            mJsonClient .getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
     }
 
     private MainActivity getMainActivity() {
@@ -352,7 +403,6 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     private void initGui(final Bundle savedInstanceState) {
         if (savedInstanceState != null && savedInstanceState.keySet().contains(ARG_PART_COUNTER))
             mPartCounter = savedInstanceState.getInt(ARG_PART_COUNTER);
-        setPartToLoad(mPartCounter);
 
         mSlideShow.init(this);
 

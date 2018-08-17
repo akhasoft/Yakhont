@@ -244,6 +244,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         final int code = apiException.getStatusCode();
 
         switch (code) {
+
             case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                 CoreLogger.log("Location settings are not satisfied; about to upgrade location settings");
                 try {
@@ -276,8 +277,10 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     @Override
     public boolean onActivityResult(Activity activity, RequestCodes requestCode, int resultCode, Intent data) {
         switch (requestCode) {
+
             case LOCATION_CHECK_SETTINGS:
                 switch (resultCode) {
+
                     case Activity.RESULT_OK:
                         // nothing to do, startSettingsUpdates() will be called in onResume again
                         CoreLogger.log("User agreed to make required location settings changes");

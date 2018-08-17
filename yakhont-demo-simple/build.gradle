@@ -103,6 +103,8 @@ android {
                 //noinspection GroovyAssignabilityCheck
                 proguardFile            '../proguard/libs/' + it
             }
+            proguardFile                '../proguard/libs/proguard-gson.pro'
+
             proguardFile                './proguard/proguard-project-app.pro'
             proguardFile                '../proguard/proguard-project.pro'
             //noinspection GroovyAssignabilityCheck
@@ -166,6 +168,7 @@ dependencies {
         exclude group:  "com.google.code.gson", module: "gson"
     }
     implementation      "com.squareup.okhttp3:okhttp:${libVerDemoSimpleDefault}"
+    implementation      "com.squareup.okhttp3:logging-interceptor:${libVerDemoSimpleDefault}"
 
     implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoSimpleRxJava2}"        // Rx
     implementation      "io.reactivex:rxjava:${libVerDemoSimpleRxJava}"

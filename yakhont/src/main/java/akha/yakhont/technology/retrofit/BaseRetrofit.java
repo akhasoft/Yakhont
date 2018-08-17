@@ -17,13 +17,20 @@
 package akha.yakhont.technology.retrofit;
 
 import akha.yakhont.Core;
+import akha.yakhont.Core.Requester;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreReflection;
+import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.support.annotation.CallSuper;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
 import java.util.Map;
 
 /**
@@ -31,49 +38,49 @@ import java.util.Map;
  * <p>
  * Supports both {@link <a href="http://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>}
  * and {@link <a href="http://square.github.io/retrofit/2.x/retrofit/">Retrofit 2</a>}.
- * <p>
- * For example, in Activity (or in Application):
+ *
+ * <p>Every loader should have unique Retrofit2 (or Retrofit) object; don't share it with other loaders.
+ *
+ * <p>For example:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
+ * import com.yourpackage.model.YourData;
+ * import com.yourpackage.retrofit.YourRetrofit;
+ *
  * import akha.yakhont.technology.retrofit.Retrofit2;
  *
- * private static Retrofit2&lt;MyRetrofitApi&gt; sRetrofit = new Retrofit2&lt;&gt;();
- *
- * &#064;Override
- * protected void onCreate(Bundle savedInstanceState) {
- *     super.onCreate(savedInstanceState);
- *     ...
- *     sRetrofit.init(MyRetrofitApi.class, "http://.../");
- * }
- *
- * public static Retrofit2&lt;MyRetrofitApi&gt; getRetrofit() {
- *     return sRetrofit;
+ * public static Retrofit2&lt;YourRetrofit, YourData[]&gt; getRetrofit() {
+ *     // something like this
+ *     return new Retrofit2&lt;YourRetrofit, YourData[]&gt;().init(
+ *         YourRetrofit.class, "http://...");
  * }
  * </pre>
  *
- * Here the <code>MyRetrofitApi</code> may looks as follows:
+ * Here the <code>YourRetrofit</code> may looks as follows:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
- * import com.mypackage.model.MyData;
+ * package com.yourpackage.retrofit;
+ *
+ * import com.yourpackage.model.YourData;
  *
  * import retrofit2.Call;
  * import retrofit2.http.GET;
  *
- * public interface MyRetrofitApi {
+ * public interface YourRetrofit {
  *
  *     &#064;GET("/data")
- *     Call&lt;MyData[]&gt; data();
+ *     Call&lt;YourData[]&gt; getData();
  * }
  * </pre>
  *
  * And the model class:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
- * package com.mypackage.model;
+ * package com.yourpackage.model;
  *
  * import com.google.gson.annotations.SerializedName;
  *
- * public class MyData {
+ * public class YourData {
  *
  *     &#064;SerializedName("name")
  *     private String mName;
@@ -88,7 +95,7 @@ import java.util.Map;
  * To prevent model from obfuscation please add the following line to the proguard configuration file:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
- * -keep class com.mypackage.model.** { *; }
+ * -keep class com.yourpackage.model.** { *; }
  * </pre>
  *
  * @param <T>
@@ -97,33 +104,157 @@ import java.util.Map;
  * @param <B>
  *        The Retrofit builder type
  *
+ * @param <C>
+ *        The Retrofit callback type
+ *
+ * @param <D>
+ *        The type of the Retrofit callback data
+ *
  * @see Retrofit
  * @see Retrofit2
  *
  * @author akha
  */
 @SuppressWarnings("WeakerAccess")
-public abstract class BaseRetrofit<T, B> {
+public abstract class BaseRetrofit<T, B, C, D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected T                                     mRetrofitApi;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected int                                   mConnectionTimeout;
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected T                                     mOriginalApi, mWrappedApi;
+
+    private final BaseHandler                       mBaseHandler    = new BaseHandler();
+
+    private C                                       mCallback;
+    private boolean                                 mFindMethod;
 
     /**
      * Initialises a newly created {@code BaseRetrofit} object.
      */
-    public BaseRetrofit() {
+    protected BaseRetrofit() {
+    }
+
+    private boolean isRawCall() {
+        return mCallback == null;
+    }
+
+    private class BaseHandler implements InvocationHandler {
+
+        private Method                              mMethod;
+
+        @Override
+        public Object invoke(final Object proxy, final Method method, final Object[] args) {
+            if (isFindMethod()) {
+                mMethod = method;
+                return null;
+            }
+            try {
+                if (isRawCall()) {
+                    CoreLogger.log("raw Retrofit call for method " + method);
+                    return CoreReflection.invoke(mOriginalApi, method, args);
+                }
+                else {
+                    CoreLogger.log("handle Retrofit call for method " + method);
+                    return request(method, args, null);
+                }
+            }
+            catch (Exception exception) {
+                CoreLogger.log("failed", exception);
+                return null;
+            }
+        }
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public abstract <R, E> Object request(@NonNull Method method, Object[] args,
+                                          LoaderRx<R, E, D> rx) throws Exception;
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected C getCallback() {
+        return mCallback;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected void adjustApi(@NonNull final Class<T> service) {
+        mWrappedApi = createProxy(service, mBaseHandler);
+    }
+
+    @SuppressWarnings("unchecked")
+    private T createProxy(@NonNull final Class<T> service, @NonNull final InvocationHandler handler) {
+        return (T) Proxy.newProxyInstance(service.getClassLoader(), new Class<?>[] {service}, handler);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected abstract C getEmptyCallback();
+
+    @SuppressWarnings("unchecked")
+    private void makeBogusRequest(@NonNull final Requester requester) {
+        requester.makeRequest(getEmptyCallback());
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public Method getMethod(@NonNull final Requester requester) {
+        mBaseHandler.mMethod = null;
+
+        mFindMethod = true;
+        try {
+            makeBogusRequest(requester);
+        }
+        catch (RawCallException e) {
+            CoreLogger.logError("can not find method 'cause of raw Retrofit call");
+            return null;
+        }
+        finally {
+            mFindMethod = false;
+        }
+
+        if (mBaseHandler.mMethod == null)
+            CoreLogger.logError("mBaseHandler.mMethod == null");
+
+        return mBaseHandler.mMethod;
     }
 
     /**
      * Returns the Retrofit API defined by the service interface.
      *
+     * <p>Note: 'raw calls' means - without default Yakhont pre- and postprocessing.
+     *
+     * @param callback
+     *        The loader's callback (or null for raw Retrofit calls)
+     *
      * @return  The Retrofit API
      */
-    public T getApi() {
-        return mRetrofitApi;
+    public T getApi(final C callback) {
+        if (callback == null && isFindMethod()) throw new RawCallException();
+        set(callback);
+        return mWrappedApi;
     }
+
+    private void set(final C callback) {
+        mCallback = callback;
+    }
+
+    private boolean isFindMethod() {
+        return mFindMethod;
+    }
+
+    private static class RawCallException extends RuntimeException {}
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public boolean checkForDefaultRequesterOnly(@NonNull final Method method, @NonNull final C callback)
+            throws InvocationTargetException, IllegalAccessException {
+        final boolean findMethod = isFindMethod();
+        if (findMethod)
+            checkForDefaultRequesterOnlyHandler(method);
+        else
+            set(callback);
+        return !findMethod;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected abstract void checkForDefaultRequesterOnlyHandler(@NonNull final Method method)
+            throws InvocationTargetException, IllegalAccessException;
 
     /**
      * Returns the connection timeout (in seconds).
@@ -136,6 +267,17 @@ public abstract class BaseRetrofit<T, B> {
     }
 
     /**
+     * Returns the default Retrofit builder.
+     *
+     * @param retrofitBase
+     *        The service API endpoint URL
+     *
+     * @return  The Retrofit builder
+     */
+    @SuppressWarnings("unused")
+    public abstract B getDefaultBuilder(@NonNull final String retrofitBase);
+
+    /**
      * Initialises Retrofit client.
      *
      * @param service
@@ -143,10 +285,12 @@ public abstract class BaseRetrofit<T, B> {
      *
      * @param retrofitBase
      *        The Retrofit API endpoint URL
+     *
+     * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
     @SuppressWarnings("unused")
-    public void init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
-        init(service, retrofitBase, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, null);
+    public BaseRetrofit<T, B, C, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
+        return init(service, retrofitBase, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, null);
     }
 
     /**
@@ -157,10 +301,12 @@ public abstract class BaseRetrofit<T, B> {
      *
      * @param builder
      *        The RetrofitBuilder
+     *
+     * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
     @SuppressWarnings("unused")
-    public void init(@NonNull final Class<T> service, @NonNull final B builder) {
-        init(service, builder, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, false);
+    public BaseRetrofit<T, B, C, D> init(@NonNull final Class<T> service, @NonNull final B builder) {
+        return init(service, builder, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, false);
     }
 
     /**
@@ -180,11 +326,14 @@ public abstract class BaseRetrofit<T, B> {
      *
      * @param headers
      *        The optional HTTP headers (or null)
+     *
+     * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
-    protected abstract void init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
-                                 @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
-                                 @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
-                                 @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers);
+    protected abstract BaseRetrofit<T, B, C, D> init(
+            @NonNull final Class<T> service, @NonNull final String retrofitBase,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
+            @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers);
 
     /**
      * Initialises Retrofit client.
@@ -200,12 +349,14 @@ public abstract class BaseRetrofit<T, B> {
      *
      * @param readTimeout
      *        The read timeout (in seconds)
+     *
+     * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
     @SuppressWarnings("unused")
-    public void init(@NonNull final Class<T> service, @NonNull final B builder,
-                     @IntRange(from = 1) final int connectTimeout,
-                     @IntRange(from = 1) final int readTimeout) {
-        init(service, builder, connectTimeout, readTimeout, true);
+    public BaseRetrofit<T, B, C, D> init(@NonNull final Class<T> service, @NonNull final B builder,
+                                         @IntRange(from = 1) final int connectTimeout,
+                                         @IntRange(from = 1) final int readTimeout) {
+        return init(service, builder, connectTimeout, readTimeout, true);
     }
 
     /**
@@ -225,27 +376,18 @@ public abstract class BaseRetrofit<T, B> {
      *
      * @param makeOkHttpClient
      *        {@code true} to create default OkHttpClient, {@code false} otherwise
+     *
+     * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
     @CallSuper
-    protected void init(@NonNull final Class<T> service, @NonNull final B builder,
-                        @IntRange(from = 1) final int connectTimeout,
-                        @IntRange(from = 1) final int readTimeout,
-                        final boolean makeOkHttpClient) {
-
+    protected BaseRetrofit<T, B, C, D> init(@NonNull final Class<T> service, @NonNull final B builder,
+                                            @IntRange(from = 1) final int connectTimeout,
+                                            @IntRange(from = 1) final int readTimeout,
+                                            final boolean makeOkHttpClient) {
         mConnectionTimeout = Math.max(connectTimeout, readTimeout);
 
         CoreLogger.log("connection timeout set to " + mConnectionTimeout +
                 " seconds, read timeout set to " + readTimeout + " seconds, makeOkHttpClient == " + makeOkHttpClient);
+        return this;
     }
-
-    /**
-     * Returns the default Retrofit builder.
-     *
-     * @param retrofitBase
-     *        The service API endpoint URL
-     *
-     * @return  The Retrofit builder
-     */
-    @SuppressWarnings("unused")
-    public abstract B getDefaultBuilder(@NonNull final String retrofitBase);
 }

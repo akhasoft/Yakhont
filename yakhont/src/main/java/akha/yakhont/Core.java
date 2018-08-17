@@ -49,6 +49,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.database.Cursor;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -82,6 +83,7 @@ import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -105,15 +107,18 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * The base class for the library. Usage example in Activity:
+ * The base class for the Yakhont library. Normally initialized automatically, via Yakhont Weaver,
+ * but you can do it explicitly (please refer to {@link Dagger2} for more info):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * &#064;Override
  * protected void onCreate(Bundle savedInstanceState) {
+ *
  *     Core.init(getApplication());
  *
  *     super.onCreate(savedInstanceState);
- *     ...
+ *
+ *     // your code here: setContentView(...) etc.
  * }
  * </pre>
  *
@@ -123,12 +128,11 @@ import java.util.zip.ZipOutputStream;
  * &#064;Override
  * public void onCreate() {
  *     super.onCreate();
- *     ...
+ *
  *     Core.init(this);
  * }
  * </pre>
  *
- * @see #init(Application)
  * @see #init(Application, boolean, boolean, boolean)
  * @see #init(Application, Boolean, Dagger2)
  *
@@ -186,7 +190,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     private static       Core                           sInstance;
-    private static       boolean                        sSupport;
+    private static       boolean                        sSupport, sbyUser;
     private static       WeakReference<Application>     sApplication;
     private static       Dagger2                        sDagger;
 
@@ -266,21 +270,21 @@ public class Core implements DefaultLifecycleObserver {
      * The API for data loading.
      *
      * @param <C>
-     *        The type of callback
+     *        The type of callback (or Retrofit API)
      */
     @SuppressWarnings("unused")
     public interface Requester<C> {
 
         /**
-         * Starts an asynchronous load (e.g. {@code getApi().data().enqueue(callback)}).
+         * Starts an asynchronous data loading.
          *
-         * @param callback
-         *        The callback
+         * @param parameter
+         *        The callback (or Retrofit API)
          *
          * @yakhont.see BaseResponseLoaderWrapper#CoreLoad CoreLoad
          * @yakhont.see BaseLoader#makeRequest(C) BaseLoader.makeRequest()
          */
-        void makeRequest(C callback);
+        void makeRequest(C parameter);
     }
 
     /**
@@ -316,7 +320,8 @@ public class Core implements DefaultLifecycleObserver {
      * Forces working in support mode (use weaving mechanism for calling the application callbacks instead of registering via
      * {@link Application#registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks)} and
      * {@link Application#registerComponentCallbacks(ComponentCallbacks)}).
-     * Mostly for debug purposes.
+     * <p>Mostly for debug purposes.
+     * <p>Don't forget to call some {@code init(...)} method after this call.
      */
     @SuppressWarnings("unused")
     public static void forceSupportMode() {
@@ -324,19 +329,6 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Initializes the library.
-     *
-     * @param application
-     *        The Application
-     *
-     * @return  {@code true} if library initialization was successful, {@code false} otherwise (library is already activated)
-     */
-    @SuppressWarnings("unused")
-    public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application) {
-        return init(application, null, null);
-    }
 
     /**
      * Initializes the library.
@@ -354,7 +346,7 @@ public class Core implements DefaultLifecycleObserver {
      * @param useSnackbarIsoToast
      *        {@code true} for using {@link Snackbar} instead of {@link Toast}
      *
-     * @return  {@code true} if library initialization was successful, {@code false} otherwise (library is already activated)
+     * @return  {@code false} if library was already initialized before, {@code true} otherwise
      */
     @SuppressWarnings("unused")
     public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application            ,
@@ -378,36 +370,38 @@ public class Core implements DefaultLifecycleObserver {
      * import dagger.Module;
      * import dagger.Provides;
      *
-     * public class MyActivity extends Activity {
+     * public class YourActivity extends Activity {
      *
      *     &#064;Override
      *     protected void onCreate(Bundle savedInstanceState) {
-     *         Core.init(getApplication(), null, DaggerMyActivity_MyDagger
+     *
+     *         Core.init(getApplication(), null, DaggerYourActivity_YourDagger
      *             .builder()
      *             .parameters(Dagger2.Parameters.create())
      *             .build()
      *         );
      *
      *         super.onCreate(savedInstanceState);
-     *         ...
+     *
+     *         // your code here: setContentView(...) etc.
      *     }
      *
      *     // custom progress dialog theme example
      *
-     *     &#064;Component(modules = {MyLocationModule.class, MyUiModule.class,
-     *                                MyCallbacksValidationModule.class})
-     *     interface MyDagger extends Dagger2 {
+     *     &#064;Component(modules = {YourLocationModule.class, YourUiModule.class,
+     *                                YourCallbacksValidationModule.class})
+     *     interface YourDagger extends Dagger2 {
      *
      *         &#064;Component.Builder
      *         interface Builder {
      *             &#064;BindsInstance
      *             Builder parameters(Dagger2.Parameters parameters);
-     *             MyDagger build();
+     *             YourDagger build();
      *         }
      *     }
      *
      *     &#064;Module
-     *     static class MyCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
+     *     static class YourCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
      *
      *         &#064;Provides
      *         Validator provideCallbacksValidator() {
@@ -416,7 +410,7 @@ public class Core implements DefaultLifecycleObserver {
      *     }
      *
      *     &#064;Module
-     *     static class MyLocationModule extends Dagger2.LocationModule {
+     *     static class YourLocationModule extends Dagger2.LocationModule {
      *
      *         &#064;Provides
      *         LocationClient provideLocationClient(Dagger2.Parameters parameters) {
@@ -426,12 +420,12 @@ public class Core implements DefaultLifecycleObserver {
      *     }
      *
      *     &#064;Module
-     *     static class MyUiModule extends Dagger2.UiModule {
+     *     static class YourUiModule extends Dagger2.UiModule {
      *
      *         &#064;Override
      *         protected Core.BaseDialog getProgress() {
      *             return ((CommonDialogFragment) super.getProgress())
-     *                 .setTheme(R.style.MyTheme);
+     *                 .setTheme(R.style.YourTheme);
      *         }
      *     }
      * }
@@ -446,48 +440,61 @@ public class Core implements DefaultLifecycleObserver {
      * @param dagger
      *        The Dagger2 component
      *
-     * @return  {@code true} if library initialization was successful, {@code false} otherwise (library is already activated)
+     * @return  {@code false} if library was already initialized before, {@code true} otherwise
      *
      * @see Dagger2
      */
     @SuppressWarnings("WeakerAccess")
-    public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application,
-                              @SuppressWarnings("SameParameterValue")           final Boolean     fullInfo,
-                              @SuppressWarnings("SameParameterValue")           final Dagger2     dagger) {
+    public static boolean init(@NonNull final Application application,
+                               final Boolean fullInfo, final Dagger2 dagger) {
+        return init(application, fullInfo, dagger, true);
+    }
 
-        if (sInstance != null) {
-            CoreLogger.logWarning("the Yakhont library initialization is already done");
+    // initDefault(...) methods are subject to call by the Yakhont Weaver
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    public static void initDefault(@NonNull final Activity activity) {
+        initDefault(activity.getApplication());
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static void initDefault(@NonNull final Application application) {
+        if (sInstance == null) init(application, null, null, false);
+    }
+
+    private static boolean init(@NonNull final Application application,
+                                final Boolean fullInfo, final Dagger2 dagger, final boolean byUser) {
+        if (fullInfo == null && dagger == null && byUser) {
+            CoreLogger.logError("the Yakhont library initialization was already done");
             return false;
         }
-        sInstance = new Core();
 
-        sApplication = new WeakReference<>(application);
+        boolean result = true;
+        if (sInstance != null && sbyUser) {
+            CoreLogger.logWarning("the Yakhont library initialization was already done");
+            result = false;
+        }
 
-        initDagger(dagger);
+        final boolean firstInit = sInstance == null;
+        if (firstInit) sInstance = new Core();
 
-        Init.logging(application,
-                fullInfo == null ? Utils.isDebugMode(application.getPackageName()): fullInfo);
+        sbyUser = byUser;
+
+        if (firstInit) sApplication = new WeakReference<>(application);
+
+        initDagger(dagger, byUser);
+
+        Init.logging(application, fullInfo != null ? fullInfo:
+                Utils.isDebugMode(application.getPackageName()));
         Init.allRemaining(application);
 
         CoreLogger.log("orientation "   + Utils.getOrientation(application));
         CoreLogger.log("uri "           + Utils.getBaseUri());
         CoreLogger.log("support "       + sSupport);
 
-        registerCallbacks(application);
+        Init.registerCallbacks(application, firstInit);
 
-        checkRx();
-
-        return true;
-    }
-
-    private static void checkRx() {
-        final String msg = "if you're using %s, before 'Core.init()' please call 'Core.setRxUncaughtExceptionBehavior()' " +
-                "method (or any of '%s.setErrorHandler*()' methods); " +
-                "ignore this only if you know what you're doing";
-        if (!Rx2.isErrorHandlerDefined())
-            CoreLogger.logError  (String.format(msg, "Rx2", "Rx2"));
-        if (!Rx .isErrorHandlerDefined())
-            CoreLogger.logWarning(String.format(msg, "Rx",  "Rx" ));
+        return result;
     }
 
     /**
@@ -510,7 +517,8 @@ public class Core implements DefaultLifecycleObserver {
         CommonRx.setSafeFlag(!terminate);
     }
 
-    private static void initDagger(final Dagger2 dagger) {
+    private static void initDagger(final Dagger2 dagger, final boolean byUser) {
+        if (!byUser && sDagger != null && dagger == null) return;
         sDagger = dagger != null ? dagger: getDefaultDagger();
 
         BaseCallbacks.setValidator(sDagger.getCallbacksValidator());
@@ -535,36 +543,6 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    @SuppressLint("ObsoleteSdkInt")
-    private static void registerCallbacks(@NonNull final Application application) {
-        // don't remove
-        SupportHelper.registerValidateFragmentCallbacks();
-        // don't remove
-        BaseActivityLifecycleProceed.register(new ValidateActivityCallbacks(), true);
-
-        register((BaseActivityCallbacks) new HideKeyboardCallbacks()               .setForceProceed(true));
-        register((BaseActivityCallbacks) new OrientationCallbacks()                .setForceProceed(true));
-        register((BaseActivityCallbacks) SupportHelper.getWorkerFragmentCallbacks().setForceProceed(true));
-
-        register((BaseActivityCallbacks) new LocationCallbacks());
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH && !sSupport) {
-            application.registerActivityLifecycleCallbacks(new ActivityLifecycleProceed());
-            application.registerComponentCallbacks        (new ApplicationCallbacks.ApplicationCallbacks2());
-        }
-        else {
-            BaseActivityLifecycleProceed.setActive(true);
-            sAppCallbacks = new ApplicationCallbacks();
-        }
-
-        ProcessLifecycleOwner.get().getLifecycle().addObserver(sInstance);
-    }
-
-    @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "unused"})
-    private static boolean register(@NonNull final BaseActivityCallbacks callbacks) {
-        return BaseActivityLifecycleProceed.register(callbacks);
-    }
 
     /**
      * Checks whether the application is visible or not.
@@ -773,6 +751,65 @@ public class Core implements DefaultLifecycleObserver {
         private static boolean                          sRunNetworkMonitor;
         private static String                           sBaseUri;
 
+        private static ActivityLifecycleProceed         sActivityLifecycleProceed;
+        private static ApplicationCallbacks.ApplicationCallbacks2
+                                                        sApplicationCallbacks2;
+
+        public static void registerCallbacks(@NonNull final Application application, boolean firstInit) {
+            if (firstInit) registerCallbacks(application);
+            registerCallbacksSupport(application);
+        }
+
+        private static void registerCallbacks(@NonNull final Application application) {
+            // don't remove
+            SupportHelper.registerValidateFragmentCallbacks();
+            // don't remove
+            BaseActivityLifecycleProceed.register(new ValidateActivityCallbacks(), true);
+
+            register((BaseActivityCallbacks) new HideKeyboardCallbacks()               .setForceProceed(true));
+            register((BaseActivityCallbacks) new OrientationCallbacks()                .setForceProceed(true));
+            register((BaseActivityCallbacks) SupportHelper.getWorkerFragmentCallbacks().setForceProceed(true));
+
+            register(new LocationCallbacks());
+
+            ProcessLifecycleOwner.get().getLifecycle().addObserver(sInstance);
+        }
+
+        @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "unused"})
+        private static boolean register(@NonNull final BaseActivityCallbacks callbacks) {
+            return BaseActivityLifecycleProceed.register(callbacks);
+        }
+
+        @SuppressLint("ObsoleteSdkInt")
+        private static void registerCallbacksSupport(@NonNull final Application application) {
+            final boolean iceCream = Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
+            if (iceCream && !sSupport) {
+                if (sActivityLifecycleProceed == null) {
+                    sActivityLifecycleProceed  = new ActivityLifecycleProceed();
+                    application.registerActivityLifecycleCallbacks(sActivityLifecycleProceed);
+                }
+                if (sApplicationCallbacks2    == null) {
+                    sApplicationCallbacks2     = new ApplicationCallbacks.ApplicationCallbacks2();
+                    application.registerComponentCallbacks(sApplicationCallbacks2);
+                }
+                BaseActivityLifecycleProceed.setActive(false);
+            }
+            else {
+                if (iceCream) {
+                    if (sActivityLifecycleProceed != null) {
+                        application.unregisterActivityLifecycleCallbacks(sActivityLifecycleProceed);
+                        sActivityLifecycleProceed  = null;
+                    }
+                    if (sApplicationCallbacks2    != null) {
+                        application.unregisterComponentCallbacks        (sApplicationCallbacks2);
+                        sApplicationCallbacks2     = null;
+                    }
+                }
+                BaseActivityLifecycleProceed.setActive(true);
+                if (sAppCallbacks == null) sAppCallbacks = new ApplicationCallbacks();
+            }
+        }
+
         private static void logging(@NonNull final Application application, final boolean fullInfo) {
             final String  pkgName    = application.getPackageName();
             final boolean debugBuild = Utils.isDebugMode(pkgName);
@@ -864,6 +901,8 @@ public class Core implements DefaultLifecycleObserver {
         }
     }
 
+    // Don't forget to call some init(...) method after this call.
+
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "unused"})
     public static void setRunNetworkMonitor(final boolean runNetworkMonitor) {
@@ -911,6 +950,63 @@ public class Core implements DefaultLifecycleObserver {
         private static final ExecutorHelper             sExecutorHelper                 = new ExecutorHelper();
 
         private Utils() {
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void check(@NonNull final RuntimeException exception,
+                                 @NonNull final String           text) throws RuntimeException {
+            final String message = exception.getMessage();
+            if (message == null || !message.contains(text))
+                throw exception;
+        }
+
+        /**
+         * Converts byte array to string.
+         *
+         * @param data
+         *        The byte array to convert
+         *
+         * @param length
+         *        The bytes quantity to convert
+         *
+         * @param bytesOnly
+         *        {@code true} to return bytes only (without string representation), {@code false} otherwise
+         *
+         * @param locale
+         *        The locale (or null for default one)
+         *
+         * @param charset
+         *        The charset (or null for default one)
+         *
+         * @return  The byte array readable representation
+         */
+        public static String toHex(final byte[] data, int length, final boolean bytesOnly,
+                                   Locale locale, final Charset charset) {
+            if (data        == null) return null;
+            if (data.length ==    0) return   "";
+
+            if (length <= 0 || data.length < length) length = data.length;
+            if (locale == null)                      locale = getLocale();
+
+            final StringBuilder builder = new StringBuilder(hexFormat(data[0], locale));
+            for (int i = 1; i < length; i++)
+                builder.append(" ").append(hexFormat(data[i], locale));
+
+            if (!bytesOnly) {
+                if (data.length > length) builder.append(" ...");
+                builder.append("  ").append(charset == null ? new String(data, 0, length):
+                        new String(data, 0, length, charset));
+            }
+            return builder.toString();
+        }
+
+        private static String hexFormat(final byte data, @NonNull final Locale locale) {
+            return String.format(locale, "%02X", data);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static Locale getLocale() {
+            return Locale.getDefault();
         }
 
         /**
@@ -1130,7 +1226,13 @@ public class Core implements DefaultLifecycleObserver {
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getLoaderTableName(@NonNull final Uri uri) {
-            return uri.getPathSegments().get(0);
+            try {
+                return uri.getPathSegments().get(0);
+            }
+            catch (Exception exception) {
+                CoreLogger.log("can't find loader table name for uri " + uri, exception);
+                return null;
+            }
         }
 
         /**
@@ -1289,10 +1391,10 @@ public class Core implements DefaultLifecycleObserver {
                                             final int requestCode, final int resultCode, final Intent data) {
             onActivityResult("", activity, requestCode, resultCode, data);
 /*
-        if (activity instanceof BaseActivity) {
-            ((BaseActivity) activity).onActivityResult(requestCode, resultCode, data);
-            return;
-        }
+            if (activity instanceof BaseActivity) {
+                ((BaseActivity) activity).onActivityResult(requestCode, resultCode, data);
+                return;
+            }
 */
             CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, resultCode, data);
         }
@@ -1330,7 +1432,7 @@ public class Core implements DefaultLifecycleObserver {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getTmpFileSuffix() {
             return "_" + replaceSpecialChars(DateFormat.getDateTimeInstance(
-                    DateFormat.SHORT, DateFormat.LONG, Locale.getDefault())
+                    DateFormat.SHORT, DateFormat.LONG, CoreLogger.getLocale())
                     .format(new Date(System.currentTimeMillis())));
         }
 
@@ -1800,7 +1902,7 @@ public class Core implements DefaultLifecycleObserver {
          * <pre style="background-color: silver; border: thin solid black;">
          * import akha.yakhont.Core;
          *
-         * public class MyFragment extends Fragment
+         * public class YourFragment extends Fragment
          *         implements Core.Utils.MeasuredViewAdjuster {
          *
          *     &#064;Override
@@ -1986,6 +2088,11 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static Type getType(final Method method) {
+                return method == null ? null: getParameterizedType(method.getGenericReturnType());
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static Type getParameterizedType(final Type type) {
                 return type instanceof ParameterizedType ?
                         ((ParameterizedType) type).getActualTypeArguments()[0]: type;
@@ -1997,13 +2104,13 @@ public class Core implements DefaultLifecycleObserver {
                         ((GenericArrayType) type).getGenericComponentType(): type;
             }
 
-            /** @exclude */ @SuppressWarnings("JavaDoc")
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
             public static Type getParameterizedOrGenericComponentType(final Type type) {
                 final Type genericArrayType = getGenericComponentType(type);
                 return type != null && !type.equals(genericArrayType) ? genericArrayType: getParameterizedType(type);
             }
 
-            /** @exclude */ @SuppressWarnings("JavaDoc")
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean isCollection(final Type type) {
                 final Type typeRaw = getParameterizedRawType(type);
                 CoreLogger.log("typeRaw: " + typeRaw);
@@ -2041,6 +2148,71 @@ public class Core implements DefaultLifecycleObserver {
             private static Type getParameterizedRawType(final Type type) {
                 return type instanceof ParameterizedType ? ((ParameterizedType) type).getRawType(): null;
             }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public interface CursorHandler {
+            boolean handle(Cursor cursor);  // return true to move to next row
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "ConstantConditions"})
+        public static boolean cursorHelper(final Cursor cursor, final CursorHandler cursorHandler,
+                                           final boolean moveToFirst, final boolean onlyOne,
+                                           final Boolean closeOrRestorePos) {
+            if (cursorHandler == null) {
+                CoreLogger.logWarning("nothing to do");
+                return true;
+            }
+            if (cursor == null) {
+                CoreLogger.logWarning("cursor == null");
+                return true;
+            }
+            if (cursor.isClosed()) {
+                CoreLogger.logWarning("cursor closed");
+                return false;
+            }
+
+            final boolean close      = closeOrRestorePos == null;
+            final boolean restorePos = close ? false: closeOrRestorePos;
+
+            try {
+                if (moveToFirst && !cursor.moveToFirst()) {
+                    CoreLogger.logWarning("empty cursor");
+                    return true;
+                }
+
+                if (cursor.isBeforeFirst()) {
+                    CoreLogger.logError("Cursor.isBeforeFirst()");
+                    return false;
+                }
+                if (cursor.isAfterLast()) {
+                    CoreLogger.logError("Cursor.isAfterLast()");
+                    return false;
+                }
+
+                final int pos = restorePos ? cursor.getPosition(): -1;
+
+                while (!cursor.isAfterLast()) {
+                    if (!cursorHandler.handle(cursor)) break;
+                    if (onlyOne) {
+                        CoreLogger.logError("wrong combination: moveToNext and onlyOne");
+                        break;
+                    }
+                    if (!cursor.moveToNext()) break;
+                }
+
+                if (restorePos && !cursor.moveToPosition(pos))
+                    CoreLogger.logError("failed moveToPosition " + pos);
+
+                return true;
+            }
+            catch (Exception exception) {
+                CoreLogger.log("failed", exception);
+            }
+            finally {
+                if (close) cursor.close();
+            }
+            return false;
         }
     }
 }

@@ -70,11 +70,10 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     private   static final String  ARG_TIME                             = TAG + ".time";
     private   static final String  ARG_UNIQUE_UPDATES                   = TAG + ".unique_updates";
 
-    // milliseconds
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static final int     UPDATE_INTERVAL_HIGH_ACCURACY        = 10 * 1000;
+    protected static final int     UPDATE_INTERVAL_HIGH_ACCURACY        = 10 * 1000;    // milliseconds
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static final int     UPDATE_INTERVAL_LOW_ACCURACY         = 60 * 1000;
+    protected static final int     UPDATE_INTERVAL_LOW_ACCURACY         = 60 * 1000;    // milliseconds
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected       FusedLocationProviderClient

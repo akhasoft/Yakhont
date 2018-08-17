@@ -283,15 +283,15 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public boolean startLoading() {
-        return startLoading(new LoadParameters());
+    public boolean load() {
+        return load(new LoadParameters());
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public boolean startLoading(final LoadParameters parameters) {
+    public boolean load(final LoadParameters parameters) {
         return BaseLoaderWrapper.start(getLoaders(), parameters);
     }
 
