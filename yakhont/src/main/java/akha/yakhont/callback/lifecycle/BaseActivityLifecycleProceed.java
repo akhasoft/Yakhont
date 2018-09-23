@@ -84,7 +84,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     }
 
     private static void log(@NonNull final String info, final int value, @NonNull final String name) {
-        CoreLogger.log(String.format(CoreLogger.getLocale(), FORMAT_VALUE, info, value, name));
+        CoreLogger.log(String.format(Utils.getLocale(), FORMAT_VALUE, info, value, name));
     }
 
     /** @exclude */

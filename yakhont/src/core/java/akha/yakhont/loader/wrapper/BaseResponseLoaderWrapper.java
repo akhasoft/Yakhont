@@ -415,9 +415,21 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         if (mRx != null) mRx.onResult(data);
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    protected void onLoadFinishedHelper(final Loader<BaseResponse<R, E, D>> loader, final BaseResponse<R, E, D> data) {
+    }
+
     private void updateAdapter(final Loader<BaseResponse<R, E, D>> loader, final BaseResponse<R, E, D> data) {
         if (mAdapter != null)
-            mAdapter.update(data, loader instanceof Mergeable && ((Mergeable) loader).isMerge());
+            //noinspection Convert2Lambda
+            mAdapter.update(data, loader instanceof Mergeable && ((Mergeable) loader).isMerge(),
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            BaseResponseLoaderWrapper.super.onLoadFinishedHelper(loader, data);
+                        }
+                    });
         else
             CoreLogger.logWarning("adapter == null, table name: " + mTableName);
     }
@@ -663,7 +675,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
          *
          * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          *
-         * @see BaseLoader.CoreLoadExtendedBuilder#setType
+         * @yakhont.see BaseLoader.CoreLoadExtendedBuilder#setType CoreLoadExtendedBuilder.setType
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
@@ -773,8 +785,20 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         /** @exclude */ @SuppressWarnings("JavaDoc")
         protected void setType(@NonNull final BaseResponseLoaderWrapper<C, R, E, D> wrapper,
                                final Type type) {
-            if      (mType != null) wrapper.setType(mType);
-            else if ( type != null) wrapper.setType( type);
+            if (mType != null) {
+                CoreLogger.log("setType: mType " + mType);
+                wrapper.setType(mType);
+
+                if (!mType.equals(type))
+                    CoreLogger.logWarning("setType: type " + type + " will be ignored");
+                return;
+            }
+
+            CoreLogger.log("setType: type " + type);
+            if (type != null) {
+                wrapper.setType(type);
+                mType = type;
+            }
 
             if (wrapper.getType() == null)
                 CoreLogger.logWarning("can not detect data type, please consider to set it " +
@@ -1104,10 +1128,11 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
      *         CoreLoad coreLoad = new Retrofit2CoreLoadBuilder&lt;&gt;(this, getRetrofit()) {
      *
      *             .setRequester(YourRetrofit::yourMethod)
+     *             .setDataBinding(BR.yourDataBindingId)    // use Data Binding Library
      *
-     *             // optional
-     *             .setDataBinding(new String[] {"name",    "age"   },
-     *                             new int   [] {R.id.name, R.id.age})
+     *             // or - reflection-based data binding
+     *             //.setDataBinding(new String[] {"name",    "age"   },
+     *             //                new int   [] {R.id.name, R.id.age})
      *
      *             // 3 methods below are optional too
      *             .setListView(R.id.list_view)       // recycler view / list / grid ID
@@ -1209,32 +1234,44 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
         /**
          * Cancels all {@link BaseLoaderWrapper loaders} associated with the given {@code CoreLoad} component.
          *
+         * @return  This {@code CoreLoad} object to allow for chaining of calls
+         *
          * @see LoaderManager#destroyLoader
          */
-        void cancelLoading();
+        @SuppressWarnings("UnusedReturnValue")
+        CoreLoad cancelLoading();
 
         /**
          * Indicates whether the back key press should be emulated if data loading was cancelled or not
          *
          * @param isGoBackOnLoadingCanceled
          *        The value to set
+         *
+         * @return  This {@code CoreLoad} object to allow for chaining of calls
          */
-        void setGoBackOnLoadingCanceled(boolean isGoBackOnLoadingCanceled);
+        @SuppressWarnings("UnusedReturnValue")
+        CoreLoad setGoBackOnLoadingCanceled(boolean isGoBackOnLoadingCanceled);
 
         /**
          * Displays a data loading progress indicator.
          *
          * @param text
          *        The text to display
+         *
+         * @return  This {@code CoreLoad} object to allow for chaining of calls
          */
-        void showProgress(String text);
+        @SuppressWarnings("UnusedReturnValue")
+        CoreLoad showProgress(String text);
 
         /**
          * Hides data loading progress indicator.
          *
          * @param force
          *        Indicates whether the progress hiding should be forced (e.g as result of {@link #cancelLoading()}) or not
+         *
+         * @return  This {@code CoreLoad} object to allow for chaining of calls
          */
-        void hideProgress(boolean force);
+        @SuppressWarnings("UnusedReturnValue")
+        CoreLoad hideProgress(boolean force);
     }
 }

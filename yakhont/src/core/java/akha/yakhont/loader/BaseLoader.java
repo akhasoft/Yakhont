@@ -24,6 +24,8 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter;
+import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterWrapper;
+import akha.yakhont.adapter.BaseCacheAdapter.DataBindingCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
@@ -59,7 +61,6 @@ import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.support.annotation.StringRes;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.RecyclerView.ViewHolder;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.GridView;
@@ -67,6 +68,7 @@ import android.widget.ListView;
 
 import java.lang.ref.WeakReference;
 import java.lang.reflect.Type;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -687,7 +689,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
      */
     @Override
     public String toString() {
-        return String.format(CoreLogger.getLocale(), FORMAT_INFO, getId(),
+        return String.format(Utils.getLocale(), FORMAT_INFO, getId(),
                 !TextUtils.isEmpty(mLogDescription) ? mLogDescription:
                         !TextUtils.isEmpty(mDescription) ? mDescription: "description N/A");
     }
@@ -1076,12 +1078,13 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected LoaderBuilder<C, R, E, D>             mLoaderBuilder;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected ValuesCacheAdapterWrapper<R, E, D>    mAdapterWrapper;
+        protected BaseCacheAdapterWrapper<?, R, E, D>
+                                                        mAdapterWrapper;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ViewBinder                            mViewBinder;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected ViewHolderCreator<ViewHolder>         mViewHolderCreator;
+        protected ViewHolderCreator                     mViewHolderCreator;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @IdRes
@@ -1145,7 +1148,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"UnusedReturnValue", "unused"})
-        public CoreLoadBuilder<C, R, E, D> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
+        public <S> CoreLoadBuilder<C, R, E, D> setAdapterWrapper(
+                final BaseCacheAdapterWrapper<S, R, E, D> adapterWrapper) {
             checkData(mAdapterWrapper, adapterWrapper, "adapter wrapper");
             mAdapterWrapper = adapterWrapper;
             return this;
@@ -1177,7 +1181,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<C, R, E, D> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
+        public CoreLoadBuilder<C, R, E, D> setViewHolderCreator(final ViewHolderCreator viewHolderCreator) {
             checkData(mViewHolderCreator, viewHolderCreator, "ViewHolder creator");
             mViewHolderCreator = viewHolderCreator;
             return this;
@@ -1231,7 +1235,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         }
 
         /**
-         * Prevents component from binding loaded data.
+         * Prevents component from binding loaded data (ignored in case of Data Binding Library).
          *
          * @param noBinding
          *        {@code true} to just load data, without any default binding (default value is {@code false})
@@ -1257,7 +1261,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
             return id != Core.NOT_VALID_RES_ID ? id: resources.getIdentifier(name, defType, defPackage);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "WeakerAccess"})
         protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
                                                @NonNull final View list, @LayoutRes final int item) {
         }
@@ -1402,6 +1406,9 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         protected LoaderCallback<C, R, E, D>            mLoaderCallback;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Integer                               mDataBindingId;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @Size(min = 1)
         protected String[]                              mFrom;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1467,6 +1474,23 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         public CoreLoadExtendedBuilder<C, R, E, D, T> setType(final Type type) {
             checkData(mType, type, "type");
             mType = type;
+            return this;
+        }
+
+        /**
+         * Sets the data binding (for the Data Binding Library).
+         *
+         * @param id
+         *        The BR id of the variable to be set
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         *
+         * @see android.databinding.ViewDataBinding#setVariable ViewDataBinding.setVariable()
+         */
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setDataBinding(@NonNull final Integer id) {
+            checkData(mDataBindingId, id, "data binding id");
+            mDataBindingId = id;
             return this;
         }
 
@@ -1616,7 +1640,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        public CoreLoadExtendedBuilder<C, R, E, D, T> setViewHolderCreator(final ViewHolderCreator<ViewHolder> viewHolderCreator) {
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setViewHolderCreator(final ViewHolderCreator viewHolderCreator) {
             super.setViewHolderCreator(viewHolderCreator);
             return this;
         }
@@ -1661,7 +1685,8 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
          */
         @NonNull
         @Override
-        public CoreLoadExtendedBuilder<C, R, E, D, T> setAdapterWrapper(final ValuesCacheAdapterWrapper<R, E, D> adapterWrapper) {
+        public <S> CoreLoadExtendedBuilder<C, R, E, D, T> setAdapterWrapper(
+                final BaseCacheAdapterWrapper<S, R, E, D> adapterWrapper) {
             super.setAdapterWrapper(adapterWrapper);
             return this;
         }
@@ -1859,12 +1884,60 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
         @SuppressWarnings("unused")
         public abstract T getApi(final C callback);
 
+        private static String toString(final Object[] data) {
+            return Arrays.deepToString(data);
+        }
+
+        private static String toString(final int[] data) {
+            return Arrays.toString(data);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters"})
+        @Override
+        protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
+                                               @NonNull final View list, @LayoutRes final int item) {
+            if (mFrom != null || mTo != null)
+                if (mDataBindingId != null)
+                    CoreLogger.logError("DataBinding id == " + mDataBindingId + ", 'from' " +
+                            toString(mFrom) + " and 'to' " + toString(mTo) + " binding data will be ignored");
+                else if (mFrom == null || mTo == null)
+                    CoreLogger.logError("both 'from' " + toString(mFrom) +
+                            " and 'to' " + toString(mTo) + " binding data should be defined");
+                else if (mFrom.length != mTo.length)
+                    CoreLogger.logError("both 'from' " + toString(mFrom) +
+                            " and 'to' " + toString(mTo) + " binding data should has same size");
+
+            final Activity activity = mFragment.get().getActivity();
+
+            setAdapterWrapperHelper(mDataBindingId != null ?
+                    new DataBindingCacheAdapterWrapper(mDataBindingId, item, activity): mFrom == null ?
+                    new ValuesCacheAdapterWrapper<>(activity, item):
+                    new ValuesCacheAdapterWrapper<>(activity, item, mFrom, mTo));
+        }
+
+        // compiler issue
+        private void setAdapterWrapperHelper(
+                @NonNull final BaseCacheAdapterWrapper<?, R, E, D> adapterWrapper) {
+            super.setAdapterWrapper(adapterWrapper);
+        }
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected CoreLoad create(BaseResponseLoaderBuilder<C, R, E, D> builder) {
             final Fragment fragment = mFragment.get();
             if (fragment == null) {
                 CoreLogger.logError("The fragment is null");
                 return null;
+            }
+
+            if (mDataBindingId != null) {
+                if (mNoBinding) {
+                    CoreLogger.logError("The Data Binding Library will be used, " +
+                            "'NoBinding' parameter will be ignored");
+                    mNoBinding = false;
+                }
+                if (mViewBinder != null)
+                    CoreLogger.logError("The Data Binding Library will be used, " +
+                            "'ViewBinder' parameter will be ignored, please use @BindingAdapter");
             }
 
             if (builder == null) {

@@ -146,7 +146,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
      */
     @SuppressWarnings("UnusedReturnValue")
     public boolean setForceCache(final boolean value) {
-        CoreLogger.log(addLoaderInfo("" + value));
+        CoreLogger.log(addLoaderInfo(String.valueOf(value)));
 
         return mForceCache.getAndSet(value);
     }
@@ -162,7 +162,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
      */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     public boolean setMerge(final boolean value) {
-        CoreLogger.log(addLoaderInfo("" + value));
+        CoreLogger.log(addLoaderInfo(String.valueOf(value)));
 
         return mMerge.getAndSet(value);
     }

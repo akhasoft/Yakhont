@@ -823,7 +823,7 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             if (!debugBuild)
-                CoreLogger.setTag(String.format(CoreLogger.getLocale(), LOG_TAG_FORMAT, version,
+                CoreLogger.setTag(String.format(Utils.getLocale(), LOG_TAG_FORMAT, version,
                         akha.yakhont.BuildConfig.VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
 
             CoreLogger.setFullInfo(fullInfo);
@@ -1432,7 +1432,7 @@ public class Core implements DefaultLifecycleObserver {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getTmpFileSuffix() {
             return "_" + replaceSpecialChars(DateFormat.getDateTimeInstance(
-                    DateFormat.SHORT, DateFormat.LONG, CoreLogger.getLocale())
+                    DateFormat.SHORT, DateFormat.LONG, getLocale())
                     .format(new Date(System.currentTimeMillis())));
         }
 
@@ -2089,7 +2089,14 @@ public class Core implements DefaultLifecycleObserver {
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public static Type getType(final Method method) {
-                return method == null ? null: getParameterizedType(method.getGenericReturnType());
+                return (method == null) ? null: getType(method.getGenericReturnType());
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static Type getType(Type type) {
+                return type == null               ||
+                       type instanceof Collection || type instanceof GenericArrayType ? type:
+                       getParameterizedType(type);  // actually - Rx handling
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})

@@ -25,7 +25,7 @@
     <string name="table_desc_beers">the best Belgian beers list</string>
     <string name="list_title_beers">The Best Belgian Beers</string>
 
-    <string name="db_id">DB ID: %s</string>
+    <string name="db_id">from cache</string>
 
     <string name="info">The pin-up works are by Valery Barykin</string>
 </resources>

@@ -21,8 +21,6 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
-import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
-import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
@@ -30,13 +28,9 @@ import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx2;
 
-import android.app.Activity;
-import android.content.ContentValues;
 import android.support.annotation.IntRange;
-import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.Size;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -794,84 +788,6 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     private static boolean logProblem(final Level level, final String text, final String url) {
         CoreLogger.log(level, text + ", url " + url);
         return false;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /**
-     * Extends the {@link ValuesCacheAdapterWrapper} class to provide Retrofit 2 support.
-     *
-     * @param <D>
-     *        The type of data
-     */
-    public static class Retrofit2AdapterWrapper<D> extends ValuesCacheAdapterWrapper<Response<D>, Throwable, D> {
-
-        /**
-         * Initialises a newly created {@code Retrofit2AdapterWrapper} object. The data binding goes by default:
-         * cursor's column {@link android.provider.BaseColumns#_ID _ID} binds to view with R.id._id,
-         * column "title" - to R.id.title etc.
-         *
-         * @param context
-         *        The Activity
-         *
-         * @param layout
-         *        The resource identifier of a layout file that defines the views
-         */
-        public Retrofit2AdapterWrapper(@NonNull final Activity context, @LayoutRes final int layout) {
-            super(context, layout);
-        }
-
-        /**
-         * Initialises a newly created {@code Retrofit2AdapterWrapper} object.
-         *
-         * @param context
-         *        The Activity
-         *
-         * @param layout
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @param from
-         *        The list of names representing the data to bind to the UI
-         *
-         * @param to
-         *        The views that should display data in the "from" parameter
-         */
-        @SuppressWarnings("unused")
-        public Retrofit2AdapterWrapper(@NonNull final Activity context, @LayoutRes final int layout,
-                                       @NonNull @Size(min = 1) final String[] from,
-                                       @NonNull @Size(min = 1) final    int[] to) {
-            super(context, layout, from, to);
-        }
-
-        /**
-         * Initialises a newly created {@code Retrofit2AdapterWrapper} object.
-         *
-         * @param factory
-         *        The BaseCacheAdapterFactory
-         *
-         * @param compatible
-         *        The support flag for the BaseCacheAdapterFactory
-         *
-         * @param context
-         *        The Activity
-         *
-         * @param layout
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @param from
-         *        The list of names representing the data to bind to the UI
-         *
-         * @param to
-         *        The views that should display data in the "from" parameter
-         */
-        @SuppressWarnings("unused")
-        public Retrofit2AdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, Response<D>, Throwable, D> factory,
-                                       @SuppressWarnings("SameParameterValue") final boolean compatible,
-                                       @NonNull final Activity context, @LayoutRes final int layout,
-                                       @NonNull @Size(min = 1) final String[] from,
-                                       @NonNull @Size(min = 1) final    int[] to) {
-            super(factory, compatible, context, layout, from, to);
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

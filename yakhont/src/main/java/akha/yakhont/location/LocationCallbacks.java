@@ -841,7 +841,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         
         final int seconds = (int) Math.round(coordinate);
 
-        return String.format(CoreLogger.getLocale(), "%d°%02d'%02d\" %s", degrees, minutes, seconds, 
+        return String.format(Utils.getLocale(), "%d°%02d'%02d\" %s", degrees, minutes, seconds,
             isLongitude ? (coordinate < 0 ?
                     context.getString(akha.yakhont.R.string.yakhont_location_w)  :
                     context.getString(akha.yakhont.R.string.yakhont_location_e)) : (coordinate < 0 ?
@@ -885,7 +885,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     @SuppressWarnings("unused")
     public static String toDms(final Location location, @NonNull final Context context,
                                final String message, final String defValue) {
-        final Locale locale = CoreLogger.getLocale();
+        final Locale locale = Utils.getLocale();
         return String.format(locale, message != null ? message:
                         context.getString(akha.yakhont.R.string.yakhont_location_msg),
                 location != null ? String.format(locale, "%s %s",

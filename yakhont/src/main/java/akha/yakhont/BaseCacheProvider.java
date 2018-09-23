@@ -931,7 +931,7 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     private static Locale getLocale() {
-        return CoreLogger.getLocale();
+        return Utils.getLocale();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -16,16 +16,24 @@
 
 package akha.yakhont.demosimple.model;
 
+import android.databinding.BaseObservable;
+import android.databinding.Bindable;
+
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Locale;
 
 @SuppressWarnings("unused")
-public class Beer {
+public class Beer extends BaseObservable {
 
     @SerializedName("title")
     @SuppressWarnings("unused")
     private String mTitle;
+
+    @Bindable
+    public String getTitle() {
+        return mTitle;
+    }
 
     @Override
     public String toString() {

@@ -19,6 +19,7 @@ package akha.yakhont.demo;
 import akha.yakhont.demo.gui.Bubbles;
 import akha.yakhont.demo.gui.SlideShow;
 import akha.yakhont.demo.model.Beer;
+import akha.yakhont.demo.model.BeerDefault;
 import akha.yakhont.demo.retrofit.LocalJsonClient;
 import akha.yakhont.demo.retrofit.LocalJsonClient2;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
@@ -57,6 +58,7 @@ import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoad
 */
 
 import android.content.Context;
+import android.databinding.BindingAdapter;
 import android.graphics.Rect;
 import android.net.Uri;
 import android.os.Bundle;
@@ -68,7 +70,6 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.CheckBox;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.google.gson.reflect.TypeToken;
 
@@ -86,7 +87,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     private       LocalJsonClient                       mJsonClient;
     private       LocalJsonClient2                      mJsonClient2;
 
-    private       Retrofit <RetrofitApi,  List<Beer>>   mRetrofit;
+    private       Retrofit <RetrofitApi,  List<BeerDefault>>
+                                                        mRetrofit;
     private       Retrofit2<Retrofit2Api, List<Beer>>   mRetrofit2;
 
     @Override
@@ -157,10 +159,11 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
             .setRequester(Retrofit2Api::getDataRx)
 // or       .setRequester(retrofit2Api -> retrofit2Api.getData("not used parameter"))
 
-            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
+            // recommended way - but default binding also works (see below in Retrofit code)
+            .setDataBinding(BR.beer)
 
             // it's optional - but sometimes you need to provide some customization here
-            .setLoaderCallback(MainFragment.this::onLoadFinished)
+            .setLoaderCallback(MainFragment.this::onLoadFinishedDataBinding)
 /*
             // just an example: it does exactly the same, but provides more options to customize
             .setLoaderCallback(new Retrofit2CoreLoadBuilder.LoaderCallback<List<Beer>>() {
@@ -176,14 +179,14 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                 }
             })
 */
-            .setViewBinder(MainFragment.this::setViewValue)         // data binding (optional too)
-
             .setRx(mRxRetrofit2)                                    // optional
+
+            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
             .create();
         else
             //noinspection Anonymous2MethodRef,Convert2Lambda,Convert2Diamond
-            mCoreLoad = new RetrofitCoreLoadBuilder<List<Beer>, RetrofitApi>(this, mRetrofit) /* {
+            mCoreLoad = new RetrofitCoreLoadBuilder<List<BeerDefault>, RetrofitApi>(this, mRetrofit) /* {
 
                 // 'setRequester(...)' doesn't work for Retrofit 1
                 @Override
@@ -199,7 +202,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
             //   please consider to switch to Retrofit 2 (or override makeRequest)
             .setType(new TypeToken<List<Beer>>() {}.getType())
 
-            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
+            // this is not related to Retrofit 1 - just demo for default binding (reflection based)
+            .setListItem(R.layout.grid_item_default)
 
             .setLoaderCallback(MainFragment.this::onLoadFinished)
 
@@ -212,6 +216,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
             })
 
             .setRx(mRxRetrofit)                                     // optional
+
+            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
             .create();
 
@@ -232,7 +238,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                 mNotDisplayLoadingErrors, false));
     }
 
-    private void onLoadFinished(List<Beer> data, Source source) {   // called from LoaderManager.LoaderCallbacks.onLoadFinished()
+    private void onLoadFinished(List<?> data, Source source) {
         setBubblesState(false);
 
         setNetworkDelay();
@@ -243,32 +249,40 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         if (++mPartCounter == PARTS_QTY)    mPartCounter = 0;   // set next part to load
         setPartToLoad(mPartCounter);
     }
-    
+
+    private void onLoadFinishedDataBinding(List<Beer> data, Source source) {
+        for (Beer beer: data)
+            beer.setCacheInfo(getVisibility());
+        onLoadFinished(data, source);
+    }
+
     @SuppressWarnings("UnusedParameters")
     private boolean setViewValue(View view, Object data, String textRepresentation) {
 
         switch (view.getId()) {
 
             case R.id._id:
-                if (mCheckBoxForce.isChecked()) {
-                    ((TextView) view).setText(getString(R.string.db_id, textRepresentation));
-                    view.setVisibility(View.VISIBLE);
-                }
-                else
-                    view.setVisibility(View.INVISIBLE);
-                
+                view.setVisibility(getVisibility());
                 return ViewBinder.VIEW_BOUND;                   // switch off default view binding
 
             case R.id.image:
-                int pos = textRepresentation.indexOf("img_");
-                view.setTag(textRepresentation.substring(pos + 4, pos + 6));
-
-                ((ImageView) view).setImageURI(Uri.parse(textRepresentation));
-
+                setImageUrl((ImageView) view, textRepresentation);
                 return ViewBinder.VIEW_BOUND;
         }
         
         return !ViewBinder.VIEW_BOUND;                          // default view binding will be applied
+    }
+
+    private int getVisibility() {
+        return mCheckBoxForce.isChecked() ? View.VISIBLE: View.INVISIBLE;
+    }
+
+    @BindingAdapter("android:src")
+    public static void setImageUrl(ImageView view, String data) {
+        int pos = data.indexOf("img_");
+
+        view.setTag(data.substring(pos + 4, pos + 6));
+        view.setImageURI(Uri.parse(data));
     }
 
     private void setPartToLoad(int counter) {
@@ -293,8 +307,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     /////////// Rx handling (optional)
 
-    private RetrofitRx <List<Beer>>     mRxRetrofit;
-    private Retrofit2Rx<List<Beer>>     mRxRetrofit2;
+    private       RetrofitRx <List<BeerDefault>>        mRxRetrofit;
+    private       Retrofit2Rx<List<Beer>>               mRxRetrofit2;
 
     // unsubscribe goes automatically
     @SuppressWarnings("ConstantConditions")
@@ -319,9 +333,9 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         else {
             mRxRetrofit = new RetrofitRx<>(getMainActivity().isRxJava2(), singleRx);
 
-            mRxRetrofit.subscribeSimple(new SubscriberRx<List<Beer>>() {
+            mRxRetrofit.subscribeSimple(new SubscriberRx<List<BeerDefault>>() {
                 @Override
-                public void onNext(List<Beer> data) {
+                public void onNext(List<BeerDefault> data) {
                     logRx("Retrofit", data);
                 }
 
@@ -333,9 +347,9 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         }
     }
 
-    private void logRx(String info, List<Beer> data) {
+    private void logRx(String info, List<?> data) {
         Log.w("MainFragment", "LoaderRx (" + info + "): onNext, data == " + (data == null ? "null":
-                Arrays.deepToString(data.toArray(new Beer[data.size()]))));
+                Arrays.deepToString(data.toArray())));
     }
 
     private void logRx(String info, Throwable throwable) {
@@ -379,8 +393,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         mGridView           = mainView.findViewById(R.id.grid);
 
-        mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
         mCheckBoxMerge      = mainView.findViewById(R.id.flag_merge);
+        mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
 
         //noinspection Convert2Lambda
         mainView.findViewById(R.id.btn_load).setOnClickListener(new View.OnClickListener() {

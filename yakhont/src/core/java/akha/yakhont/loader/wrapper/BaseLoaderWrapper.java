@@ -101,8 +101,10 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
 
     private static final Random                             sRandom                     = new Random();
 
-    private LoaderManager.LoaderCallbacks<D>                mLoaderCallbacks;
-    private LoaderFactory<D>                                mLoaderFactory;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected LoaderManager.LoaderCallbacks<D>              mLoaderCallbacks;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected LoaderFactory<D>                              mLoaderFactory;
 
     private Type                                            mType;
 
@@ -168,11 +170,19 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
      * @param type
      *        The data type
      *
-     * @see BaseLoader.CoreLoadExtendedBuilder#setType
+     * @yakhont.see BaseLoader.CoreLoadExtendedBuilder#setType CoreLoadExtendedBuilder.setType
      */
     @SuppressWarnings("WeakerAccess")
     public void setType(final Type type) {
         mType = type;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected void setTypeIfNotSet(@NonNull final Type type) {
+        if (mType == null)
+            mType = type;
+        else if (!mType.equals(type))
+            CoreLogger.logWarning("setTypeIfNotSet: type " + type + " will be ignored");
     }
 
     /**
@@ -338,7 +348,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
      */
     @Override
     public String toString() {
-        return String.format(CoreLogger.getLocale(), FORMAT_INFO, toString(mLoaderId));
+        return String.format(Utils.getLocale(), FORMAT_INFO, toString(mLoaderId));
     }
 
     private String toString(final int id) {
@@ -347,7 +357,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
             final Loader loader = loaderManager.getLoader(id);
             if (loader != null) return loader.toString();
         }
-        return String.format(CoreLogger.getLocale(), FORMAT_INFO_ID, id);
+        return String.format(Utils.getLocale(), FORMAT_INFO_ID, id);
     }
 
     /**
@@ -565,7 +575,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
         if (mProgress != null) mProgress.doProgress(false, null);
         mProgress = null;
 
-        if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(loader, data);
+        onLoadFinishedHelper(loader, data);
 
         if (mKeepLoaders.get()) return;
         final int id = loader.getId();
@@ -573,6 +583,11 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
 
         if (!BaseLoader.destroyLoader(getLoaderManager(), id, true))
             mIdsToDestroy.remove(id);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected void onLoadFinishedHelper(final Loader<D> loader, final D data) {
+        if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(loader, data);
     }
 
     /**
@@ -1130,7 +1145,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
              */
             @Override
             public String toString() {
-                return String.format(CoreLogger.getLocale(), "resId %d, parameters %s",
+                return String.format(Utils.getLocale(), "resId %d, parameters %s",
                         mResId, mLoadParameters == null ? "null": mLoadParameters.toString());
             }
         }

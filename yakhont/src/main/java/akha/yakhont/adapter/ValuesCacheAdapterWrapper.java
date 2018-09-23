@@ -21,17 +21,13 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.SupportHelper;
-import akha.yakhont.adapter.BaseCacheAdapter.BaseArrayAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterFactory;
-import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
-import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
+import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterWrapper;
+import akha.yakhont.adapter.BaseCacheAdapter.BaseDataConverter;
 import akha.yakhont.adapter.BaseCacheAdapter.DataBinder;
-import akha.yakhont.adapter.BaseCacheAdapter.DataConverter;
-import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
+import akha.yakhont.adapter.BaseCacheAdapter.DefaultArrayAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewInflater;
-import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
-import akha.yakhont.loader.BaseResponse.Converter;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -46,14 +42,13 @@ import android.view.ViewGroup;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * The wrapper for {@link BaseCacheAdapter}.
+ * The ContentValues-based wrapper for {@link BaseCacheAdapter}.
  *
  * @param <R>
  *        The type of network response
@@ -66,18 +61,14 @@ import java.util.Set;
  *
  * @author akha
  */
-public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D> {
-
-    private final BaseCacheAdapter <ContentValues, R, E, D>             mBaseCacheAdapter;
-    private final ContentValuesRecyclerViewAdapter<R, E, D>             mBaseRecyclerViewAdapter;
-    private final DataConverterContentValues<R, E, D>                   mDataConverterContentValues;
+public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<ContentValues, R, E, D> {
 
     /**
      * Initialises a newly created {@code ValuesCacheAdapterWrapper} object. The data binding goes by default:
      * cursor's column {@link BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title etc.
      *
      * @param context
-     *        The Activity
+     *        The {@code Activity}
      *
      * @param layoutId
      *        The resource identifier of a layout file that defines the views
@@ -91,7 +82,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * Initialises a newly created {@code ValuesCacheAdapterWrapper} object.
      *
      * @param context
-     *        The Activity
+     *        The {@code Activity}
      *
      * @param layoutId
      *        The resource identifier of a layout file that defines the views
@@ -113,13 +104,13 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * Initialises a newly created {@code ValuesCacheAdapterWrapper} object.
      *
      * @param factory
-     *        The BaseCacheAdapterFactory
+     *        The {@code BaseCacheAdapterFactory}
      *
      * @param compatible
-     *        The support flag for the BaseCacheAdapterFactory
+     *        The support flag for the {@code BaseCacheAdapterFactory}
      *
      * @param context
-     *        The Activity
+     *        The {@code Activity}
      *
      * @param layoutId
      *        The resource identifier of a layout file that defines the views
@@ -130,7 +121,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      * @param to
      *        The views that should display data in the "from" parameter
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public ValuesCacheAdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
                                      @SuppressWarnings("SameParameterValue") final boolean compatible,
                                      @NonNull final Activity context, @LayoutRes final int layoutId,
@@ -141,12 +132,11 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
 
     private ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layoutId,
                                       @NonNull final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter) {
-        mBaseCacheAdapter           = baseCacheAdapter;
-        mBaseRecyclerViewAdapter    = new ContentValuesRecyclerViewAdapter<>(context, layoutId,
-                baseCacheAdapter.getArrayAdapter().getFrom(),
-                baseCacheAdapter.getArrayAdapter().getTo(), baseCacheAdapter);
-        mDataConverterContentValues =
-                (DataConverterContentValues<R, E, D>) baseCacheAdapter.getConverter();
+        super(baseCacheAdapter, new ContentValuesRecyclerViewAdapter<>(context, layoutId,
+                        ((DefaultArrayAdapter<ContentValues>) baseCacheAdapter.getArrayAdapter()).getFrom(),
+                        ((DefaultArrayAdapter<ContentValues>) baseCacheAdapter.getArrayAdapter()).getTo(),
+                        baseCacheAdapter),
+                (ContentValuesDataConverter<R, E, D>) baseCacheAdapter.getConverter());
     }
 
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
@@ -174,106 +164,23 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
 
         @SuppressWarnings("Convert2Lambda")
         final BaseCacheAdapter<ContentValues, R, E, D> adapter = factory.getAdapter(context, layout, from, to,
-                new BaseArrayAdapter<>(context, layout, getDataBinder(context, from, to)),
-                new DataConverterContentValues<>(from), compatible);
+                new DefaultArrayAdapter<>(context, layout, getDataBinder(context, from, to)),
+                new ContentValuesDataConverter<>(from), compatible);
 
         CoreLogger.log(Level.INFO, "instantiated " + adapter.getClass().getName());
         return adapter;
-    }
-
-    /**
-     * Sets the {@code Converter}.
-     *
-     * @param converter
-     *        The {@code Converter}
-     *
-     * @return  {@code true} if converter successfully set, {@code false} otherwise
-     */
-    @SuppressWarnings("UnusedReturnValue")
-    public boolean setConverter(@NonNull final Converter<D> converter) {
-        return mDataConverterContentValues.setConverter(converter);
     }
 
     private static DataBinder<ContentValues> getDataBinder(@NonNull final Context context,
                                                            @NonNull @Size(min = 1) final String[] from,
                                                            @NonNull @Size(min = 1) final int   [] to) {
         return new DataBinder<ContentValues>(context, from, to) {
+            @SuppressWarnings("unused")
             @Override
             protected Object getValue(@NonNull ContentValues item, int index) {
                 return ValuesCacheAdapterWrapper.getValue(item, index, mFrom, true);
             }
         };
-    }
-
-    /**
-     * Registers the {@code ViewBinder} to use.
-     *
-     * @param viewBinder
-     *        The ViewBinder
-     */
-    public void setAdapterViewBinder(final ViewBinder viewBinder) {
-        getAdapter()            .setAdapterViewBinder(viewBinder);
-        getRecyclerViewAdapter().setAdapterViewBinder(viewBinder);
-    }
-
-    /**
-     * Returns the {@code BaseCacheAdapter} wrapped by this object.
-     *
-     * @return  The BaseCacheAdapter
-     */
-    @NonNull
-    @SuppressWarnings("unused")
-    public BaseCacheAdapter<ContentValues, R, E, D> getAdapter() {
-        return mBaseCacheAdapter;
-    }
-
-    /**
-     * Returns the {@code ContentValuesRecyclerViewAdapter} wrapped by this object.
-     *
-     * @return  The ContentValuesRecyclerViewAdapter
-     */
-    @NonNull
-    @SuppressWarnings("unused")
-    public ContentValuesRecyclerViewAdapter<R, E, D> getRecyclerViewAdapter() {
-        return mBaseRecyclerViewAdapter;
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public void update(@NonNull final BaseResponse<R, E, D> data, final boolean isMerge) {
-        getAdapter().update(data, isMerge);
-        mBaseRecyclerViewAdapter.notifyDataSetChanged();
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public void resetArray() {
-        //noinspection Convert2Lambda
-        Utils.postToMainLoop(new Runnable() {
-            @Override
-            public void run() {
-                getAdapter().resetArray();
-                mBaseRecyclerViewAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public String toString() {
-                return "ValuesCacheAdapterWrapper.resetArray()";
-            }
-        });
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @NonNull
-    @Override
-    public BaseCursorAdapter getCursorAdapter() {
-        return getAdapter().getCursorAdapter();
     }
 
     private static Object getValue(@NonNull final ContentValues item, final int index,
@@ -320,7 +227,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
      *        The type of data in the adapter
      */
     public static class ContentValuesRecyclerViewAdapter<R, E, D>
-            extends BaseRecyclerViewAdapter<ContentValues, R, E, D, ViewHolder> {
+            extends BaseRecyclerViewAdapter<ContentValues, R, E, D> {
 
         private final           ViewInflater                    mViewInflater;
 
@@ -349,6 +256,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
                                                 @NonNull @Size(min = 1) final int   [] to,
                                                 @NonNull final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter) {
             super(baseCacheAdapter, getDataBinder(context, from, to), layoutId);
+            CoreLogger.log("ContentValuesRecyclerViewAdapter instantiated");
 
             mViewInflater = new ViewInflater(context, layoutId);
         }
@@ -360,40 +268,22 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return mViewHolderCreator != null ? super.onCreateViewHolder(parent, viewType):
-                    new ViewHolder(mViewInflater.inflate(parent)) {};
+                   new ViewHolder(mViewInflater.inflate(parent)) {};
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static class DataConverterContentValues<R, E, D> implements DataConverter<ContentValues, R, E, D> {
-
-        private Converter<D>                                            mConverter;
-        private List<ContentValues>                                     mCursorCache;
+    private static class ContentValuesDataConverter<R, E, D> extends BaseDataConverter<ContentValues, R, E, D> {
 
         private final String[]                                          mFrom;
 
-        private DataConverterContentValues(@NonNull @Size(min = 1) final String[] from) {
+        @SuppressWarnings("unused")
+        private ContentValuesDataConverter(@NonNull @Size(min = 1) final String[] from) {
             mFrom = from;
         }
 
-        private boolean setConverter(final Converter<D> converter) {
-            if (converter == null) {
-                CoreLogger.logError("converter == null");
-                return false;
-            }
-            if (mConverter != null)
-                CoreLogger.logWarning("converter already set");
-
-            mConverter = converter;
-            return true;
-        }
-
-        @Override
-        public Converter<D> getConverter() {
-            return mConverter;
-        }
-
+        @SuppressWarnings("unused")
         @Override
         public Collection<ContentValues> convert(@NonNull final BaseResponse<R, E, D> baseResponse) {
             List<ContentValues> result = null;
@@ -436,6 +326,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
             final List<ContentValues> result = new ArrayList<>();
 
             final Iterator iterator = ((Collection) data).iterator();
+
             //noinspection WhileLoopReplaceableByForEach
             while (iterator.hasNext()) {
                 final Object tmp = iterator.next();
@@ -456,61 +347,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> implements CacheAdapter<R, E, D>
         }
 
         @Override
-        public Cursor swapCursor(Cursor cursor) {
-            mCursorCache = null;
-            return cursor;
-        }
-
-        @Override
-        public ContentValues convert(@NonNull final Cursor cursor, final int position) {
-            if (mConverter == null) {       // should never happen
-                CoreLogger.logWarning("converter is null");
-                mConverter = new BaseConverter<>();
-            }
-
-            if (mCursorCache == null) {
-                final D data;
-                try {
-                    data = mConverter.getData(cursor);
-                }
-                finally {
-                    if (!cursor.isClosed()) cursor.close();
-                }
-                if (data == null) {
-                    CoreLogger.logError("data is null");
-                    return null;
-                }
-
-                if (CoreReflection.isNotSingle(data))
-                    mCursorCache = convert(data);
-                else {
-                    if (cursor.getPosition() == position) return convertSingle(data);
-
-                    CoreLogger.logError("can't retrieve ContentValues for position " + position);
-                    return null;
-                }
-            }
-            if (position < mCursorCache.size()) return mCursorCache.get(position);
-
-            CoreLogger.logError("can't retrieve ContentValues for position " + position +
-                    ", data size == " + mCursorCache.size());
-            return null;
-        }
-
-        @NonNull
-        private List<ContentValues> convert(@NonNull final Object data) {
-            final List<Object> objects = CoreReflection.getObjects(data);
-            if (objects == null) return Collections.singletonList(convertSingle(data));
-
-            final ArrayList<ContentValues> list = new ArrayList<>();
-            for (final Object object: objects)
-                if (!CoreReflection.isNotSingle(object))
-                    list.add(convertSingle(object));
-
-            return list;
-        }
-
-        private ContentValues convertSingle(@NonNull final Object data) {
+        protected ContentValues convertSingle(@NonNull final Object data) {
             final Map<String, Object> map = CoreReflection.getFields(data,null,
                     false, false,
                     true, true, true, true,

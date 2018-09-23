@@ -31,12 +31,13 @@ There is also the Yakhont Weaver - a small but powerful utility which manipulate
 bytecode and can be used separately, without the Yakhont library (you will find more info
 [below](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)).
 
-Now you can load data in just one line of code (please refer to the
+Now you can load data in just two lines of code (please refer to the
 [simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainFragment.java)
 for the working example):
 
 ```
-new Retrofit2CoreLoadBuilder<>(...).setRequester(YourRetrofit::yourMethod).create().load();
+new Retrofit2CoreLoadBuilder<>(...).setRequester(YourRetrofit::yourMethod)
+    .setDataBinding(BR.yourDataBindingID).create().load();
 ```
 
 And take location in just a couple of lines (the working example is in the
@@ -103,7 +104,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 350 KB (except the _full_ version, which is about 570 KB).
+The Yakhont AAR is about 400 KB (except the _full_ version, which is about 620 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above.
 

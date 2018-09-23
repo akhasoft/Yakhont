@@ -17,6 +17,7 @@
 package akha.yakhont.demosimple;
 
 import akha.yakhont.demosimple.model.Beer;
+// import akha.yakhont.demosimple.model.BeerDefault;
 import akha.yakhont.demosimple.retrofit.LocalJsonClient2;
 import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 
@@ -53,19 +54,39 @@ public class MainFragment extends Fragment {
         ((RecyclerView) getActivity().findViewById(R.id.recycler))
                 .setLayoutManager(new LinearLayoutManager(activity));
 
-        new Retrofit2CoreLoadBuilder<>(this, createRetrofit())
+        // recommended binding (based on Data Binding Library)
+        new Retrofit2CoreLoadBuilder<>(this, MainFragment.<Beer>createRetrofit())
                 .setRequester(Retrofit2Api::getData)
+// or           .setRequester(retrofit2Api -> retrofit2Api.getData("param"))
+
+                // recommended way - but default binding also works (see below)
+                .setDataBinding(BR.beer)
+
                 .create()
 
-                // uncomment to stay in application if user cancelled data loading
+                // uncomment to stay in Activity (and application) if user cancelled data loading
+                // which means:
+                // quite often, data loading goes during Activity initialization (and here too)
+                // so, if user pressed Back during data loading, Yakhont shows confirmation dialog,
+                //   and if 'yes' - cancels loading and calls Activity.onBackPressed()
+                // for this simple demo application (only one Activity) it means -
+                //   the application itself will be stopped
+                // so uncomment if you don't want such Activity.onBackPressed() call
 //              .setGoBackOnLoadingCanceled(false)
 
                 .load();
+/*
+        // default binding (based on reflection)
+        new Retrofit2CoreLoadBuilder<>(this, MainFragment.<BeerDefault>createRetrofit())
+                .setRequester(Retrofit2Api::getData)
+                .setListItem(R.layout.recycler_item_default)
+                .create().load();
+*/
     }
 
     // every loader should have unique Retrofit2 object; don't share it with other loaders
-    private Retrofit2<Retrofit2Api, Beer[]> createRetrofit() {
-        final Retrofit2<Retrofit2Api, Beer[]> retrofit2 = new Retrofit2<>();
+    private static <T> Retrofit2<Retrofit2Api, T[]> createRetrofit() {
+        final Retrofit2<Retrofit2Api, T[]> retrofit2 = new Retrofit2<>();
 
         // local JSON client, so URL doesn't matter
         // uncomment network delay emulation for the progress dialog etc.
@@ -73,7 +94,7 @@ public class MainFragment extends Fragment {
                 .client(new LocalJsonClient2(retrofit2) /* .setEmulatedNetworkDelay(10) */ ));
 
         // for normal HTTP requests you can do something like this
-//      return new Retrofit2<Retrofit2Api, Beer[]>().init(Retrofit2Api.class, "http://...");
+//      return new Retrofit2<Retrofit2Api, T[]>().init(Retrofit2Api.class, "http://...");
 
         return retrofit2;
     }

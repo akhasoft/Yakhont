@@ -25,7 +25,7 @@
     <string name="table_desc_beers">лучшие сорта бельгийского пива</string>
     <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
 
-    <string name="db_id">DB ID: %s</string>
+    <string name="db_id">from cache</string>
 
     <string name="info">В оформлении использованы работы художника Валерия Барыкина</string>
 </resources>

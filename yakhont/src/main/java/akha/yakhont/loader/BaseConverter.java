@@ -199,7 +199,7 @@ public class BaseConverter<D> implements Converter<D> {
             if (converterHelper == null) {
                 CoreLogger.log("default type not defined, the one from cache will be used");
 
-                Type type = BaseConverter.getClass(getBytes (cursor, CLASS_BYTES ));
+                Type type = BaseConverter.getClass(getBytes(cursor , CLASS_BYTES ));
                 if (type == null)
                     type  = BaseConverter.getClass(getString(cursor, CLASS_STRING));
 

@@ -19,7 +19,9 @@ package akha.yakhont;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger.Level;
 
+import android.os.Build;
 import android.support.annotation.NonNull;
+import android.support.v4.util.ArraySet;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
@@ -297,7 +299,7 @@ public class CoreReflection {
      */
     public static List<Object> getObjects(final Object object) {
         if (object == null) {
-            CoreLogger.log("getObjects(): parameter is null");
+            CoreLogger.logWarning("getObjects(): parameter is null");
             return null;
         }
         final Class<?>  cls = object.getClass();    // not getClass(object)
@@ -320,6 +322,64 @@ public class CoreReflection {
 
         if (result == null) CoreLogger.logWarning("neither array nor Collection: " + cls.getName());
         return result;
+    }
+
+    /**
+     * Returns contained object at given position if parameter is array or {@link List} (null otherwise).
+     *
+     * @param object
+     *        The object
+     *
+     * @param position
+     *        The position
+     *
+     * @return  The object at given position (or null)
+     */
+    public static Object getObject(final Object object, final int position) {
+        if (object == null) {
+            CoreLogger.logWarning("getObject(): object is null");
+            return null;
+        }
+        if (position < 0) {
+            CoreLogger.logError("wrong position " + position);
+            return null;
+        }
+        final Class<?> cls = object.getClass();     // not getClass(object)
+
+        try {
+            if (cls.isArray()) {
+                if (checkSize(Array.getLength(object), position, "array"))
+                    return Array.get(object, position);
+            }
+            else if (List.class.isAssignableFrom(cls)) {
+                if (checkSize(((List<?>) object).size(), position, "List"))
+                    return ((List<?>) object).get(position);
+            }
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+                     android.util.ArraySet.class.isAssignableFrom(cls)) {
+                if (checkSize(((android.util.ArraySet<?>) object).size(), position, "ArraySet"))
+                    return ((android.util.ArraySet<?>) object).valueAt(position);
+            }
+            else if (ArraySet.class.isAssignableFrom(cls)) {
+                if (checkSize(((ArraySet<?>) object).size(), position, "ArraySet (support library)"))
+                    return ((ArraySet<?>) object).valueAt(position);
+            }
+        }
+        catch (Exception exception) {
+            CoreLogger.log("failed getObject() for class " + cls.getName(), exception);
+            return null;
+        }
+
+        CoreLogger.logError("unknown collection: " + cls.getName());
+        return null;
+    }
+
+    private static boolean checkSize(final int size, final int position, @NonNull final String info) {
+        final boolean nok = position < 0 || position >= size;
+        if (nok)
+            CoreLogger.logError(String.format(Utils.getLocale(),
+                    "wrong position %d, %s length is %d", position, info, size));
+        return !nok;
     }
 
     /**

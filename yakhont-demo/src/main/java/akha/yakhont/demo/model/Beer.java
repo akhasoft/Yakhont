@@ -16,12 +16,15 @@
 
 package akha.yakhont.demo.model;
 
+import android.databinding.BaseObservable;
+import android.databinding.Bindable;
+
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Locale;
 
 @SuppressWarnings("unused")
-public class Beer {
+public class Beer extends BaseObservable {
 
     @SerializedName("title")
     @SuppressWarnings("unused")
@@ -30,6 +33,27 @@ public class Beer {
     @SerializedName("image")
     @SuppressWarnings("unused")
     private String mImage;
+
+    private int mCacheInfo;
+
+    @Bindable
+    public String getTitle() {
+        return mTitle;
+    }
+
+    @Bindable
+    public String getImage() {
+        return mImage;
+    }
+
+    @Bindable
+    public int getCacheInfo() {
+        return mCacheInfo;
+    }
+
+    public void setCacheInfo(final int cacheInfo) {
+        mCacheInfo = cacheInfo;
+    }
 
     @Override
     public String toString() {

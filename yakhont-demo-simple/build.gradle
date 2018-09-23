@@ -95,6 +95,10 @@ android {
         abortOnError            false
     }
 
+    dataBinding {
+        enabled                 true
+    }
+
     buildTypes {
         release {
             minifyEnabled       rootProject.ext.projectDebug != '1'

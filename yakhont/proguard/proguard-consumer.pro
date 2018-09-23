@@ -13,6 +13,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+# Data Binding Library
+-dontwarn akha.yakhont.adapter.BaseCacheAdapter$DataBindingViewHolder
+-dontwarn android.databinding.ViewDataBinding
+-keep class android.databinding.Observable$OnPropertyChangedCallback
+-dontnote   android.databinding.Observable$OnPropertyChangedCallback
+
 -keep class akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed$ActivityLifecycle
 
 -keep class akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
@@ -63,3 +69,6 @@
 
 -keep class **.SimpleCursorAdapter { <init>(...); }
 -dontnote **.SimpleCursorAdapter
+
+# Data Binding Library
+-dontwarn android.databinding.DataBindingUtil

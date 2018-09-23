@@ -147,10 +147,14 @@ def generateFragments() {
 
 import groovy.transform.Field
 
+//noinspection GroovyUnusedAssignment
 @Field String preprocessorAddToGenerated       = '//YakhontPreprocessor:addToGenerated'
+//noinspection GroovyUnusedAssignment
 @Field String preprocessorRemoveInFlavor       = '//YakhontPreprocessor:removeInFlavor'
+//noinspection GroovyUnusedAssignment
 @Field String preprocessorRemoveInGenerated    = '//YakhontPreprocessor:removeInGenerated'
 
+//noinspection GroovyUnusedAssignment
 @Field String preprocessorDocRemoveInGenerated = '@yakhont.preprocessor.remove.in.generated'
 
 def addActivities(String componentDir, boolean isSupport, String[] data) {

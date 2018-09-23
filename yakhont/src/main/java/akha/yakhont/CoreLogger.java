@@ -43,7 +43,6 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -82,6 +81,8 @@ public class CoreLogger {
     private static final String                         FORMAT_THREAD            = "[%s] %s";
 
     private static final String                         CLASS_NAME               = CoreLogger.class.getName();
+
+    private static final String                         STACK_TRACE_TITLE        = "Yakhont CoreLogger stack trace";
 
     private static final Level                          LEVEL_STACK              = Level.ERROR;
     private static final Level                          LEVEL_THREAD             = Level.WARNING;
@@ -437,17 +438,18 @@ public class CoreLogger {
         log(level, str, null, showStack);
     }
 
-    private static void log(@NonNull final Level level, @NonNull final String str, Throwable throwable,
-                            Boolean showStack) {
+    private static void log(@NonNull final Level level, @NonNull final String str,
+                            final Throwable throwable, Boolean showStack) {
+
         final boolean isLog = level.ordinal() >= sLogLevel.get().ordinal();
         if (!isLog && sLoggerExtender == null) return;
 
         if (showStack == null) showStack = sForceShowStack.get() ||
                 (level.ordinal() >= LEVEL_STACK.ordinal() && isFullInfo());
 
-        final Throwable stackTrace = isLog && (showStack || isMethodInfo()) ?
-                new Throwable("Yakhont CoreLogger stack trace"): null;
-        final StackTraceElement traceElement = stackTrace == null ? null: getStackTraceElement(stackTrace);
+        final Throwable trace = isLog && (showStack || isMethodInfo()) ?
+                throwable != null ? throwable: new Throwable(STACK_TRACE_TITLE): null;
+        final StackTraceElement traceElement = trace == null ? null: getStackTraceElement(trace);
 
         final String className = traceElement == null ? null: stripPackageName(traceElement.getClassName());
         final String tag       = getTag(className);
@@ -455,7 +457,8 @@ public class CoreLogger {
         if (sLoggerExtender != null && sLoggerExtender.log(level, tag, str, throwable, showStack,
                 traceElement) == EXTENDER_NO_DEFAULT_LOGS) return;
 
-        if (isLog) log(level, tag, str, throwable, showStack, stackTrace, traceElement, className);
+        if (isLog) log(level, tag, str, throwable != null ? throwable: showStack ? trace: null,
+                traceElement, className);
     }
 
     private static StackTraceElement getStackTraceElement(@NonNull final Throwable throwable) {
@@ -519,7 +522,12 @@ public class CoreLogger {
     @SuppressWarnings("WeakerAccess")
     public static List<String> split(List<String> list, String text, final int maxLength, final boolean clearList) {
         if (text == null) return list;
-        if (list == null) list = new ArrayList<>(); else if (clearList) list.clear();
+
+        if (list == null)
+            list = new ArrayList<>();
+        else if (clearList)
+            list.clear();
+
         for (;;) {
             String       tmp = text;
             StringBuilder sb = null;
@@ -538,6 +546,7 @@ public class CoreLogger {
             if (text.length() == line.length()) break;
             text = text.substring(line.length());
         }
+
         return list;
     }
 
@@ -568,7 +577,7 @@ public class CoreLogger {
     private static String addMethodInfo(@NonNull final Level level, @NonNull String str,
                                         final String className, final String methodName, final Integer line) {
         if (isMethodInfo()) {
-            final String methodInfo = String.format(getLocale(), FORMAT_INFO,
+            final String methodInfo = String.format(Utils.getLocale(), FORMAT_INFO,
                     className  == null ? "<unknown class>" : className,
                     methodName == null ? "<unknown method>": methodName,
                     line       == null ? "unknown"         : line.toString());
@@ -579,11 +588,8 @@ public class CoreLogger {
     }
 
     private static void log(@NonNull final Level level, @NonNull final String tag,
-                            @NonNull final String msg, Throwable throwable, final boolean showStack,
-                            final Throwable stackTrace, final StackTraceElement traceElement,
-                            final String className) {
-        if (throwable == null && showStack) throwable = stackTrace;
-
+                            @NonNull final String msg, final Throwable throwable,
+                            final StackTraceElement traceElement, final String className) {
         final int    maxLength = getMaxLogLength();
         final String text      = addMethodInfo(level, msg, className,
                 traceElement == null ? null: traceElement.getMethodName(),
@@ -643,11 +649,6 @@ public class CoreLogger {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static Locale getLocale() {
-        return Utils.getLocale();
-    }
 
     private static final String                         LOGCAT_CMD               = "logcat -d";
     private static final int                            LOGCAT_BUFFER_SIZE       = 1024;

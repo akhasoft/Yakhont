@@ -19,6 +19,7 @@ package akha.yakhont.technology.retrofit;
 import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
+import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.loader.BaseLoader;
 import akha.yakhont.loader.BaseLoader.CoreLoadExtendedBuilder;
@@ -28,7 +29,6 @@ import akha.yakhont.loader.BaseResponse.ConverterHelper;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit;
-import akha.yakhont.technology.retrofit.Retrofit.RetrofitAdapterWrapper;
 
 import android.annotation.TargetApi;
 import android.app.Fragment;
@@ -36,11 +36,9 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.os.Build;
 import android.support.annotation.IntRange;
-import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.util.AndroidException;
-import android.view.View;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -186,8 +184,8 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
         if (result == null )
             CoreLogger.logError("result == null");
         else {
-            final Class<?> type = result.getClass();
-            setType(type);
+            final Class<?> type = result.getClass();  // collections are without generic info
+            setTypeIfNotSet(TypeHelper.getType(type));
 
             if (response.getBody() != null) {
                 final ContentValues contentValues = getDataForCache(type);
@@ -344,15 +342,6 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
                                        @NonNull final Retrofit<T, D> retrofit) {
             super(fragment);
             mRetrofit = retrofit;
-        }
-
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        @Override
-        protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
-                                               @NonNull final View list, @LayoutRes final int item) {
-            //noinspection Convert2Diamond
-            setAdapterWrapper(mFrom == null ? new RetrofitAdapterWrapper<D>(mFragment.get().getActivity(), item):
-                    new RetrofitAdapterWrapper<D>(mFragment.get().getActivity(), item, mFrom, mTo));
         }
 
         /**

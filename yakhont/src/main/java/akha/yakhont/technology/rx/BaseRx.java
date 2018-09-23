@@ -675,7 +675,8 @@ public abstract class BaseRx<D> {
      *         });
      *
      *         new Retrofit2CoreLoadBuilder&lt;&gt;(this, getRetrofit())
-     *             .setRequester(YourRetrofit::yourMethod).setRx(mRx).create().load();
+     *             .setRequester(YourRetrofit::yourMethod).setDataBinding(BR.yourDataBindingId)
+     *             .setRx(mRx).create().load();
      *     }
      *
      *     private Retrofit2&lt;YourRetrofit, YourData[]&gt; getRetrofit() {

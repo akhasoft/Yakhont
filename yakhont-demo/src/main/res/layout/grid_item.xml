@@ -14,68 +14,83 @@
      limitations under the License.
 -->
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    android:orientation="vertical">
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <RelativeLayout
+    <data>
+        <variable
+            name="beer"
+            type="akha.yakhont.demo.model.Beer" />
+    </data>
+
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_margin="8dp">
+        android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/image_background"
-            android:layout_height="wrap_content"
+        <RelativeLayout
             android:layout_width="wrap_content"
-
-            android:src="@drawable/img_background"
-            android:visibility="invisible"
-
-            android:scaleType="centerInside"
-            android:adjustViewBounds="true"
-
-            android:contentDescription="@string/app_name"
-
-            android:padding="0dp"
-            android:layout_margin="0dp" />
-
-        <ImageView
-            android:id="@+id/image"
             android:layout_height="wrap_content"
-            android:layout_width="wrap_content"
+            android:layout_margin="8dp">
 
-            android:layout_alignTop="@id/image_background"
-            android:layout_alignBottom="@id/image_background"
+            <ImageView
+                android:id="@+id/image_background"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
 
-            android:scaleType="centerInside"
-            android:adjustViewBounds="true"
+                android:src="@drawable/img_background"
+                android:visibility="invisible"
 
-            android:contentDescription="@string/app_name"
+                android:scaleType="centerInside"
+                android:adjustViewBounds="true"
 
-            android:padding="0dp"
-            android:layout_margin="0dp" />
+                android:contentDescription="@string/app_name"
+
+                android:padding="0dp"
+                android:layout_margin="0dp" />
+
+            <ImageView
+                android:id="@+id/image"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+
+                android:layout_alignTop="@id/image_background"
+                android:layout_alignBottom="@id/image_background"
+
+                android:scaleType="centerInside"
+                android:adjustViewBounds="true"
+
+                android:src="@{beer.image}"
+                android:contentDescription="@string/app_name"
+    
+                android:padding="0dp"
+                android:layout_margin="0dp" />
+
+            <TextView
+                android:id="@+id/_id"
+                android:layout_height="wrap_content"
+                android:layout_width="wrap_content"
+
+                android:text="@string/db_id"
+                android:visibility="@{beer.cacheInfo}"
+
+                android:layout_centerHorizontal="true"
+                android:alpha="0.4"
+                tools:ignore="UnusedAttribute" />
+
+        </RelativeLayout>
 
         <TextView
-            android:id="@+id/_id"
+            android:id="@+id/title"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
 
-            android:layout_centerHorizontal="true"
-            android:alpha="0.4"
-            tools:ignore="UnusedAttribute" />
+            android:layout_gravity="center_horizontal"
+            android:gravity="center_horizontal"
 
-    </RelativeLayout>
+            android:text="@{beer.title}"
+            android:layout_margin="8dp" />
 
-    <TextView
-        android:id="@+id/title"
-        android:layout_height="wrap_content"
-        android:layout_width="wrap_content"
+    </LinearLayout>
 
-        android:layout_gravity="center_horizontal"
-        android:gravity="center_horizontal"
-
-        android:layout_margin="8dp" />
-
-</LinearLayout>
+</layout>

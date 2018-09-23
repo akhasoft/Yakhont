@@ -224,13 +224,13 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public void cancelLoading() {
+    public CoreLoad cancelLoading() {
         CoreLogger.logWarning("about to cancel loading");
 
         hideProgress(true);
         destroyLoaders();
 
-        if (!isGoBackOnLoadingCanceled()) return;
+        if (!isGoBackOnLoadingCanceled()) return this;
         CoreLogger.logWarning("isGoBackOnLoadingCanceled: about to call Activity.onBackPressed()");
 
         //noinspection Convert2Lambda
@@ -246,6 +246,8 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
                 return "Activity.onBackPressed()";
             }
         });
+
+        return this;
     }
 
     private void destroyLoaders() {
@@ -371,8 +373,9 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public void setGoBackOnLoadingCanceled(final boolean isGoBackOnLoadingCanceled) {
+    public CoreLoad setGoBackOnLoadingCanceled(final boolean isGoBackOnLoadingCanceled) {
         mGoBackOnLoadingCanceled.set(isGoBackOnLoadingCanceled);
+        return this;
     }
 
     // normally loading starts 'cause of initialization of a new fragment
@@ -390,16 +393,18 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
      * Please refer to the base method description.
      */
     @Override
-    public void showProgress(final String text) {
+    public CoreLoad showProgress(final String text) {
         mProgress.show(text);
+        return this;
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public void hideProgress(final boolean force) {
+    public CoreLoad hideProgress(final boolean force) {
         mProgress.hide(force);
+        return this;
     }
 
     private class Progress {

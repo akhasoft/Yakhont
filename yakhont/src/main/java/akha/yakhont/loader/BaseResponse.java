@@ -602,7 +602,7 @@ public class BaseResponse<R, E, D> {
          */
         @Override
         public String toString() {
-            return String.format(CoreLogger.getLocale(),
+            return String.format(Utils.getLocale(),
                     "force cache %b, no progress %b, no errors %b, merge %b, sync %b, params error %s, loader id %s",
                     mForceCache, mNoProgress, mNoErrors, mMerge, mSync, mError,
                     mLoaderId == null ? "null": mLoaderId.toString());

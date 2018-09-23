@@ -30,7 +30,6 @@ import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
-import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2AdapterWrapper;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 import akha.yakhont.technology.rx.Rx.RxSubscription;
@@ -42,10 +41,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.os.Build;
 import android.support.annotation.IntRange;
-import android.support.annotation.LayoutRes;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
-import android.view.View;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -198,8 +195,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                     body, response, null, null, Source.NETWORK, null);
 
             if (body != null) {
-                final Class<?> type = body.getClass();
-                setType(type);
+                final Class<?> type = body.getClass();  // collections are without generic info
+                setTypeIfNotSet(TypeHelper.getType(type));
 
                 final ContentValues contentValues = getDataForCache(type);
                 if (contentValues != null)
@@ -409,15 +406,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                         @NonNull final Retrofit2<T, D> retrofit) {
             super(fragment);
             mRetrofit = retrofit;
-        }
-
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        @Override
-        protected void customizeAdapterWrapper(@NonNull final CoreLoad coreLoad, @NonNull final View root,
-                                               @NonNull final View list, @LayoutRes final int item) {
-            //noinspection Convert2Diamond
-            setAdapterWrapper(mFrom == null ? new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item):
-                    new Retrofit2AdapterWrapper<D>(mFragment.get().getActivity(), item, mFrom, mTo));
         }
 
         /**

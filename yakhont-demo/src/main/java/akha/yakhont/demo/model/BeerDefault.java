@@ -14,17 +14,25 @@
  * limitations under the License.
  */
 
-package akha.yakhont.demosimple.retrofit;
+package akha.yakhont.demo.model;
 
-import akha.yakhont.demosimple.model.Beer;
+import com.google.gson.annotations.SerializedName;
 
-import retrofit2.Call;
-import retrofit2.http.GET;
-//import retrofit2.http.Query;
+import java.util.Locale;
 
-public interface Retrofit2Api {
+@SuppressWarnings("unused")
+public class BeerDefault {
 
-    @GET("/data")
+    @SerializedName("title")
     @SuppressWarnings("unused")
-    Call<Beer[]> getData( /* @Query("param") String param */ );
+    private String mTitle;
+
+    @SerializedName("image")
+    @SuppressWarnings("unused")
+    private String mImage;
+
+    @Override
+    public String toString() {
+        return String.format(Locale.getDefault(), "title: %s, image: %s", mTitle, mImage);
+    }
 }
