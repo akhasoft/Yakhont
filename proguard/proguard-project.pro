@@ -53,8 +53,6 @@
 -dontnote android.support.v7.preference.Preference
 -dontnote android.support.v17.leanback.Scale
 
-# for yakhont-demo
-
 -dontwarn retrofit2.adapter.rxjava.RxJavaCallAdapterFactory
 -dontwarn retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 
@@ -69,3 +67,6 @@
 -dontnote android.support.v17.leanback.widget.SearchEditText
 -dontnote android.support.v17.leanback.widget.SearchOrbView
 -dontnote android.support.v17.leanback.widget.TitleView
+
+-dontwarn android.databinding.DataBinderMapper
+-dontwarn com.android.databinding.library.baseAdapters.DataBinderMapperImpl

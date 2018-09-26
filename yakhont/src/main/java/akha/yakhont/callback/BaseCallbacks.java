@@ -559,11 +559,14 @@ public abstract class BaseCallbacks<T> {
 
         private static <T> void add(@NonNull final BaseCacheCallbacks<T> callbacks, final boolean proceed, @NonNull final T object) {
             if (!callbacks.mAll.containsKey(object))                callbacks.mAll.put(object, proceed);
+            //noinspection RedundantCollectionOperation
             if (proceed && !callbacks.mProceeded.contains(object))  callbacks.mProceeded.add(object);
         }
 
         private static <T> void remove(@NonNull final BaseCacheCallbacks<T> callbacks, @NonNull final T object) {
+            //noinspection RedundantCollectionOperation
             if (callbacks.mAll.containsKey(object))                 callbacks.mAll.remove(object);
+            //noinspection RedundantCollectionOperation
             if (callbacks.mProceeded.contains(object))              callbacks.mProceeded.remove(object);
         }
     }

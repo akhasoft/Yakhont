@@ -143,6 +143,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
             @NonNull final Activity context, @LayoutRes final int layoutId) {
         final Set<String>           fromSet = Utils.newSet();
         final int[]                 to      = BaseCacheAdapter.getViewsBinding(context, layoutId, fromSet);
+        //noinspection ToArrayCallWithZeroLengthArrayArgument
         final String[]              from    = fromSet.toArray(new String[fromSet.size()]);
         return init(context, layoutId, from, to);
     }

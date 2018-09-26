@@ -44,6 +44,7 @@ import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
 import android.os.Parcel;
+import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.text.Html;
 import android.text.Spanned;
@@ -65,6 +66,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -93,7 +95,7 @@ public class Bubbles {
     private static ArrayList<Typeface>      sFunTypefaces;
     private static OrderHelper              sFunTextOrder, sFunColorsOrder, sFunTypefacesOrder;
 
-    private static final List<TextView>     sViews                  = Collections.synchronizedList(new ArrayList<TextView>());
+    private static final List<TextView>     sViews                  = Collections.synchronizedList(new ArrayList<>());
 
     private static       ExecutorHelper     sTimer;
     private static final Random             sRandom                 = new Random();
@@ -140,6 +142,7 @@ public class Bubbles {
                         startAnimation();
                     }
 
+                    @NonNull
                     @Override
                     public String toString() {
                         return "startAnimation()";
@@ -147,6 +150,7 @@ public class Bubbles {
                 });
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "bubbles timer";
@@ -165,6 +169,7 @@ public class Bubbles {
         if (!cancel) return;
 
         synchronized (sViews) {
+            //noinspection ToArrayCallWithZeroLengthArrayArgument
             for (TextView view: sViews.toArray(new TextView[sViews.size()]))
                 if (clear) {
                     cancelRainbow(view);
@@ -383,7 +388,8 @@ public class Bubbles {
         }        
 
         if (spannable == null) {
-            text = text.replace(target, "<b>" + target + "</b>").replace(sNewLine, "<br>");
+            text = text.replace(target, "<b>" + target + "</b>").replace(
+                    Objects.requireNonNull(sNewLine), "<br>");
             //noinspection ConstantConditions
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 @SuppressLint("InlinedApi") int flags = Html.FROM_HTML_MODE_LEGACY;
@@ -722,7 +728,7 @@ public class Bubbles {
                 mAlpha              = src.readInt();
             }
 
-            public void writeToParcel(Parcel dest, int flags) {
+            public void writeToParcel(@NonNull Parcel dest, int flags) {
                 super.writeToParcel(dest, flags);
                 
                 dest.writeInt  (mForegroundColor);
@@ -730,7 +736,7 @@ public class Bubbles {
             }
 
             @Override
-            public void updateDrawState(TextPaint textPaint) {
+            public void updateDrawState(@NonNull TextPaint textPaint) {
                 textPaint.setColor(getForegroundColor());
             }
 

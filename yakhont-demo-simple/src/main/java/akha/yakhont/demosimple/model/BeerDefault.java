@@ -16,6 +16,8 @@
 
 package akha.yakhont.demosimple.model;
 
+import android.support.annotation.NonNull;
+
 import com.google.gson.annotations.SerializedName;
 
 import java.util.Locale;
@@ -27,6 +29,7 @@ public class BeerDefault {
     @SuppressWarnings("unused")
     private String mTitle;
 
+    @NonNull
     @Override
     public String toString() {
         return String.format(Locale.getDefault(), "title: %s", mTitle);

@@ -313,6 +313,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 }
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return addLoaderInfo("BaseLoader.makeRequest()");
@@ -337,6 +338,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 callback(success, baseResponse);
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "BaseLoader.callback()";
@@ -551,6 +553,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                         onFailure(new BaseResponse<R, E, D>(Source.TIMEOUT));
                     }
 
+                    @NonNull
                     @Override
                     public String toString() {
                         return "BaseLoader.onFailure()";
@@ -558,6 +561,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 });
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return addLoaderInfo("loader timeout");
@@ -573,6 +577,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 deliverResult(result);
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "BaseLoader.deliverResult()";
@@ -670,6 +675,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                 loaderManager.destroyLoader(id);
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "BaseLoader.destroyLoader()";
@@ -687,6 +693,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
     /**
      * Please refer to the base method description.
      */
+    @NonNull
     @Override
     public String toString() {
         return String.format(Utils.getLocale(), FORMAT_INFO, getId(),
@@ -734,6 +741,7 @@ public abstract class BaseLoader<C, R, E, D> extends Loader<BaseResponse<R, E, D
                     forceLoad();
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "BaseLoader.onStartLoading()";

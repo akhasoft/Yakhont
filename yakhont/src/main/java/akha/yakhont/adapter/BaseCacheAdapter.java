@@ -301,7 +301,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param baseCacheAdapter
      *        The BaseCacheAdapter
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
+    @SuppressWarnings({"unused", "WeakerAccess", "CopyConstructorMissesField"})
     public BaseCacheAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter) {
         this(baseCacheAdapter.mCursorAdapter, baseCacheAdapter.mArrayAdapter, baseCacheAdapter.mConverter);
     }
@@ -1467,6 +1467,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                     mBaseRecyclerViewAdapter.notifyDataSetChanged();
                 }
 
+                @NonNull
                 @Override
                 public String toString() {
                     return "BaseCacheAdapterWrapper.resetArray()";

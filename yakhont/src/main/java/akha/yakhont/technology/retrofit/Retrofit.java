@@ -127,8 +127,7 @@ public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         final T proxy = mOriginalApi;
 
         final Class<?>[] params = method.getParameterTypes();
-        if (params == null || params.length == 0 ||
-                !Callback.class.isAssignableFrom(params[params.length - 1])) {
+        if (params.length == 0 || !Callback.class.isAssignableFrom(params[params.length - 1])) {
             CoreLogger.logError("unsupported (not accepts Callback) method " + method);
             return null;
         }

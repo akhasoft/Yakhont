@@ -763,6 +763,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             Buffer buffer = source.buffer();
             if ("gzip".equalsIgnoreCase(response.headers().get("Content-Encoding"))) {
                 GzipSource gzip = null;
+                //noinspection TryFinallyCanBeTryWithResources
                 try {
                     gzip = new GzipSource(buffer.clone());
                     buffer = new Buffer();

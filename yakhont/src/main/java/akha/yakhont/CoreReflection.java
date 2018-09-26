@@ -224,6 +224,7 @@ public class CoreReflection {
             CoreLogger.log(Level.DEBUG, "Class.getMethod('" + methodName + "') failed", e);
         }
 
+        //noinspection ConditionalBreakInInfiniteLoop
         for (;;) {
             final Method[] methods = tmpClass.getDeclaredMethods();
 
@@ -706,6 +707,7 @@ public class CoreReflection {
     public static Field findField(@NonNull final Object object, @NonNull final String fieldName) {
         Class tmpClass = getClass(object);
 
+        //noinspection ConditionalBreakInInfiniteLoop
         for (;;) {
             try {
                 return tmpClass.getDeclaredField(fieldName);

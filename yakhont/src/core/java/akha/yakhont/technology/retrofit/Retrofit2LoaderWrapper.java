@@ -362,8 +362,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             }
             for (final Method method: mRetrofit.getService().getMethods()) {
                 final Class<?>[] params = method.getParameterTypes();
-                if ((params == null || params.length == 0) &&
-                        TypeHelper.checkType(type, TypeHelper.getType(method)))
+                if (params.length == 0 && TypeHelper.checkType(type, TypeHelper.getType(method)))
                     return method;
             }
             return null;

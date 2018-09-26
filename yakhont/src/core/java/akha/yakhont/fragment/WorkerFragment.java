@@ -241,6 +241,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
                 if (activity != null) activity.onBackPressed();
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "Activity.onBackPressed()";

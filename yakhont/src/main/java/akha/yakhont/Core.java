@@ -94,6 +94,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -882,6 +883,7 @@ public class Core implements DefaultLifecycleObserver {
                     CoreLogger.log(PERMISSION + " request result: " + (result ? "already granted": "not granted yet"));
                 }
 
+                @NonNull
                 @Override
                 public String toString() {
                     return "timer for network monitoring";
@@ -1596,12 +1598,12 @@ public class Core implements DefaultLifecycleObserver {
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <E> Set<E> newWeakSet() {         // temp solution
-            return Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<E, Boolean>()));
+            return Collections.synchronizedSet(Collections.newSetFromMap(new WeakHashMap<>()));
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <K, V> Map<K, V> newWeakMap() {   // temp solution
-            return Collections.synchronizedMap(new WeakHashMap<K, V>());
+            return Collections.synchronizedMap(new WeakHashMap<>());
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -1612,13 +1614,13 @@ public class Core implements DefaultLifecycleObserver {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <E> Set<E> newSet() {             // temp solution
             // order should be kept
-            return Collections.synchronizedSet(new LinkedHashSet<E>());
+            return Collections.synchronizedSet(new LinkedHashSet<>());
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <K, V> Map<K, V> newMap() {       // temp solution
             // order should be kept
-            return Collections.synchronizedMap(new LinkedHashMap<K, V>());
+            return Collections.synchronizedMap(new LinkedHashMap<>());
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1736,6 +1738,7 @@ public class Core implements DefaultLifecycleObserver {
                         }
                     }
 
+                    @NonNull
                     @Override
                     public String toString() {
                         return runnable.toString();
@@ -2134,7 +2137,8 @@ public class Core implements DefaultLifecycleObserver {
                     final Class classResponse = (Class) typeResponse;
                     final boolean result = typeResponse.equals(typeMethod) ||
                             (classResponse.isArray() && typeMethod instanceof GenericArrayType
-                                    && classResponse.getComponentType().equals(getGenericComponentType(typeMethod)));
+                                    && Objects.requireNonNull(classResponse.getComponentType())
+                                    .equals(getGenericComponentType(typeMethod)));
                     if (result) return true;
                 }
 

@@ -48,7 +48,7 @@ public class YakhontRestAdapter<T> {
     public Method findDefaultMethod(@NonNull final Type typeResponse) {
         for (final Method method: mService.getMethods()) {
             final Class<?>[] params = method.getParameterTypes();
-            if (params != null && params.length == 1 && Callback.class.isAssignableFrom(params[0]) &&
+            if (params.length == 1 && Callback.class.isAssignableFrom(params[0]) &&
                     TypeHelper.checkType(typeResponse, getType(method)))
                 return method;
         }

@@ -346,6 +346,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
     /**
      * Please refer to the base method description.
      */
+    @NonNull
     @Override
     public String toString() {
         return String.format(Utils.getLocale(), FORMAT_INFO, toString(mLoaderId));
@@ -1143,6 +1144,7 @@ public abstract class BaseLoaderWrapper<D> implements LoaderManager.LoaderCallba
             /**
              * Please refer to the base method description.
              */
+            @NonNull
             @Override
             public String toString() {
                 return String.format(Utils.getLocale(), "resId %d, parameters %s",

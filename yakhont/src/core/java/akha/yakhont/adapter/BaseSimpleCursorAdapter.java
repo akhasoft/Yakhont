@@ -139,13 +139,11 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
 
     private static boolean isSupportBody() {
         final String name = SimpleCursorAdapter.class.getName();
-        if (name != null) {
-            final int pos = name.lastIndexOf('.');
-            if (pos > 0) {
-                final String pkg = name.substring(0, pos);
-                CoreLogger.log("package for SimpleCursorAdapter is " + pkg);
-                return "android.support.v4.widget".equals(pkg);
-            }
+        final int pos = name.lastIndexOf('.');
+        if (pos > 0) {
+            final String pkg = name.substring(0, pos);
+            CoreLogger.log("package for SimpleCursorAdapter is " + pkg);
+            return "android.support.v4.widget".equals(pkg);
         }
         CoreLogger.logError("can not define class name for SimpleCursorAdapter, returned name is " + name);
         return true;

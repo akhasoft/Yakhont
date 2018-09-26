@@ -317,6 +317,7 @@ public class BaseResponse<R, E, D> {
     /**
      * Please refer to the base method description.
      */
+    @NonNull
     @Override
     public String toString() {
         final StringBuilder builder = new StringBuilder();
@@ -600,6 +601,7 @@ public class BaseResponse<R, E, D> {
         /**
          * Please refer to the base method description.
          */
+        @NonNull
         @Override
         public String toString() {
             return String.format(Utils.getLocale(),

@@ -58,42 +58,42 @@ ext.libVerDagger                = rootProject.ext.projectLibVerDagger
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if (details.requested.group == 'com.android.support') {
         details.useVersion          libVerSupport
-//      details.because 'To enforce releasable units for Support Libraries'
+        details.because 'To enforce releasable units for Support Libraries'
     }
     if (details.requested.group.startsWith('android.arch.')) {
         details.useVersion          libVerLifecycle
-//      details.because 'To enforce releasable units for Support Libraries (arch)'
+        details.because 'To enforce releasable units for Support Libraries (arch)'
     }
     if (details.requested.group == 'com.google.android.gms') {
         details.useVersion          libVerLocation
-//      details.because 'To enforce releasable units for Google Play Services'
+        details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
         details.useVersion          libVerRetrofit2
-//      details.because 'To enforce releasable units for Retrofit 2'
+        details.because 'To enforce releasable units for Retrofit 2'
     }
     if (details.requested.group == 'com.squareup.okhttp3') {
         details.useVersion          libVerOkHttp3
-//      details.because 'To enforce releasable units for okhttp3'
+        details.because 'To enforce releasable units for okhttp3'
     }
     if (details.requested.group == 'com.squareup.okhttp') {
         details.useVersion          libVerOkHttp
-//      details.because 'To enforce releasable units for okhttp'
+        details.because 'To enforce releasable units for okhttp'
     }
     if (details.requested.group == 'com.google.dagger') {
         details.useVersion          libVerDagger
-//      details.because 'To enforce releasable units for Dagger 2'
+        details.because 'To enforce releasable units for Dagger 2'
     }
 }
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           27
-    buildToolsVersion          '27.0.3'
+    compileSdkVersion           28
+    buildToolsVersion          '28.0.3'
 
     defaultConfig {
         minSdkVersion           14
-        targetSdkVersion        27
+        targetSdkVersion        28
         versionCode        verCode
         versionName        verName
     }

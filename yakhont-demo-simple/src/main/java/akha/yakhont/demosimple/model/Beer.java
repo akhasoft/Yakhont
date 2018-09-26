@@ -18,6 +18,7 @@ package akha.yakhont.demosimple.model;
 
 import android.databinding.BaseObservable;
 import android.databinding.Bindable;
+import android.support.annotation.NonNull;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -35,6 +36,7 @@ public class Beer extends BaseObservable {
         return mTitle;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return String.format(Locale.getDefault(), "title: %s", mTitle);

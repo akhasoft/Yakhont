@@ -49,6 +49,7 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -104,7 +105,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final  Map<ActivityLifecycle, Future<?>>              mFutures            = Collections.synchronizedMap(
-            new EnumMap<ActivityLifecycle, Future<?>>(ActivityLifecycle.class));
+            new EnumMap<>(ActivityLifecycle.class));
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final  ExecutorHelper                                 mExecutor           = new ExecutorHelper();
@@ -373,6 +374,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
                 }
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return runnable.toString();
@@ -641,7 +643,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         if (!mRx.containsKey(activity)) //noinspection RedundantTypeArguments
             mRx.put(activity, Utils.<LocationRx>newSet());
 
-        final boolean result = mRx.get(activity).add(locationRx);
+        final boolean result = Objects.requireNonNull(mRx.get(activity)).add(locationRx);
         CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "register Rx: result == " + result);
         return result;
     }
@@ -757,6 +759,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
                 Utils.getPreferences(activity).edit().putBoolean(ARG_DECISION, decision).apply();
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "save decision";

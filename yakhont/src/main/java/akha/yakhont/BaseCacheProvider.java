@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -199,7 +200,7 @@ public class BaseCacheProvider extends ContentProvider {
         for (final String columnName: columns.keySet())
             if (!isColumnExist(tableName, columnName))
                 columnsAdded = execSQL(db, String.format(ALTER_TABLE, tableName, columnName,
-                        columns.get(columnName).name()));
+                        Objects.requireNonNull(columns.get(columnName)).name()));
         return columnsAdded;
     }
 
@@ -485,6 +486,7 @@ public class BaseCacheProvider extends ContentProvider {
                                     @NonNull final String table, @NonNull final String column) {
         boolean result = false;
         Cursor  cursor = null;
+        //noinspection TryFinallyCanBeTryWithResources
         try {
             cursor = db.query(table, new String[] {column}, null,
                     null, null, null, null, "1");
@@ -540,7 +542,7 @@ public class BaseCacheProvider extends ContentProvider {
 
         final CreateTableScriptBuilder builder = new CreateTableScriptBuilder(table);
         for (final String columnName: columns.keySet())
-            builder.addColumn(columnName, columns.get(columnName));
+            builder.addColumn(columnName, Objects.requireNonNull(columns.get(columnName)));
 
         return execSQL(db, builder.create());
     }

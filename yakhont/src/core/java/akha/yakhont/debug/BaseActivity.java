@@ -631,6 +631,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     public boolean dispatchKeyEvent(@NonNull KeyEvent event) {                                  //YakhontPreprocessor:removeInGenerated
         mBackKeyHandler.handleKeyEvent(event);                                                  //YakhontPreprocessor:removeInGenerated
 
+        //noinspection RestrictedApi
         return super.dispatchKeyEvent(event);                                                   //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated
 }

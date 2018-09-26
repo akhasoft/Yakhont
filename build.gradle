@@ -20,7 +20,7 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.1.4'
+        classpath 'com.android.tools.build:gradle:3.2.0'
         classpath 'com.github.dcendents:android-maven-gradle-plugin:2.0'
         classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
     }
@@ -69,7 +69,7 @@ ext {
 
     projectLibVerDefault    = 'default'
 
-    projectLibVerSupport    = '27.1.1'
+    projectLibVerSupport    = '28.0.0'
     projectLibVerLifecycle  =  '1.1.1'
     projectLibVerLocation   = '15.0.1'
 

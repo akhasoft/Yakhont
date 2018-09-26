@@ -29,6 +29,7 @@ import android.content.res.Resources;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -150,6 +151,7 @@ public class SlideShow {
                                 rect.height(), rect.width())));
                     }
 
+                    @NonNull
                     @Override
                     public String toString() {
                         return "setImageDrawable()";
@@ -157,6 +159,7 @@ public class SlideShow {
                 });
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return "slide show timer";

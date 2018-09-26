@@ -221,6 +221,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
                 }
             }
 
+            @NonNull
             @Override
             public String toString() {
                 return addLoaderInfo("CacheLoader.storeResult()");

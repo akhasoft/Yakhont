@@ -46,40 +46,40 @@ ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if (details.requested.group == 'com.android.support') {
         details.useVersion          libVerDemoSimpleSupport
-//      details.because 'To enforce releasable units for Support Libraries'
+        details.because 'To enforce releasable units for Support Libraries'
     }
     if (details.requested.group.startsWith('android.arch.')) {
         details.useVersion          libVerDemoSimpleLifecycle
-//      details.because 'To enforce releasable units for Support Libraries (arch)'
+        details.because 'To enforce releasable units for Support Libraries (arch)'
     }
     if (details.requested.group == 'com.google.android.gms') {
         details.useVersion          libVerDemoSimpleLocation
-//      details.because 'To enforce releasable units for Google Play Services'
+        details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
         details.useVersion          libVerDemoSimpleRetrofit2
-//      details.because 'To enforce releasable units for Retrofit 2'
+        details.because 'To enforce releasable units for Retrofit 2'
     }
     if (details.requested.group == 'com.squareup.okhttp3') {
         details.useVersion          libVerDemoSimpleOkHttp3
-//      details.because 'To enforce releasable units for okhttp3'
+        details.because 'To enforce releasable units for okhttp3'
     }
     if (details.requested.group == 'com.google.dagger') {
         details.useVersion          libVerDemoSimpleDagger
-//      details.because 'To enforce releasable units for Dagger 2'
+        details.because 'To enforce releasable units for Dagger 2'
     }
 }
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           27
-    buildToolsVersion          '27.0.3'
+    compileSdkVersion           28
+    buildToolsVersion          '28.0.3'
 
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
         applicationId           'akha.yakhont.demosimple'
         minSdkVersion           14
-        targetSdkVersion        27
+        targetSdkVersion        28
         versionCode            10101
         versionName           '1.1'
 

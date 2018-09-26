@@ -372,6 +372,7 @@ class RetrofitException extends AndroidException {
         super(error);
     }
 
+    @NonNull
     @Override
     public String toString() {
         final RetrofitError error = (RetrofitError) getCause();

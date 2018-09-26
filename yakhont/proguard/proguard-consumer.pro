@@ -52,7 +52,7 @@
 # looks like an API bug, please refer to BaseResponseLoaderWrapper.WrapperLoader
 -keep class io.reactivex.internal.** { *; }
 -keep class io.reactivex.** { *; }
--dontnote io.reactivex.**
+-dontnote   io.reactivex.**
 
 # for stack traces
 -keep class io.reactivex.exceptions.** { *; }
@@ -68,7 +68,7 @@
 }
 
 -keep class **.SimpleCursorAdapter { <init>(...); }
--dontnote **.SimpleCursorAdapter
+-dontnote   **.SimpleCursorAdapter
 
 # Data Binding Library
 -dontwarn android.databinding.DataBindingUtil

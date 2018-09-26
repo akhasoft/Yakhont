@@ -47,40 +47,40 @@ ext.libVerDemoDagger            = rootProject.ext.projectLibVerDagger
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if (details.requested.group == 'com.android.support') {
         details.useVersion          libVerDemoSupport
-//      details.because 'To enforce releasable units for Support Libraries'
+        details.because 'To enforce releasable units for Support Libraries'
     }
     if (details.requested.group.startsWith('android.arch.')) {
         details.useVersion          libVerDemoLifecycle
-//      details.because 'To enforce releasable units for Support Libraries (arch)'
+        details.because 'To enforce releasable units for Support Libraries (arch)'
     }
     if (details.requested.group == 'com.google.android.gms') {
         details.useVersion          libVerDemoLocation
-//      details.because 'To enforce releasable units for Google Play Services'
+        details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
         details.useVersion          libVerDemoRetrofit2
-//      details.because 'To enforce releasable units for Retrofit 2'
+        details.because 'To enforce releasable units for Retrofit 2'
     }
     if (details.requested.group == 'com.squareup.okhttp3') {
         details.useVersion          libVerDemoOkHttp3
-//      details.because 'To enforce releasable units for okhttp3'
+        details.because 'To enforce releasable units for okhttp3'
     }
     if (details.requested.group == 'com.google.dagger') {
         details.useVersion          libVerDemoDagger
-//      details.because 'To enforce releasable units for Dagger 2'
+        details.because 'To enforce releasable units for Dagger 2'
     }
 }
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           27
-    buildToolsVersion          '27.0.3'
+    compileSdkVersion           28
+    buildToolsVersion          '28.0.3'
 
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
         applicationId           'akha.yakhont.demo'
         minSdkVersion           14
-        targetSdkVersion        27
+        targetSdkVersion        28
         versionCode            10101
         versionName           '1.1'
 

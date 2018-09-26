@@ -258,6 +258,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
             tableName = tableName.substring(2, tableName.length() - 1);
 
         tableName = Utils.replaceSpecialChars(tableName);
+        //noinspection ConstantConditions,ConstantConditions
         tableName = tableName.length() > MAX_TABLE_NAME_LENGTH ?
                 tableName.substring(MAX_TABLE_NAME_LENGTH - tableName.length(),
                         tableName.length()): tableName;
@@ -932,7 +933,7 @@ public class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<Bas
                 String name = method.getDeclaringClass().getName() + "." + method.getName();
 
                 final Class<?>[] params = method.getParameterTypes();
-                if (params != null && params.length > 0) {
+                if (params.length > 0) {
                     String tmp = Arrays.deepToString(params);
 
                     if (tmp.startsWith("[") && tmp.endsWith("]"))

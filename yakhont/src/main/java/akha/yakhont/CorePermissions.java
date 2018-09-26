@@ -150,6 +150,7 @@ public class CorePermissions implements ConfigurationChangedListener {
             CoreLogger.log("permissions" + Arrays.deepToString(permissions) +
                     " are already granted, so nothing to do");
 
+        //noinspection ToArrayCallWithZeroLengthArrayArgument
         return list.size() == 0 ? null: list.toArray(new String[list.size()]);
     }
 

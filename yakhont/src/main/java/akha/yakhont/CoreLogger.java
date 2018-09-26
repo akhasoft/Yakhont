@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -532,7 +533,7 @@ public class CoreLogger {
             String       tmp = text;
             StringBuilder sb = null;
             for (;;) {
-                final int idx = tmp.indexOf(sNewLine);
+                final int idx = tmp.indexOf(Objects.requireNonNull(sNewLine));
                 if (idx < 0 || idx > maxLength) break;
 
                 if (sb == null) sb = new StringBuilder();
@@ -696,8 +697,8 @@ public class CoreLogger {
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public static List<String> getLogCat(List<String> list, final boolean clearList, final String cmd) {
-        @SuppressWarnings("Convert2Diamond")
-        final List<String> listActual = (list == null) ? new ArrayList<String>(): list;
+        @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+        final List<String> listActual = (list == null) ? new ArrayList<>(): list;
         if (clearList) listActual.clear();
 
         //noinspection Anonymous2MethodRef,Convert2Lambda
@@ -746,7 +747,7 @@ public class CoreLogger {
     public static void sendLogCat(@NonNull final Activity activity,
                                   @NonNull final String address, @NonNull final String subject,
                                   final boolean clearList, final String cmd) {
-        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(sNewLine,
+        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(Objects.requireNonNull(sNewLine),
                 getLogCat(null, clearList, cmd)), null);
     }
 
@@ -967,6 +968,7 @@ public class CoreLogger {
                     "ANR traces %b, screenshot %b, database %b", hasAnr, hasScreenShot, hasDb));
             try {
                 final File zipFile = getTmpFile(ZIP_PREFIX, suffix, "zip", tmpDir);
+                //noinspection ToArrayCallWithZeroLengthArrayArgument
                 if (!Utils.zip(list.toArray(new String[list.size()]), zipFile.getAbsolutePath(), errors)) return;
 
                 for (final String error: errors.keySet())
