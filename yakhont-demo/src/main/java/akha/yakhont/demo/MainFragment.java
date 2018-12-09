@@ -122,6 +122,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
         initGui(savedInstanceState);
 
         createRetrofit(getActivity());
@@ -223,7 +224,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         // uncomment to clear cache
 //      if (savedInstanceState == null) BaseResponseLoaderWrapper.clearCache(mCoreLoad);
-// or   akha.yakhont.loader.BaseResponse.clearCache("your_table_name");
+// or                                   Utils.clearCache("your_table_name");
 
         startLoading(savedInstanceState, false);
     }

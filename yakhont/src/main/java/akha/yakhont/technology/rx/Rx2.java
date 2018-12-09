@@ -209,6 +209,11 @@ public class Rx2<D> extends CommonRx<D> {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static void cancel(final Object disposable) {
+        if (disposable instanceof Disposable) ((Disposable) disposable).dispose();
+    }
+
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public static <D> Disposable handle(final Object handler, final Method method, final Object[] args,
                                         final CallbackRx<D> callback) throws Exception {

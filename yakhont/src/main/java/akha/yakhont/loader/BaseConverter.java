@@ -74,7 +74,7 @@ public class BaseConverter<D> implements Converter<D> {
             return bytes.toByteArray();
         }
         catch (Exception exception) {
-            CoreLogger.log("failed", exception);
+            CoreLogger.log(exception);
         }
         return EMPTY_BYTES;
     }
@@ -91,7 +91,7 @@ public class BaseConverter<D> implements Converter<D> {
             return cls;
         }
         catch (Exception exception) {
-            CoreLogger.log(Level.WARNING, "failed", exception);
+            CoreLogger.log(Level.WARNING, exception);
         }
         return null;
     }
@@ -109,7 +109,7 @@ public class BaseConverter<D> implements Converter<D> {
             return Class.forName(data);
         }
         catch (/*ClassNotFound*/ Exception exception) {
-            CoreLogger.log(Level.WARNING, "failed", exception);
+            CoreLogger.log(Level.WARNING, exception);
         }
         return null;
     }

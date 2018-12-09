@@ -44,7 +44,7 @@ import java.util.Set;
  *
  * @author akha
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@TargetApi  (      Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed {
 

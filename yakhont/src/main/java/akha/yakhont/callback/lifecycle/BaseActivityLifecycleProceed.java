@@ -407,7 +407,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * Extends the {@link BaseActivityLifecycleProceed} class to use on devices with
      * API version >= {@link android.os.Build.VERSION_CODES#ICE_CREAM_SANDWICH}.
      */
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     public static class ActivityLifecycleProceed extends BaseActivityLifecycleProceed implements Application.ActivityLifecycleCallbacks {
 

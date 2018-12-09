@@ -554,7 +554,7 @@ public interface Dagger2 {
                 return validate(Utils.getApplication().getString(resId));
             }
             catch (Exception exception) {
-                CoreLogger.logError("validate failed", exception);
+                CoreLogger.log("validate failed", exception);
                 return false;
             }
         }
@@ -677,7 +677,7 @@ class BaseSnackbar implements BaseDialog {
 
         if (!Dagger2.UiModule.validate(realText)) return false;
 
-        final View view = getView(activity);
+        final View view = ViewHelper.getViewForSnackbar(activity, mViewId);
         if (view == null) {
             CoreLogger.logError("View is null, can not show Snackbar: " + realText);
             return false;
@@ -766,12 +766,12 @@ class BaseSnackbar implements BaseDialog {
         return true;
     }
 
-    private View getView(final Activity activity) {
-        View view = ViewHelper.getView(activity, mViewId);
+    public static View getView(final Activity activity, Integer viewId) {
+        View view = viewId == null ? null: ViewHelper.getView(activity, viewId);
 
-        if (view == null && mViewId != Core.NOT_VALID_VIEW_ID) {
+        if (view == null && (viewId == null || viewId != Core.NOT_VALID_VIEW_ID)) {
             CoreLogger.log("about to try to find default view for Snackbar");
-            view = ViewHelper.getView(activity, Core.NOT_VALID_VIEW_ID);
+            view = ViewHelper.getView(activity);
         }
         if (view != null) {
             //noinspection Convert2Lambda
@@ -803,6 +803,21 @@ class BaseSnackbar implements BaseDialog {
 
         return true;
     }
+
+    @Override
+    public boolean confirm(Activity context) {
+        return false;
+    }
+
+    @Override
+    public boolean setOnCancel(final Runnable runnable) {
+        return false;
+    }
+
+    @Override
+    public boolean cancel() {
+        return false;
+    }
 }
 
 class BaseToast implements BaseDialog {
@@ -813,11 +828,11 @@ class BaseToast implements BaseDialog {
         mDurationLong = durationLong;
     }
 
-    public boolean start(final Context context, final String text) {
+    public boolean start(Context context, final String text) {
         try {
             if (context == null)
-                CoreLogger.logError("context == null");
-            else if (Dagger2.UiModule.validate(text)) {
+                context = Utils.getApplication().getApplicationContext();
+            if (Dagger2.UiModule.validate(text)) {
                 Toast.makeText(context, text,
                         mDurationLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
                 return true;
@@ -837,5 +852,20 @@ class BaseToast implements BaseDialog {
     @Override
     public boolean stop() {     // not used
         return true;
+    }
+
+    @Override
+    public boolean confirm(Activity context) {
+        return false;
+    }
+
+    @Override
+    public boolean setOnCancel(final Runnable runnable) {
+        return false;
+    }
+
+    @Override
+    public boolean cancel() {
+        return false;
     }
 }

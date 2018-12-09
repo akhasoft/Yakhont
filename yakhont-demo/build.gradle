@@ -31,6 +31,8 @@ ext.libVerDemoDefault           = rootProject.ext.projectLibVerDefault
 
 ext.libVerDemoSupport           = rootProject.ext.projectLibVerSupport
 ext.libVerDemoLifecycle         = rootProject.ext.projectLibVerLifecycle
+
+ext.libVerDemoGms               = rootProject.ext.projectLibVerGms
 ext.libVerDemoLocation          = rootProject.ext.projectLibVerLocation
 
 ext.libVerDemoRetrofit          = rootProject.ext.projectLibVerRetrofit
@@ -54,7 +56,11 @@ def dependenciesStrategy = { DependencyResolveDetails details ->
         details.because 'To enforce releasable units for Support Libraries (arch)'
     }
     if (details.requested.group == 'com.google.android.gms') {
-        details.useVersion          libVerDemoLocation
+        if (details.requested.name == 'play-services-location' || 
+            details.requested.name == 'play-services-places-placereport')
+            details.useVersion      libVerDemoLocation
+        else
+            details.useVersion      libVerDemoGms
         details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
@@ -192,7 +198,8 @@ dependencies {
     implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoRxJava2}"          // Rx
     implementation      "io.reactivex:rxjava:${libVerDemoRxJava}"
 
-    implementation      name:'yakhont-support', ext:'aar'                           // Yakhont
+    implementation      name:'yakhont', ext:'aar'                           // tmp stub
+//    implementation      name:'yakhont-support', ext:'aar'                           // Yakhont
 // 'cause support sources doesn't exist and generated 'on the fly'
 //    implementation project(':yakhont')
 }

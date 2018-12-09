@@ -50,7 +50,7 @@ import java.util.Arrays;
  * @author akha
  */
 @SuppressWarnings("JavaDoc")
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)           //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
+@TargetApi  (      Build.VERSION_CODES.HONEYCOMB)   //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)   //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
 //YakhontPreprocessor:addToGenerated-SearchFragment-@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 //YakhontPreprocessor:addToGenerated-SearchFragment-@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)

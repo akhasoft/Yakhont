@@ -305,7 +305,7 @@ $ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:
 
 To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code):
 
-- add **yakhont.link,yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc issues -> Declaration has Javadoc problems -> Additional Javadoc Tags
+- add **yakhont.link,yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc -> Declaration has Javadoc problems -> Additional Javadoc Tags
 - add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling -> Dictionaries
 
 ## Communication

@@ -61,26 +61,32 @@ import javax.inject.Provider;
  */
 public class CorePermissions implements ConfigurationChangedListener {
 
-    private static final String TAG                    = Utils.getTag(CorePermissions.class);
-    private static final String ARG_PERMISSIONS        = TAG + ".permissions";
-    private static final String ARG_VIEW_ID            = TAG + ".view_id";
+    private static final String                     TAG             = Utils.getTag(CorePermissions.class);
+
+    private static final String                     ARG_PERMISSIONS = TAG + ".permissions";
+    private static final String                     ARG_VIEW_ID     = TAG + ".view_id";
+
+    @IdRes
+    private static final int                        ID_VIEW_IDS     = akha.yakhont.R.id.yakhont_permissions_view_ids;
+    @IdRes
+    private static final int                        ID_OBJECTS      = akha.yakhont.R.id.yakhont_permissions_object;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected     Runnable               mOnDenied;
+    protected     Runnable                          mOnDenied;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected     Runnable               mOnGranted;
+    protected     Runnable                          mOnGranted;
 
-    private final Provider<BaseDialog>   mAlertProvider, mAlertDeniedProvider;
-    private       BaseDialog             mAlert, mAlertDenied;
+    private final Provider<BaseDialog>              mAlertProvider, mAlertDeniedProvider;
+    private       BaseDialog                        mAlert, mAlertDenied;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected     int                    mRequestCode;
+    protected     int                               mRequestCode;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IdRes
-    protected     int                    mViewId;
+    protected     int                               mViewId;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected PermissionsNamesTranslator mPermissionsNamesTranslator;
+    protected     PermissionsNamesTranslator        mPermissionsNamesTranslator;
 
     /**
      * This class can be used to customize the visual representation of permissions.
@@ -355,7 +361,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     protected static CorePermissions getCorePermissions(final Activity activity, @IdRes final int viewId) {
         final View view = ViewHelper.getView(activity, viewId);
         final CorePermissions result = view == null ? null:
-                (CorePermissions) view.getTag(akha.yakhont.R.id.yakhont_permissions_object);
+                (CorePermissions) view.getTag(ID_OBJECTS);
 
         CoreLogger.log(result == null ? Level.ERROR: Level.DEBUG, "CorePermissions == " + result);
         return result;
@@ -446,7 +452,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
     @SuppressWarnings("unchecked")
     private static Set<Integer> getIdsHelper(@NonNull final View view) {
-        return (Set<Integer>) view.getTag(akha.yakhont.R.id.yakhont_permissions_view_ids);
+        return (Set<Integer>) view.getTag(ID_VIEW_IDS);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -671,15 +677,15 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected boolean setupView(@NonNull final Activity        activity,
-                                  @NonNull final CorePermissions corePermissions) {
+                                    @NonNull final CorePermissions corePermissions) {
             final View view = ViewHelper.getView(activity, mViewId);
             if (!checkView(view)) return false;
 
             final View baseView = ViewHelper.getView(activity);
             if (!checkView(baseView)) return false;
 
-            final int key = akha.yakhont.R.id.yakhont_permissions_view_ids;
-            if (baseView.getTag(key) == null) baseView.setTag(key, Utils.<Integer>newSet());
+            if (baseView.getTag(ID_VIEW_IDS) == null)
+                ViewHelper.setTag(baseView, ID_VIEW_IDS, Utils.<Integer>newSet());
 
             final Set<Integer> viewIds = getIds(activity);
             if (viewIds == null) {
@@ -690,7 +696,7 @@ public class CorePermissions implements ConfigurationChangedListener {
             CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "CorePermissions add view ID: " + result);
 
             //noinspection ConstantConditions
-            view.setTag(akha.yakhont.R.id.yakhont_permissions_object, corePermissions);
+            ViewHelper.setTag(view, ID_OBJECTS, corePermissions);
             return true;
         }
 

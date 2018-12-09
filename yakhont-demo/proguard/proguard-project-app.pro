@@ -135,3 +135,5 @@
 
 -keep class com.google.android.gms.common.images.ImageManager$OnImageLoadedListener
 -keep class com.google.android.gms.common.images.internal.LoadingImageView$ClipPathProvider
+
+-dontwarn akha.yakhont.loader.BaseLiveData$LiveDataDialog

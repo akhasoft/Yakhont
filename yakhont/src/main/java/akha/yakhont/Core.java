@@ -69,6 +69,7 @@ import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewStub;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.Toast;
@@ -155,10 +156,18 @@ public class Core implements DefaultLifecycleObserver {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IntRange(from = 1) public  static final int        TIMEOUT_CONNECTION          = 20;   // seconds
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    @IntRange(from = 0) public  static final int        TIMEOUT_CONNECTION_TIMER    =  3;
-
     @IntRange(from = 0) private static final int        TIMEOUT_NETWORK_MONITOR     =  3;   // seconds
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static int adjustTimeout(int timeout) {
+        if (timeout <= 0) {
+            CoreLogger.logError("wrong timeout " + timeout);
+            timeout = TIMEOUT_CONNECTION;
+        }
+        final int result = timeout < 256 ? timeout * 1000: timeout;
+        CoreLogger.log("accepted timeout (ms): " + result);
+        return result;
+    }
 
     // use my birthday as the offset... why not?
     private static final int                            REQUEST_CODES_OFFSET        = 19631201;
@@ -199,14 +208,12 @@ public class Core implements DefaultLifecycleObserver {
     private static final AtomicBoolean                  sStarted                    = new AtomicBoolean();
 
     /**
-     *  The dialog API that are common to the whole library.
-     *  Every custom dialog implementation which is intended to replace the default one should implement that interface.
-     *  See {@link #init(Application, Boolean, Dagger2)} and {@link Dagger2} for more details concerning custom dialogs.
+     *  The data loading dialog API.
      */
     public interface BaseDialog {
 
         /**
-         * Starts dialog.
+         * Starts data load dialog.
          *
          * @param context
          *        The Activity
@@ -222,11 +229,40 @@ public class Core implements DefaultLifecycleObserver {
         boolean start(Activity context, String text, Intent data);
 
         /**
-         * Stops dialog.
+         * Stops data load dialog.
          *
          * @return  {@code true} if dialog was stopped successfully, {@code false} otherwise
          */
         boolean stop();
+
+        /**
+         * Confirms data load canceling.
+         *
+         * @param context
+         *        The Activity
+         *
+         * @return  {@code true} if confirmation supported, {@code false} otherwise
+         */
+        boolean confirm(Activity context);
+
+        /**
+         * Sets data load canceling handler.
+         *
+         * @param runnable
+         *        The data load canceling handler
+         *
+         * @return  {@code true} if data load canceling supported, {@code false} otherwise
+         */
+        boolean setOnCancel(Runnable runnable);
+
+        /**
+         * Invokes data load canceling handler (if supported and set).
+         *
+         * @return  {@code true} if data load canceling supported and set, {@code false} otherwise
+         *
+         * @see #setOnCancel
+         */
+        boolean cancel();
     }
 
     /**
@@ -713,7 +749,7 @@ public class Core implements DefaultLifecycleObserver {
             CoreLogger.log(Utils.getOnLowMemoryLevel(), "low memory");
         }
 
-        @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+        @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
         @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
         private static class ApplicationCallbacks2 extends ApplicationCallbacks implements ComponentCallbacks2 {
 
@@ -888,7 +924,7 @@ public class Core implements DefaultLifecycleObserver {
                 public String toString() {
                     return "timer for network monitoring";
                 }
-            }, 0, TIMEOUT_NETWORK_MONITOR * 1000, false);
+            }, 0, adjustTimeout(TIMEOUT_NETWORK_MONITOR), false);
         }
 
         private static void onNetworkStatusChanged(final boolean isConnected) {
@@ -1227,7 +1263,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static String getLoaderTableName(@NonNull final Uri uri) {
+        public static String getCacheTableName(@NonNull final Uri uri) {
             try {
                 return uri.getPathSegments().get(0);
             }
@@ -1235,6 +1271,37 @@ public class Core implements DefaultLifecycleObserver {
                 CoreLogger.log("can't find loader table name for uri " + uri, exception);
                 return null;
             }
+        }
+
+        /**
+         * Clears cache table.
+         *
+         * @param tableName
+         *        The table name
+         */
+        public static void clearCache(final String tableName) {
+            if (tableName == null) {
+                CoreLogger.logWarning("tableName == null");
+                return;
+            }
+            clearCache(Utils.getUri(tableName));
+        }
+
+        /**
+         * Clears cache table.
+         *
+         * @param uri
+         *        The URI
+         */
+        public static void clearCache(final Uri uri) {
+            final String table = Utils.getCacheTableName(uri);
+            if (table == null) {
+                CoreLogger.logWarning("not defined cache table name for clearing");
+                return;
+            }
+            CoreLogger.logWarning("about to clear cache table " + table);
+            //noinspection ConstantConditions
+            Utils.getApplication().getContentResolver().delete(uri, null, null);
         }
 
         /**
@@ -1403,8 +1470,8 @@ public class Core implements DefaultLifecycleObserver {
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @NonNull
-        public static String getActivityName(@NonNull final Activity activity) {
-            return activity.getLocalClassName();
+        public static String getActivityName(final Activity activity) {
+            return activity == null ? "null activity": activity.getLocalClassName();
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1471,6 +1538,8 @@ public class Core implements DefaultLifecycleObserver {
             return zip(srcFiles, zipFile, null);
         }
 
+        private static final int                        ZIP_BUFFER_SIZE                 = 2048;
+
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static boolean zip(final String[] srcFiles, final String zipFile,
                                   final Map<String, Exception> errors) {
@@ -1481,7 +1550,7 @@ public class Core implements DefaultLifecycleObserver {
             try {
                 final ZipOutputStream outputStream = new ZipOutputStream(
                         new BufferedOutputStream(new FileOutputStream(zipFile)));
-                final byte[] buffer = new byte[2048];
+                final byte[] buffer = new byte[ZIP_BUFFER_SIZE];
 
                 for (final String srcFile: srcFiles)
                     try {
@@ -1562,8 +1631,8 @@ public class Core implements DefaultLifecycleObserver {
             });
         }
 
-        private static       Boolean sDebug;
-        private static final Object  sDebugLock = new Object();
+        private static       Boolean                    sDebug;
+        private static final Object                     sDebugLock                      = new Object();
 
         /**
          * Checks the debug mode.
@@ -1714,14 +1783,14 @@ public class Core implements DefaultLifecycleObserver {
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean postToMainLoop(@NonNull final Runnable runnable) {
                 final boolean result = sHandler.post(prepareRunnable(runnable));
-                CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "post result: " + result);
+                if (!result) CoreLogger.logError("post failed for: " + runnable);
                 return result;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean postToMainLoop(final long delay, @NonNull final Runnable runnable) {
                 final boolean result = sHandler.postDelayed(prepareRunnable(runnable), delay);
-                CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "postDelayed result: " + result);
+                if (!result) CoreLogger.logError("postDelayed failed for: " + runnable);
                 return result;
             }
 
@@ -1965,6 +2034,20 @@ public class Core implements DefaultLifecycleObserver {
             private ViewHelper() {
             }
 
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static Object setTag(final View view, @IdRes final int id, final Object value) {
+                if (view == null) {
+                    CoreLogger.logError("view == null");
+                    return null;
+                }
+                final Object previous = view.getTag(id);
+                view.setTag(value);
+
+                if (previous != null) CoreLogger.log("view: " + view + ", tag: " + id +
+                        ", previous value: " + previous);
+                return previous;
+            }
+
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static void onAdjustMeasuredView(@NonNull final MeasuredViewAdjuster container,
                                                     @NonNull final View                 view) {
@@ -2009,8 +2092,12 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            public static View findView(@NonNull final View        parentView,
-                                        @NonNull final ViewVisitor visitor) {
+            public static View findView(final View parentView, @NonNull final ViewVisitor visitor) {
+                if (parentView == null) {
+                    CoreLogger.logError("parentView == null");
+                    return null;
+                }
+
                 final View[] viewHelper = new View[1];
 
                 //noinspection Convert2Lambda
@@ -2022,10 +2109,41 @@ public class Core implements DefaultLifecycleObserver {
                         return found;
                     }
                 });
+
                 CoreLogger.log(viewHelper[0] == null ? Level.ERROR: Level.DEBUG,
                         "result of find view: " + viewHelper[0]);
 
                 return viewHelper[0];
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static void findView(@NonNull final Collection<View> views, final View parentView,
+                                        @NonNull final ViewVisitor      visitor) {
+                if (parentView == null) {
+                    CoreLogger.logError("parentView == null");
+                    return;
+                }
+
+                //noinspection Convert2Lambda
+                visitView(parentView, new ViewVisitor() {
+                    @Override
+                    public boolean handle(final View view) {
+                        if (visitor.handle(view)) views.add(view);
+                        return false;
+                    }
+                });
+            }
+
+            @IdRes
+            private static int getDefaultViewId(final Resources resources) {
+                if (sDefViewId != DEF_VIEW_ID) return sDefViewId;
+
+                // it seems it doesn't work anymore (looks like a bug in API)
+                final TypedValue typedValue = new TypedValue();
+                resources.getValue(DEF_VIEW_REF_ID, typedValue, true);
+
+                return typedValue.resourceId == DEF_VIEW_REF_ID ||
+                        typedValue.resourceId == NOT_VALID_RES_ID ? sDefViewId: typedValue.resourceId;
             }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -2034,10 +2152,16 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            public static View getView(final Activity activity, @IdRes final int viewId) {
+            public static View getView(Activity activity, @IdRes final int viewId) {
                 if (activity == null) {
-                    CoreLogger.logError("activity == null");
-                    return null;
+                    CoreLogger.logWarning("activity == null, current activity will be used");
+
+                    activity = getCurrentActivity();
+                    if (activity == null) {
+                        CoreLogger.logError("activity == null");
+                        return null;
+                    }
+                    CoreLogger.logWarning("getView() from activity: " + getActivityName(activity));
                 }
                 if (viewId != NOT_VALID_VIEW_ID) {
                     final View view = activity.findViewById(viewId);
@@ -2071,16 +2195,28 @@ public class Core implements DefaultLifecycleObserver {
                 return view;
             }
 
-            @IdRes
-            private static int getDefaultViewId(final Resources resources) {
-                if (sDefViewId != DEF_VIEW_ID) return sDefViewId;
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static View getViewForSnackbar(final Activity activity, final Integer viewId) {
+                View view = viewId == null ? null: ViewHelper.getView(activity, viewId);
 
-                // it seems it doesn't work anymore (looks like a bug in API)
-                final TypedValue typedValue = new TypedValue();
-                resources.getValue(DEF_VIEW_REF_ID, typedValue, true);
+                if (view == null && (viewId == null || viewId != NOT_VALID_VIEW_ID)) {
+                    CoreLogger.log("about to try to find default view for Snackbar");
+                    view = ViewHelper.getView(activity);
+                }
+                if (view != null) {
+                    //noinspection Convert2Lambda
+                    final View viewChild = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
+                        @Override
+                        public boolean handle(final View view) {
+                            return !(view instanceof ViewGroup || view instanceof ViewStub);
+                        }
+                    });
+                    if (viewChild != null) view = viewChild;
+                }
+                if (view == null)
+                    CoreLogger.logError("Snackbar view == null");
 
-                return typedValue.resourceId == DEF_VIEW_REF_ID ||
-                       typedValue.resourceId == NOT_VALID_RES_ID ? sDefViewId: typedValue.resourceId;
+                return view;
             }
         }
 
@@ -2218,7 +2354,7 @@ public class Core implements DefaultLifecycleObserver {
                 return true;
             }
             catch (Exception exception) {
-                CoreLogger.log("failed", exception);
+                CoreLogger.log(exception);
             }
             finally {
                 if (close) cursor.close();

@@ -41,9 +41,8 @@
 -dontnote akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks
 
 -keep class * extends android.app.Activity {
-    public void onActivityResult(...);
+    *** onActivityResult(...);
 }
-
 
 -keep class * extends android.support.v4.app.FragmentActivity {
     public void validateRequestPermissionsRequestCode(...);
@@ -70,5 +69,8 @@
 -keep class **.SimpleCursorAdapter { <init>(...); }
 -dontnote   **.SimpleCursorAdapter
 
-# Data Binding Library
+# Data Binding
 -dontwarn android.databinding.DataBindingUtil
+
+# ViewModel
+-keep class * extends android.arch.lifecycle.ViewModel { *** onCleared(...); }

@@ -191,5 +191,15 @@ public class SupportHelper {                    // full
             if (mDialog == null) CoreLogger.logError("stop: mDialog == null");
             return mDialog == null ? false: mDialog.stop();
         }
+
+        @Override
+        public boolean confirm(Activity context) {
+            return false;
+        }
+
+        @Override
+        public boolean setOnCancel(final Runnable runnable) {
+            return false;
+        }
     }
 }

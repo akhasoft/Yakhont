@@ -197,7 +197,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
     private void storeResult(@NonNull final Source source, final ContentValues[] values) {
         if (source != Source.NETWORK) return;
 
-        if (Utils.getLoaderTableName(mUri) == null) {
+        if (Utils.getCacheTableName(mUri) == null) {
             CoreLogger.logError(addLoaderInfo("can't store in cache, empty table name"));
             return;
         }
@@ -212,7 +212,7 @@ public abstract class CacheLoader<C, R, E, D> extends BaseLoader<C, R, E, D> {
             @Override
             public void run() {
                 try {
-                    if (!mMerge.get()) BaseResponse.clearCache(mUri);
+                    if (!mMerge.get()) Utils.clearCache(mUri);
 
                     getContext().getContentResolver().bulkInsert(mUri, values);
                 }

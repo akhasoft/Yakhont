@@ -50,7 +50,7 @@ import java.util.Locale;
 /**
  * not directly related to the Yakhont Demo - just some GUI stuff
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB_MR1)
+@TargetApi  (      Build.VERSION_CODES.HONEYCOMB_MR1)
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB_MR1)
 public class SlideShow {
 

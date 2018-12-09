@@ -23,7 +23,7 @@
                                                         >Загрузка данных отменена</string>
 
     <string name="yakhont_loader_error"                 >Ошибка загрузки данных</string>
-    <string name="yakhont_loader_error_network"         >Ошибка загрузки данных с сервера</string>
+    <string name="yakhont_loader_error_network"         >Ошибка загрузки данных (Интернет)</string>
 
     <string name="yakhont_alert_ok"                     >ОК</string>
     <string name="yakhont_alert_cancel"                 >Отмена</string>

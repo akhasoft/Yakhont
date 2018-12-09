@@ -240,6 +240,11 @@ public class Rx<D> extends CommonRx<D> {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static void cancel(final Object subscription) {
+        if (subscription instanceof Subscription) ((Subscription) subscription).unsubscribe();
+    }
+
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public static <D> Subscription handle(final Object handler, final Method method, final Object[] args,
                                           final CallbackRx<D> callback) throws Exception {

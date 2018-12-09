@@ -84,6 +84,7 @@ public class CoreLogger {
     private static final String                         CLASS_NAME               = CoreLogger.class.getName();
 
     private static final String                         STACK_TRACE_TITLE        = "Yakhont CoreLogger stack trace";
+    private static final String                         DEFAULT_MESSAGE          = "failed";
 
     private static final Level                          LEVEL_STACK              = Level.ERROR;
     private static final Level                          LEVEL_THREAD             = Level.WARNING;
@@ -93,7 +94,7 @@ public class CoreLogger {
     public  static final int                            MAX_TAG_LENGTH           =   23;
     /** The maximum log record length; the value is {@value}. */
     public  static final int                            MAX_LOG_LENGTH           = 4000;
-    private static final int                            MAX_LOG_LENGTH_DEF       =  128;
+    private static final int                            MAX_LOG_LINE_LENGTH      =  128;
 
     /**
      * Returned by {@link LoggerExtender#log} (if any) to prevent {@code CoreLogger}'s
@@ -113,7 +114,7 @@ public class CoreLogger {
     private static final AtomicBoolean                  sForceShowThread         = new AtomicBoolean();
     private static final AtomicBoolean                  sNoSilentBackDoor        = new AtomicBoolean();
 
-    private static final AtomicInteger                  sMaxLogLength            = new AtomicInteger(MAX_LOG_LENGTH_DEF);
+    private static final AtomicInteger                  sMaxLogLineLength        = new AtomicInteger(MAX_LOG_LINE_LENGTH);
     private static final AtomicBoolean                  sSplitToNewLine          = new AtomicBoolean(true);
     private static final List<String>                   sLinesList               = new ArrayList<>();
     private static final Object                         sLock                    = new Object();
@@ -181,17 +182,17 @@ public class CoreLogger {
     }
 
     /**
-     * Returns maximum log record length.
+     * Returns maximum log line length.
      *
-     * @return  The maximum log record length
+     * @return  The maximum log line length
      */
     @SuppressWarnings("WeakerAccess")
-    public static int getMaxLogLength() {
-        return sMaxLogLength.get();
+    public static int getMaxLogLineLength() {
+        return sMaxLogLineLength.get();
     }
 
     /**
-     * Sets maximum log record length.
+     * Sets maximum log line length.
      *
      * @param value
      *        The value to set
@@ -199,9 +200,9 @@ public class CoreLogger {
      * @return  The previous value
      */
     @SuppressWarnings("unused")
-    public static int setMaxLogLength(@IntRange(from = 1, to = MAX_LOG_LENGTH) final int value) {
+    public static int setMaxLogLineLength(@IntRange(from = 1, to = MAX_LOG_LENGTH) final int value) {
         return value >= 1 && value <= MAX_LOG_LENGTH ?
-                sMaxLogLength.getAndSet(value): sMaxLogLength.get();
+                sMaxLogLineLength.getAndSet(value): sMaxLogLineLength.get();
     }
 
     /**
@@ -349,14 +350,24 @@ public class CoreLogger {
     /**
      * Performs logging with default ({@link Level#ERROR ERROR}) level.
      *
+     * @param throwable
+     *        The Throwable to log
+     */
+    public static void log(@NonNull final Throwable throwable) {
+        log(Level.ERROR, throwable);
+    }
+
+    /**
+     * Performs logging with default ({@link Level#ERROR ERROR}) level.
+     *
      * @param str
      *        The message to log
      *
      * @param throwable
      *        The Throwable to log
      */
-    public static void log(@NonNull final String str, final Throwable throwable) {
-        logError(str, throwable);
+    public static void log(@NonNull final String str, @NonNull final Throwable throwable) {
+        log(Level.ERROR, str, throwable);
     }
 
     /**
@@ -380,19 +391,6 @@ public class CoreLogger {
     }
 
     /**
-     * Performs logging with ({@link Level#ERROR ERROR}) level.
-     *
-     * @param str
-     *        The message to log
-     *
-     * @param throwable
-     *        The Throwable to log
-     */
-    public static void logError(@NonNull final String str, final Throwable throwable) {
-        log(Level.ERROR, str, throwable);
-    }
-
-    /**
      * Performs logging.
      *
      * @param level
@@ -403,6 +401,19 @@ public class CoreLogger {
      */
     public static void log(@NonNull final Level level, @NonNull final String str) {
         log(level, str, null);
+    }
+
+    /**
+     * Performs logging.
+     *
+     * @param level
+     *        The log level
+     *
+     * @param throwable
+     *        The Throwable to log
+     */
+    public static void log(@NonNull final Level level, @NonNull final Throwable throwable) {
+        log(level, DEFAULT_MESSAGE, throwable);
     }
 
     /**
@@ -439,13 +450,28 @@ public class CoreLogger {
         log(level, str, null, showStack);
     }
 
-    private static void log(@NonNull final Level level, @NonNull final String str,
-                            final Throwable throwable, Boolean showStack) {
+    /**
+     * Performs logging.
+     *
+     * @param level
+     *        The log level
+     *
+     * @param str
+     *        The message to log
+     *
+     * @param throwable
+     *        The Throwable to log (if any)
+     *
+     * @param showStack
+     *        Indicates whether the stack trace should be logged or not (can be null)
+     */
+    public static void log(@NonNull final Level level, @NonNull final String str,
+                           final Throwable throwable, Boolean showStack) {
 
         final boolean isLog = level.ordinal() >= sLogLevel.get().ordinal();
         if (!isLog && sLoggerExtender == null) return;
 
-        if (showStack == null) showStack = sForceShowStack.get() ||
+        if (showStack == null) showStack = sForceShowStack.get() || throwable != null ||
                 (level.ordinal() >= LEVEL_STACK.ordinal() && isFullInfo());
 
         final Throwable trace = isLog && (showStack || isMethodInfo()) ?
@@ -486,7 +512,7 @@ public class CoreLogger {
     }
 
     /**
-     * Splits message to log into parts (the maximum part length is defined by {@link #getMaxLogLength()}).
+     * Splits message to log into lines (the maximum line length is defined by {@link #getMaxLogLineLength()}).
      *
      * @param list
      *        The list to collect parts (if null, the new one will be created)
@@ -500,7 +526,7 @@ public class CoreLogger {
      */
     @SuppressWarnings({"UnusedReturnValue", "unused", "WeakerAccess"})
     public static List<String> split(final List<String> list, final String text) {
-        return split(list, text, getMaxLogLength(), true);
+        return split(list, text, getMaxLogLineLength(), true);
     }
 
     /**
@@ -563,7 +589,7 @@ public class CoreLogger {
     }
 
     private static String getSubStr(@NonNull final String strOriginal) {
-        final int maxLength = getMaxLogLength();
+        final int maxLength = getMaxLogLineLength();
         if (strOriginal.length() <= maxLength) return strOriginal;
 
         final String str = strOriginal.substring(0, maxLength);
@@ -591,7 +617,7 @@ public class CoreLogger {
     private static void log(@NonNull final Level level, @NonNull final String tag,
                             @NonNull final String msg, final Throwable throwable,
                             final StackTraceElement traceElement, final String className) {
-        final int    maxLength = getMaxLogLength();
+        final int    maxLength = getMaxLogLineLength();
         final String text      = addMethodInfo(level, msg, className,
                 traceElement == null ? null: traceElement.getMethodName(),
                 traceElement == null ? null: traceElement.getLineNumber());

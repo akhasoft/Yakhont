@@ -51,7 +51,7 @@ import java.util.Arrays;
  * @author akha
  */
 @SuppressWarnings("JavaDoc")
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
+@TargetApi  (      Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class BaseDialogFragment extends DialogFragment {        // don't modify this line: it's subject to change by the Yakhont preprocessor
 

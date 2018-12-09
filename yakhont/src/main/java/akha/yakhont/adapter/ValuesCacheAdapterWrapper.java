@@ -63,41 +63,22 @@ import java.util.Set;
  */
 public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<ContentValues, R, E, D> {
 
-    /**
-     * Initialises a newly created {@code ValuesCacheAdapterWrapper} object. The data binding goes by default:
-     * cursor's column {@link BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title etc.
-     *
-     * @param context
-     *        The {@code Activity}
-     *
-     * @param layoutId
-     *        The resource identifier of a layout file that defines the views
-     */
     @SuppressWarnings("WeakerAccess")
-    public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId) {
-        this(context, layoutId, init(context, layoutId));
+    public ValuesCacheAdapterWrapper(@NonNull   final Activity context,
+                                     @LayoutRes final int      layoutId,
+                                                final boolean  support,
+                                                final boolean  supportCursorAdapter) {
+        this(context, layoutId, init(context, layoutId, support, supportCursorAdapter));
     }
 
-    /**
-     * Initialises a newly created {@code ValuesCacheAdapterWrapper} object.
-     *
-     * @param context
-     *        The {@code Activity}
-     *
-     * @param layoutId
-     *        The resource identifier of a layout file that defines the views
-     *
-     * @param from
-     *        The list of names representing the data to bind to the UI
-     *
-     * @param to
-     *        The views that should display data in the "from" parameter
-     */
     @SuppressWarnings("WeakerAccess")
-    public ValuesCacheAdapterWrapper(@NonNull final Activity context, @LayoutRes final int layoutId,
+    public ValuesCacheAdapterWrapper(@NonNull                final Activity context,
+                                     @LayoutRes              final int      layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
-                                     @NonNull @Size(min = 1) final    int[] to) {
-        this(context, layoutId, init(context, layoutId, from, to));
+                                     @NonNull @Size(min = 1) final    int[] to,
+                                                             final boolean  support,
+                                                             final boolean  supportCursorAdapter) {
+        this(context, layoutId, init(support, supportCursorAdapter, context, layoutId, from, to));
     }
 
     /**
@@ -106,7 +87,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
      * @param factory
      *        The {@code BaseCacheAdapterFactory}
      *
-     * @param compatible
+     * @param support
      *        The support flag for the {@code BaseCacheAdapterFactory}
      *
      * @param context
@@ -123,15 +104,18 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
      */
     @SuppressWarnings({"WeakerAccess", "unused"})
     public ValuesCacheAdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
-                                     @SuppressWarnings("SameParameterValue") final boolean compatible,
-                                     @NonNull final Activity context, @LayoutRes final int layoutId,
+                                                             final boolean  support,
+                                                             final boolean  supportCursorAdapter,
+                                     @NonNull                final Activity context,
+                                     @LayoutRes              final int      layoutId,
                                      @NonNull @Size(min = 1) final String[] from,
                                      @NonNull @Size(min = 1) final    int[] to) {
-        this(context, layoutId, init(factory, compatible, context, layoutId, from, to));
+        this(context, layoutId, init(factory, support, supportCursorAdapter, context, layoutId, from, to));
     }
 
-    private ValuesCacheAdapterWrapper(@NonNull final Context context, @LayoutRes final int layoutId,
-                                      @NonNull final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter) {
+    private ValuesCacheAdapterWrapper(@NonNull   final Context context,
+                                      @LayoutRes final int     layoutId,
+                                      @NonNull   final BaseCacheAdapter<ContentValues, R, E, D> baseCacheAdapter) {
         super(baseCacheAdapter, new ContentValuesRecyclerViewAdapter<>(context, layoutId,
                         ((DefaultArrayAdapter<ContentValues>) baseCacheAdapter.getArrayAdapter()).getFrom(),
                         ((DefaultArrayAdapter<ContentValues>) baseCacheAdapter.getArrayAdapter()).getTo(),
@@ -140,39 +124,48 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
     }
 
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
-            @NonNull final Activity context, @LayoutRes final int layoutId) {
+            @NonNull   final Activity context,
+            @LayoutRes final int      layoutId,
+                       final boolean  support,
+                       final boolean  supportCursorAdapter) {
         final Set<String>           fromSet = Utils.newSet();
         final int[]                 to      = BaseCacheAdapter.getViewsBinding(context, layoutId, fromSet);
         //noinspection ToArrayCallWithZeroLengthArrayArgument
         final String[]              from    = fromSet.toArray(new String[fromSet.size()]);
-        return init(context, layoutId, from, to);
+        return init(support, supportCursorAdapter, context, layoutId, from, to);
     }
 
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
-            @NonNull final Activity context, @LayoutRes final int layout,
+                                    final boolean  support,
+                                    final boolean  supportCursorAdapter,
+            @NonNull                final Activity context,
+            @LayoutRes              final int      layout,
             @NonNull @Size(min = 1) final String[] from,
             @NonNull @Size(min = 1) final    int[] to) {
-        return init(new BaseCacheAdapterFactory<>(),
-                SupportHelper.isSupportMode(context), context, layout, from, to);
+        return init(new BaseCacheAdapterFactory<>(), support, supportCursorAdapter,
+                context, layout, from, to);
     }
 
     private static <R, E, D> BaseCacheAdapter<ContentValues, R, E, D> init(
-            @NonNull final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
-            @SuppressWarnings("SameParameterValue") final boolean compatible,
-            @NonNull final Activity context, @LayoutRes final int layout,
-            @NonNull @Size(min = 1) final String[] from,
-            @NonNull @Size(min = 1) final    int[] to) {
+            @NonNull                final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
+                                    final boolean                                         support,
+                                    final boolean                                         supportCursorAdapter,
+            @NonNull                final Activity                                        context,
+            @LayoutRes              final int                                             layout,
+            @NonNull @Size(min = 1) final String[]                                        from,
+            @NonNull @Size(min = 1) final    int[]                                        to) {
 
         @SuppressWarnings("Convert2Lambda")
-        final BaseCacheAdapter<ContentValues, R, E, D> adapter = factory.getAdapter(context, layout, from, to,
-                new DefaultArrayAdapter<>(context, layout, getDataBinder(context, from, to)),
-                new ContentValuesDataConverter<>(from), compatible);
+        final BaseCacheAdapter<ContentValues, R, E, D> adapter =
+                factory.getAdapter(context, layout, from, to,
+                    new DefaultArrayAdapter<>(context, layout, getDataBinder(context, from, to)),
+                    new ContentValuesDataConverter<>(from), support, supportCursorAdapter);
 
         CoreLogger.log(Level.INFO, "instantiated " + adapter.getClass().getName());
         return adapter;
     }
 
-    private static DataBinder<ContentValues> getDataBinder(@NonNull final Context context,
+    private static DataBinder<ContentValues> getDataBinder(@NonNull                final Context  context,
                                                            @NonNull @Size(min = 1) final String[] from,
                                                            @NonNull @Size(min = 1) final int   [] to) {
         return new DataBinder<ContentValues>(context, from, to) {
@@ -184,8 +177,10 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
         };
     }
 
-    private static Object getValue(@NonNull final ContentValues item, final int index,
-                                   @NonNull @Size(min = 1) final String[] from, final boolean notSilent) {
+    private static Object getValue(@NonNull                final ContentValues item,
+                                                           final int           index,
+                                   @NonNull @Size(min = 1) final String[]      from,
+                                                           final boolean       notSilent) {
         if (index >= from.length) {
             CoreLogger.logError(String.format(Utils.getLocale(),
                     "invalid index %d (length %d)", index, from.length));

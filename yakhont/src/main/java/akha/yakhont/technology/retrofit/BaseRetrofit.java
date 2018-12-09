@@ -126,8 +126,8 @@ public abstract class BaseRetrofit<T, B, C, D> {
 
     private final BaseHandler                       mBaseHandler    = new BaseHandler();
 
-    private C                                       mCallback;
     private boolean                                 mFindMethod;
+    private C                                       mCallback;
 
     /**
      * Initialises a newly created {@code BaseRetrofit} object.
@@ -160,7 +160,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
                 }
             }
             catch (Exception exception) {
-                CoreLogger.log("failed", exception);
+                CoreLogger.log(exception);
                 return null;
             }
         }
@@ -232,7 +232,12 @@ public abstract class BaseRetrofit<T, B, C, D> {
     }
 
     private void set(final C callback) {
-        mCallback = callback;
+        mCallback       = callback;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public void clearCall() {
+        mCallback       = null;
     }
 
     private boolean isFindMethod() {

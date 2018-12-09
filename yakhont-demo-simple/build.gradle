@@ -31,6 +31,8 @@ ext.libVerDemoSimpleDefault     = rootProject.ext.projectLibVerDefault
 
 ext.libVerDemoSimpleSupport     = rootProject.ext.projectLibVerSupport
 ext.libVerDemoSimpleLifecycle   = rootProject.ext.projectLibVerLifecycle
+
+ext.libVerDemoSimpleGms         = rootProject.ext.projectLibVerGms
 ext.libVerDemoSimpleLocation    = rootProject.ext.projectLibVerLocation
 
 ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
@@ -53,7 +55,11 @@ def dependenciesStrategy = { DependencyResolveDetails details ->
         details.because 'To enforce releasable units for Support Libraries (arch)'
     }
     if (details.requested.group == 'com.google.android.gms') {
-        details.useVersion          libVerDemoSimpleLocation
+        if (details.requested.name == 'play-services-location' || 
+            details.requested.name == 'play-services-places-placereport')
+            details.useVersion      libVerDemoSimpleLocation
+        else
+            details.useVersion      libVerDemoSimpleGms
         details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {

@@ -149,7 +149,7 @@ public class BaseCacheProvider extends ContentProvider {
 
     private Uri insert(@NonNull final Uri uri, @NonNull final ContentValues values, final boolean silent,
                        final ContentValues[] bulkValues) {
-        final String tableName = Utils.getLoaderTableName(uri);
+        final String tableName = Utils.getCacheTableName(uri);
         if (tableName == null) {
             CoreLogger.logError("insert failed");
             return null;
@@ -259,7 +259,7 @@ public class BaseCacheProvider extends ContentProvider {
         //noinspection ConstantConditions
         if (bulkValues == null || bulkValues.length == 0) return 0;
 
-        final String tableName = Utils.getLoaderTableName(uri);
+        final String tableName = Utils.getCacheTableName(uri);
         if (tableName == null) {
             CoreLogger.logError("bulkInsert failed");
             return 0;
@@ -304,7 +304,7 @@ public class BaseCacheProvider extends ContentProvider {
     private <V> V handle(@NonNull final CallableHelper<V> callable, final V defValue, @NonNull final Uri uri,
                          String condition, String[] args, final String[] columns, final String order,
                          final ContentValues data) {
-        final String table = Utils.getLoaderTableName(uri);
+        final String table = Utils.getCacheTableName(uri);
         if (table == null) {
             CoreLogger.logError("handle data failed");
             return defValue;
@@ -398,7 +398,7 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @Override
     public String getType(@NonNull Uri uri) {
-        final String param = Utils.getLoaderTableName(uri);
+        final String param = Utils.getCacheTableName(uri);
         if (param == null) {
             CoreLogger.logError("getType failed");
             return null;

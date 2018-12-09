@@ -73,7 +73,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * not directly related to the Yakhont Demo - just some GUI stuff
  */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)
+@TargetApi  (      Build.VERSION_CODES.HONEYCOMB)
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
 public class Bubbles {
 
@@ -519,7 +519,7 @@ public class Bubbles {
      *
      * @author Chiu-Ki Chan
      */
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private static class AnimatedRainbow {
 
@@ -617,7 +617,7 @@ public class Bubbles {
      *
      * @author Flavien Laurent (+ some corrections by akha)
      */
-    @TargetApi(Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     private static class AnimatedFireworks {
         

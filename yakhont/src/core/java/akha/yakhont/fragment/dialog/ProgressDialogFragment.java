@@ -263,7 +263,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
         CoreLogger.log("mConfirmation " + mConfirmation);
 
         if (!mConfirmation) {
-            cancel();
+            cancelLoading();
             return;
         }
 
@@ -286,7 +286,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
         if (mAlert.start(getDialogActivity(), null, null)) return;
 
         CoreLogger.logError("can not start alert dialog");
-        cancel();
+        cancelLoading();
     }
 
     /**
@@ -335,6 +335,16 @@ public class ProgressDialogFragment extends CommonDialogFragment {
         return true;
     }
 
+    @Override
+    public boolean confirm(Activity context) {
+        return false;
+    }
+
+    @Override
+    public boolean setOnCancel(final Runnable runnable) {
+        return false;
+    }
+
     /**
      * Please refer to the base method description.
      */
@@ -373,7 +383,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
         if (mCancelled == null) return;
 
         if (mCancelled)
-            cancel();
+            cancelLoading();
         else
             stopDialog();
     }
@@ -381,7 +391,12 @@ public class ProgressDialogFragment extends CommonDialogFragment {
     /**
      * The callback which is called when user cancels the progress dialog.
      */
-    protected void cancel() {
+    protected void cancelLoading() {
+    }
+
+    @Override
+    public boolean cancel() {
+        return false;
     }
 
     /**
@@ -424,7 +439,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
          * Cancels all currently running {@link akha.yakhont.loader.wrapper.BaseLoaderWrapper loaders}.
          */
         @Override
-        protected void cancel() {
+        protected void cancelLoading() {
             CoreLogger.logWarning("cancel");
 
             final CoreLoad coreLoad = BaseLoader.getCoreLoad(getDialogActivity());
@@ -433,7 +448,7 @@ public class ProgressDialogFragment extends CommonDialogFragment {
                 Utils.runInBackground(new Runnable() {
                     @Override
                     public void run() {
-                        coreLoad.cancelLoading();
+//                        coreLoad.cancelLoading();
                     }
                 });
             }

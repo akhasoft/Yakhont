@@ -209,6 +209,21 @@ public class AlertDialogFragment extends CommonDialogFragment implements DialogI
         callback(Activity.RESULT_CANCELED);
     }
 
+    @Override
+    public boolean confirm(Activity context) {
+        return false;
+    }
+
+    @Override
+    public boolean setOnCancel(final Runnable runnable) {
+        return false;
+    }
+
+    @Override
+    public boolean cancel() {
+        return false;
+    }
+
     /**
      * Please refer to the base method description.
      */

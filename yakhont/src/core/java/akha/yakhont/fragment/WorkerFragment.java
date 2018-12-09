@@ -60,7 +60,8 @@ import javax.inject.Provider;
  */
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
-public class WorkerFragment extends BaseFragment implements ConfigurationChangedListener, CoreLoad {
+public class WorkerFragment extends BaseFragment
+        implements ConfigurationChangedListener/*, CoreLoad*/ {
 
     /** The tag for this fragment. */
     @SuppressWarnings("WeakerAccess")
@@ -98,11 +99,11 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
         if (mProgressProvider == null) mProgressProvider = Core.getDagger().getProgress();
 
         if (mLoadersCounterSave.get() <= 0) return;
-
+/*
         for (final BaseLoaderWrapper baseLoaderWrapper: getLoaders())
             if (baseLoaderWrapper.isLoading())
                 baseLoaderWrapper.restoreCallbacks();
-
+*/
         showProgress(mTextSave.get());
 
         mProgress.mLoadersCounter.set(mLoadersCounterSave.get());
@@ -127,7 +128,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     public void onDetach() {
         for (final BaseLoaderWrapper loader: getLoaders()) {
             loader.setSwipeRefreshWrapper(null);
-            loader.setProgress(null);
+//            loader.setProgress(null);
             if (loader instanceof BaseResponseLoaderWrapper)
                 ((BaseResponseLoaderWrapper<?,?,?,?>) loader).setAdapter(null);
         }
@@ -215,7 +216,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public Collection<BaseLoaderWrapper> getLoaders() {
         return mLoaders;
     }
@@ -223,14 +224,14 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public CoreLoad cancelLoading() {
         CoreLogger.logWarning("about to cancel loading");
 
         hideProgress(true);
         destroyLoaders();
 
-        if (!isGoBackOnLoadingCanceled()) return this;
+//        if (!isGoBackOnLoadingCanceled()) return this;
         CoreLogger.logWarning("isGoBackOnLoadingCanceled: about to call Activity.onBackPressed()");
 
         //noinspection Convert2Lambda
@@ -248,17 +249,17 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
             }
         });
 
-        return this;
+        return null; //this;
     }
 
     private void destroyLoaders() {
-        BaseLoaderWrapper.destroyLoaders(getLoaderManager(), mLoaders, true);
+//        BaseLoaderWrapper.destroyLoaders(getLoaderManager(), mLoaders, true);
     }
 
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public boolean addLoader(final BaseLoaderWrapper<?> loader, final boolean replace) {
         if (loader == null) {
             CoreLogger.logWarning("loader == null");
@@ -269,7 +270,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
         if (foundLoader != null)
             if (replace) {
                 CoreLogger.logWarning("existing loader will be destroyed and replaced: " + foundLoader);
-                BaseLoader.destroyLoader(getLoaderManager(), foundLoader.getLoaderId(), true);
+//                BaseLoader.destroyLoader(getLoaderManager(), foundLoader.getLoaderId(), true);
                 mLoaders.remove(foundLoader);
             }
             else {
@@ -285,7 +286,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public boolean load() {
         return load(new LoadParameters());
     }
@@ -293,7 +294,7 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public boolean load(final LoadParameters parameters) {
         return BaseLoaderWrapper.start(getLoaders(), parameters);
     }
@@ -373,10 +374,10 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public CoreLoad setGoBackOnLoadingCanceled(final boolean isGoBackOnLoadingCanceled) {
         mGoBackOnLoadingCanceled.set(isGoBackOnLoadingCanceled);
-        return this;
+        return null; //this;
     }
 
     // normally loading starts 'cause of initialization of a new fragment
@@ -393,19 +394,19 @@ public class WorkerFragment extends BaseFragment implements ConfigurationChanged
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public CoreLoad showProgress(final String text) {
         mProgress.show(text);
-        return this;
+        return null; //this;
     }
 
     /**
      * Please refer to the base method description.
      */
-    @Override
+//    @Override
     public CoreLoad hideProgress(final boolean force) {
         mProgress.hide(force);
-        return this;
+        return null; //this;
     }
 
     private class Progress {

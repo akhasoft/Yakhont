@@ -16,6 +16,7 @@
 
 package akha.yakhont.technology.retrofit;
 
+import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse;
@@ -186,8 +187,8 @@ public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
         if (makeOkHttpClient) {
             final OkHttpClient okHttpClient = new OkHttpClient();
-            okHttpClient.setConnectTimeout(connectTimeout, TimeUnit.SECONDS);
-            okHttpClient.setReadTimeout   (readTimeout,    TimeUnit.SECONDS);
+            okHttpClient.setConnectTimeout(Core.adjustTimeout(connectTimeout), TimeUnit.MILLISECONDS);
+            okHttpClient.setReadTimeout   (Core.adjustTimeout(readTimeout   ), TimeUnit.MILLISECONDS);
 
             builder.setClient(new OkClient(okHttpClient));
         }

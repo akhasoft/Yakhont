@@ -16,6 +16,7 @@
 
 package akha.yakhont.loader;
 
+import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.Core.Utils;
@@ -25,8 +26,9 @@ import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.MatrixCursor;
-import android.net.Uri;
 import android.os.Build;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -420,55 +422,87 @@ public class BaseResponse<R, E, D> {
         }
     }
 
-    /**
-     * Clears cache table.
-     *
-     * @param tableName
-     *        The table name
-     */
-    public static void clearCache(final String tableName) {
-        if (tableName == null) {
-            CoreLogger.logError("tableName == null");
-            return;
-        }
-        clearCache(Utils.getUri(tableName));
-    }
-
-    /**
-     * Clears cache table.
-     *
-     * @param uri
-     *        The URI
-     */
-    public static void clearCache(final Uri uri) {
-        final String table = Utils.getLoaderTableName(uri);
-        if (table == null) {
-            CoreLogger.logWarning("not defined cache table name for clearing");
-            return;
-        }
-        CoreLogger.logWarning("about to clear cache table " + table);
-        //noinspection ConstantConditions
-        Utils.getApplication().getContentResolver().delete(uri, null, null);
-    }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * The class representing data loading parameters.
      */
-    public static class LoadParameters {
+    public static class LoadParameters implements Parcelable {
 
-        private final Integer               mLoaderId;
-        private final boolean               mForceCache, mNoProgress, mMerge, mNoErrors, mSync;
-        private final String                mError;
+        private static final int                  ARRAY_SIZE              = 6;
+        private static final int                  IDX_FORCE_CACHE         = 0;
+        private static final int                  IDX_NO_PROGRESS         = 1;
+        private static final int                  IDX_MERGE               = 2;
+        private static final int                  IDX_NO_ERRORS           = 3;
+        private static final int                  IDX_SYNC                = 4;
+        private static final int                  IDX_HANDLE_TIMEOUT      = 5;
 
-        private final static AtomicBoolean sSafe   = new AtomicBoolean(true);
+        private final String                      mLoaderId;
+        private final boolean                     mForceCache, mNoProgress, mMerge, mNoErrors, mSync,
+                                                  mHandleTimeout;
+        private final String                      mError;
+        private final int                         mTimeout;
+
+        private final static AtomicBoolean        sSafe                   = new AtomicBoolean(true);
+
+        public static final Parcelable.Creator<LoadParameters> CREATOR
+                = new Parcelable.Creator<LoadParameters>() {
+
+            @Override
+            public LoadParameters createFromParcel(Parcel in) {
+                return new LoadParameters(in);
+            }
+
+            @Override
+            public LoadParameters[] newArray(int size) {
+                return new LoadParameters[size];
+            }
+        };
+
+        private LoadParameters(final Parcel in) {
+            mLoaderId       = in.readString();
+
+            final boolean tmp[] = new boolean[ARRAY_SIZE];
+            in.readBooleanArray(tmp);
+            mForceCache    = tmp[IDX_FORCE_CACHE   ];
+            mNoProgress    = tmp[IDX_NO_PROGRESS   ];
+            mMerge         = tmp[IDX_MERGE         ];
+            mNoErrors      = tmp[IDX_NO_ERRORS     ];
+            mSync          = tmp[IDX_SYNC          ];
+            mHandleTimeout = tmp[IDX_HANDLE_TIMEOUT];
+
+            mError          = in.readString();
+            mTimeout        = in.readInt();
+        }
+
+        @Override
+        public void writeToParcel(Parcel out, int flags) {
+            out.writeString  (mLoaderId);
+
+            final boolean tmp[] = new boolean[ARRAY_SIZE];
+            tmp[IDX_FORCE_CACHE   ] = mForceCache;
+            tmp[IDX_NO_PROGRESS   ] = mNoProgress;
+            tmp[IDX_MERGE         ] = mMerge;
+            tmp[IDX_NO_ERRORS     ] = mNoErrors;
+            tmp[IDX_SYNC          ] = mSync;
+            tmp[IDX_HANDLE_TIMEOUT] = mHandleTimeout;
+            out.writeBooleanArray(tmp);
+
+            out.writeString  (mError);
+            out.writeInt     (mTimeout);
+        }
+
+        @Override
+        public int describeContents() {
+            return 0;
+        }
 
         /**
          * Initialises a newly created {@code LoadParameters} object.
          */
         public LoadParameters() {
-            this(null, false, false, false, false, false);
+            this("N/A", Core.TIMEOUT_CONNECTION, false, false,
+                    false, false, false, false);
         }
 
         /**
@@ -476,6 +510,9 @@ public class BaseResponse<R, E, D> {
          *
          * @param loaderId
          *        The loader ID (or null)
+         *
+         * @param timeout
+         *        The data loading timeout
          *
          * @param forceCache
          *        {@code true} to force loading data from cache, {@code false} otherwise
@@ -491,20 +528,26 @@ public class BaseResponse<R, E, D> {
          *
          * @param sync
          *        {@code true} to load data synchronously, {@code false} otherwise
+         *
+         * @param handleTimeout
+         *        {@code true} to let Yakhont to handle data loading timeout, {@code false} to delegate it to loader
          */
-        public LoadParameters(final Integer loaderId,
+        public LoadParameters(final String  loaderId, final int timeout,
                               final boolean forceCache, final boolean noProgress, final boolean merge,
-                              final boolean noErrors,   final boolean sync) {
+                              final boolean noErrors, final boolean sync, final boolean handleTimeout) {
             mLoaderId       = loaderId;
             mForceCache     = forceCache;
             mNoProgress     = noProgress;
             mMerge          = merge;
             mNoErrors       = noErrors;
             mSync           = sync;
+            mHandleTimeout  = handleTimeout;
+            mTimeout        = Core.adjustTimeout(timeout);
 
             CoreLogger.log("loader ID: " + loaderId + ", force cache: " + forceCache +
                     ", no progress: " + noProgress + ", merge: " + merge + ", no errors: " +
-                    noErrors + ", sync: " + sync);
+                    noErrors + ", sync: " + sync + ", handleTimeout: " + handleTimeout +
+                    "timeout (ms): " + mTimeout);
 
             if (mForceCache && mMerge) {
                 mError = "wrong combination: force cache and merge";
@@ -535,14 +578,23 @@ public class BaseResponse<R, E, D> {
          *
          * @return  The loader ID
          */
-        public Integer getLoaderId() {
+        public String getLoaderId() {
             return mLoaderId;
+        }
+
+        /**
+         * Gets the data loading timeout.
+         *
+         * @return  The timeout (ms)
+         */
+        public int getTimeout() {
+            return mTimeout;
         }
 
         /**
          * Gets the "force cache" flag.
          *
-         * @return  The "force cache" flag
+         * @return  {@code true} to force loading data from cache, {@code false} otherwise
          */
         public boolean getForceCache() {
             return mForceCache;
@@ -551,7 +603,7 @@ public class BaseResponse<R, E, D> {
         /**
          * Gets the "no progress" flag.
          *
-         * @return  The "no progress" flag
+         * @return  {@code true} to not display loading progress, {@code false} otherwise
          */
         public boolean getNoProgress() {
             return mNoProgress;
@@ -560,7 +612,7 @@ public class BaseResponse<R, E, D> {
         /**
          * Gets the "merge" flag.
          *
-         * @return  The "merge" flag
+         * @return  {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
          */
         public boolean getMerge() {
             return mMerge;
@@ -569,7 +621,7 @@ public class BaseResponse<R, E, D> {
         /**
          * Gets the "no errors" flag.
          *
-         * @return  The "no errors" flag
+         * @return  {@code true} to not display loading errors, {@code false} otherwise
          */
         public boolean getNoErrors() {
             return mNoErrors;
@@ -578,10 +630,19 @@ public class BaseResponse<R, E, D> {
         /**
          * Gets the "sync" flag.
          *
-         * @return  The "sync" flag
+         * @return  {@code true} to load data synchronously, {@code false} otherwise
          */
         public boolean getSync() {
             return mSync;
+        }
+
+        /**
+         * Gets the "handle timeout" flag.
+         *
+         * @return  {@code true} to handle data loading timeout, {@code false} to delegate it to loader
+         */
+        public boolean getHandleTimeout() {
+            return mHandleTimeout;
         }
 
         /**
@@ -604,10 +665,11 @@ public class BaseResponse<R, E, D> {
         @NonNull
         @Override
         public String toString() {
-            return String.format(Utils.getLocale(),
-                    "force cache %b, no progress %b, no errors %b, merge %b, sync %b, params error %s, loader id %s",
-                    mForceCache, mNoProgress, mNoErrors, mMerge, mSync, mError,
-                    mLoaderId == null ? "null": mLoaderId.toString());
+            return String.format(Utils.getLocale(), "force cache %b, no progress %b, " +
+                            "no errors %b, merge %b, sync %b, handle timeout %b, params error %s, " +
+                            "loader id %s, timeout (ms) %d",
+                    mForceCache, mNoProgress, mNoErrors, mMerge, mSync, mHandleTimeout, mError,
+                    mLoaderId, mTimeout);
         }
 
         /**

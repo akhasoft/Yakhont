@@ -16,40 +16,33 @@
 
 package akha.yakhont.technology.retrofit;
 
-import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.loader.BaseLoader;
-import akha.yakhont.loader.BaseLoader.CoreLoadExtendedBuilder;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.ConverterHelper;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
-import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 import akha.yakhont.technology.rx.Rx.RxSubscription;
 import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
-import android.annotation.TargetApi;
-import android.app.Fragment;
+import android.app.Activity;
+import android.arch.lifecycle.ViewModelStore;
 import android.content.ContentValues;
-import android.content.Context;
-import android.os.Build;
-import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
+import android.support.v4.app.Fragment;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
 
 import okhttp3.ResponseBody;
 
@@ -57,100 +50,27 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-/**
- * Extends the {@link BaseResponseLoaderWrapper} class to provide Retrofit 2 support.
- *
- * @param <D>
- *        The type of data
- *
- * @param <T>
- *        The type of Retrofit 2 API
- *
- * @author akha
- */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
-@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callback<D>, Response<D>, Throwable, D> {
 
     private static final   Annotation[]                     EMPTY_ANNOTATIONS   = new Annotation[] {};
 
     private final          Retrofit2<T, D>                  mRetrofit;
 
-    /**
-     * Initialises a newly created {@code Retrofit2LoaderWrapper} object.
-     *
-     * @param context
-     *        The context
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param requester
-     *        The requester
-     *
-     * @param table
-     *        The name of the table in the database (to cache the loaded data)
-     *
-     * @param description
-     *        The data description
-     *
-     * @param retrofit
-     *        The Retrofit2 component
-     */
-    @SuppressWarnings("unused")
-    public Retrofit2LoaderWrapper(@NonNull final Context         context,
-                                  @NonNull final Fragment        fragment,
+    public Retrofit2LoaderWrapper(@NonNull final ViewModelStore         viewModelStore,
                                   @NonNull final Requester<Callback<D>> requester,
-                                  @NonNull final String          table, final String description,
-                                  @NonNull final Retrofit2<T, D> retrofit) {
-        //noinspection RedundantTypeArguments
-        this(context, fragment, null, requester, Core.TIMEOUT_CONNECTION, table, description,
+                                  @NonNull final String                 table, final String description,
+                                  @NonNull final Retrofit2<T, D>        retrofit) {
+        this(viewModelStore, null, requester, table, description,
                 BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver(), retrofit);
     }
 
-    /**
-     * Initialises a newly created {@code Retrofit2LoaderWrapper} object.
-     *
-     * @param context
-     *        The context
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param loaderId
-     *        The loader ID
-     *
-     * @param requester
-     *        The requester
-     *
-     * @param timeout
-     *        The timeout (in seconds)
-     *
-     * @param table
-     *        The name of the table in the database (to cache the loaded data)
-     *
-     * @param description
-     *        The data description
-     *
-     * @param converter
-     *        The converter
-     *
-     * @param uriResolver
-     *        The URI resolver
-     *
-     * @param retrofit
-     *        The Retrofit2 component
-     */
-    @SuppressWarnings("WeakerAccess")
-    public Retrofit2LoaderWrapper(@NonNull final Context         context,
-                                  @NonNull final Fragment        fragment, final Integer loaderId,
+    public Retrofit2LoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                   @NonNull final Requester<Callback<D>> requester,
-                                  @IntRange(from = 1) final int  timeout,
-                                  @NonNull final String          table, final String description,
-                                  @NonNull final Converter<D>    converter,
-                                  @NonNull final UriResolver     uriResolver,
-                                  @NonNull final Retrofit2<T, D> retrofit) {
-        super(context, fragment, loaderId, requester, table, description, converter, uriResolver);
+                                  @NonNull final String                 table,  final String description,
+                                  @NonNull final Converter<D>           converter,
+                                  @NonNull final UriResolver            uriResolver,
+                                  @NonNull final Retrofit2<T, D>        retrofit) {
+        super(viewModelStore, loaderId, requester, table, description, converter, uriResolver);
 
         mRetrofit = retrofit;
 
@@ -162,33 +82,61 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                 return type == null ? null: new ConverterHelperRetrofit2<>(getConverter(type));
             }
         });
+    }
 
-        final List<BaseLoader<Callback<D>, Response<D>, Throwable, D>> baseLoaders =
-                new ArrayList<>(1);
-
-        setLoaderParameters(baseLoaders, timeout, new Callback<D>() {
+    @Override
+    protected BaseResponse<Response<D>, Throwable, D> makeRequest(
+            @NonNull final BaseViewModel<BaseResponse<Response<D>, Throwable, D>> baseViewModel) {
+        mRequester.makeRequest(new Callback<D>() {
             @Override
             public void onResponse(Call<D> call, Response<D> response) {
-                onSuccess(call, response, baseLoaders.get(0));
+                mRetrofit.clearCall();
+                onSuccess(call, response, baseViewModel);
             }
 
             @Override
             public void onFailure(Call<D> call, Throwable throwable) {
-                onError(call, null, throwable, baseLoaders.get(0));
+                mRetrofit.clearCall();
+                onError(call, null, throwable, baseViewModel);
             }
         });
+/*
+            // java.lang.ClassCastException: Couldn't convert result of type
+            // io.reactivex.internal.observers.LambdaObserver to io.reactivex.Observable
+            catch (ClassCastException exception) {
+                Utils.check(exception, "io.reactivex.internal.");
+                CoreLogger.log(Level.WARNING, "it seems an API bug", exception);
+            }
+*/
+        return null;
+    }
+
+    @Override
+    protected boolean cancelRequest(@NonNull final Level level) {
+        final Runnable cancelHandler = mRetrofit.getCancelHandler();
+        if (cancelHandler == null)
+            CoreLogger.log(level, "request cancelling handler is not defined");
+        else
+            try {
+                cancelHandler.run();
+                return true;
+            }
+            catch (Exception exception) {
+                CoreLogger.log("request cancelling handler failed", exception);
+            }
+        return false;
     }
 
     private void onError(@SuppressWarnings("UnusedParameters") final Call<D> call,
                          final Response<D> response, final Throwable error,
-                         final BaseLoader<Callback<D>, Response<D>, Throwable, D> loader) {
+                         @NonNull final BaseViewModel<BaseResponse<Response<D>, Throwable, D>> baseViewModel) {
         //noinspection Convert2Diamond
-        loader.callbackHelper(false, new BaseResponse<Response<D>, Throwable, D>(
+        baseViewModel.getData().onComplete(false, new BaseResponse<>(
                 null, response, null, error, Source.NETWORK, null));
     }
 
     private void onSuccess(final Call<D> call, final Response<D> response,
-                           final BaseLoader<Callback<D>, Response<D>, Throwable, D> loader) {
+                           @NonNull final BaseViewModel<BaseResponse<Response<D>, Throwable, D>> baseViewModel) {
         if (response.isSuccessful()) {
             final D body = response.body();
             final BaseResponse<Response<D>, Throwable, D> baseResponse = new BaseResponse<>(
@@ -205,7 +153,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             else
                 CoreLogger.logError("body == null");
 
-            loader.callbackHelper(true, baseResponse);
+            baseViewModel.getData().onComplete(true, baseResponse);
             return;
         }
 
@@ -222,7 +170,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         }
 
         final int code = response.code();
-        onError(call, response, new Exception("error code " + code), loader);
+        onError(call, response, new Exception("error code " + code), baseViewModel);
     }
 
     private ContentValues getDataForCache(@NonNull final Class type) {
@@ -277,7 +225,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                 return result;
             }
             catch (Exception exception) {
-                CoreLogger.log("failed", exception);
+                CoreLogger.log(exception);
                 return null;
             }
         }
@@ -285,37 +233,40 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Builder class for {@link BaseResponseLoaderWrapper} objects. Creates the Retrofit2-based ones.
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @param <T>
-     *        The type of Retrofit 2 API
-     */
     public static class Retrofit2LoaderBuilder<D, T> extends BaseResponseLoaderExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
 
         private final Retrofit2<T, D>                       mRetrofit;
         private final LoaderRx<Response<D>, Throwable, D>   mRx;
 
-        /**
-         * Initialises a newly created {@code Retrofit2LoaderBuilder} object.
-         *
-         * @param fragment
-         *        The fragment
-         *
-         * @param retrofit
-         *        The Retrofit2 component
-         *
-         * @param rx
-         *        The Rx component
-         */
-        @SuppressWarnings("unused")
-        public Retrofit2LoaderBuilder(@NonNull final Fragment                   fragment,
+        public Retrofit2LoaderBuilder(@NonNull final Retrofit2<T, D>            retrofit,
+                                      final LoaderRx<Response<D>, Throwable, D> rx) {
+
+            mRetrofit = retrofit;
+            mRx       = rx;
+        }
+
+        public Retrofit2LoaderBuilder(final Fragment                            fragment,
                                       @NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
             super(fragment);
+
+            mRetrofit = retrofit;
+            mRx       = rx;
+        }
+
+        public Retrofit2LoaderBuilder(final Activity                            activity,
+                                      @NonNull final Retrofit2<T, D>            retrofit,
+                                      final LoaderRx<Response<D>, Throwable, D> rx) {
+            super(activity);
+
+            mRetrofit = retrofit;
+            mRx       = rx;
+        }
+
+        public Retrofit2LoaderBuilder(final ViewModelStore                      viewModelStore,
+                                      @NonNull final Retrofit2<T, D>            retrofit,
+                                      final LoaderRx<Response<D>, Throwable, D> rx) {
+            super(viewModelStore);
 
             mRetrofit = retrofit;
             mRx       = rx;
@@ -344,12 +295,13 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @NonNull
         @Override
-        protected Retrofit2LoaderWrapper<D, T> createLoaderWrapper() {
+        protected Retrofit2LoaderWrapper<D, T> createBaseResponseLoaderWrapper(
+                final ViewModelStore viewModelStore) {
             final Method method = mRetrofit.getMethod(getRequester());
 
-            final Retrofit2LoaderWrapper<D, T> result = new Retrofit2LoaderWrapper<>(getContext(),
-                    getFragment(), mLoaderId, getRequester(), getTimeout(), getTableName(method),
-                    mDescription, getConverter(), getUriResolver(), mRetrofit);
+            final Retrofit2LoaderWrapper<D, T> result = new Retrofit2LoaderWrapper<>(viewModelStore,
+                    mLoaderId, getRequester(), getTableName(method), mDescription, getConverter(),
+                    getUriResolver(), mRetrofit);
 
             setType(result, TypeHelper.getType(method));
             return result;
@@ -371,39 +323,14 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Builder class for {@yakhont.link BaseResponseLoaderWrapper.CoreLoad} objects. Creates the Retrofit2-based ones.
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @param <T>
-     *        The type of Retrofit 2 API
-     */
     public static class Retrofit2CoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
-
-        /**
-         * Please refer to the base class description.
-         */
-        @SuppressWarnings("unused")
-        public static abstract class LoaderCallback<D> extends BaseLoader.LoaderCallback<Callback<D>, Response<D>, Throwable, D> {
-        }
 
         private final Retrofit2<T, D>                        mRetrofit;
 
-        /**
-         * Initialises a newly created {@code Retrofit2CoreLoadBuilder} object.
-         *
-         * @param fragment
-         *        The fragment
-         *
-         * @param retrofit
-         *        The Retrofit2 component
-         */
         @SuppressWarnings("unused")
-        public Retrofit2CoreLoadBuilder(@NonNull final Fragment fragment,
-                                        @NonNull final Retrofit2<T, D> retrofit) {
-            super(fragment);
+        public Retrofit2CoreLoadBuilder(@NonNull final Retrofit2<T, D> retrofit) {
+            super();
+
             mRetrofit = retrofit;
         }
 
@@ -448,9 +375,10 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          */
         @Override
         public CoreLoad create() {
-            final Retrofit2LoaderBuilder<D, T> builder = new Retrofit2LoaderBuilder<>(
-                    mFragment.get(), mRetrofit, mRx);
+            final Retrofit2LoaderBuilder<D, T> builder = new Retrofit2LoaderBuilder<>(mRetrofit, mRx);
+
             if (mType != null) builder.setType(mType);
+
             return create(builder);
         }
     }

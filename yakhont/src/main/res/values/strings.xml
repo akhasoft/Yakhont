@@ -23,7 +23,7 @@
                                                         >Data loading was cancelled</string>
 
     <string name="yakhont_loader_error"                 >Data loading error</string>
-    <string name="yakhont_loader_error_network"         >Data loading server error</string>
+    <string name="yakhont_loader_error_network"         >Data loading network error</string>
 
     <string name="yakhont_alert_ok"                     >OK</string>
     <string name="yakhont_alert_cancel"                 >Cancel</string>

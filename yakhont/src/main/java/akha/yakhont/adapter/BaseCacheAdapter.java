@@ -22,7 +22,6 @@ import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
-import akha.yakhont.SupportHelper;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.DataBindingArrayAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.DataBindingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseConverter;
@@ -37,7 +36,6 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DataSetObserver;
-import android.databinding.ViewDataBinding;
 import android.os.Build;
 import android.support.annotation.LayoutRes;
 import android.support.annotation.MainThread;
@@ -224,19 +222,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     /**
-     * The API related to data merging.
-     */
-    public interface Mergeable {
-
-        /**
-         * Returns the "merge" flag.
-         *
-         * @return  {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
-         */
-        boolean isMerge();
-    }
-
-    /**
      * This class can be used by external clients of {@code BaseCacheAdapter} to bind values to views.
      */
     @SuppressWarnings("unused")
@@ -264,35 +249,16 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         boolean setViewValue(View view, Object data, String textRepresentation);
     }
 
-    /**
-     * Initialises a newly created {@code BaseCacheAdapter} object.
-     *
-     * @param context
-     *        The Activity
-     *
-     * @param layoutId
-     *        The resource identifier of a layout file that defines the views
-     *
-     * @param from
-     *        The list of names representing the data to bind to the UI
-     *
-     * @param to
-     *        The views that should display data in the "from" parameter
-     *
-     * @param arrayAdapter
-     *        The {@code BaseArrayAdapter}
-     *
-     * @param converter
-     *        The {@code DataConverter}
-     */
-    @SuppressWarnings("WeakerAccess")
     public BaseCacheAdapter(@NonNull                final Activity          context,
                             @LayoutRes              final    int            layoutId,
                             @NonNull @Size(min = 1) final String[]          from,
                             @NonNull @Size(min = 1) final    int[]          to,
                             @NonNull final BaseArrayAdapter <T>             arrayAdapter,
-                            @NonNull final DataConverter    <T, R, E, D>    converter) {
-        this(SupportHelper.getBaseCursorAdapter(context, layoutId, from, to), arrayAdapter, converter);
+                            @NonNull final DataConverter    <T, R, E, D>    converter,
+                                     final boolean                          support) {
+        this(support ? new BaseSimpleCursorSupportAdapter(context, layoutId, from, to):
+                       new BaseSimpleCursorAdapter       (context, layoutId, from, to),
+                arrayAdapter, converter);
     }
 
     /**
@@ -700,7 +666,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param <D>
      *        The type of data in this adapter
      */
-    @TargetApi(Build.VERSION_CODES.M)
+    @TargetApi  (      Build.VERSION_CODES.M)
     @RequiresApi(api = Build.VERSION_CODES.M)
     @SuppressWarnings("WeakerAccess")
     public static class ApiMCacheAdapter<T, R, E, D> extends BaseCacheAdapter<T, R, E, D> implements ThemedSpinnerAdapter {
@@ -732,8 +698,15 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                                 @NonNull @Size(min = 1) final String[]          from,
                                 @NonNull @Size(min = 1) final    int[]          to,
                                 @NonNull final BaseArrayAdapter<T>              arrayAdapter,
-                                @NonNull final DataConverter   <T, R, E, D>     converter) {
-            super(context, layoutId, from, to, arrayAdapter, converter);
+                                @NonNull final DataConverter   <T, R, E, D>     converter,
+                                         final boolean                          support) {
+            super(context, layoutId, from, to, arrayAdapter, converter, support);
+        }
+
+        private ApiMCacheAdapter(@NonNull   final BaseCursorAdapter             stub,
+                                 @NonNull   final BaseArrayAdapter<T>           arrayAdapter,
+                                 @NonNull   final DataConverter   <T, R, E, D>  converter) {
+            super(stub, arrayAdapter, converter);
         }
 
         /**
@@ -754,6 +727,22 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 ((ThemedSpinnerAdapter) getCursorAdapter()).setDropDownViewTheme(theme);
             else
                 getArrayAdapter().setDropDownViewTheme(theme);
+        }
+    }
+
+    @TargetApi  (      Build.VERSION_CODES.M)
+    @RequiresApi(api = Build.VERSION_CODES.M)
+    public static class ApiMDataBindingCacheAdapter<R, E, D> extends ApiMCacheAdapter<Object, R, E, D> {
+
+        public ApiMDataBindingCacheAdapter(@NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
+                                           @NonNull   final DataConverter   <Object, R, E, D>  converter) {
+            super(DataBindingCacheAdapter.STUB, arrayAdapter, converter);
+        }
+
+        @Override
+        public void setCurrentAdapter(final boolean isArray) {
+            super.setCurrentAdapter(DataBindingCacheAdapter.getCurrentAdapterData());
+            DataBindingCacheAdapter.checkArray(isArray);
         }
     }
 
@@ -807,11 +796,28 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                                    @NonNull @Size(min = 1) final String[]       from,
                                    @NonNull @Size(min = 1) final    int[]       to,
                                    @NonNull final BaseArrayAdapter<T>           arrayAdapter,
-                                   @NonNull final DataConverter   <T, R, E, D>  converter) {
-            super(context, layoutId, from, to, arrayAdapter, converter);
+                                   @NonNull final DataConverter   <T, R, E, D>  converter,
+                                            final boolean                       support) {
+            super(context, layoutId, from, to, arrayAdapter, converter, support);
 
-            mDropDownHelper = new android.support.v7.widget.ThemedSpinnerAdapter.Helper(context);
+            mDropDownHelper = init(context);
             mLayoutId       = layoutId;
+        }
+
+        private SupportCacheAdapter(@NonNull   final Activity                      context,
+                                    @LayoutRes final int                           layoutId,
+                                    @NonNull   final BaseCursorAdapter             stub,
+                                    @NonNull   final BaseArrayAdapter<T>           arrayAdapter,
+                                    @NonNull   final DataConverter   <T, R, E, D>  converter) {
+            super(stub, arrayAdapter, converter);
+
+            mDropDownHelper = init(context);
+            mLayoutId       = layoutId;
+        }
+
+        private static android.support.v7.widget.ThemedSpinnerAdapter.Helper init(
+                @NonNull final Activity context) {
+            return new android.support.v7.widget.ThemedSpinnerAdapter.Helper(context);
         }
 
         /**
@@ -835,9 +841,25 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @Override
         public View getDropDownView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) convertView = mDropDownHelper.getDropDownViewInflater().inflate(mLayoutId, parent, false);
-
+            if (convertView == null) convertView = mDropDownHelper.getDropDownViewInflater()
+                    .inflate(mLayoutId, parent, false);
             return super.getDropDownView(position, convertView, parent);
+        }
+    }
+
+    public static class SupportDataBindingCacheAdapter<R, E, D> extends SupportCacheAdapter<Object, R, E, D> {
+
+        public SupportDataBindingCacheAdapter(@NonNull   final Activity                           context,
+                                              @LayoutRes final int                                layoutId,
+                                              @NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
+                                              @NonNull   final DataConverter   <Object, R, E, D>  converter) {
+            super(context, layoutId, DataBindingCacheAdapter.STUB, arrayAdapter, converter);
+        }
+
+        @Override
+        public void setCurrentAdapter(final boolean isArray) {
+            super.setCurrentAdapter(DataBindingCacheAdapter.getCurrentAdapterData());
+            DataBindingCacheAdapter.checkArray(isArray);
         }
     }
 
@@ -896,8 +918,17 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @Override
         public void setCurrentAdapter(final boolean isArray) {
-            super.setCurrentAdapter(true);
-            if (!isArray) CoreLogger.log(Level.WARNING, "BaseCursorAdapter ignored", true);
+            super.setCurrentAdapter(getCurrentAdapterData());
+            checkArray(isArray);
+        }
+
+        private static boolean getCurrentAdapterData() {
+            return true;
+        }
+
+        private static void checkArray(final boolean isArray) {
+            if (!isArray)
+                CoreLogger.log(Level.WARNING, "BaseCursorAdapter ignored", true);
         }
     }
 
@@ -925,32 +956,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         public BaseCacheAdapterFactory() {
         }
 
-        /**
-         * Returns a new {@code BaseCacheAdapter} instance.
-         *
-         * @param context
-         *        The Activity
-         *
-         * @param layoutId
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @param from
-         *        The list of names representing the data to bind to the UI
-         *
-         * @param to
-         *        The views that should display data in the "from" parameter
-         *
-         * @param arrayAdapter
-         *        The {@code BaseArrayAdapter}
-         *
-         * @param converter
-         *        The {@code DataConverter}
-         *
-         * @param support
-         *        {@code true} to return the {@code SupportCacheAdapter} instance, {@code false} otherwise
-         *
-         * @return  The {@code BaseCacheAdapter} instance
-         */
         @SuppressLint("ObsoleteSdkInt")
         public BaseCacheAdapter<T, R, E, D> getAdapter(
                 @NonNull                final Activity                          context,
@@ -959,31 +964,38 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 @NonNull @Size(min = 1) final    int[]                          to,
                 @NonNull                final BaseArrayAdapter<T>               arrayAdapter,
                 @NonNull                final DataConverter   <T, R, E, D>      converter,
-                                        final boolean                           support) {
-            if (support)
-                return new SupportCacheAdapter<>(context, layoutId, from, to, arrayAdapter, converter);
+                                        final boolean                           support,
+                                        final boolean                           supportCursorAdapter) {
+            CoreLogger.log("supportCursorAdapter is " + supportCursorAdapter);
+
+            if (support) {
+                if (!supportCursorAdapter)
+                    CoreLogger.logWarning("support mode is true, supportCursorAdapter is false");
+                return new SupportCacheAdapter<>(context, layoutId, from, to, arrayAdapter,
+                        converter, supportCursorAdapter);
+            }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
-                return new ApiMCacheAdapter   <>(context, layoutId, from, to, arrayAdapter, converter);
+                return new ApiMCacheAdapter   <>(context, layoutId, from, to, arrayAdapter,
+                        converter, supportCursorAdapter);
             else
-                return new BaseCacheAdapter   <>(context, layoutId, from, to, arrayAdapter, converter);
+                return new BaseCacheAdapter   <>(context, layoutId, from, to, arrayAdapter,
+                        converter, supportCursorAdapter);
         }
 
-        /**
-         * Returns a new {@code BaseCacheAdapter} instance for use with Data Binding Library.
-         *
-         * @param arrayAdapter
-         *        The {@code BaseArrayAdapter}
-         *
-         * @param converter
-         *        The {@code DataConverter}
-         *
-         * @return  The {@code BaseCacheAdapter} instance
-         */
         public BaseCacheAdapter<Object, R, E, D> getAdapter(
+                @NonNull                final Activity                          context,
+                @LayoutRes              final int                               layoutId,
                 @NonNull                final BaseArrayAdapter<Object>          arrayAdapter,
-                @NonNull                final DataConverter   <Object, R, E, D> converter) {
-            return new DataBindingCacheAdapter<>(arrayAdapter, converter);
+                @NonNull                final DataConverter   <Object, R, E, D> converter,
+                                        final boolean                           support) {
+            if (support)
+                return new SupportDataBindingCacheAdapter<>(context, layoutId, arrayAdapter, converter);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                return new ApiMDataBindingCacheAdapter<>(arrayAdapter, converter);
+            else
+                return new DataBindingCacheAdapter    <>(arrayAdapter, converter);
         }
     }
 
@@ -1527,64 +1539,44 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     public static class DataBindingCacheAdapterWrapper<R, E, D>
             extends BaseCacheAdapterWrapper<Object, R, E, D> {
 
-        /**
-         * Initialises a newly created {@code DataBindingCacheAdapterWrapper} object.
-         *
-         * @param id
-         *        The BR id of the variable to be set (please refer to
-         *        {@link ViewDataBinding#setVariable} for more info)
-         *
-         * @param layoutId
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @param context
-         *        The The {@code Activity}
-         */
-        public DataBindingCacheAdapterWrapper(final int id, @LayoutRes final int layoutId,
-                                              @NonNull final Activity context) {
-            this(id, layoutId, new BaseCacheAdapterFactory<>(), context);
+        public DataBindingCacheAdapterWrapper(           final int       id,
+                                              @NonNull   final Activity  context,
+                                              @LayoutRes final int       layoutId,
+                                                         final boolean   support) {
+            this(id, context, layoutId, new BaseCacheAdapterFactory<>(), support);
         }
 
-        /**
-         * Initialises a newly created {@code DataBindingCacheAdapterWrapper} object.
-         *
-         * @param id
-         *        The BR id of the variable to be set (please refer to
-         *        {@link ViewDataBinding#setVariable} for more info)
-         *
-         * @param layoutId
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @param factory
-         *        The {@code BaseCacheAdapterFactory}
-         *
-         * @param context
-         *        The The {@code Activity}
-         */
         @SuppressWarnings("WeakerAccess")
-        public DataBindingCacheAdapterWrapper(final int id, @LayoutRes final int layoutId,
-                                              @NonNull final BaseCacheAdapterFactory<Object, R, E, D> factory,
-                                              @NonNull final Activity context) {
-            this(id, layoutId, init(id, layoutId, factory, context));
+        public DataBindingCacheAdapterWrapper(
+                           final int                                      id,
+                @NonNull   final Activity                                 context,
+                @LayoutRes final int                                      layoutId,
+                @NonNull   final BaseCacheAdapterFactory<Object, R, E, D> factory,
+                           final boolean                                  support) {
+            this(id, layoutId, init(id, context, layoutId, factory, support));
         }
 
         private static <R, E, D> BaseCacheAdapter<Object, R, E, D> init(
-                final int id, @LayoutRes final int layoutId,
-                @NonNull final BaseCacheAdapterFactory<Object, R, E, D> factory,
-                @NonNull final Activity context) {
+                           final int                                      id,
+                @NonNull   final Activity                                 context,
+                @LayoutRes final int                                      layoutId,
+                @NonNull   final BaseCacheAdapterFactory<Object, R, E, D> factory,
+                           final boolean                                  support) {
             CoreLogger.log("DataBindingCacheAdapterWrapper instantiated");
 
             final DataBindingArrayAdapter< R, E, D> arrayAdapter =
                     new DataBindingArrayAdapter<>(context, layoutId, id);
-            final BaseCacheAdapter<Object, R, E, D> result = factory.getAdapter(
-                    arrayAdapter, new DataBindingDataConverter<>());
+            final BaseCacheAdapter<Object, R, E, D> result = factory.getAdapter(context, layoutId,
+                    arrayAdapter, new DataBindingDataConverter<>(), support);
 
             arrayAdapter.setAdapter(result);
             return result;
         }
 
-        private DataBindingCacheAdapterWrapper(final int id, @LayoutRes final int layoutId,
-                                               @NonNull final BaseCacheAdapter<Object, R, E, D> baseCacheAdapter) {
+        private DataBindingCacheAdapterWrapper(
+                           final int                               id,
+                @LayoutRes final int                               layoutId,
+                @NonNull   final BaseCacheAdapter<Object, R, E, D> baseCacheAdapter) {
             super(baseCacheAdapter, new DataBindingRecyclerViewAdapter<>(id, layoutId, baseCacheAdapter),
                     (DataBindingDataConverter<R, E, D>) baseCacheAdapter.getConverter());
         }

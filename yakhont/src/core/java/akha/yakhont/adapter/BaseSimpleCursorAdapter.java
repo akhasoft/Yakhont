@@ -17,9 +17,7 @@
 package akha.yakhont.adapter;
 
 import akha.yakhont.CoreLogger;
-import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCursorAdapter;
-import akha.yakhont.loader.BaseResponse;
 
 import android.annotation.TargetApi;
 import android.content.Context;
@@ -31,17 +29,10 @@ import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.annotation.Size;
 import android.view.View;
-import android.widget.Checkable;
-import android.widget.ImageView;
 import android.widget.SimpleCursorAdapter;
 
 import java.lang.ref.WeakReference;
 
-/**
- * Extends {@code SimpleCursorAdapter} to provide additional view binding possibilities.
- *
- * @author akha
- */
 public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements BaseCursorAdapter {
 
     private final WeakReference<Context>    mContext;
@@ -49,22 +40,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     private BaseCacheAdapter.ViewBinder     mViewBinder;
     private BaseCacheAdapter.DataConverter  mDataConverter;
 
-    /**
-     * Initialises a newly created {@code BaseCursorAdapter} object.
-     *
-     * @param context
-     *        The Context
-     *
-     * @param layoutId
-     *        The resource identifier of a layout file that defines the views
-     *
-     * @param from
-     *        The list of names representing the data to bind to the UI
-     *
-     * @param to
-     *        The views that should display data in the "from" parameter
-     */
-    @TargetApi(Build.VERSION_CODES.HONEYCOMB)
+    @TargetApi  (      Build.VERSION_CODES.HONEYCOMB)
     @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)
     public BaseSimpleCursorAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
                                    @NonNull @Size(min = 1) final String[] from,
@@ -74,25 +50,6 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
         init();
     }
 
-    /**
-     * Initialises a newly created {@code BaseCursorAdapter} object (for using {@link android.widget.SimpleCursorAdapter}
-     * on devices with API version &lt; {@link android.os.Build.VERSION_CODES#HONEYCOMB HONEYCOMB}).
-     *
-     * @param context
-     *        The Context
-     *
-     * @param layoutId
-     *        The resource identifier of a layout file that defines the views
-     *
-     * @param from
-     *        The list of names representing the data to bind to the UI
-     *
-     * @param to
-     *        The views that should display data in the "from" parameter
-     *
-     * @param ignored
-     *        ignored
-     */
     @SuppressWarnings({"deprecation", "unused", "UnusedParameters"})
     public BaseSimpleCursorAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
                                    @NonNull @Size(min = 1) final String[] from,
@@ -107,24 +64,8 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
         setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override
             public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
-                final Object data    = BaseResponse.getData(cursor, columnIndex);
-                final String strData = BaseCacheAdapter.getString(data);
-
-                if (mViewBinder != null && mViewBinder.setViewValue(view,
-                        data instanceof Exception ? null: data,
-                        strData == null ? "": strData))
-                    return true;
-
-                if (view instanceof Checkable)
-                    ((Checkable) view).setChecked(Boolean.parseBoolean(strData));
-
-                else if (view instanceof ImageView)
-                    BaseCacheAdapter.bindImageView(mContext.get(), (ImageView) view, data);
-
-                else
-                    return false;
-
-                return true;
+                return BaseSimpleCursorSupportAdapter.setViewValueHelper(
+                        mViewBinder, mContext, view, cursor, columnIndex);
             }
         });
     }
@@ -132,28 +73,11 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isSupport() {
-        final boolean result = isSupportBody();
+        final boolean result = false;
         CoreLogger.log("BaseSimpleCursorAdapter.isSupport() == " + result);
         return result;
     }
 
-    private static boolean isSupportBody() {
-        final String name = SimpleCursorAdapter.class.getName();
-        final int pos = name.lastIndexOf('.');
-        if (pos > 0) {
-            final String pkg = name.substring(0, pos);
-            CoreLogger.log("package for SimpleCursorAdapter is " + pkg);
-            return "android.support.v4.widget".equals(pkg);
-        }
-        CoreLogger.logError("can not define class name for SimpleCursorAdapter, returned name is " + name);
-        return true;
-    }
-
-    /**
-     * Gets the registered {@code ViewBinder} (if any).
-     *
-     * @return  The {@code ViewBinder} or null
-     */
     @SuppressWarnings("unused")
     public BaseCacheAdapter.ViewBinder getAdapterViewBinder() {
         return mViewBinder;
@@ -169,37 +93,19 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     public void setDataConverter(final BaseCacheAdapter.DataConverter dataConverter) {
-        if (dataConverter == null)
-            CoreLogger.logWarning("about to set DataConverter to null");
-        if (mDataConverter != null)
-            CoreLogger.logError("DataConverter was already set to " + mDataConverter);
+        BaseSimpleCursorSupportAdapter.checkDataConverter(dataConverter, mDataConverter);
         mDataConverter = dataConverter;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     @CallSuper
     public Cursor swapCursor(Cursor cursor) {
-        if (mDataConverter == null)
-            CoreLogger.logError("mDataConverter == null");
-        else
-            cursor = mDataConverter.swapCursor(cursor);
-        return super.swapCursor(cursor);
+        return super.swapCursor(BaseSimpleCursorSupportAdapter.swapCursor(mDataConverter, cursor));
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     public Cursor getItemCursor(int position) {
-        if (position < 0) {
-            CoreLogger.logError("wrong cursor position " + position);
-            return null;
-        }
-        final Cursor cursor = getCursor();
-        if (cursor == null) return null;
-
-        if (cursor.moveToPosition(position)) return cursor;
-
-        CoreLogger.logError("can't move cursor to position " + position);
-        return null;
+        return BaseSimpleCursorSupportAdapter.getItemCursor(position, getCursor());
     }
 }

@@ -112,11 +112,32 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     private Class<T>                            mService;
     private Retrofit                            mRetrofit;
 
+    private Runnable                            mCancelHandler;
+
     /**
      * Initialises a newly created {@code Retrofit2} object.
      */
     @SuppressWarnings("unused")
     public Retrofit2() {
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    public void clearCall() {
+        super.clearCall();
+
+        setCancelHandler(null);
+    }
+
+    public Runnable getCancelHandler() {
+        return mCancelHandler;
+    }
+
+    // mostly for raw calls
+    public void setCancelHandler(final Runnable cancelHandler) {
+        if (mCancelHandler != null && cancelHandler != null)
+            CoreLogger.logWarning("about to redefine cancel handler " + mCancelHandler);
+        mCancelHandler = cancelHandler;
     }
 
     /**
@@ -202,20 +223,43 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 final Call<D> call = CoreReflection.invoke(proxy, method, args);
                 if (call == null) throw new Exception("Call == null");
 
+                setCancelHandler(new Runnable() {
+                    @Override
+                    public void run() {
+                        call.cancel();
+                    }
+                });
+
                 call.enqueue(callback);
                 return call;
             }
 
             final CallbackRx<D> callbackRx = getRxWrapper(callback);
 
-            Object resultRx = Rx2.handle(proxy, method, args, callbackRx);
-            if (resultRx != null) {
-                getRx2DisposableHandler(rx).add(resultRx);
-                return resultRx;
+            final Object resultRx2 = Rx2.handle(proxy, method, args, callbackRx);
+            if (resultRx2 != null) {
+
+                setCancelHandler(new Runnable() {
+                    @Override
+                    public void run() {
+                        Rx2.cancel(resultRx2);
+                    }
+                });
+
+                getRx2DisposableHandler(rx).add(resultRx2);
+                return resultRx2;
             }
 
-            resultRx = Rx.handle(proxy, method, args, callbackRx);
+            final Object resultRx = Rx.handle(proxy, method, args, callbackRx);
             if (resultRx != null) {
+
+                setCancelHandler(new Runnable() {
+                    @Override
+                    public void run() {
+                        Rx.cancel(resultRx);
+                    }
+                });
+
                 getRxSubscriptionHandler(rx).add(resultRx);
                 return resultRx;
             }
@@ -323,7 +367,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> cookies) {
 
         return init(service, getDefaultBuilder(retrofitBase).client(getDefaultOkHttpClientBuilder(
-                connectTimeout, readTimeout, headers, cookies).build()),
+                connectTimeout, readTimeout, readTimeout, headers, cookies).build()),
                 connectTimeout, readTimeout, false);
     }
 
@@ -341,7 +385,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         mService        = service;
 
         if (makeOkHttpClient) builder.client(getDefaultOkHttpClientBuilder(
-                connectTimeout, readTimeout, null, null).build());
+                connectTimeout, readTimeout, readTimeout, null, null).build());
 
         mRetrofit       = builder.build();
         mOriginalApi    = mRetrofit.create(service);
@@ -383,8 +427,8 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected Factory getFactoryRx(final boolean factoryRx) {
         try {
-            return factoryRx ? RxJavaCallAdapterFactory.createAsync():
-                    RxJava2CallAdapterFactory.createAsync();
+            return factoryRx ? RxJavaCallAdapterFactory .createAsync():
+                               RxJava2CallAdapterFactory.createAsync();
         }
         catch (NoClassDefFoundError error) {    // in most cases it's ok
             CoreLogger.log(Level.DEBUG, "getFactory can't find class", error);
@@ -438,8 +482,8 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
      */
     @SuppressWarnings("unused")
     public OkHttpClient.Builder getDefaultOkHttpClientBuilder() {
-        return getDefaultOkHttpClientBuilder(
-                Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, null, null);
+        return getDefaultOkHttpClientBuilder(Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION,
+                Core.TIMEOUT_CONNECTION, null, null);
     }
 
     /**
@@ -463,12 +507,14 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     public OkHttpClient.Builder getDefaultOkHttpClientBuilder(
             @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int connectTimeout,
             @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int readTimeout,
+            @SuppressWarnings("SameParameterValue") @IntRange(from = 1) final int writeTimeout,
             @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> headers,
             @SuppressWarnings("SameParameterValue") @Nullable final Map<String, String> cookies) {
 
         final OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .connectTimeout(connectTimeout, TimeUnit.SECONDS)
-                .readTimeout   (readTimeout,    TimeUnit.SECONDS);
+                .connectTimeout(Core.adjustTimeout(connectTimeout), TimeUnit.MILLISECONDS)
+                .readTimeout   (Core.adjustTimeout(readTimeout   ), TimeUnit.MILLISECONDS)
+                .writeTimeout  (Core.adjustTimeout(writeTimeout  ), TimeUnit.MILLISECONDS);
 
         final HttpLoggingInterceptor logger = new HttpLoggingInterceptor( /* LOGGER */ );
         logger.setLevel(CoreLogger.isFullInfo() ?

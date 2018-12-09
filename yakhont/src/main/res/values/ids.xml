@@ -17,4 +17,5 @@
 <resources>
     <item type="id" name="yakhont_permissions_object"   />
     <item type="id" name="yakhont_permissions_view_ids" />
+    <item type="id" name="yakhont_swipe_refresh_layout" />
 </resources>

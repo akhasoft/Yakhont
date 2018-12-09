@@ -16,132 +16,52 @@
 
 package akha.yakhont.technology.retrofit;
 
-import akha.yakhont.Core;
 import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.loader.BaseLoader;
-import akha.yakhont.loader.BaseLoader.CoreLoadExtendedBuilder;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.ConverterHelper;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
-import akha.yakhont.technology.retrofit.Retrofit;
 
-import android.annotation.TargetApi;
-import android.app.Fragment;
+import android.app.Activity;
+import android.support.v4.app.Fragment;
+import android.arch.lifecycle.ViewModelStore;
 import android.content.ContentValues;
-import android.content.Context;
-import android.os.Build;
-import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 import android.util.AndroidException;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
 import retrofit.client.Response;
 import retrofit.mime.TypedString;
 
-/**
- * Extends the {@link BaseResponseLoaderWrapper} class to provide Retrofit support.
- *
- * @param <D>
- *        The type of data
- *
- * @param <T>
- *        The type of Retrofit API
- *
- * @author akha
- */
-@TargetApi(Build.VERSION_CODES.HONEYCOMB)                       //YakhontPreprocessor:removeInFlavor
-@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callback<D>, Response, Exception, D> {
 
     private final          Retrofit<T, D>                    mRetrofit;
 
-    /**
-     * Initialises a newly created {@code RetrofitLoaderWrapper} object.
-     *
-     * @param context
-     *        The context
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param requester
-     *        The requester
-     *
-     * @param table
-     *        The name of the table in the database (to cache the loaded data)
-     *
-     * @param description
-     *        The data description
-     *
-     * @param retrofit
-     *        The Retrofit component
-     */
-    @SuppressWarnings("unused")
-    public RetrofitLoaderWrapper(@NonNull final Context        context,
-                                 @NonNull final Fragment       fragment,
-                                 @NonNull final Requester<Callback<D>> requester,
-                                 @NonNull final String         table, final String description,
-                                 @NonNull final Retrofit<T, D> retrofit) {
+    public RetrofitLoaderWrapper(@NonNull final ViewModelStore          viewModelStore,
+                                 @NonNull final Requester<Callback<D>>  requester,
+                                 @NonNull final String                  table, final String description,
+                                 @NonNull final Retrofit<T, D>          retrofit) {
         //noinspection RedundantTypeArguments
-        this(context, fragment, null, requester, Core.TIMEOUT_CONNECTION, table, description,
+        this(viewModelStore, null, requester, table, description,
                 BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver(), retrofit);
     }
 
-    /**
-     * Initialises a newly created {@code RetrofitLoaderWrapper} object.
-     *
-     * @param context
-     *        The context
-     *
-     * @param fragment
-     *        The fragment
-     *
-     * @param loaderId
-     *        The loader ID
-     *
-     * @param requester
-     *        The requester
-     *
-     * @param timeout
-     *        The timeout (in seconds)
-     *
-     * @param table
-     *        The name of the table in the database (to cache the loaded data)
-     *
-     * @param description
-     *        The data description
-     *
-     * @param converter
-     *        The converter
-     *
-     * @param uriResolver
-     *        The URI resolver
-     *
-     * @param retrofit
-     *        The Retrofit component
-     */
-    @SuppressWarnings("WeakerAccess")
-    public RetrofitLoaderWrapper(@NonNull final Context        context,
-                                 @NonNull final Fragment       fragment, final Integer loaderId,
+    public RetrofitLoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                  @NonNull final Requester<Callback<D>> requester,
-                                 @IntRange(from = 1) final int timeout,
                                  @NonNull final String         table, final String description,
                                  @NonNull final Converter<D>   converter,
                                  @NonNull final UriResolver    uriResolver,
                                  @NonNull final Retrofit<T, D> retrofit) {
-        super(context, fragment, loaderId, requester, table, description, converter, uriResolver);
+        super(viewModelStore, loaderId, requester, table, description, converter, uriResolver);
 
         mRetrofit = retrofit;
 
@@ -154,30 +74,36 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
                         mRetrofit.getYakhontRestAdapter().getConverter(), type);
             }
         });
+    }
 
-        final List<BaseLoader<Callback<D>, Response, Exception, D>> baseLoaders = new ArrayList<>(1);
-
-        setLoaderParameters(baseLoaders, timeout, new Callback<D>() {
+    @Override
+    protected BaseResponse<Response, Exception, D> makeRequest(
+            @NonNull final BaseViewModel<BaseResponse<Response, Exception, D>> baseViewModel) {
+        mRequester.makeRequest(new Callback<D>() {
             @Override
             public void success(final D result, final Response response) {
-                onSuccess(result, response, baseLoaders.get(0));
+                mRetrofit.clearCall();
+                onSuccess(result, response, baseViewModel);
             }
 
             @Override
             public void failure(final RetrofitError error) {
-                onError(error, baseLoaders.get(0));
+                mRetrofit.clearCall();
+                onError(error, baseViewModel);
             }
         });
-    }
+        return null;
+    };
 
-    private void onError(final RetrofitError error, final BaseLoader<Callback<D>, Response, Exception, D> loader) {
+    private void onError(final RetrofitError error,
+                         @NonNull final BaseViewModel<BaseResponse<Response, Exception, D>> baseViewModel) {
         //noinspection Convert2Diamond
-        loader.callbackHelper(false, new BaseResponse<Response, Exception, D>(
+        baseViewModel.getData().onComplete(false, new BaseResponse<Response, Exception, D>(
                 null, null, null, new RetrofitException(error), Source.NETWORK, error));
     }
 
     private void onSuccess(final D result, final Response response,
-                           final BaseLoader<Callback<D>, Response, Exception, D> loader) {
+                           @NonNull final BaseViewModel<BaseResponse<Response, Exception, D>> baseViewModel) {
         final BaseResponse<Response, Exception, D> baseResponse = new BaseResponse<>(
                 result, response, null, null, Source.NETWORK, null);
 
@@ -195,7 +121,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             else
                 CoreLogger.logError("body == null");
         }
-        loader.callbackHelper(true, baseResponse);
+        baseViewModel.getData().onComplete(true, baseResponse);
     }
 
     private ContentValues getDataForCache(@NonNull final Class type) {
@@ -231,7 +157,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
                 return result;
             }
             catch (Exception exception) {
-                CoreLogger.log("failed", exception);
+                CoreLogger.log(exception);
                 return null;
             }
         }
@@ -239,32 +165,33 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Builder class for {@link BaseResponseLoaderWrapper} objects. Creates the Retrofit-based ones.
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @param <T>
-     *        The type of Retrofit API
-     */
     public static class RetrofitLoaderBuilder<D, T> extends BaseResponseLoaderExtendedBuilder<Callback<D>, Response, Exception, D, T> {
 
         private final Retrofit<T, D>                                 mRetrofit;
 
-        /**
-         * Initialises a newly created {@code RetrofitLoaderBuilder} object.
-         *
-         * @param fragment
-         *        The fragment
-         *
-         * @param retrofit
-         *        The Retrofit component
-         */
-        @SuppressWarnings("unused")
-        public RetrofitLoaderBuilder(@NonNull final Fragment fragment,
+        public RetrofitLoaderBuilder(@NonNull final Retrofit<T, D> retrofit) {
+
+            mRetrofit = retrofit;
+        }
+
+        public RetrofitLoaderBuilder(final Fragment                fragment,
                                      @NonNull final Retrofit<T, D> retrofit) {
             super(fragment);
+
+            mRetrofit = retrofit;
+        }
+
+        public RetrofitLoaderBuilder(final Activity activity,
+                                     @NonNull final Retrofit<T, D> retrofit) {
+            super(activity);
+
+            mRetrofit = retrofit;
+        }
+
+        public RetrofitLoaderBuilder(final ViewModelStore          viewModelStore,
+                                     @NonNull final Retrofit<T, D> retrofit) {
+            super(viewModelStore);
+
             mRetrofit = retrofit;
         }
 
@@ -294,12 +221,13 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @NonNull
         @Override
-        protected RetrofitLoaderWrapper<D, T> createLoaderWrapper() {
+        protected RetrofitLoaderWrapper<D, T> createBaseResponseLoaderWrapper(
+                final ViewModelStore viewModelStore) {
             final Method method = mRetrofit.getMethod(getRequester());
 
-            final RetrofitLoaderWrapper<D, T> result = new RetrofitLoaderWrapper<>(getContext(),
-                    getFragment(), mLoaderId, getRequester(), getTimeout(),
-                    getTableName(method), mDescription, getConverter(), getUriResolver(), mRetrofit);
+            final RetrofitLoaderWrapper<D, T> result = new RetrofitLoaderWrapper<>(viewModelStore,
+                    mLoaderId, getRequester(), getTableName(method), mDescription, getConverter(),
+                    getUriResolver(), mRetrofit);
 
             setType(result, mRetrofit.getYakhontRestAdapter().getType(method));
             return result;
@@ -308,39 +236,14 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /**
-     * Builder class for {@yakhont.link BaseResponseLoaderWrapper.CoreLoad} objects. Creates the Retrofit-based ones.
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @param <T>
-     *        The type of Retrofit API
-     */
     public static class RetrofitCoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D, T> {
-
-        /**
-         * Please refer to the base class description.
-         */
-        @SuppressWarnings("unused")
-        public static abstract class LoaderCallback<D> extends BaseLoader.LoaderCallback<Callback<D>, Response, Exception, D> {
-        }
 
         private final Retrofit<T, D>                                 mRetrofit;
 
-        /**
-         * Initialises a newly created {@code RetrofitCoreLoadBuilder} object.
-         *
-         * @param fragment
-         *        The fragment
-         *
-         * @param retrofit
-         *        The Retrofit component
-         */
         @SuppressWarnings("unused")
-        public RetrofitCoreLoadBuilder(@NonNull final Fragment fragment,
-                                       @NonNull final Retrofit<T, D> retrofit) {
-            super(fragment);
+        public RetrofitCoreLoadBuilder(@NonNull final Retrofit<T, D> retrofit) {
+            super();
+
             mRetrofit = retrofit;
         }
 
@@ -357,9 +260,10 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
          */
         @Override
         public CoreLoad create() {
-            final RetrofitLoaderBuilder<D, T> builder = new RetrofitLoaderBuilder<>(
-                    mFragment.get(), mRetrofit);
+            final RetrofitLoaderBuilder<D, T> builder = new RetrofitLoaderBuilder<>(mRetrofit);
+
             if (mType != null) builder.setType(mType);
+
             return create(builder);
         }
     }
