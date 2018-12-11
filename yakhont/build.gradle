@@ -16,7 +16,7 @@
 
 apply plugin: 'com.android.library'
 
-apply from:   'preprocessor.gradle'
+// apply from:   'preprocessor.gradle'
 
 String verName                  = '0.9.19'
 int    verCode                  =    901901
@@ -115,12 +115,12 @@ android {
         core {
             dimension          'common'
         }
-        support {   // same as core but based on support library (android.support.v4.app.Fragment etc.)
-            dimension          'common'
-        }
-        full {      // core + support + debug classes for Activities and Fragments
-            dimension          'common'
-        }
+//        support {   // same as core but based on support library (android.support.v4.app.Fragment etc.)
+//            dimension          'common'
+//        }
+//        full {      // core + support + debug classes for Activities and Fragments
+//            dimension          'common'
+//        }
     }
 
     defaultPublishConfig       'support' + (rootProject.ext.projectDebug == '1' ? 'Debug': 'Release')
@@ -190,10 +190,10 @@ dependencies {
     api                 "android.arch.lifecycle:extensions:${libVerDefault}"
 
     // for debug package only
-    fullApi             "com.android.support:leanback-v17:${libVerDefault}"
-    fullApi             "com.android.support:mediarouter-v7:${libVerDefault}"
-    fullApi             "com.android.support:preference-v14:${libVerDefault}"
-    fullApi             "com.android.support:preference-leanback-v17:${libVerDefault}"
+//    fullApi             "com.android.support:leanback-v17:${libVerDefault}"
+//    fullApi             "com.android.support:mediarouter-v7:${libVerDefault}"
+//    fullApi             "com.android.support:preference-v14:${libVerDefault}"
+//    fullApi             "com.android.support:preference-leanback-v17:${libVerDefault}"
 
     api                 "com.google.dagger:dagger:${libVerDefault}"             // Dagger 2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDefault}"
