@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ buildscript {
         jcenter()
         flatDir dirs: '../yakhont-weaver/build/libs'                        // Yakhont weaver
     }
-    dependencies {
-        classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"               // Yakhont weaver
+    dependencies {                                                          // Yakhont weaver
+        classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"
         classpath "org.javassist:javassist:${rootProject.ext.projectLibVerJavassist}"
     }
 }
@@ -28,9 +28,6 @@ buildscript {
 apply plugin: 'com.android.application'
 
 ext.libVerDemoDefault           = rootProject.ext.projectLibVerDefault
-
-ext.libVerDemoSupport           = rootProject.ext.projectLibVerSupport
-ext.libVerDemoLifecycle         = rootProject.ext.projectLibVerLifecycle
 
 ext.libVerDemoGms               = rootProject.ext.projectLibVerGms
 ext.libVerDemoLocation          = rootProject.ext.projectLibVerLocation
@@ -47,14 +44,6 @@ ext.libVerDemoRxJava2           = rootProject.ext.projectLibVerRxJava2
 ext.libVerDemoDagger            = rootProject.ext.projectLibVerDagger
 
 def dependenciesStrategy = { DependencyResolveDetails details ->
-    if (details.requested.group == 'com.android.support') {
-        details.useVersion          libVerDemoSupport
-        details.because 'To enforce releasable units for Support Libraries'
-    }
-    if (details.requested.group.startsWith('android.arch.')) {
-        details.useVersion          libVerDemoLifecycle
-        details.because 'To enforce releasable units for Support Libraries (arch)'
-    }
     if (details.requested.group == 'com.google.android.gms') {
         if (details.requested.name == 'play-services-location' || 
             details.requested.name == 'play-services-places-placereport')
@@ -84,7 +73,7 @@ android {
 
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
-        applicationId           'akha.yakhont.demo'
+        applicationId         'akha.yakhont.demo'
         minSdkVersion           14
         targetSdkVersion        28
         versionCode            10101
@@ -156,23 +145,22 @@ android {
 dependencies {
     // v4 Support Libraries
     // fragment has dependencies on compat, core-utils, core-ui, and media-compat
-    implementation      "com.android.support:support-fragment:${libVerDemoDefault}"
-    implementation      "com.android.support:support-compat:${libVerDemoDefault}"
-    implementation      "com.android.support:support-core-utils:${libVerDemoDefault}"
-    implementation      "com.android.support:support-core-ui:${libVerDemoDefault}"
-    implementation      "com.android.support:support-media-compat:${libVerDemoDefault}"
+    implementation      "androidx.core:core:1.0.1"
+    implementation      "androidx.fragment:fragment:1.0.0"
+    implementation      "androidx.legacy:legacy-support-core-ui:1.0.0"
+    implementation      "androidx.legacy:legacy-support-core-utils:1.0.0"
+    implementation      "androidx.media:media:1.0.0"
     // v7 Support Libraries
     // appcompat (includes support for material design) depends on the v4 Support Library
-    implementation      "com.android.support:appcompat-v7:${libVerDemoDefault}"
-//    implementation      "com.android.support:recyclerview-v7:${libVerDemoDefault}"
+    implementation      "androidx.appcompat:appcompat:1.0.2"
     // v13 Support Library (support for the Fragment with the FragmentCompat)
-    implementation      "com.android.support:support-v13:${libVerDemoDefault}"
+    implementation      "androidx.legacy:legacy-support-v13:1.0.0"
 
-    implementation      "com.android.support:support-annotations:${libVerDemoDefault}"
-    implementation      "com.android.support:design:${libVerDemoDefault}"
+    implementation      "androidx.annotation:annotation:1.0.1"
+    implementation      "androidx.lifecycle:lifecycle-common-java8:2.0.0"
+    implementation      "androidx.lifecycle:lifecycle-extensions:2.0.0"
+    implementation      "com.google.android.material:material:1.0.0"
     implementation      "com.google.android.gms:play-services-location:${libVerDemoDefault}"
-    implementation      "android.arch.lifecycle:common-java8:${libVerDemoDefault}"
-    implementation      "android.arch.lifecycle:extensions:${libVerDemoDefault}"
 
     implementation      "com.google.dagger:dagger:${libVerDemoDefault}"             // Dagger 2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoDefault}"

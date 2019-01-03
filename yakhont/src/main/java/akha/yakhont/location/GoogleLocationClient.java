@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +21,20 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.SupportHelper;
+// ProGuard issue
+// import akha.yakhont.R;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentSender.SendIntentException;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -37,6 +42,8 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
+
+import java.lang.ref.WeakReference;
 
 import javax.inject.Provider;
 
@@ -47,10 +54,14 @@ import javax.inject.Provider;
  */
 public class GoogleLocationClient extends BaseGoogleLocationClient implements ConnectionCallbacks, OnConnectionFailedListener {
 
+    private static final String                ARG_DIALOG_ERROR         = TAG + ".dialog_error";
     private static final String                ARG_RESOLVING_ERROR      = TAG + ".resolving_error";
     private static final String                ARG_SYSTEM_ERROR_DIALOG  = TAG + ".system_error_dialog";
 
-    private static final int                   REQUEST_CODE             = Utils.getRequestCode(RequestCodes.LOCATION_CONNECTION_FAILED);
+    private static final int                   REQUEST_CODE_ERROR       = Utils.getRequestCode(
+            Core.RequestCodes.LOCATION_CLIENT);
+    private static final int                   REQUEST_CODE_FAILED      = Utils.getRequestCode(
+            RequestCodes.LOCATION_CONNECTION_FAILED);
 
     private              Provider<BaseDialog>  mToast;
 
@@ -300,7 +311,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
                 return false;
             }
 
-            if (activity != null) SupportHelper.showLocationErrorDialog(activity, result.getErrorCode());
+            if (activity != null) showLocationErrorDialog(activity, result.getErrorCode());
             return false;
         }
 
@@ -310,7 +321,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         }
 
         try {
-            result.startResolutionForResult(activity, REQUEST_CODE);
+            result.startResolutionForResult(activity, REQUEST_CODE_FAILED);
         }
         catch (SendIntentException e) {
             CoreLogger.log("startResolutionForResult failed", e);
@@ -320,9 +331,93 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         return true;
     }
 
+    private static void showLocationErrorDialog(@NonNull final Activity activity, final int errorCode) {
+
+        final LocationErrorDialogFragment errorDialogFragment = new LocationErrorDialogFragment();
+
+        final Bundle args = new Bundle();
+        args.putInt(ARG_DIALOG_ERROR, errorCode);
+        errorDialogFragment.setArguments(args);
+
+        if (activity instanceof FragmentActivity) {
+
+            final FragmentManager fragmentManager = ((FragmentActivity) activity).getSupportFragmentManager();
+            if (fragmentManager == null) {
+                CoreLogger.logError("no ErrorDialogFragment: fragmentManager == null");
+                return;
+            }
+
+            errorDialogFragment.setCurrentActivity(activity);
+
+            errorDialogFragment.show(fragmentManager, LocationErrorDialogFragment.TAG);
+        }
+        else {
+            final Dialog dialog = getErrorDialog(activity, errorCode, REQUEST_CODE_ERROR);
+
+            dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                @Override
+                public void onDismiss(DialogInterface dialog) {
+                    LocationErrorDialogFragment.onDismiss(activity);
+                }
+            });
+
+            dialog.show();
+        }
+    }
+
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static Dialog getErrorDialog(@NonNull final Activity activity, final int errorCode,
-                                        @SuppressWarnings("SameParameterValue") final int requestCode) {
+    public static class LocationErrorDialogFragment extends DialogFragment {
+
+        @SuppressWarnings("WeakerAccess")
+        public  static final String            TAG                      = LocationErrorDialogFragment.class.getName();
+
+        private WeakReference<Activity>        mActivity;
+
+        private void setCurrentActivity(@NonNull final Activity activity) {
+            mActivity = new WeakReference<>(activity);
+        }
+
+        private Activity getCurrentActivity() {
+            Activity activity = null;
+            if (mActivity == null)          // should never happen
+                CoreLogger.logError("mActivity == null");
+            else {
+                activity = mActivity.get();
+                if (activity == null)       // should never happen
+                    CoreLogger.logError("activity == null");
+            }
+            return activity;
+        }
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            final int errorCode = getArguments().getInt(ARG_DIALOG_ERROR);
+            CoreLogger.log("error code: " + errorCode);
+
+            final Activity activity = getCurrentActivity();
+            return GoogleLocationClient.getErrorDialog(activity != null ? activity:
+                    Utils.getCurrentActivity() /* should never happen */, errorCode, REQUEST_CODE_ERROR);
+        }
+
+        private static void onDismiss(final Activity activity) {
+            if (activity == null)
+                CoreLogger.logError("activity == null, onDismiss failed");
+            else
+                Utils.onActivityResult(activity, REQUEST_CODE_ERROR,
+                        Activity.RESULT_CANCELED /* ignored */, null);
+        }
+
+        @Override
+        public void onDismiss(DialogInterface dialog) {
+            super.onDismiss(dialog);
+
+            onDismiss(getCurrentActivity());
+        }
+    }
+
+    private static Dialog getErrorDialog(@NonNull final Activity activity, final int errorCode,
+                                         @SuppressWarnings("SameParameterValue") final int requestCode) {
         return GoogleApiAvailability.getInstance().getErrorDialog(activity, errorCode, requestCode);
     }
 

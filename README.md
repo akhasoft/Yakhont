@@ -1,4 +1,4 @@
-﻿<!-- Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+﻿<!-- Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -338,7 +338,7 @@ For bugs, questions and discussions please use the
 
 ## License
 
-    Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+    Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

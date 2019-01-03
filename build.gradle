@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ ext {
     licenseDistribution     = 'repo'
     licenseList             = ['Apache-2.0']
 
-    projectCopyright        = '<font size="-1">&nbsp;<br>Copyright &copy; 2015-2018 akha, a.k.a. Alexander Kharitonov<br><br>' +
+    projectCopyright        = '<font size="-1">&nbsp;<br>Copyright &copy; 2015-2019 akha, a.k.a. Alexander Kharitonov<br><br>' +
             'Licensed under the Apache License, Version 2.0 (the "License");<br>'                                              +
             'you may not use this file except in compliance with the License.<br>'                                             +
             'You may obtain a copy of the License at<br><br>&nbsp;&nbsp;&nbsp;&nbsp;'                                          +
@@ -68,9 +68,6 @@ ext {
     bintrayRepo             = 'maven'
 
     projectLibVerDefault    = 'default'
-
-    projectLibVerSupport    = '28.0.0'
-    projectLibVerLifecycle  =  '1.1.1'
 
     projectLibVerGms        = '16.0.1'
     projectLibVerLocation   = '16.0.0'

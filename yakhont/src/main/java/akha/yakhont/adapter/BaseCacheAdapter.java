@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,12 +37,6 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.database.DataSetObserver;
 import android.os.Build;
-import android.support.annotation.LayoutRes;
-import android.support.annotation.MainThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
-import android.support.annotation.Size;
-import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -57,6 +51,13 @@ import android.widget.ListAdapter;
 import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 import android.widget.ThemedSpinnerAdapter;
+import androidx.annotation.LayoutRes;
+import androidx.annotation.MainThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.Size;
+import androidx.cursoradapter.widget.SimpleCursorAdapter;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
 
@@ -762,9 +763,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The type of data in this adapter
      */
     public static class SupportCacheAdapter<T, R, E, D> extends BaseCacheAdapter<T, R, E, D>
-            implements android.support.v7.widget.ThemedSpinnerAdapter {
+            implements androidx.appcompat.widget.ThemedSpinnerAdapter {
 
-        private final android.support.v7.widget.ThemedSpinnerAdapter.Helper     mDropDownHelper;
+        private final androidx.appcompat.widget.ThemedSpinnerAdapter.Helper     mDropDownHelper;
 
         @LayoutRes
         private final int                                                       mLayoutId;
@@ -815,9 +816,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             mLayoutId       = layoutId;
         }
 
-        private static android.support.v7.widget.ThemedSpinnerAdapter.Helper init(
+        private static androidx.appcompat.widget.ThemedSpinnerAdapter.Helper init(
                 @NonNull final Activity context) {
-            return new android.support.v7.widget.ThemedSpinnerAdapter.Helper(context);
+            return new androidx.appcompat.widget.ThemedSpinnerAdapter.Helper(context);
         }
 
         /**
@@ -1064,7 +1065,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /**
      * Extends {@code BaseArrayAdapter} to provide default view binding possibilities
-     * (the same way as in {@link android.widget.SimpleCursorAdapter}).
+     * (the same way as in {@link SimpleCursorAdapter}).
      *
      * @param <T>
      *        The type of {@code BaseResponse} values

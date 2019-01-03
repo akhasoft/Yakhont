@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,47 +22,42 @@ import akha.yakhont.demo.model.Beer;
 import akha.yakhont.demo.model.BeerDefault;
 import akha.yakhont.demo.retrofit.LocalJsonClient;
 import akha.yakhont.demo.retrofit.LocalJsonClient2;
-import akha.yakhont.demo.retrofit.Retrofit2Api;
 import akha.yakhont.demo.retrofit.RetrofitApi;
+import akha.yakhont.demo.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
+import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
+// import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
+import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
-import akha.yakhont.technology.retrofit.Retrofit;
-import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
-import akha.yakhont.technology.retrofit.Retrofit2;
-import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
-import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
-
-import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
-import akha.yakhont.support.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
-// import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper;
-import akha.yakhont.support.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
-import akha.yakhont.support.technology.retrofit.RetrofitLoaderWrapper.RetrofitCoreLoadBuilder;
-import akha.yakhont.support.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
-
-// for using non-support version of library (android.app.Fragment etc.):
-// comment out akha.yakhont.support.loader.* imports above and uncomment ones below
-
-// also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont' (or 'yakhont-full')
-
-/*
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
-import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper.FragmentData;
 // import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+// import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;
+import akha.yakhont.technology.retrofit.Retrofit;
+import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
 import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitCoreLoadBuilder;
+import akha.yakhont.technology.retrofit.Retrofit2;
+import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
-*/
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
+// import akha.yakhont.technology.rx.Rx2;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.app.Dialog;
 import android.content.Context;
-import android.databinding.BindingAdapter;
+import android.content.DialogInterface;
+import android.content.res.Resources;
+import androidx.databinding.BindingAdapter;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -70,15 +65,20 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.TextView;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.Fragment;
 
 import com.google.gson.reflect.TypeToken;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+// import java.util.concurrent.Callable;
 
-public class MainFragment extends /* android.app.Fragment */ android.support.v4.app.Fragment
-        implements MeasuredViewAdjuster {
+public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     private       CoreLoad                              mCoreLoad;
     @SuppressWarnings("unused")
@@ -105,7 +105,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         if (getMainActivity().isRetrofit2()) {
             mRetrofit2   = new Retrofit2<>();
             mJsonClient2 = new LocalJsonClient2(context, mRetrofit2);
-            mRetrofit2.init(Retrofit2Api.class, mRetrofit2.getDefaultBuilder(url).client(mJsonClient2));
+            mRetrofit2.init(Retrofit2Api.class, url, mJsonClient2);
         }
         else {
             mRetrofit   = new Retrofit<>();
@@ -113,8 +113,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
             mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder(url).setClient(mJsonClient));
         }
 
-        // for normal HTTP requests you can do something like this
-//      return new Retrofit2<Retrofit2Api, List<Beer>>().init(Retrofit2Api.class, "http://...");
+        // for normal HTTP requests it's much simpler - just something like this:
+//      mRetrofit2 = new Retrofit2<Retrofit2Api, List<Beer>>().init(Retrofit2Api.class, "http://...");
 
         setPartToLoad(mPartCounter);
     }
@@ -131,9 +131,10 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
         initRx();                   // optional
 
-        if (getMainActivity().isRetrofit2())
+        if (getMainActivity().isRetrofit2()) // example with Data Binding Library support (POJO Beer)
+
             //noinspection Convert2Diamond
-            mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(this, mRetrofit2) /* {
+            mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(mRetrofit2) /* {
 
                 // usage examples ('raw calls' means - without default Yakhont pre- and postprocessing)
                 @Override
@@ -145,7 +146,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
                     // raw call for Retrofit2 API with Rx2   ('getApi()' takes null)
                     //   it's exactly the same as 'setRequester(Retrofit2Api::getDataRx)' below
                     //   and 'getApi(callback).getDataRx()' above
-                    getRx2DisposableHandler().add(akha.yakhont.technology.rx.Rx2.handle(
+                    getRx2DisposableHandler().add(Rx2.handle(
                             getApi(null).getDataRx(), getRxWrapper(callback)));
 
                     // raw call for Retrofit2 API without Rx ('getApi()' takes null)
@@ -160,18 +161,19 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
             .setRequester(Retrofit2Api::getDataRx)
 // or       .setRequester(retrofit2Api -> retrofit2Api.getData("not used parameter"))
 
-            // recommended way - but default binding also works (see below in Retrofit code)
+            // recommended way - but default binding also works (see below in Retrofit 1 example)
             .setDataBinding(BR.beer)
 
             // it's optional - but sometimes you need to provide some customization here
             .setLoaderCallback(MainFragment.this::onLoadFinishedDataBinding)
 /*
-            // just an example: it does exactly the same, but provides more options to customize
-            .setLoaderCallback(new Retrofit2CoreLoadBuilder.LoaderCallback<List<Beer>>() {
+            // just an example: it does exactly the same as call above, but provides more options to customize
+            .setLoaderCallbacks(new LoaderCallbacks<Throwable, List<Beer>>() {
                 @Override
                 public void onLoadFinished(List<Beer> data, Source source) {
                     MainFragment.this.onLoadFinished(data, source);
                 }
+
                 @Override
                 public void onLoadError(Throwable error, Source source) {
                     // customize your error reporting here (e.g. set 'mNotDisplayLoadingErrors = true'
@@ -184,14 +186,35 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
             .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
+            .setProgress(new ProgressDemo())                        // custom data loading progress screen
+/* or something like this:
+            .setProgress(new Callable<Progress>() {
+                @Override
+                public Progress call() {
+                    // if you're implementing your own cancel confirmation logic, you should to call
+                    //   'LiveDataDialog.cancel(Activity)' to cancel data loading
+                    return new Progress() {
+                        @Override public void setText(String text)       {...}
+                        @Override public void show()                     {...}
+                        @Override public void hide()                     {...}
+                        @Override public void confirm(Activity activity) {...}
+                    };
+                }
+            })
+*/
+            // switch default cache off
+//          .setNoCache(true)
+
             .create();
-        else
+
+        else                                 // example without Data Binding Library support (POJO BeerDefault)
+
             //noinspection Anonymous2MethodRef,Convert2Lambda,Convert2Diamond
-            mCoreLoad = new RetrofitCoreLoadBuilder<List<BeerDefault>, RetrofitApi>(this, mRetrofit) /* {
+            mCoreLoad = new RetrofitCoreLoadBuilder<List<BeerDefault>, RetrofitApi>(mRetrofit) /* {
 
                 // 'setRequester(...)' doesn't work for Retrofit 1
                 @Override
-                public void makeRequest(@NonNull retrofit.Callback<List<Beer>> callback) {
+                public void makeRequest(@NonNull retrofit.Callback<List<BeerDefault>> callback) {
                     getApi(callback).getData(callback);
                 }
             } */
@@ -201,14 +224,13 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
             //
             // Note: default requester for Retrofit 1 doesn't support Rx -
             //   please consider to switch to Retrofit 2 (or override makeRequest)
-            .setType(new TypeToken<List<Beer>>() {}.getType())
+            .setType(new TypeToken<List<BeerDefault>>() {}.getType())
 
             // this is not related to Retrofit 1 - just demo for default binding (reflection based)
             .setListItem(R.layout.grid_item_default)
 
             .setLoaderCallback(MainFragment.this::onLoadFinished)
 
-            // Java 7 style
             .setViewBinder(new ViewBinder() {                       // data binding (optional too)
                 @Override
                 public boolean setViewValue(View view, Object data, String textRepresentation) {
@@ -220,6 +242,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
             .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
 
+            .setProgress(new ProgressDemo())                        // custom data loading progress screen
+
             .create();
 
         // uncomment to clear cache
@@ -230,16 +254,24 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     private void startLoading(Bundle savedInstanceState, boolean byUserRequest) {
+
         if (byUserRequest) setBubblesState(true);
 
-        mCoreLoad.setGoBackOnLoadingCanceled(!byUserRequest);
+        mCoreLoad.setGoBackOnCancelLoading(!byUserRequest);
 
-        mCoreLoad.load(new LoadParameters(null, byUserRequest ? mCheckBoxForce.isChecked():
-                savedInstanceState != null, !byUserRequest, mCheckBoxMerge.isChecked(),
-                mNotDisplayLoadingErrors, false));
+        mCoreLoad.load(getActivity(), getLoadParameters(
+                byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
+                !byUserRequest, mCheckBoxMerge.isChecked()));
+    }
+
+    private LoadParameters getLoadParameters(final boolean forceCache,
+                                             final boolean noProgress, final boolean merge) {
+        return new LoadParameters(null, null, forceCache, noProgress, merge,
+                mNotDisplayLoadingErrors, false, false);
     }
 
     private void onLoadFinished(List<?> data, Source source) {
+
         setBubblesState(false);
 
         setNetworkDelay();
@@ -252,8 +284,10 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     private void onLoadFinishedDataBinding(List<Beer> data, Source source) {
+
         for (Beer beer: data)
             beer.setCacheInfo(getVisibility());
+
         onLoadFinished(data, source);
     }
 
@@ -280,6 +314,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     @BindingAdapter("android:src")
     public static void setImageUrl(ImageView view, String data) {
+
         int pos = data.indexOf("img_");
 
         view.setTag(data.substring(pos + 4, pos + 6));
@@ -287,6 +322,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     private void setPartToLoad(int counter) {
+
         String scenario = "part" + counter;
 
         if (getMainActivity().isRetrofit2())
@@ -314,6 +350,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     // unsubscribe goes automatically
     @SuppressWarnings("ConstantConditions")
     private void initRx() {
+
         boolean singleRx = false;     // don't change
 
         if (getMainActivity().isRetrofit2()) {
@@ -365,31 +402,33 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     private static final String         ARG_PART_COUNTER                = "part_counter";
 
-    private AbsListView                 mGridView;
-    private CheckBox                    mCheckBoxForce, mCheckBoxMerge;
+    private              AbsListView    mGridView;
+    private              CheckBox       mCheckBoxForce, mCheckBoxMerge;
 
-    private final SlideShow             mSlideShow                      = new SlideShow();
+    private        final SlideShow      mSlideShow                      = new SlideShow();
 
-    private int                         mPartCounter;
-    private Rect                        mSlideRect;
+    private              int            mPartCounter;
+    private              Rect           mSlideRect;
 
     private final View.OnClickListener  mListener                       = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
+
             registerSwipeRefresh();
+
             mCheckBoxForce.setEnabled(!mCheckBoxMerge.isChecked());
             mCheckBoxMerge.setEnabled(!mCheckBoxForce.isChecked());
         }
     };
 
     private void registerSwipeRefresh() {
-        SwipeRefreshWrapper.register(MainFragment.this, new FragmentData(
-                MainFragment.this, R.id.swipeContainer, new LoadParameters(null, mCheckBoxForce.isChecked(),
-                false, mCheckBoxMerge.isChecked(), mNotDisplayLoadingErrors, false), null));
+        SwipeRefreshWrapper.register(getActivity(), R.id.swipeContainer, mCoreLoad.getLoaders(),
+                getLoadParameters(mCheckBoxForce.isChecked(), false, mCheckBoxMerge.isChecked()));
     }
 
     // just a boilerplate code
     private View initGui(LayoutInflater inflater, ViewGroup container) {
+
         View mainView       = inflater.inflate(R.layout.fragment_main, container, false);
 
         mGridView           = mainView.findViewById(R.id.grid);
@@ -397,13 +436,8 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
         mCheckBoxMerge      = mainView.findViewById(R.id.flag_merge);
         mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
 
-        //noinspection Convert2Lambda
-        mainView.findViewById(R.id.btn_load).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                startLoading(null, true);
-            }
-        });
+        mainView.findViewById(R.id.btn_load).setOnClickListener(
+                view -> startLoading(null, true));
 
         mCheckBoxForce.setOnClickListener(mListener);
         mCheckBoxMerge.setOnClickListener(mListener);
@@ -416,6 +450,7 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
     }
 
     private void initGui(final Bundle savedInstanceState) {
+
         if (savedInstanceState != null && savedInstanceState.keySet().contains(ARG_PART_COUNTER))
             mPartCounter = savedInstanceState.getInt(ARG_PART_COUNTER);
 
@@ -426,12 +461,15 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
+
         savedInstanceState.putInt(ARG_PART_COUNTER, mPartCounter);
+
         super.onSaveInstanceState(savedInstanceState);
     }
 
     @Override
     public void onDestroyView() {
+
         mSlideShow.cleanUp();
         Bubbles.cleanUp();
 
@@ -455,5 +493,82 @@ public class MainFragment extends /* android.app.Fragment */ android.support.v4.
 
     public Rect getSlideRect() {
         return mSlideRect;
+    }
+
+    private class ProgressDemo extends ProgressDefault {
+
+        private ProgressDialogFragment  mProgress;
+
+        @Override
+        public void setText(String text) {
+        }
+
+        @Override
+        public void show() {
+            mProgress = new ProgressDialogFragment();
+            mProgress.show(getActivity().getSupportFragmentManager(), "ProgressDialogFragment");
+        }
+
+        @Override
+        public void hide() {
+            super.hide();
+
+            if (mProgress == null) return;
+
+            mProgress.dismiss();
+            mProgress = null;
+        }
+
+        @Override
+        public void confirm(Activity activity) {
+            if (mProgress != null && mProgress.isConfirm()) super.confirm(activity);
+        }
+    }
+
+    public static class ProgressDialogFragment extends DialogFragment {
+
+        private static BitmapDrawable   sBackground;
+
+        private        CheckBox         mConfirm;
+
+        @NonNull
+        @Override
+        public Dialog onCreateDialog(Bundle savedInstanceState) {
+            Activity activity = getActivity();
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+
+            @SuppressLint("InflateParams")
+            View view = LayoutInflater.from(activity).inflate(R.layout.progress, null);
+            ((TextView) view.findViewById(R.id.progress_message)).setText(
+                    LiveDataDialog.getInfoText(R.string.table_desc_beers));
+
+            if (sBackground == null) {
+                DisplayMetrics dm       = new DisplayMetrics();
+                activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
+
+                Resources resources     = activity.getResources();
+                sBackground             = new BitmapDrawable(resources,
+                        akha.yakhont.demo.gui.Utils.decodeBitmap(
+                                resources, R.drawable.img_progress, dm.heightPixels, dm.widthPixels));
+            }
+            ((ImageView) view.findViewById(R.id.progress_background)).setImageDrawable(sBackground);
+
+            mConfirm = view.findViewById(R.id.progress_confirm);
+
+            return builder.setView(view).create();
+        }
+
+        private boolean isConfirm() {
+            return mConfirm.isChecked();
+        }
+
+        @Override
+        public void onCancel(DialogInterface dialog) {
+            super.onCancel(dialog);
+            if (isConfirm()) return;
+
+            Utils.showToast(R.string.yakhont_loader_cancelled, !Utils.SHOW_DURATION_LONG);
+            LiveDataDialog.cancel(getActivity());
+        }
     }
 }

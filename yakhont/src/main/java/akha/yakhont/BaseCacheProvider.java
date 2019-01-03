@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,13 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
-import android.support.annotation.Size;
 import android.text.TextUtils;
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.Size;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -139,6 +142,27 @@ public class BaseCacheProvider extends ContentProvider {
         return true;
     }
 
+    @CallSuper
+    @Nullable
+    @Override
+    public Bundle call(@NonNull String method, @Nullable String arg, @Nullable Bundle extras) {
+        return null;
+    }
+
+    /**
+     * Close any open database object.
+     *
+     * @see SQLiteOpenHelper#close
+     */
+    public void close() {
+        try {
+            mDbHelper.close();
+        }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+        }
+    }
+
     /**
      * Please refer to the base method description.
      */
@@ -165,6 +189,8 @@ public class BaseCacheProvider extends ContentProvider {
             CoreLogger.log(String.format(getLocale(), "table %s, new id %d", tableName, id));
         }
         if (id == -1) CoreLogger.logError("table " + tableName + ": insert error");
+
+        close();
 
         return id == -1 ? null: ContentUris.withAppendedId(uri, id);
     }
@@ -267,9 +293,13 @@ public class BaseCacheProvider extends ContentProvider {
         CoreLogger.log(String.format(getLocale(), "table: %s, number of rows to add: %d", tableName, bulkValues.length));
 
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
-        if (!isTableExist(tableName))
-            if (!createTable(db, tableName, getColumns(tableName, bulkValues))) return 0;
+        if (!isTableExist(tableName) &&
+                !createTable(db, tableName, getColumns(tableName, bulkValues))) {
+            close();
+            return 0;
+        }
 
+        int result = 0;
         switch (Matcher.match(uri)) {
             case ALL:
                 //noinspection Convert2Lambda
@@ -281,16 +311,20 @@ public class BaseCacheProvider extends ContentProvider {
                         CoreLogger.log("bulkInsert completed, number of added rows: " + bulkValues.length);
                     }
                 });
-                return bulkValues.length;
+                result = bulkValues.length;
+                break;
 
             case ID:
                 CoreLogger.logError("failed bulk insert with ID, uri " + uri);
-                return 0;
+                break;
 
             default:
                 CoreLogger.logError("wrong uri " + uri);
-                return 0;
+                break;
         }
+
+        close();
+        return result;
     }
 
     private interface CallableHelper<V> {
@@ -363,11 +397,13 @@ public class BaseCacheProvider extends ContentProvider {
                                 String order, ContentValues data) {
                 if (!isTableExist(table)) {
                     CoreLogger.logWarning("tried to remove rows from not existing table " + table);
+                    close();
                     return 0;
                 }
                 // from docs: To remove all rows and get a count pass "1" as the whereClause
                 if (condition == null) condition = "1";
                 final int rows = mDbHelper.getWritableDatabase().delete(table, condition, args);
+                close();
 
                 CoreLogger.log(String.format(getLocale(), "table: %s, number of deleted rows: %d", table, rows));
                 return rows;
@@ -386,6 +422,7 @@ public class BaseCacheProvider extends ContentProvider {
             public Integer call(String table, String condition, String[] args, String[] columns,
                                 String order, ContentValues data) {
                 final int rows = mDbHelper.getWritableDatabase().update(table, data, condition, args);
+                close();
 
                 CoreLogger.log(String.format(getLocale(), "table: %s, number of updated rows: %d", table, rows));
                 return rows;

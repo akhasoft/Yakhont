@@ -1,5 +1,5 @@
 #
-#  Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+#  Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,17 +15,11 @@
 
 # Data Binding Library
 -dontwarn akha.yakhont.adapter.BaseCacheAdapter$DataBindingViewHolder
--dontwarn android.databinding.ViewDataBinding
--keep class android.databinding.Observable$OnPropertyChangedCallback
--dontnote   android.databinding.Observable$OnPropertyChangedCallback
 
 -keep class akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed$ActivityLifecycle
-
 -keep class akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
--keep class akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
 
 -dontnote akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
--dontnote akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$FragmentLifecycle
 
 -keep class * extends akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed$BaseActivityCallbacks {
     public void onActivity*(...);
@@ -33,18 +27,14 @@
 -keep class * extends akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks {
     public void onFragment*(...);
 }
--keep class * extends akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks {
-    public void onFragment*(...);
-}
 
 -dontnote akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks
--dontnote akha.yakhont.support.callback.lifecycle.BaseFragmentLifecycleProceed$BaseFragmentCallbacks
 
 -keep class * extends android.app.Activity {
     *** onActivityResult(...);
 }
 
--keep class * extends android.support.v4.app.FragmentActivity {
+-keep class * extends androidx.fragment.app.FragmentActivity {
     public void validateRequestPermissionsRequestCode(...);
 }
 
@@ -62,15 +52,12 @@
 -dontnote retrofit2.adapter.rxjava2.HttpException
 
 # for FragmentManagerImpl; proguard doesn't allow to specify it directly
--keep class * extends android.support.v4.app.FragmentManager {
+-keep class * extends androidx.fragment.app.FragmentManager {
     public void noteStateNotSaved(...);
 }
 
 -keep class **.SimpleCursorAdapter { <init>(...); }
 -dontnote   **.SimpleCursorAdapter
 
-# Data Binding
--dontwarn android.databinding.DataBindingUtil
-
 # ViewModel
--keep class * extends android.arch.lifecycle.ViewModel { *** onCleared(...); }
+-keep class * extends androidx.lifecycle.ViewModel { *** onCleared(...); }

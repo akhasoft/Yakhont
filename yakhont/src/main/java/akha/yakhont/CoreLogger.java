@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,12 +26,12 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
-import android.support.annotation.IntRange;
-import android.support.annotation.NonNull;
-import android.support.v4.util.ArrayMap;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.collection.ArrayMap;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -40,9 +40,11 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -677,6 +679,91 @@ public class CoreLogger {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Converts integer to hex string.
+     *
+     * @param data
+     *        The integer to convert
+     *
+     * @return  The integer hex representation
+     */
+    public static String toHex(int data) {
+        return "0x" + Integer.toHexString(data).toUpperCase(Utils.getLocale());
+    }
+
+    /**
+     * Converts byte array to string.
+     *
+     * @param data
+     *        The byte array to convert
+     *
+     * @param length
+     *        The bytes quantity to convert
+     *
+     * @param bytesOnly
+     *        {@code true} to return bytes only (without string representation), {@code false} otherwise
+     *
+     * @param locale
+     *        The locale (or null for default one)
+     *
+     * @param charset
+     *        The charset (or null for default one)
+     *
+     * @return  The byte array readable representation
+     */
+    public static String toHex(final byte[] data, int length, final boolean bytesOnly,
+                               Locale locale, final Charset charset) {
+        if (data        == null) return null;
+        if (data.length ==    0) return   "";
+
+        if (length <= 0 || data.length < length) length = data.length;
+        if (locale == null)                      locale = Utils.getLocale();
+
+        final StringBuilder builder = new StringBuilder(hexFormat(data[0], locale));
+        for (int i = 1; i < length; i++)
+            builder.append(" ").append(hexFormat(data[i], locale));
+
+        if (!bytesOnly) {
+            if (data.length > length) builder.append(" ...");
+            builder.append("  ").append(charset == null ? new String(data, 0, length):
+                    new String(data, 0, length, charset));
+        }
+        return builder.toString();
+    }
+
+    private static String hexFormat(final byte data, @NonNull final Locale locale) {
+        return String.format(locale, "%02X", data);
+    }
+
+    public static String getResourceName(final int id) {
+        try {
+            return Utils.getApplication().getResources().getResourceName(id);
+        }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+            return null;
+        }
+    }
+
+    public static String getResourceDescription(final int id) {
+        final String name = getResourceName(id);
+        return String.format("%s (%s)", toHex(id), name != null ? name: "unknown name");
+    }
+
+    public static String getViewDescription(final View view) {
+        if (view == null) return "null";
+        final int id = view.getId();
+        return id == View.NO_ID ? "view without id " + view: getResourceDescription(id);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @NonNull
+    public static String getActivityName(final Activity activity) {
+        return activity == null ? "null": activity.getLocalClassName();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     private static final String                         LOGCAT_CMD               = "logcat -d";
     private static final int                            LOGCAT_BUFFER_SIZE       = 1024;
 
@@ -820,6 +907,8 @@ public class CoreLogger {
         });
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Registers email addresses to which on shaking device to send email with log records
      * and some additional info (if any). The ANR traces are always added (if available).
@@ -943,6 +1032,8 @@ public class CoreLogger {
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
         }
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static class Sender {
 
@@ -1103,6 +1194,7 @@ public class CoreLogger {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+
     // @LogDebug support
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})

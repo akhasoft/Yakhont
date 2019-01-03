@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,8 +30,8 @@ import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.lang.reflect.Type;
 import java.util.Locale;
@@ -379,7 +379,7 @@ public class BaseResponse<R, E, D> {
                                         @NonNull final Locale locale) {
             final Object data = getData(cursor, columnIndex);
             return data == null ? null: data instanceof byte[] ? String.format(locale, "[%s]",
-                    Utils.toHex((byte[]) data, 8, false, locale, null)):
+                    CoreLogger.toHex((byte[]) data, 8, false, locale, null)):
                     data instanceof Throwable ? "error": String.valueOf(data);
         }
     }
@@ -501,7 +501,7 @@ public class BaseResponse<R, E, D> {
          * Initialises a newly created {@code LoadParameters} object.
          */
         public LoadParameters() {
-            this("N/A", Core.TIMEOUT_CONNECTION, false, false,
+            this(null, null, false, false,
                     false, false, false, false);
         }
 
@@ -532,9 +532,9 @@ public class BaseResponse<R, E, D> {
          * @param handleTimeout
          *        {@code true} to let Yakhont to handle data loading timeout, {@code false} to delegate it to loader
          */
-        public LoadParameters(final String  loaderId, final int timeout,
-                              final boolean forceCache, final boolean noProgress, final boolean merge,
-                              final boolean noErrors, final boolean sync, final boolean handleTimeout) {
+        public LoadParameters(final String  loaderId,   final Integer timeout, final boolean forceCache,
+                              final boolean noProgress, final boolean merge,   final boolean noErrors,
+                              final boolean sync,       final boolean handleTimeout) {
             mLoaderId       = loaderId;
             mForceCache     = forceCache;
             mNoProgress     = noProgress;
@@ -542,7 +542,7 @@ public class BaseResponse<R, E, D> {
             mNoErrors       = noErrors;
             mSync           = sync;
             mHandleTimeout  = handleTimeout;
-            mTimeout        = Core.adjustTimeout(timeout);
+            mTimeout        = Core.adjustTimeout(timeout != null ? timeout: Core.TIMEOUT_CONNECTION);
 
             CoreLogger.log("loader ID: " + loaderId + ", force cache: " + forceCache +
                     ", no progress: " + noProgress + ", merge: " + merge + ", no errors: " +

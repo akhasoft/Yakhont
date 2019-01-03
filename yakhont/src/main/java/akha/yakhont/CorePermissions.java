@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,11 +30,11 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.provider.Settings;
-import android.support.annotation.IdRes;
-import android.support.annotation.IntRange;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
 import android.view.View;
+import androidx.annotation.IdRes;
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -67,9 +67,9 @@ public class CorePermissions implements ConfigurationChangedListener {
     private static final String                     ARG_VIEW_ID     = TAG + ".view_id";
 
     @IdRes
-    private static final int                        ID_VIEW_IDS     = akha.yakhont.R.id.yakhont_permissions_view_ids;
+    private static final int                        ID_VIEW_IDS     = R.id.yakhont_permissions_view_ids;
     @IdRes
-    private static final int                        ID_OBJECTS      = akha.yakhont.R.id.yakhont_permissions_object;
+    private static final int                        ID_OBJECTS      = R.id.yakhont_permissions_object;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected     Runnable                          mOnDenied;
@@ -206,8 +206,8 @@ public class CorePermissions implements ConfigurationChangedListener {
         mAlert = mAlertProvider.get();
 
         if (!mAlert.start(activity, permissions.length == 1 ?
-                        activity.getString(akha.yakhont.R.string.yakhont_permission_alert,  permissions2display):
-                        activity.getString(akha.yakhont.R.string.yakhont_permissions_alert, permissions2display),
+                        activity.getString(R.string.yakhont_permission_alert,  permissions2display):
+                        activity.getString(R.string.yakhont_permissions_alert, permissions2display),
                 new Intent().putExtra(ARG_PERMISSIONS, permissions).putExtra(ARG_VIEW_ID, mViewId)))
             CoreLogger.logError("can not start permissions alert dialog");
 
@@ -423,8 +423,8 @@ public class CorePermissions implements ConfigurationChangedListener {
         corePermissions.mAlertDenied = corePermissions.mAlertDeniedProvider.get();
 
         if (!corePermissions.mAlertDenied.start(activity, permissions.length == 1 ?
-                        activity.getString(akha.yakhont.R.string.yakhont_permission_denied_alert):
-                        activity.getString(akha.yakhont.R.string.yakhont_permissions_denied_alert),
+                        activity.getString(R.string.yakhont_permission_denied_alert):
+                        activity.getString(R.string.yakhont_permissions_denied_alert),
                 new Intent().putExtra(ARG_VIEW_ID, corePermissions.mViewId)))
             CoreLogger.logError("can not start permission denied alert dialog");
 

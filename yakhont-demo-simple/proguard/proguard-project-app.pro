@@ -1,5 +1,5 @@
 #
-#  Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+#  Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -33,4 +33,8 @@
 -dontnote rx.schedulers.**
 
 -keep class com.google.android.gms.common.images.ImageManager$OnImageLoadedListener
--keep class com.google.android.gms.common.images.internal.LoadingImageView$ClipPathProvider
+
+-dontwarn com.google.android.material.snackbar.**
+
+-dontwarn retrofit2.adapter.rxjava.RxJavaCallAdapterFactory
+-dontwarn retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory

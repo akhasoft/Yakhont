@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.SupportHelper;
 import akha.yakhont.callback.BaseCallbacks.Validator;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 // import akha.yakhont.location.BaseGoogleLocationClient;
@@ -30,45 +29,28 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.Dagger2;
+import akha.yakhont.technology.Dagger2.CallbacksValidationModule;
+import akha.yakhont.technology.Dagger2.LocationModule;
+import akha.yakhont.technology.Dagger2.Parameters;
+import akha.yakhont.technology.Dagger2.UiModule;
 import akha.yakhont.technology.rx.BaseRx.LocationRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
-import akha.yakhont.support.fragment.dialog.ProgressDialogFragment;
-
-// for using non-support version of library (android.app.Fragment etc.):
-// comment out akha.yakhont.support.fragment.* import above and uncomment one below
-
-// also, don't forget to change in build.gradle 'yakhont-support' to 'yakhont' (or 'yakhont-full')
-
-// import akha.yakhont.fragment.dialog.ProgressDialogFragment;
-
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.app.AlertDialog;
-import android.app.Dialog;
-import android.content.DialogInterface;
-import android.content.res.Resources;
-import android.graphics.drawable.BitmapDrawable;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.util.DisplayMetrics;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.TextView;
+import androidx.annotation.StringRes;
+import androidx.appcompat.app.AppCompatActivity;
 
 import dagger.BindsInstance;
 import dagger.Component;
 import dagger.Module;
-import dagger.Provides;
 
 import java.util.Date;
 
 @CallbacksInherited(LocationCallbacks.class)
-public class MainActivity extends /* Activity */ android.support.v7.app.AppCompatActivity
-        implements LocationListener /* optional */ {
+public class MainActivity extends AppCompatActivity implements LocationListener /* optional */ {
 
     // well, it's also possible to use all that stuff (versions 1 and 2) simultaneously
     // but I wouldn't like to mess the demo with such kind of extravaganza
@@ -76,11 +58,9 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     private static final boolean            USE_RX_JAVA_2                   = true;
 
     private static final boolean            USE_GOOGLE_LOCATION_OLD_API     = false;
-
-    private static final boolean            USE_SNACKBAR_ISO_ALERT          = false;
     private static final boolean            USE_SNACKBAR_ISO_TOAST          = false;
 
-    private       SlideShow                 mSlideShow;
+    private              SlideShow          mSlideShow;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,19 +73,18 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
         Core.setRxUncaughtExceptionBehavior(false /* not terminate */);
 
-        Core.init(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger
+        Core.init(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger // deep customization (see below)
                 .builder()
-                .parameters(Dagger2.Parameters.create(USE_GOOGLE_LOCATION_OLD_API,
-                        USE_SNACKBAR_ISO_ALERT, USE_SNACKBAR_ISO_TOAST))
-                .build());
+                .parameters(Parameters.create(USE_GOOGLE_LOCATION_OLD_API, USE_SNACKBAR_ISO_TOAST))
+                .build() );
 
         LocationCallbacks.allowAccessToLocation(true);      // suppress confirmation dialog
 
-        // optional; on shaking device will send email with logs to the address below
+        // optional; on shaking device email with logs will be sent to the address below
         if (BuildConfig.DEBUG) CoreLogger.registerShakeDataSender(this, "yourname@yourcompany.com");
 
         //noinspection ConstantConditions
-        setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat: R.style.AppThemeCompat_Special);
+        setTheme(R.style.AppThemeCompat);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -141,8 +120,8 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
     /////////// Rx handling (optional)
 
     @SuppressWarnings("FieldCanBeLocal")
-    private       LocationCallbacks         mLocationCallbacks;
-    private       LocationRx                mRx;
+    private              LocationCallbacks  mLocationCallbacks;
+    private              LocationRx         mRx;
 
     @SuppressWarnings("SameReturnValue")
     public boolean isRxJava2() {
@@ -198,87 +177,57 @@ public class MainActivity extends /* Activity */ android.support.v7.app.AppCompa
         mSlideShow = slideShow;
     }
 
-    // custom progress dialog (with background image) example (using custom view R.layout.progress)
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // deep customization example
 
-    @Component(modules = {DemoLocationModule.class, DemoUiModule.class, DemoCallbacksValidationModule.class})
+    // default implementation - customize only modules you need
+//  @Component(modules = {CallbacksValidationModule.class, LocationModule.class, UiModule.class})
+
+    @Component(modules = {DemoCallbacksValidationModule.class, DemoLocationModule.class, DemoUiModule.class})
     interface DemoDagger extends Dagger2 {
         @Component.Builder
         interface Builder {
             @BindsInstance
-            Builder parameters(Dagger2.Parameters parameters);
+            Builder parameters(Parameters parameters);
             DemoDagger build();
         }
     }
 
+    // customize callbacks validation here
+    // it's optional - use CallbacksValidationModule.class for default implementation (see @Component above)
     @SuppressWarnings("WeakerAccess")
     @Module
-    static class DemoCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
-        @Provides
-        Validator provideCallbacksValidator() {
-            return getCallbacksValidator();
+    static class DemoCallbacksValidationModule extends CallbacksValidationModule {
+        @Override
+        protected Validator getCallbacksValidator() {
+            return super.getCallbacksValidator();
         }
     }
 
+    // customize location client here
+    // it's optional - use LocationModule.class for default implementation (see @Component above)
     @SuppressWarnings("WeakerAccess")
     @Module
-    static class DemoLocationModule extends Dagger2.LocationModule {
-        @Provides
-        LocationClient provideLocationClient(Dagger2.Parameters parameters) {
-            return getLocationClient(getFlagLocation(parameters));
+    static class DemoLocationModule extends LocationModule {
+        @Override
+        protected LocationClient getLocationClient(final boolean oldApi) {
+            return super.getLocationClient(oldApi);
         }
     }
 
+    // customize Yakhont GUI here
+    // it's optional - use UiModule.class for default implementation (see @Component above)
     @SuppressWarnings("WeakerAccess")
     @Module
-    static class DemoUiModule extends Dagger2.UiModule {
+    static class DemoUiModule extends UiModule {
         @Override
-        protected BaseDialog getProgress() {
-            return DemoProgress.newInstance();
-        }
-    }
-
-    public static class DemoProgress extends ProgressDialogFragment.ProgressLoaderDialogFragment {
-
-        private static BitmapDrawable   sBackground;
-
-        @NonNull
-        @Override
-        @SuppressWarnings({"unused", "UnusedParameters"})
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
-            Activity activity = getActivity();
-            if (activity == null) throw new RuntimeException("activity == null");      // should never happen
-            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
-
-            @SuppressLint("InflateParams")
-            View view = LayoutInflater.from(activity).inflate(R.layout.progress, null);
-            ((TextView) view.findViewById(R.id.progress_message)).setText(getMessage(activity));
-
-            if (sBackground == null) {
-                DisplayMetrics dm       = new DisplayMetrics();
-                activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
-                
-                Resources resources     = activity.getResources();
-                sBackground             = new BitmapDrawable(resources,
-                        akha.yakhont.demo.gui.Utils.decodeBitmap(
-                                resources, R.drawable.img_progress, dm.heightPixels, dm.widthPixels));
-            }
-            ((ImageView) view.findViewById(R.id.progress_background)).setImageDrawable(sBackground);
-
-            return builder.setView(view).create();
+        protected BaseDialog getAlert(@StringRes int resId, int requestCode, Boolean yesNo) {
+            return super.getAlert(resId, requestCode, yesNo);
         }
 
         @Override
-        @SuppressWarnings("unused")
-        public void onCancel(DialogInterface dialog) {  // makes sense only if confirmation dialog switched off (see below)
-            super.onCancel(dialog);
-            Utils.showToast(R.string.yakhont_loader_cancelled, !Utils.SHOW_DURATION_LONG);
-        }
-
-        @NonNull
-        @SuppressWarnings("WeakerAccess")
-        public static DemoProgress newInstance() {
-            return (DemoProgress) ProgressDialogFragment.newInstance(new DemoProgress()
-                    .setConfirmation(false) /* for demo only */ );
+        protected BaseDialog getToast(boolean useSnackbarIsoToast, boolean durationLong) {
+            return super.getToast(useSnackbarIsoToast, durationLong);
         }
     }
 }

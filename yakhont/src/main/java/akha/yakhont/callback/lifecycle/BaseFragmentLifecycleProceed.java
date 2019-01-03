@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import akha.yakhont.callback.BaseCallbacks.BaseLifecycleProceed;
 import akha.yakhont.debug.BaseFragment;
 
 import android.annotation.TargetApi;
-import android.app.Fragment;
+import androidx.fragment.app.Fragment;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import java.util.Collection;
 import java.util.Collections;

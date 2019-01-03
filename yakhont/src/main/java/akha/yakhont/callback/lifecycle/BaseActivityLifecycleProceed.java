@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,10 +29,10 @@ import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -80,7 +80,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     }
 
     private static String getActivityName(@NonNull final Activity activity) {
-        return Utils.getActivityName(activity);
+        return CoreLogger.getActivityName(activity);
     }
 
     private static void log(@NonNull final String info, final int value, @NonNull final String name) {

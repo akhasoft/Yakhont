@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+<!-- Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -30,10 +30,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
 
-        android:paddingLeft="8dip"
-        android:paddingTop="10dip"
-        android:paddingRight="8dip"
-        android:paddingBottom="10dip"
+        android:paddingLeft="8dp"
+        android:paddingTop="10dp"
+        android:paddingRight="8dp"
+        android:paddingBottom="10dp"
 
         android:orientation="horizontal"
         android:layout_gravity="center"
@@ -43,8 +43,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
 
-            android:layout_marginEnd="12dip"
-            android:layout_marginRight="12dip"
+            android:layout_marginEnd="12dp"
+            android:layout_marginRight="12dp"
 
             android:layout_gravity="center_vertical" />
 
@@ -57,5 +57,14 @@
             android:textColor="@color/colorWindowTitle" />
 
     </LinearLayout>
+
+    <CheckBox
+        android:id="@+id/progress_confirm"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal|bottom"
+        android:checked="true"
+        android:textColor="@android:color/white"
+        android:text="@string/confirm" />
 
 </FrameLayout>

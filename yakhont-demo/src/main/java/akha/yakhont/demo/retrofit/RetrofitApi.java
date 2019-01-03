@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 package akha.yakhont.demo.retrofit;
 
-import akha.yakhont.demo.model.Beer;
+import akha.yakhont.demo.model.BeerDefault;
 
 import java.util.List;
 
@@ -28,5 +28,5 @@ public interface RetrofitApi {
 
     @GET("/data")
     @SuppressWarnings("unused")
-    void getData(Callback<List<Beer>> callback);
+    void getData(Callback<List<BeerDefault>> callback);
 }

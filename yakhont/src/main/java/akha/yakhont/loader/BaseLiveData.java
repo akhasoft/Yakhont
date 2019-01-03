@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,27 +22,30 @@ import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.R;
+// ProGuard issue
+// import akha.yakhont.R;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.arch.lifecycle.MutableLiveData;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.CountDownTimer;
-import android.support.annotation.NonNull;
-import android.support.design.widget.BaseTransientBottomBar;
-import android.support.design.widget.Snackbar;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
+import androidx.lifecycle.MutableLiveData;
+
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Collection;
 import java.util.concurrent.Callable;
@@ -55,8 +58,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     private static class LiveDataLoadParameters {
 
-        private    final Future<?>             mFuture;
-        private    final LoadParameters        mParameters;
+        private    final Future<?>                  mFuture;
+        private    final LoadParameters             mParameters;
 
         private LiveDataLoadParameters(final Future<?> future, final LoadParameters parameters) {
             mFuture                 = future;
@@ -66,23 +69,27 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
     }
 
-    private static final BaseResponse          TIMEOUT_STUB                 = new BaseResponse<>(Source.TIMEOUT);
+    private static final BaseResponse               TIMEOUT_STUB            = new BaseResponse<>(Source.TIMEOUT);
 
-    private static final boolean               MAY_INTERRUPT_IF_RUNNING     = true;
+    // may interrupt if running
+    private static final boolean                    MAY_INTERRUPT           = true;
 
-    private        final Requester<D>          mRequester;
-    private        final BaseDialog            mBaseDialog;
-    private        final AtomicBoolean         mLoading                     = new AtomicBoolean();
-    private        final AtomicBoolean         mSetValue                    = new AtomicBoolean();
+    private        final Requester<D>               mRequester;
+    private        final BaseDialog                 mBaseDialog;
+    private        final AtomicBoolean              mLoading                = new AtomicBoolean();
+    private        final AtomicBoolean              mSetValue               = new AtomicBoolean();
 
-    private              LiveDataLoadParameters
-                                               mLoadParameters;
-    private        final Object                mLockLoading                 = new Object();
+    private              LiveDataLoadParameters     mLoadParameters;
+    private        final Object                     mLockLoading            = new Object();
 
-    private        final Provider<BaseDialog>  mToast;
+    private        final Provider<BaseDialog>       mToast;
 
     public interface Requester<D> extends Callable<D> {
         void cancel();
+    }
+
+    public BaseDialog getBaseDialog() {
+        return mBaseDialog;
     }
 
     protected int getDefaultTimeout() {
@@ -133,7 +140,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
         else {
             if (mLoadParameters.mFuture != null) {
-                final boolean result = mLoadParameters.mFuture.cancel(MAY_INTERRUPT_IF_RUNNING);
+                final boolean result = mLoadParameters.mFuture.cancel(MAY_INTERRUPT);
                 if (!result)
                     CoreLogger.logError("can't cancel future " + mLoadParameters.mFuture);
             }
@@ -227,7 +234,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         displayError(baseResponse, notDisplayErrors);
     }
 
-    private static final String                LOADING_FAILED               = "loading failed";
+    private static final String                     LOADING_FAILED          = "loading failed";
 
     private void log(@NonNull final Object error) {
         CoreLogger.log(LOADING_FAILED, (Throwable) error);
@@ -244,7 +251,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     protected String makeErrorMessage(final BaseResponse baseResponse) {
-        return Utils.getApplication().getString(R.string.yakhont_loader_error_network);
+        return Utils.getApplication().getString(akha.yakhont.R.string.yakhont_loader_error_network);
     }
 
     public void makeRequest(final Activity activity, final String text, final Intent data,
@@ -352,11 +359,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     public static class CacheLiveData<D> extends BaseLiveData<D> {
 
-        private static final BaseResponse      FORCE_STUB                   = new BaseResponse(Source.CACHE);
+        private static final BaseResponse           FORCE_STUB              = new BaseResponse(Source.CACHE);
 
-        private        final Uri               mUri;
+        private        final Uri                    mUri;
 
-        private        final AtomicBoolean     mMerge                       = new AtomicBoolean();
+        private        final AtomicBoolean          mMerge                  = new AtomicBoolean();
 
         public CacheLiveData(@NonNull final Requester<D> requester,
                              @NonNull final String tableName, final UriResolver uriResolver) {
@@ -489,65 +496,96 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     public static class LiveDataDialog implements BaseDialog {
 
-        private final static long              UPDATE_INTERVAL              = 300;
-
-        private              Toast             mToast;
-
-        private              CountDownTimer    mCountDownTimer;
-        private final        Object            mLock                        = new Object();
-        private              int               mCounter;
-
-        private              Runnable          mOnCancel;
-        private final        Object            mLockCancel                  = new Object();
-
-        private              Snackbar          mSnackbar;
-        private static       Integer           sSnackbarDuration;
-
-        private final static LiveDataDialog    sInstance                    = new LiveDataDialog();
-
-        public static LiveDataDialog getInstance() {
-            return sInstance;
+        public interface Progress {
+            void    setText(String text);
+            void    show();
+            void    hide();
+            void    confirm(Activity activity);
         }
 
-        private LiveDataDialog() {
-            makeToast();
-        }
+        public static abstract class ProgressDefault implements Progress {
 
-        @SuppressLint("InflateParams")
-        private void makeToast() {
-            final Context context = getContext();
+            private              Snackbar           mSnackbar;
+            private       static Integer            sSnackbarDuration;
 
-            mToast = new Toast(context);
-            mToast.setView(LayoutInflater.from(context)
-                    .inflate(R.layout.progress, null, false));
-            mToast.setGravity(Gravity.CENTER, 0, 0);
-            mToast.setDuration(Toast.LENGTH_SHORT);
-        }
+            @CallSuper
+            @Override
+            public void hide() {
+                if (mSnackbar == null) return;
 
-        public boolean isLoading() {
-            synchronized (mLock) {
-                return mCountDownTimer != null;
+                mSnackbar.dismiss();
+                mSnackbar = null;
+            }
+
+            @Override
+            public void confirm(final Activity activity) {
+                mSnackbar = Snackbar.make(ViewHelper.getViewForSnackbar(activity, null),
+
+                        akha.yakhont.R.string.yakhont_loader_alert,
+
+                        sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_SHORT)
+
+                        .setAction(akha.yakhont.R.string.yakhont_alert_yes, new View.OnClickListener() {
+                            @Override
+                            public void onClick(View view) {
+                                cancel(activity);
+                            }
+                        })
+
+                        .addCallback(new BaseTransientBottomBar.BaseCallback<Snackbar>() {
+                            @Override
+                            public void onDismissed(Snackbar transientBottomBar, int event) {
+                                mSnackbar = null;
+                                super.onDismissed(transientBottomBar, event);
+                            }
+                        });
+
+                mSnackbar.show();
             }
         }
 
-        public static String getInfoText(final String tableInfo) {
-            final Context context = getContext();
-            return context.getString(R.string.yakhont_loader_progress, tableInfo != null ?
-                    tableInfo: context.getString(R.string.yakhont_loader_progress_def_info));
-        }
+        private static class ProgressDefaultImp extends ProgressDefault {
 
-        public void start(final String text) {
-            synchronized (mLock) {
-                ((TextView) mToast.getView().findViewById(R.id.yakhont_loader_text))
-                        .setText(text != null ? text: getInfoText(null));
+            private final static long               UPDATE_INTERVAL         = 300;
 
-                if (mCountDownTimer != null) {
-                    mCounter++;
-                    CoreLogger.log("progress counter incremented to " + mCounter);
-                    return;
-                }
-                mCounter = 1;
+            private       static ProgressDefaultImp sInstance;
 
+            private              Toast              mToast;
+            private              CountDownTimer     mCountDownTimer;
+
+            // lazy init and no sync ('cause it's implemented in parent class)
+            @NonNull
+            private static ProgressDefaultImp getInstance() {
+                if (sInstance == null) sInstance = new ProgressDefaultImp();
+                return sInstance;
+            }
+
+            private ProgressDefaultImp() {
+                makeToast();
+            }
+
+            private void makeToast() {
+
+                final Context context = getContext();
+
+                mToast = new Toast(context);
+
+                //noinspection InflateParams
+                mToast.setView(LayoutInflater.from(context)
+                        .inflate(akha.yakhont.R.layout.progress, null, false));
+
+                mToast.setGravity(Gravity.CENTER, 0, 0);
+                mToast.setDuration(Toast.LENGTH_SHORT);
+            }
+
+            @Override
+            public void setText(@NonNull final String text) {
+                ((TextView) mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text))
+                        .setText(text);
+            }
+
+            @Override
+            public void show() {
                 mCountDownTimer = new CountDownTimer(Long.MAX_VALUE, UPDATE_INTERVAL) {
                     @Override
                     public void onTick(long millisUntilFinished) {
@@ -558,6 +596,89 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     public void onFinish() {
                     }
                 }.start();
+            }
+
+            @Override
+            public void hide() {
+                mCountDownTimer.cancel();
+                mCountDownTimer = null;
+
+                super.hide();
+
+                mToast.cancel();
+                makeToast();
+            }
+        }
+
+        private              Progress               mProgress;
+        private              boolean                mIsLoading;
+
+        private final        Object                 mLock                   = new Object();
+        private              int                    mCounter;
+
+        private              Runnable               mOnCancel;
+        private final        Object                 mLockCancel             = new Object();
+
+        private final static LiveDataDialog         sInstance               = new LiveDataDialog();
+
+        @NonNull
+        public static LiveDataDialog getInstance() {
+            return sInstance;
+        }
+
+        private LiveDataDialog() {
+        }
+
+        public Progress getProgress() {
+            return mProgress;
+        }
+
+        public boolean setProgress(final Progress progress) {
+            final boolean result = mProgress == null && progress != null;
+            if (!result)
+                CoreLogger.logWarning(String.format("unexpected progress: %s (mProgress: %s)" +
+                         progress == null ? "null":  progress.toString(),
+                        mProgress == null ? "null": mProgress.toString()));
+
+            mProgress = progress;
+            return result;
+        }
+
+        public boolean isLoading() {
+            synchronized (mLock) {
+                return mIsLoading;
+            }
+        }
+
+        public static String getInfoText() {
+            return getInfoText(null);
+        }
+
+        public static String getInfoText(@StringRes final int tableInfo) {
+            return getInfoText(getContext().getResources().getString(tableInfo));
+        }
+
+        public static String getInfoText(final String tableInfo) {
+            final Context context = getContext();
+            return context.getString(akha.yakhont.R.string.yakhont_loader_progress, tableInfo != null ?
+                    tableInfo: context.getString(akha.yakhont.R.string.yakhont_loader_progress_def_info));
+        }
+
+        public void start(final String text) {
+            synchronized (mLock) {
+                if (mProgress == null) mProgress = ProgressDefaultImp.getInstance();
+
+                mProgress.setText(text != null ? text: getInfoText(null));
+
+                if (mIsLoading) {
+                    mCounter++;
+                    CoreLogger.log("progress counter incremented to " + mCounter);
+                    return;
+                }
+                mCounter   = 1;
+                mIsLoading = true;
+
+                mProgress.show();
             }
         }
 
@@ -573,30 +694,38 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         public boolean stop(final boolean force, final Activity activity) {
+            try {
+                return stopNotSafe(force, activity);
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception);
+                return false;
+            }
+        }
+
+        private boolean stopNotSafe(final boolean force, final Activity activity) {
             synchronized (mLock) {
-                if (mCountDownTimer == null)  return false;
+                if (!mIsLoading) return false;
 
                 if (--mCounter > 0 && !force) return false;
 
                 CoreLogger.log("about to stop progress, force " + force);
-                mCountDownTimer.cancel();
-                mCountDownTimer = null;
 
-                mCounter = 0;
+                mCounter   = 0;
+                mIsLoading = false;
+
+                if (mProgress != null)
+                    mProgress.hide();
+                else
+                    CoreLogger.logWarning("mProgress == null");     // should never happen
             }
-
-            if (mSnackbar != null) mSnackbar.dismiss();
-            mSnackbar = null;
-
-            mToast.cancel();
-            makeToast();
 
             if (force) {
                 final Collection<BaseViewModel<?>> models =
                         BaseViewModel.getViewModels(activity, true);
                 if (models == null) {
                     CoreLogger.logWarning("only current BaseLiveData loading will be " +
-                            "stopped 'cause of unsupported Activity " + Utils.getActivityName(activity));
+                            "stopped 'cause of unsupported Activity " + CoreLogger.getActivityName(activity));
                     cancel();
                 }
                 else
@@ -619,6 +748,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     public void run() {
                         synchronized (mLockCancel) {
                             try {
+                                CoreLogger.log("about to cancel data loading, object " + this);
                                 mOnCancel.run();
                             }
                             catch (Exception exception) {
@@ -639,8 +769,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return true;
         }
 
-        public static void setSnackbarDuration(final Integer duration) {
-            sSnackbarDuration = duration;
+        public static void setConfirmDuration(final int duration) {
+            if (sInstance.mProgress instanceof ProgressDefault)
+                ((ProgressDefault) sInstance.mProgress).sSnackbarDuration = duration;
+            else
+                CoreLogger.logWarning("confirmation duration " + duration + " ignored for " +
+                        sInstance.mProgress.getClass());
         }
 
         @Override
@@ -648,26 +782,14 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
-                    //noinspection Convert2Lambda
-                    mSnackbar = Snackbar.make(ViewHelper.getViewForSnackbar(activity, null),
-                            R.string.yakhont_loader_alert,
-                            sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_SHORT)
-                            .setAction(R.string.yakhont_alert_yes, new View.OnClickListener() {
-                                @Override
-                                public void onClick(View view) {
-                                    stop(true, activity);
-                                }
-                            }).addCallback(new BaseTransientBottomBar.BaseCallback<Snackbar>() {
-                                @Override
-                                public void onDismissed(Snackbar transientBottomBar, int event) {
-                                    mSnackbar = null;
-                                    super.onDismissed(transientBottomBar, event);
-                                }
-                            });
-                    mSnackbar.show();
+                    mProgress.confirm(activity);
                 }
             });
             return true;
+        }
+
+        public static void cancel(final Activity activity) {
+            sInstance.stop(true, activity);
         }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,38 +30,38 @@ import akha.yakhont.adapter.BaseCacheAdapter.DataBindingCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
+import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
+import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.technology.retrofit.BaseRetrofit;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.app.Activity;
-import android.app.Application;
-import android.arch.lifecycle.ViewModelStore;
 import android.content.res.Resources;
-import android.support.annotation.IdRes;
-import android.support.annotation.LayoutRes;
-import android.support.v4.app.Fragment;
-import android.app.LoaderManager;
 import android.content.Context;
-import android.support.annotation.CallSuper;
-import android.support.annotation.NonNull;
-import android.support.annotation.Size;
-import android.support.annotation.StringRes;
-import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.GridView;
 import android.widget.ListView;
+import androidx.annotation.CallSuper;
+import androidx.annotation.IdRes;
+import androidx.annotation.LayoutRes;
+import androidx.annotation.NonNull;
+import androidx.annotation.Size;
+import androidx.annotation.StringRes;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelStore;
+import androidx.recyclerview.widget.RecyclerView;
 
-import java.lang.ref.WeakReference;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<BaseResponse<R, E, D>> {
@@ -71,6 +71,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
     private   final     String                                  mTableName;
     private   final     String                                  mTableDescription;
+
+    private             boolean                                 mNoCache;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final     Requester<C>                            mRequester;
@@ -82,6 +84,25 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     private             CacheAdapter<R, E, D>                   mAdapter;
 
     private             LoaderRx<R, E, D>                       mRx;
+
+    private             LoaderCallbacks<E, D>                   mLoaderCallbacks;
+
+    // for lambda support
+    public interface LoaderCallback<D> {
+        void onLoadFinished(D data, Source source);
+    }
+
+    public static abstract class LoaderCallbacks<E, D> implements LoaderCallback<D> {
+
+        @Override
+        public void onLoadFinished(final D data, final Source source) {
+            CoreLogger.log("empty onLoadFinished in " + this);
+        }
+
+        public void onLoadError(final E error, final Source source) {
+            CoreLogger.log("empty onLoadError in " + this);
+        }
+    }
 
     protected BaseResponseLoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                         @NonNull final Requester<C> requester,
@@ -146,7 +167,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     }
 
     @Override
-    public BaseLoaderWrapper findLoader(final Collection<BaseLoaderWrapper> loaders) {
+    public BaseLoaderWrapper findLoader(final Collection<BaseLoaderWrapper<?>> loaders) {
         final BaseLoaderWrapper baseLoaderWrapper = super.findLoader(loaders);
 
         if (baseLoaderWrapper instanceof BaseResponseLoaderWrapper) {
@@ -159,15 +180,27 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return baseLoaderWrapper;
     }
 
-    @SuppressWarnings("UnusedReturnValue")
-    public BaseResponseLoaderWrapper<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
-        mAdapter        = adapter;
+    @NonNull
+    public BaseResponseLoaderWrapper<C, R, E, D> setNoCache(final boolean noCache) {
+        mNoCache            = noCache;
         return this;
     }
 
-    @SuppressWarnings("UnusedReturnValue")
+    @NonNull
+    public BaseResponseLoaderWrapper<C, R, E, D> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
+        mLoaderCallbacks    = loaderCallbacks;
+        return this;
+    }
+
+    @NonNull
+    public BaseResponseLoaderWrapper<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
+        mAdapter            = adapter;
+        return this;
+    }
+
+    @NonNull
     public BaseResponseLoaderWrapper<C, R, E, D> setRx(final LoaderRx<R, E, D> rx) {
-        mRx             = rx;
+        mRx                 = rx;
         return this;
     }
 
@@ -180,11 +213,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return mAdapter;
     }
 
-    @SuppressWarnings("unused")
+    @Override
     public String getTableName() {
-        return mTableName;
+        return mNoCache ? null: mTableName;
     }
 
+    @Override
     protected String getTableDescription() {
         return mTableDescription;
     }
@@ -205,12 +239,24 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return Utils.getUriResolver();
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-
     @CallSuper
     @Override
     protected void onLoadFinished(final BaseResponse<R, E, D> data, final LoadParameters parameters) {
         super.onLoadFinished(data, parameters);
+
+        if (mLoaderCallbacks != null) {
+            if (data == null)
+                mLoaderCallbacks.onLoadFinished(null, null);
+            else {
+                final E      error  = data.getError ();
+                final Source source = data.getSource();
+
+                if (error != null)
+                    mLoaderCallbacks.onLoadError(error, source);
+                else
+                    mLoaderCallbacks.onLoadFinished(data.getResult(), source);
+            }
+        }
 
         updateAdapter(data, parameters != null && parameters.getMerge());
 
@@ -229,10 +275,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     public static abstract class BaseResponseLoaderBuilder<C, R, E, D> implements LoaderBuilder<C, R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final WeakReference<Fragment>                 mFragment;
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final WeakReference<Activity>                 mActivity;
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final ViewModelStore                          mViewModelStore;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -242,6 +284,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       String                                  mDescription;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Boolean                                 mNoCache;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       String                                  mLoaderId;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -249,27 +294,28 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         private         Converter<D>                            mConverter;
         private         UriResolver                             mUriResolver;
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       LoaderCallbacks<E, D>                   mLoaderCallbacks;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Callable<Progress>                            mProgress;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Callable<BaseViewModel<BaseResponse<R, E, D>>>
+                                                                mBaseViewModel;
+
         public BaseResponseLoaderBuilder() {
-            mFragment           = null;
-            mActivity           = null;
-            mViewModelStore     = null;
+            mViewModelStore     = BaseViewModel.getViewModelStore((Activity) null);
         }
 
-        public BaseResponseLoaderBuilder(final Fragment fragment) {
-            mFragment           = fragment == null ? null: new WeakReference<>(fragment);
-            mActivity           = null;
-            mViewModelStore     = null;
+        public BaseResponseLoaderBuilder(@NonNull final Fragment fragment) {
+            mViewModelStore     = BaseViewModel.getViewModelStore(fragment);
         }
 
-        public BaseResponseLoaderBuilder(final Activity activity) {
-            mFragment           = null;
-            mActivity           = activity == null ? null: new WeakReference<>(activity);
-            mViewModelStore     = null;
+        public BaseResponseLoaderBuilder(@NonNull final Activity activity) {
+            mViewModelStore     = BaseViewModel.getViewModelStore(activity);
         }
 
-        public BaseResponseLoaderBuilder(final ViewModelStore viewModelStore) {
-            mFragment           = null;
-            mActivity           = null;
+        public BaseResponseLoaderBuilder(@NonNull final ViewModelStore viewModelStore) {
             mViewModelStore     = viewModelStore;
         }
 
@@ -327,29 +373,44 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        @NonNull
+        public BaseResponseLoaderBuilder<C, R, E, D> setNoCache(final boolean noCache) {
+            mNoCache            = noCache;
+            return this;
+        }
+
+        @NonNull
+        public BaseResponseLoaderBuilder<C, R, E, D> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
+            mLoaderCallbacks    = loaderCallbacks;
+            return this;
+        }
+
+        @NonNull
+        public BaseResponseLoaderBuilder<C, R, E, D> setProgress(final Callable<Progress> progress) {
+            mProgress           = progress;
+            return this;
+        }
+
+        @NonNull
+        public BaseResponseLoaderBuilder<C, R, E, D> setBaseViewModel(
+                final Callable<BaseViewModel<BaseResponse<R, E, D>>> baseViewModel) {
+            mBaseViewModel      = baseViewModel;
+            return this;
+        }
+
         @Override
         public final BaseResponseLoaderWrapper<C, R, E, D> createBaseResponseLoader() {
-            ViewModelStore viewModelStore = null;
+            final BaseResponseLoaderWrapper<C, R, E, D> loaderWrapper =
+                    createBaseResponseLoaderWrapper(mViewModelStore);
 
-            if (mFragment != null) {
-                final Fragment fragment = mFragment.get();
-                if (fragment == null)
-                    CoreLogger.logError("fragment == null");
-                else
-                    viewModelStore = BaseViewModel.getViewModelStore(fragment);
-            }
-            else if (mActivity != null) {
-                final Activity activity = mActivity.get();
-                if (activity == null)
-                    CoreLogger.logError("activity == null");
-                else
-                    viewModelStore = BaseViewModel.getViewModelStore(activity);
-            }
-            else
-                viewModelStore = mViewModelStore != null ? mViewModelStore:
-                        BaseViewModel.getViewModelStore((Activity) null);
+            loaderWrapper.setLoaderCallbacks(mLoaderCallbacks);
+            loaderWrapper.setNoCache(mNoCache != null ? mNoCache: false);
 
-            return createBaseResponseLoaderWrapper(viewModelStore);
+            // in such order
+            loaderWrapper.setProgress(mProgress);
+            loaderWrapper.setBaseViewModel(mBaseViewModel);
+
+            return loaderWrapper;
         }
 
         @Override
@@ -387,6 +448,26 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public Type getTypeRaw() {
             return mType;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public Boolean getNoCacheRaw() {
+            return mNoCache;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public LoaderCallbacks<E, D> getLoaderCallbacksRaw() {
+            return mLoaderCallbacks;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public Callable<Progress> getProgressRaw() {
+            return mProgress;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public Callable<BaseViewModel<BaseResponse<R, E, D>>> getBaseViewModelRaw() {
+            return mBaseViewModel;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -695,7 +776,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  The loaders
          */
-        Collection<BaseLoaderWrapper> getLoaders();
+        Collection<BaseLoaderWrapper<?>> getLoaders();
 
         /**
          * Adds loader to the collection of {@link BaseLoaderWrapper loaders} associated with
@@ -740,8 +821,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *        The Activity
          *
          * @return  This {@code CoreLoad} object to allow for chaining of calls
-         *
-         * @see LoaderManager#destroyLoader
          */
         @SuppressWarnings("UnusedReturnValue")
         CoreLoad cancelLoading(Activity activity);
@@ -760,12 +839,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
     public static class CoreLoader implements CoreLoad {
 
-        private final   Collection<BaseLoaderWrapper>           mLoaders                = Utils.newSet();
+        private final   Collection<BaseLoaderWrapper<?>>        mLoaders                = Utils.newSet();
 
         private final   AtomicBoolean                           mGoBackOnCancelLoading  = new AtomicBoolean(true);
 
         @Override
-        public Collection<BaseLoaderWrapper> getLoaders() {
+        public Collection<BaseLoaderWrapper<?>> getLoaders() {
             return mLoaders;
         }
 
@@ -790,16 +869,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             final boolean result = mLoaders.add(loader);
             CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "mLoaders.add result == " + result);
             return result;
-        }
-
-        @Override
-        public boolean load() {
-            return load(null, new LoadParameters());
-        }
-
-        @Override
-        public boolean load(final Activity activity, final LoadParameters parameters) {
-            return BaseLoaderWrapper.start(activity, getLoaders(), parameters);
         }
 
         @Override
@@ -836,6 +905,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         public CoreLoad setGoBackOnCancelLoading(final boolean isGoBackOnCancelLoading) {
             mGoBackOnCancelLoading.set(isGoBackOnCancelLoading);
             return this;
+        }
+
+        @Override
+        public boolean load() {
+            return load(null, new LoadParameters());
+        }
+
+        @Override
+        public boolean load(final Activity activity, final LoadParameters parameters) {
+            return BaseLoaderWrapper.start(activity, getLoaders(), parameters);
         }
     }
 
@@ -1065,11 +1144,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 final String errText = "'no default binding' mode set, so %s will be ignored";
 
                 if (mListViewId     != Core.NOT_VALID_VIEW_ID)
-                    CoreLogger.logWarning(String.format(errText, "list ID " + mListViewId));
+                    CoreLogger.logWarning(String.format(errText, "list ID " +
+                            CoreLogger.getResourceDescription(mListViewId)));
 
                 if (mLayoutItemId   != Core.NOT_VALID_RES_ID)
                     CoreLogger.logWarning(String.format(errText, "list item layout ID " +
-                            mLayoutItemId));
+                            CoreLogger.getResourceDescription(mLayoutItemId)));
 
                 if (mAdapterWrapper != null) {
                     CoreLogger.logWarning(String.format(errText, "adapter wrapper " +
@@ -1111,7 +1191,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
             if (list == null)
                 if (mListViewId != Core.NOT_VALID_VIEW_ID)
-                    CoreLogger.logError("view with id " + mListViewId + " was not found");
+                    CoreLogger.logError("view with id " +
+                            CoreLogger.getResourceDescription(mListViewId) + " was not found");
                 else
                     CoreLogger.logWarning("no ListView, GridView or RecyclerView found for default binding");
 
@@ -1122,7 +1203,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             if (itemId == Core.NOT_VALID_RES_ID)
                 CoreLogger.logWarning("no list item layout ID found for default binding");
             else
-                CoreLogger.log("list item layout ID: " + itemId);
+                CoreLogger.log("list item layout ID: " + CoreLogger.getResourceDescription(itemId));
 
             if (list != null && itemId != Core.NOT_VALID_RES_ID)
                 customizeAdapterWrapper(activity, coreLoad, root, list, itemId);
@@ -1142,7 +1223,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 else if (list instanceof RecyclerView)
                     ((RecyclerView) list).setAdapter(mAdapterWrapper.getRecyclerViewAdapter());
                 else {
-                    CoreLogger.logError("view with id " + mListViewId +
+                    CoreLogger.logError("view with id " + CoreLogger.getResourceDescription(mListViewId) +
                             " should be instance of ListView, GridView or RecyclerView");
                     return false;
                 }
@@ -1172,11 +1253,20 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param <T>
      *        The type of API
      */
-    public static abstract class CoreLoadExtendedBuilder<C, R, E, D, T> extends CoreLoadBuilder<C, R, E, D>
-            implements Requester<C> {
+    public static abstract class CoreLoadExtendedBuilder<C, R, E, D, T>
+            extends CoreLoadBuilder<C, R, E, D> implements Requester<C> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Type                                  mType;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected LoaderCallbacks<E, D>                 mLoaderCallbacks;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Callable<Progress>                    mProgress;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Callable<BaseViewModel<BaseResponse<R, E, D>>>
+                                                        mBaseViewModel;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Integer                               mDataBindingId;
@@ -1187,6 +1277,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @Size(min = 1)
         protected int[]                                 mTo;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Boolean                               mNoCache;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected String                                mTableName;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected String                                mDescription;
@@ -1205,8 +1301,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         protected Converter<D>                          mConverter;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected String                                mTableName;
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected String                                mLoaderId;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1215,8 +1309,53 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected UriResolver                           mUriResolver;
 
-        @SuppressWarnings("unused")
         protected CoreLoadExtendedBuilder() {
+        }
+
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setNoCache(final boolean noCache) {
+            mNoCache         = noCache;
+            return this;
+        }
+
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
+            mLoaderCallbacks = loaderCallbacks;
+            return this;
+        }
+
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Progress progress) {
+            mProgress        = progress == null ? null: new Callable<Progress>() {
+                @Override
+                public Progress call() {
+                    return progress;
+                }
+            };
+            return this;
+        }
+
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Callable<Progress> progress) {
+            mProgress        = progress;
+            return this;
+        }
+
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModel(
+                final Callable<BaseViewModel<BaseResponse<R, E, D>>> baseViewModel) {
+            mBaseViewModel   = baseViewModel;
+            return this;
+        }
+
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
+            return setLoaderCallbacks(loaderCallback == null ? null: new LoaderCallbacks<E, D>() {
+                @Override
+                public void onLoadFinished(final D data, final Source source) {
+                    loaderCallback.onLoadFinished(data, source);
+                }
+            });
         }
 
         /**
@@ -1252,8 +1391,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          *
-         * @see android.databinding.ViewDataBinding#setVariable ViewDataBinding.setVariable()
+         * @see androidx.databinding.ViewDataBinding#setVariable ViewDataBinding.setVariable()
          */
+        @NonNull
         @SuppressWarnings("unused")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setDataBinding(@NonNull final Integer id) {
             checkData(mDataBindingId, id, "data binding id");
@@ -1272,6 +1412,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @NonNull
         @SuppressWarnings("unused")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setDataBinding(@NonNull @Size(min = 1) final String[] from,
                                                                      @NonNull @Size(min = 1) final    int[] to) {
@@ -1722,25 +1863,33 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 CoreLogger.logWarning("The loader builder requester is already set, " +
                         "so overridden method (if any) 'makeRequest(callback)' will be ignored");
 
-            if (check(mType           , builder.getTypeRaw()          , "Type"          ))
-                builder.setType           (mType          );
-            if (check(mConverter      , builder.getConverterRaw()     , "Converter"     ))
-                builder.setConverter      (mConverter     );
-            if (check(mTableName      , builder.getTableNameRaw()     , "TableName"     ))
-                builder.setTableName      (mTableName     );
-            if (check(mLoaderId       , builder.getLoaderIdRaw()      , "LoaderId"      ))
-                builder.setLoaderId       (mLoaderId      );
-            if (check(mUriResolver    , builder.getUriResolverRaw()   , "UriResolver"   ))
-                builder.setUriResolver    (mUriResolver   );
+            if (check(mType           , builder.getTypeRaw()           , "Type"          ))
+                builder.setType           (mType           );
+            if (check(mLoaderCallbacks, builder.getNoCacheRaw()        , "NoCache"       ))
+                builder.setNoCache        (mNoCache        );
+            if (check(mLoaderCallbacks, builder.getLoaderCallbacksRaw(), "LoaderCallback"))
+                builder.setLoaderCallbacks(mLoaderCallbacks);
+            if (check(mProgress       , builder.getProgressRaw()       , "Progress"      ))
+                builder.setProgress       (mProgress       );
+            if (check(mBaseViewModel  , builder.getBaseViewModelRaw()  , "BaseViewModel" ))
+                builder.setBaseViewModel  (mBaseViewModel  );
+            if (check(mConverter      , builder.getConverterRaw()      , "Converter"     ))
+                builder.setConverter      (mConverter      );
+            if (check(mTableName      , builder.getTableNameRaw()      , "TableName"     ))
+                builder.setTableName      (mTableName      );
+            if (check(mLoaderId       , builder.getLoaderIdRaw()       , "LoaderId"      ))
+                builder.setLoaderId       (mLoaderId       );
+            if (check(mUriResolver    , builder.getUriResolverRaw()    , "UriResolver"   ))
+                builder.setUriResolver    (mUriResolver    );
 
             if (mDescription != null) {
-                if (check(mDescription, builder.getDescriptionRaw()   , "Description"   ))
-                    builder.setDescription(mDescription);
+                if (check(mDescription, builder.getDescriptionRaw()    , "Description"   ))
+                    builder.setDescription(mDescription    );
             }
             else if (mDescriptionId != Core.NOT_VALID_RES_ID) {
                 final String description = fragment.getString(mDescriptionId);
-                if (check(description,  builder.getDescriptionRaw()   , "Description"   ))
-                    builder.setDescription(description);
+                if (check(description,  builder.getDescriptionRaw()    , "Description"   ))
+                    builder.setDescription(description     );
             }
 
             final CoreLoad coreLoad = super.create(activity, fragment);
@@ -1751,7 +1900,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         private static <S> boolean check(final S valueOwn, final S valueBuilder, @NonNull final String txt) {
             if (valueOwn == null) return false;
             if (valueBuilder != null && !valueOwn.equals(valueBuilder)) {
-                CoreLogger.logError(String.format("two different %ss in CoreLoadExtendedBuilder and " +
+                CoreLogger.logError(String.format("two different %s in CoreLoadExtendedBuilder and " +
                         "BaseResponseLoaderBuilder, the first one will be ignored (value %s), " +
                         "accepted value: %s", txt, valueOwn.toString(), valueOwn.toString()));
                 return false;

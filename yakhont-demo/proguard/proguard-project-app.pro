@@ -1,5 +1,5 @@
 #
-#  Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+#  Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
 #
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -41,13 +41,13 @@
 -keepclassmembers class com.google.android.gms.common.data.Freezable {
     *** freeze(...);
 }
--keepclassmembers class android.support.v4.graphics.TypefaceCompatApi26Impl {
+-keepclassmembers class androidx.core.graphics.TypefaceCompatApi26Impl {
     *** abortCreation(...);
 }
--keepclassmembers class android.support.v4.text.ICUCompat {
+-keepclassmembers class androidx.core.text.ICUCompat {
     *** addLikelySubtags(...);
 }
--keepclassmembers class android.support.transition.GhostView** {
+-keepclassmembers class androidx.transition.GhostView** {
     *** removeGhost(...);
 }
 -keepclassmembers class android.security.** {
@@ -104,36 +104,37 @@
     *** close(...);
 }
 
--keep class android.support.v4.app.Fragment
--keep class android.support.v4.app.FragmentManager
--keep class android.support.v4.app.FragmentTransaction
--keep class android.support.v4.app.Fragment$SavedState
--keep class android.support.v4.app.Fragment$OnStartEnterTransitionListener
--keep class android.support.v4.app.SharedElementCallback
--keep class android.support.v4.graphics.PathParser$PathDataNode
--keep class android.support.v4.view.accessibility.AccessibilityNodeInfoCompat
--keep class android.support.v4.view.AbsSavedState$1
--keep class android.support.v4.view.ActionProvider$SubUiVisibilityListener
--keep class android.support.v4.view.ActionProvider$VisibilityListener
--keep class android.support.v4.view.PagerAdapter
--keep class android.support.v4.view.ViewPager
--keep class android.support.v4.view.WindowInsetsCompat
--keep class android.support.v7.view.menu.MenuItemImpl
--keep class android.support.v7.view.menu.MenuPresenter$Callback
--keep class android.support.v4.util.ArrayMap
--keep class android.support.v4.util.LongSparseArray
+-keep class androidx.fragment.app.Fragment
+-keep class androidx.fragment.app.FragmentManager
+-keep class androidx.fragment.app.FragmentTransaction
+-keep class androidx.fragment.app.Fragment$SavedState
+-keep class androidx.fragment.app.Fragment$OnStartEnterTransitionListener
+-keep class androidx.core.app.SharedElementCallback
+-keep class androidx.core.graphics.PathParser$PathDataNode
+-keep class androidx.core.view.accessibility.AccessibilityNodeInfoCompat
+-keep class androidx.core.view.AbsSavedState$1
+-keep class androidx.core.view.ActionProvider$SubUiVisibilityListener
+-keep class androidx.core.view.ActionProvider$VisibilityListener
+-keep class androidx.core.view.PagerAdapter
+-keep class androidx.core.view.ViewPager
+-keep class androidx.core.view.WindowInsetsCompat
+-keep class androidx.core.view.menu.MenuItemImpl
+-keep class androidx.core.view.menu.MenuPresenter$Callback
+-keep class androidx.collection.ArrayMap
+-keep class androidx.collection.LongSparseArray
 
--keep class android.support.transition.PathMotion
--keep class android.support.transition.Transition
--keep class android.support.transition.TransitionPropagation
--keep class android.support.transition.TransitionValues
--keep class android.support.transition.TransitionValuesMaps
--keep class android.support.transition.Transition$TransitionListener
--keep class android.support.transition.Transition$EpicenterCallback
+-keep class androidx.transition.PathMotion
+-keep class androidx.transition.Transition
+-keep class androidx.transition.TransitionPropagation
+-keep class androidx.transition.TransitionValues
+-keep class androidx.transition.TransitionValuesMaps
+-keep class androidx.transition.Transition$TransitionListener
+-keep class androidx.transition.Transition$EpicenterCallback
 
 -keep class okhttp3.internal.http2.ErrorCode
 
 -keep class com.google.android.gms.common.images.ImageManager$OnImageLoadedListener
--keep class com.google.android.gms.common.images.internal.LoadingImageView$ClipPathProvider
 
 -dontwarn akha.yakhont.loader.BaseLiveData$LiveDataDialog
+
+-dontwarn akha.yakhont.R$id

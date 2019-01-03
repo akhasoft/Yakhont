@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
-import akha.yakhont.SupportHelper;
+// ProGuard issue
+// import akha.yakhont.R;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.BaseCallbacks.Validator;
 import akha.yakhont.location.GoogleLocationClient;
@@ -34,15 +35,16 @@ import akha.yakhont.location.LocationCallbacks.LocationClient;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.IdRes;
-import android.support.annotation.StringRes;
-import android.support.design.widget.BaseTransientBottomBar;
-import android.support.design.widget.Snackbar;
 import android.text.TextUtils;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.Toast;
+import androidx.annotation.IdRes;
+import androidx.annotation.StringRes;
+
+import com.google.android.material.snackbar.BaseTransientBottomBar;
+import com.google.android.material.snackbar.Snackbar;
 
 import java.lang.ref.WeakReference;
 
@@ -156,13 +158,9 @@ public interface Dagger2 {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_ALERT_LOCATION               = "alert_location";
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    String      UI_ALERT_PROGRESS               = "alert_progress";
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_ALERT_PERMISSION             = "alert_permission";
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_ALERT_PERMISSION_DENIED      = "alert_permission_denied";
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    String      UI_PROGRESS                     = "progress";
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_TOAST_LENGTH_LONG            = "toast_long";
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -171,17 +169,19 @@ public interface Dagger2 {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Named(UI_ALERT_LOCATION)          Provider<BaseDialog>     getAlertLocation();
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_ALERT_PROGRESS)          Provider<BaseDialog>     getAlertProgress();
-    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Named(UI_ALERT_PERMISSION)        Provider<BaseDialog>     getAlertPermission();
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Named(UI_ALERT_PERMISSION_DENIED) Provider<BaseDialog>     getAlertPermissionDenied();
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_PROGRESS)                Provider<BaseDialog>     getProgress();
-    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Named(UI_TOAST_LENGTH_LONG)       Provider<BaseDialog>     getToastLong();
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     @Named(UI_TOAST_LENGTH_SHORT)      Provider<BaseDialog>     getToastShort();
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    Validator            getCallbacksValidator();
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    Lazy<LocationClient> getLocationClient();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     @Component(modules = {LocationModule.class, UiModule.class, CallbacksValidationModule.class})
@@ -194,19 +194,14 @@ public interface Dagger2 {
         }
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    Lazy<LocationClient> getLocationClient();
-
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    Validator getCallbacksValidator();
-
     /**
      * The parameters defined at run-time.
      */
     class Parameters {
 
         private static final int     VALUE_LOCATION   = 1;
-        private static final int     VALUE_ALERT      = 2;
+        // for using Snackbar instead of dialog alert
+//      private static final int     VALUE_ALERT      = 2;
         private static final int     VALUE_TOAST      = 4;
 
         private        final int     mData;
@@ -215,6 +210,7 @@ public interface Dagger2 {
 
         private Parameters(final int data) {
             if (sInstance != null) CoreLogger.logWarning("sInstance != null");
+
             mData     = data;
             sInstance = this;
         }
@@ -240,21 +236,16 @@ public interface Dagger2 {
          *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
          *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
          *
-         * @param useSnackbarIsoAlert
-         *        {@code true} for using {@link Snackbar} instead of dialog alert
-         *
          * @param useSnackbarIsoToast
          *        {@code true} for using {@link Snackbar} instead of {@link Toast}
          *
          * @return  The {@code Parameters} object
          */
         public static Parameters create(final boolean useGoogleLocationOldApi,
-                                        final boolean useSnackbarIsoAlert    ,
                                         final boolean useSnackbarIsoToast) {
             int flags = 0;
 
             if (useGoogleLocationOldApi) flags |= VALUE_LOCATION;
-            if (useSnackbarIsoAlert    ) flags |= VALUE_ALERT   ;
             if (useSnackbarIsoToast    ) flags |= VALUE_TOAST   ;
 
             return new Parameters(flags);
@@ -266,7 +257,7 @@ public interface Dagger2 {
          * @return  The {@code Parameters} object
          */
         public static Parameters create() {
-            return create(false, false, false);
+            return create(false, false);
         }
     }
 
@@ -285,7 +276,7 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides
-        Validator provideCallbacksValidator() {
+        public Validator provideCallbacksValidator() {
             return getCallbacksValidator();
         }
 
@@ -340,7 +331,7 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides
-        LocationClient provideLocationClient(Parameters parameters) {
+        public LocationClient provideLocationClient(Parameters parameters) {
             return getLocationClient(getFlagLocation(parameters));
         }
 
@@ -358,16 +349,7 @@ public interface Dagger2 {
             return oldApi ? new GoogleLocationClient(): new GoogleLocationClientNew();
         }
 
-        /**
-         * Gets the {@code oldApi} flag (please refer to {@link #getLocationClient} method).
-         *
-         * @param parameters
-         *        The {@code Parameters} object
-         *
-         * @return  The {@code oldApi} flag
-         */
-        @SuppressWarnings("WeakerAccess")
-        protected boolean getFlagLocation(final Parameters parameters) {
+        private boolean getFlagLocation(final Parameters parameters) {
             return parameters.get(Parameters.VALUE_LOCATION);
         }
     }
@@ -388,37 +370,26 @@ public interface Dagger2 {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_LOCATION)
         public BaseDialog provideLocationAlert(Parameters parameters) {
-            return getAlert(getFlagAlert(parameters), akha.yakhont.R.string.yakhont_location_alert,
+            return getAlert(akha.yakhont.R.string.yakhont_location_alert,
                     Utils.getRequestCode(RequestCodes.LOCATION_ALERT), false);
-        }
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        @Provides @Named(UI_ALERT_PROGRESS)
-        public BaseDialog provideProgressAlert(Parameters parameters) {
-            return getAlert(false /* maybe subject to change */,
-                    akha.yakhont.R.string.yakhont_loader_alert,
-                    Utils.getRequestCode(RequestCodes.PROGRESS_ALERT), true);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION)
         public BaseDialog providePermissionAlert(Parameters parameters) {
-            return getAlert(getFlagAlert(parameters), akha.yakhont.R.string.yakhont_permission_alert,
+            return getAlert(akha.yakhont.R.string.yakhont_permission_alert,
                     Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT), false);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION_DENIED)
         public BaseDialog providePermissionDeniedAlert(Parameters parameters) {
-            return getAlert(getFlagAlert(parameters), akha.yakhont.R.string.yakhont_permission_denied_alert,
+            return getAlert(akha.yakhont.R.string.yakhont_permission_denied_alert,
                     Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT), false);
         }
 
         /**
          * Creates new instance of the alert dialog.
-         *
-         * @param useSnackbarIsoAlert
-         *        {@code true} for using {@link Snackbar} instead of dialog alert
          *
          * @param resId
          *        The resource ID of the dialog message's text
@@ -431,54 +402,16 @@ public interface Dagger2 {
          *
          * @return  The alert dialog
          */
-        protected BaseDialog getAlert(final boolean useSnackbarIsoAlert, @StringRes final int resId,
+        protected BaseDialog getAlert(@StringRes final int resId,
                                       final int requestCode, final Boolean yesNo) {
-            return useSnackbarIsoAlert ?
-                    new BaseSnackbar(null, requestCode)
-                            .setString(resId)
-                            .setActionString(yesNo ?
-                                    akha.yakhont.R.string.yakhont_alert_yes:
-                                    akha.yakhont.R.string.yakhont_alert_ok):
-                    SupportHelper.getAlert(resId, requestCode, yesNo);
+            return new BaseSnackbar(null, requestCode)
+                    .setString(resId)
+                    .setActionString(yesNo ? akha.yakhont.R.string.yakhont_alert_yes:
+                                             akha.yakhont.R.string.yakhont_alert_ok);
         }
 
-        /**
-         * Gets the {@code useSnackbarIsoAlert} flag (please refer to {@link #getAlert} method).
-         *
-         * @param parameters
-         *        The {@code Parameters} object
-         *
-         * @return  The {@code useSnackbarIsoAlert} flag
-         */
-        protected boolean getFlagAlert(final Parameters parameters) {
-            return parameters.get(Parameters.VALUE_ALERT);
-        }
-
-        /**
-         * Gets the {@code useSnackbarIsoToast} flag (please refer to {@link #getToast} method).
-         *
-         * @param parameters
-         *        The {@code Parameters} object
-         *
-         * @return  The {@code useSnackbarIsoToast} flag
-         */
-        protected static boolean getFlagToast(final Parameters parameters) {
+        private static boolean getFlagToast(final Parameters parameters) {
             return parameters.get(Parameters.VALUE_TOAST);
-        }
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        @Provides @Named(UI_PROGRESS)
-        public BaseDialog provideProgress() {
-            return getProgress();
-        }
-
-        /**
-         * Creates new instance of the progress dialog.
-         *
-         * @return  The progress dialog
-         */
-        protected BaseDialog getProgress() {
-            return SupportHelper.getProgress();
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -505,7 +438,7 @@ public interface Dagger2 {
          *
          * @return  {@link Toast} or {@link Snackbar}
          */
-        protected static BaseDialog getToast(final boolean useSnackbarIsoToast, final boolean durationLong) {
+        protected BaseDialog getToast(final boolean useSnackbarIsoToast, final boolean durationLong) {
             return useSnackbarIsoToast ?
                     new BaseSnackbar(durationLong, null): new BaseToast(durationLong);
         }

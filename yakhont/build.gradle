@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,9 +40,6 @@ ext {
 
 ext.libVerDefault               = rootProject.ext.projectLibVerDefault
 
-ext.libVerSupport               = rootProject.ext.projectLibVerSupport
-ext.libVerLifecycle             = rootProject.ext.projectLibVerLifecycle
-
 ext.libVerGms                   = rootProject.ext.projectLibVerGms
 ext.libVerLocation              = rootProject.ext.projectLibVerLocation
 
@@ -58,14 +55,6 @@ ext.libVerRxJava2               = rootProject.ext.projectLibVerRxJava2
 ext.libVerDagger                = rootProject.ext.projectLibVerDagger
 
 def dependenciesStrategy = { DependencyResolveDetails details ->
-    if (details.requested.group == 'com.android.support') {
-        details.useVersion          libVerSupport
-        details.because 'To enforce releasable units for Support Libraries'
-    }
-    if (details.requested.group.startsWith('android.arch.')) {
-        details.useVersion          libVerLifecycle
-        details.because 'To enforce releasable units for Support Libraries (arch)'
-    }
     if (details.requested.group == 'com.google.android.gms') {
         if (details.requested.name == 'play-services-location' || 
             details.requested.name == 'play-services-places-placereport')
@@ -123,7 +112,7 @@ android {
 //        }
     }
 
-    defaultPublishConfig       'support' + (rootProject.ext.projectDebug == '1' ? 'Debug': 'Release')
+    defaultPublishConfig       'core' + (rootProject.ext.projectDebug == '1' ? 'Debug': 'Release')
 
     lintOptions {
         abortOnError            false
@@ -171,29 +160,29 @@ android {
 dependencies {
     // v4 Support Libraries
     // fragment has dependencies on compat, core-utils, core-ui, and media-compat
-    api                 "com.android.support:support-fragment:${libVerDefault}"
-    api                 "com.android.support:support-compat:${libVerDefault}"
-    api                 "com.android.support:support-core-utils:${libVerDefault}"
-    api                 "com.android.support:support-core-ui:${libVerDefault}"
-    api                 "com.android.support:support-media-compat:${libVerDefault}"
+    api                 "androidx.core:core:1.0.1"
+    api                 "androidx.fragment:fragment:1.0.0"
+    api                 "androidx.legacy:legacy-support-core-ui:1.0.0"
+    api                 "androidx.legacy:legacy-support-core-utils:1.0.0"
+    api                 "androidx.media:media:1.0.0"
     // v7 Support Libraries
     // appcompat (includes support for material design) depends on the v4 Support Library
-    api                 "com.android.support:appcompat-v7:${libVerDefault}"
-    api                 "com.android.support:recyclerview-v7:${libVerDefault}"
+    api                 "androidx.appcompat:appcompat:1.0.2"
+    api                 "androidx.recyclerview:recyclerview:1.0.0"
     // v13 Support Library (support for the Fragment with the FragmentCompat)
-    api                 "com.android.support:support-v13:${libVerDefault}"
+    api                 "androidx.legacy:legacy-support-v13:1.0.0"
 
-    api                 "com.android.support:support-annotations:${libVerDefault}"
-    api                 "com.android.support:design:${libVerDefault}"
+    api                 "androidx.annotation:annotation:1.0.1"
+    api                 "androidx.lifecycle:lifecycle-common-java8:2.0.0"
+    api                 "androidx.lifecycle:lifecycle-extensions:2.0.0"
+    api                 "com.google.android.material:material:1.0.0"
     api                 "com.google.android.gms:play-services-location:${libVerDefault}"
-    api                 "android.arch.lifecycle:common-java8:${libVerDefault}"
-    api                 "android.arch.lifecycle:extensions:${libVerDefault}"
 
     // for debug package only
-//    fullApi             "com.android.support:leanback-v17:${libVerDefault}"
-//    fullApi             "com.android.support:mediarouter-v7:${libVerDefault}"
-//    fullApi             "com.android.support:preference-v14:${libVerDefault}"
-//    fullApi             "com.android.support:preference-leanback-v17:${libVerDefault}"
+//    fullApi             "androidx.leanback:leanback:1.0.0"
+//    fullApi             "androidx.leanback:leanback-preference:1.0.0"
+//    fullApi             "androidx.legacy:legacy-preference-v14:1.0.0"
+//    fullApi             "androidx.mediarouter:mediarouter:1.0.0"
 
     api                 "com.google.dagger:dagger:${libVerDefault}"             // Dagger 2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDefault}"

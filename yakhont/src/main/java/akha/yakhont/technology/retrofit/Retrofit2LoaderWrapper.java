@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,16 +34,17 @@ import akha.yakhont.technology.rx.Rx.RxSubscription;
 import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
-import android.arch.lifecycle.ViewModelStore;
 import android.content.ContentValues;
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelStore;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
+import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 
 import retrofit2.Call;
@@ -115,9 +116,11 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
     protected boolean cancelRequest(@NonNull final Level level) {
         final Runnable cancelHandler = mRetrofit.getCancelHandler();
         if (cancelHandler == null)
-            CoreLogger.log(level, "request cancelling handler is not defined");
+            CoreLogger.log(level, "request cancelling handler is not defined, object " + this);
         else
             try {
+                CoreLogger.log(level, "about to cancel Retrofit data loading, object " + this);
+
                 cancelHandler.run();
                 return true;
             }
@@ -380,6 +383,36 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             if (mType != null) builder.setType(mType);
 
             return create(builder);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public static class Retrofit2Loader extends CoreLoader {
+
+        public static <R> void load(@NonNull final String       url,
+                                    @NonNull final Class    <R> clsRetrofit2,
+                                    @NonNull final Requester<R> requester,
+                                             final Integer      dataBinding) {
+            get(url, clsRetrofit2, requester, dataBinding, null, null).load();
+        }
+
+        public static <T, R> CoreLoad get(@NonNull final String          url,
+                                          @NonNull final Class    <R>    clsRetrofit2,
+                                          @NonNull final Requester<R>    requester,
+                                                   final Integer         dataBinding,
+                                                   final OkHttpClient    client,
+                                                         Retrofit2<R, T> retrofit) {
+            if (retrofit == null) retrofit = new Retrofit2<>();
+
+            final Retrofit2CoreLoadBuilder<T, R> builder = (Retrofit2CoreLoadBuilder<T, R>)
+                    new Retrofit2CoreLoadBuilder<>(client == null ?
+                            retrofit.init(clsRetrofit2, url): retrofit.init(clsRetrofit2, url, client))
+                            .setRequester(requester);
+
+            if (dataBinding != null) builder.setDataBinding(dataBinding);
+
+            return builder.create();
         }
     }
 }

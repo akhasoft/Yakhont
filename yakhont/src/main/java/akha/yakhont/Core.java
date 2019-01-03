@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,10 @@ import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivity
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.HideKeyboardCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.OrientationCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ValidateActivityCallbacks;
+import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed;
+import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.ValidateFragmentCallbacks;
+import akha.yakhont.debug.BaseFragment;
+import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
@@ -35,10 +39,6 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
-import android.arch.lifecycle.DefaultLifecycleObserver;
-import android.arch.lifecycle.Lifecycle.Event;
-import android.arch.lifecycle.LifecycleOwner;
-import android.arch.lifecycle.ProcessLifecycleOwner;
 import android.content.ComponentCallbacks;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
@@ -58,13 +58,6 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.support.annotation.AnyRes;
-import android.support.annotation.IdRes;
-import android.support.annotation.IntRange;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
-import android.support.annotation.StringRes;
-import android.support.design.widget.Snackbar;
 import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
@@ -73,6 +66,18 @@ import android.view.ViewStub;
 import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.Toast;
+import androidx.annotation.AnyRes;
+import androidx.annotation.IdRes;
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
+import androidx.annotation.StringRes;
+import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.Lifecycle.Event;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.ProcessLifecycleOwner;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -84,7 +89,6 @@ import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -135,7 +139,7 @@ import java.util.zip.ZipOutputStream;
  * }
  * </pre>
  *
- * @see #init(Application, boolean, boolean, boolean)
+ * @see #init(Application, boolean, boolean)
  * @see #init(Application, Boolean, Dagger2)
  *
  * @author akha
@@ -181,7 +185,6 @@ public class Core implements DefaultLifecycleObserver {
         LOCATION_ALERT,
         LOCATION_CLIENT,
         LOCATION_INTENT,
-        PROGRESS_ALERT,
         PERMISSIONS_ALERT,
         PERMISSIONS_RATIONALE_ALERT,
         PERMISSIONS_DENIED_ALERT
@@ -377,9 +380,6 @@ public class Core implements DefaultLifecycleObserver {
      *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
      *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
      *
-     * @param useSnackbarIsoAlert
-     *        {@code true} for using {@link Snackbar} instead of dialog alert
-     *
      * @param useSnackbarIsoToast
      *        {@code true} for using {@link Snackbar} instead of {@link Toast}
      *
@@ -388,9 +388,8 @@ public class Core implements DefaultLifecycleObserver {
     @SuppressWarnings("unused")
     public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application            ,
                                @SuppressWarnings("SameParameterValue")          final boolean     useGoogleLocationOldApi,
-                               @SuppressWarnings("SameParameterValue")          final boolean     useSnackbarIsoAlert    ,
                                @SuppressWarnings("SameParameterValue")          final boolean     useSnackbarIsoToast) {
-        return init(application, null, getDefaultDagger(useGoogleLocationOldApi, useSnackbarIsoAlert, useSnackbarIsoToast));
+        return init(application, null, getDefaultDagger(useGoogleLocationOldApi, useSnackbarIsoToast));
     }
 
     /**
@@ -562,10 +561,8 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     private static Dagger2 getDefaultDagger(final boolean useGoogleLocationOldApi,
-                                            final boolean useSnackbarIsoAlert,
                                             final boolean useSnackbarIsoToast) {
-        return getDefaultDagger(Dagger2.Parameters.create(
-                useGoogleLocationOldApi, useSnackbarIsoAlert, useSnackbarIsoToast));
+        return getDefaultDagger(Dagger2.Parameters.create(useGoogleLocationOldApi, useSnackbarIsoToast));
     }
 
     private static Dagger2 getDefaultDagger() {
@@ -799,13 +796,12 @@ public class Core implements DefaultLifecycleObserver {
 
         private static void registerCallbacks(@NonNull final Application application) {
             // don't remove
-            SupportHelper.registerValidateFragmentCallbacks();
+            BaseFragmentLifecycleProceed.register(new ValidateFragmentCallbacks(), true);
             // don't remove
             BaseActivityLifecycleProceed.register(new ValidateActivityCallbacks(), true);
 
             register((BaseActivityCallbacks) new HideKeyboardCallbacks()               .setForceProceed(true));
             register((BaseActivityCallbacks) new OrientationCallbacks()                .setForceProceed(true));
-            register((BaseActivityCallbacks) SupportHelper.getWorkerFragmentCallbacks().setForceProceed(true));
 
             register(new LocationCallbacks());
 
@@ -865,8 +861,7 @@ public class Core implements DefaultLifecycleObserver {
 
             CoreLogger.setFullInfo(fullInfo);
 
-            SupportHelper.enableFragmentManagerDebugLogging(fullInfo);
-            SupportHelper.enableLoaderManagerDebugLogging  (fullInfo);
+            BaseFragment.enableFragmentManagerDebugLogging(fullInfo);
         }
 
         @SuppressWarnings("UnusedReturnValue")
@@ -998,50 +993,6 @@ public class Core implements DefaultLifecycleObserver {
                 throw exception;
         }
 
-        /**
-         * Converts byte array to string.
-         *
-         * @param data
-         *        The byte array to convert
-         *
-         * @param length
-         *        The bytes quantity to convert
-         *
-         * @param bytesOnly
-         *        {@code true} to return bytes only (without string representation), {@code false} otherwise
-         *
-         * @param locale
-         *        The locale (or null for default one)
-         *
-         * @param charset
-         *        The charset (or null for default one)
-         *
-         * @return  The byte array readable representation
-         */
-        public static String toHex(final byte[] data, int length, final boolean bytesOnly,
-                                   Locale locale, final Charset charset) {
-            if (data        == null) return null;
-            if (data.length ==    0) return   "";
-
-            if (length <= 0 || data.length < length) length = data.length;
-            if (locale == null)                      locale = getLocale();
-
-            final StringBuilder builder = new StringBuilder(hexFormat(data[0], locale));
-            for (int i = 1; i < length; i++)
-                builder.append(" ").append(hexFormat(data[i], locale));
-
-            if (!bytesOnly) {
-                if (data.length > length) builder.append(" ...");
-                builder.append("  ").append(charset == null ? new String(data, 0, length):
-                        new String(data, 0, length, charset));
-            }
-            return builder.toString();
-        }
-
-        private static String hexFormat(final byte data, @NonNull final Locale locale) {
-            return String.format(locale, "%02X", data);
-        }
-
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static Locale getLocale() {
             return Locale.getDefault();
@@ -1129,6 +1080,15 @@ public class Core implements DefaultLifecycleObserver {
         @SuppressWarnings("unused")
         public static void showSnackbar(final String text, final boolean durationLong) {
             Dagger2.UiModule.showSnackbar(text, durationLong);
+        }
+
+        /**
+         * Returns the data loading progress indicator (default implementation).
+         *
+         * @return  The data loading progress indicator
+         */
+        public static BaseDialog getLoadingProgressDefault() {
+            return LiveDataDialog.getInstance();
         }
 
         /**
@@ -1358,10 +1318,10 @@ public class Core implements DefaultLifecycleObserver {
             // landscape allowed on tablets, so use resources, no constants
             final Resources resources = context.getResources();
 
-            if (!resources.getBoolean(akha.yakhont.R.bool.yakhont_landscape))
+            if (!resources.getBoolean(R.bool.yakhont_landscape))
                 return Orientation.PORTRAIT;
             else
-                return resources.getBoolean(akha.yakhont.R.bool.yakhont_portrait) ?
+                return resources.getBoolean(R.bool.yakhont_portrait) ?
                         Orientation.UNSPECIFIED: Orientation.LANDSCAPE;
         }
 
@@ -1449,7 +1409,7 @@ public class Core implements DefaultLifecycleObserver {
                                             final int requestCode, final int resultCode, final Intent data) {
             CoreLogger.log((prefix.isEmpty() ? "": prefix + ".") + "onActivityResult" +
                     (prefix.isEmpty() ? "": ": subject to call by weaver"));
-            CoreLogger.log("activity   : " + getActivityName(activity));
+            CoreLogger.log("activity   : " + CoreLogger.getActivityName(activity));
             CoreLogger.log("requestCode: " + requestCode + " " + getRequestCode(requestCode).name());
             CoreLogger.log("resultCode : " + resultCode  + " " + getActivityResultString(resultCode));
             CoreLogger.log("intent     : " + data);
@@ -1466,12 +1426,6 @@ public class Core implements DefaultLifecycleObserver {
             }
 */
             CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, resultCode, data);
-        }
-
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        @NonNull
-        public static String getActivityName(final Activity activity) {
-            return activity == null ? "null activity": activity.getLocalClassName();
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -2024,7 +1978,7 @@ public class Core implements DefaultLifecycleObserver {
 
             @IdRes
             private static final int                    DEF_VIEW_REF_ID                 =
-                    akha.yakhont.R.id.yakhont_default_view_id;
+                    R.id.yakhont_default_view_id;
             @IdRes
             private static final int                    DEF_VIEW_ID                     =
                     android.R.id.content;
@@ -2043,8 +1997,8 @@ public class Core implements DefaultLifecycleObserver {
                 final Object previous = view.getTag(id);
                 view.setTag(value);
 
-                if (previous != null) CoreLogger.log("view: " + view + ", tag: " + id +
-                        ", previous value: " + previous);
+                if (previous != null) CoreLogger.log("view: " + CoreLogger.getViewDescription(view) +
+                        ", tag: " + id + ", previous value: " + previous);
                 return previous;
             }
 
@@ -2059,8 +2013,8 @@ public class Core implements DefaultLifecycleObserver {
                                 try {
                                     container.adjustMeasuredView(view);
                                 }
-                                catch (Exception e) {
-                                    CoreLogger.log("onGlobalLayout failed", e);
+                                catch (Exception exception) {
+                                    CoreLogger.log(exception);
                                 }
                                 finally {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
@@ -2111,7 +2065,7 @@ public class Core implements DefaultLifecycleObserver {
                 });
 
                 CoreLogger.log(viewHelper[0] == null ? Level.ERROR: Level.DEBUG,
-                        "result of find view: " + viewHelper[0]);
+                        "result of find view: " + CoreLogger.getViewDescription(viewHelper[0]));
 
                 return viewHelper[0];
             }
@@ -2155,43 +2109,43 @@ public class Core implements DefaultLifecycleObserver {
             public static View getView(Activity activity, @IdRes final int viewId) {
                 if (activity == null) {
                     CoreLogger.logWarning("activity == null, current activity will be used");
-
                     activity = getCurrentActivity();
-                    if (activity == null) {
-                        CoreLogger.logError("activity == null");
-                        return null;
-                    }
-                    CoreLogger.logWarning("getView() from activity: " + getActivityName(activity));
                 }
+                CoreLogger.logWarning("getView() from activity: " + CoreLogger.getActivityName(activity));
+
                 if (viewId != NOT_VALID_VIEW_ID) {
                     final View view = activity.findViewById(viewId);
                     if (view == null)
-                        CoreLogger.logError("can not find view with ID " + viewId);
+                        CoreLogger.logError("can not find view with ID " +
+                                CoreLogger.getResourceDescription(viewId));
                     return view;
                 }
 
                 final Resources resources = activity.getResources();
                 @IdRes final int defaultViewId = getDefaultViewId(resources);
-                CoreLogger.log("defaultViewId " + defaultViewId +
-                    " 0x" + Integer.toHexString(defaultViewId));
 
-                final String defaultViewName = resources.getResourceName(defaultViewId);
-                CoreLogger.log("default view is " + defaultViewName);
+                final String defaultViewDescription = CoreLogger.getResourceDescription(defaultViewId);
+                CoreLogger.log("default view is " + defaultViewDescription);
 
                 View view = activity.findViewById(defaultViewId);
                 if (view == null) {
-                    CoreLogger.logWarning(defaultViewName + " not found, getWindow().getDecorView() will be used");
+                    CoreLogger.logWarning(defaultViewDescription +
+                            " not found, getWindow().getDecorView() will be used");
                     CoreLogger.logWarning("Note that calling this function \"locks in\" various " +
                             "characteristics of the window that can not, from this point forward, be changed");
 
                     final Window window = activity.getWindow();
-                    if (window == null) CoreLogger.logError("window == null");
+                    if (window == null) CoreLogger.logError("window == null, Activity " +
+                            CoreLogger.getActivityName(activity));
 
                     view = window == null ? null: window.getDecorView();
                 }
                 if (view == null)
-                    CoreLogger.logError("can not find View for Activity " + activity);
-
+                    CoreLogger.logError("can not find View for Activity " +
+                            CoreLogger.getActivityName(activity));
+                else
+                    CoreLogger.log(String.format("found View %s for Activity %s",
+                            CoreLogger.getViewDescription(view), CoreLogger.getActivityName(activity)));
                 return view;
             }
 
@@ -2215,6 +2169,8 @@ public class Core implements DefaultLifecycleObserver {
                 }
                 if (view == null)
                     CoreLogger.logError("Snackbar view == null");
+                else
+                    CoreLogger.log("found View for Snackbar " + CoreLogger.getViewDescription(view));
 
                 return view;
             }

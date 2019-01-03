@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,11 +28,11 @@ import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 
 import android.app.Activity;
-import android.support.v4.app.Fragment;
-import android.arch.lifecycle.ViewModelStore;
 import android.content.ContentValues;
-import android.support.annotation.NonNull;
 import android.util.AndroidException;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelStore;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;

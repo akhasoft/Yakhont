@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import akha.yakhont.Core.Utils.BackKeyInActionModeHandler;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.LogDebug;
-import akha.yakhont.debug.BaseApplication;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -31,12 +30,13 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.PersistableBundle;
-import android.support.annotation.CallSuper;
-import android.support.annotation.NonNull;
 import android.util.AttributeSet;
 import android.view.ActionMode;
 import android.view.KeyEvent;
 import android.view.View;
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.FragmentActivity;
 
 import java.util.Arrays;
 
@@ -65,7 +65,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @SuppressWarnings("JavaDoc")
     protected String getDebugMessage() {
-        return "activity " + Utils.getActivityName(this);
+        return "activity " + CoreLogger.getActivityName(this);
     }
 
     /**
@@ -132,7 +132,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     public void onAttachFragment(android.app.Fragment fragment) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment, false);
 
-        if (android.support.v4.app.FragmentActivity.class.isInstance(this))
+        if (FragmentActivity.class.isInstance(this))
             CoreLogger.logWarning("about to attach android.app.Fragment to FragmentActivity");
 
         super.onAttachFragment(fragment);
@@ -141,7 +141,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-FragmentActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-FragmentActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-FragmentActivity-@Override
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-public void onAttachFragment(android.support.v4.app.Fragment fragment) {
+    //YakhontPreprocessor:addToGenerated-FragmentActivity-public void onAttachFragment(androidx.fragment.app.Fragment fragment) {
     //YakhontPreprocessor:addToGenerated-FragmentActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment, false);
     //YakhontPreprocessor:addToGenerated-FragmentActivity-    super.onAttachFragment(fragment);
     //YakhontPreprocessor:addToGenerated-FragmentActivity-}
@@ -543,7 +543,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@Override
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-public void onSupportActionModeFinished(android.support.v7.view.ActionMode mode) {
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-public void onSupportActionModeFinished(androidx.appcompat.view.ActionMode mode) {
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    super.onSupportActionModeFinished(mode);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-}
@@ -551,7 +551,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@Override
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-public void onSupportActionModeStarted(android.support.v7.view.ActionMode mode) {
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-public void onSupportActionModeStarted(androidx.appcompat.view.ActionMode mode) {
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    super.onSupportActionModeStarted(mode);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-}

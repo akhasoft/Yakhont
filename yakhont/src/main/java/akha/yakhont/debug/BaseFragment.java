@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,22 +22,19 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.LogDebug;
 
-import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.Fragment;
-import android.app.FragmentManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
-import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.CallSuper;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.annotation.CallSuper;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
 
 import java.util.Arrays;
 
@@ -50,8 +47,6 @@ import java.util.Arrays;
  * @author akha
  */
 @SuppressWarnings("JavaDoc")
-@TargetApi  (      Build.VERSION_CODES.HONEYCOMB)   //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
-@RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)   //YakhontPreprocessor:removeInGenerated-SearchFragment //YakhontPreprocessor:removeInFlavor
 //YakhontPreprocessor:addToGenerated-SearchFragment-@TargetApi(Build.VERSION_CODES.JELLY_BEAN_MR1)
 //YakhontPreprocessor:addToGenerated-SearchFragment-@RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
 public class BaseFragment extends Fragment {        // don't modify this line: it's subject to change by the Yakhont preprocessor
@@ -220,23 +215,10 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-@CallSuper
     //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-@Override
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-public void onGuidedActionClicked(android.support.v17.leanback.widget.GuidedAction action) {
+    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-public void onGuidedActionClicked(androidx.leanback.widget.GuidedAction action) {
     //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", action " + action, false);
     //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-    super.onGuidedActionClicked(action);
     //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-}
-
-    /**
-     * Please refer to the base method description.
-     */
-    @CallSuper                                                                                  //YakhontPreprocessor:removeInFlavor
-    @Override                                                                                   //YakhontPreprocessor:removeInFlavor
-    @SuppressWarnings("deprecation")                                                            //YakhontPreprocessor:removeInFlavor
-    public void onInflate(AttributeSet attrs, Bundle savedInstanceState) {                      //YakhontPreprocessor:removeInFlavor
-        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs +                //YakhontPreprocessor:removeInFlavor
-                ", savedInstanceState " + savedInstanceState, false);                           //YakhontPreprocessor:removeInFlavor
-
-        super.onInflate(attrs, savedInstanceState);                                             //YakhontPreprocessor:removeInFlavor
-    }                                                                                           //YakhontPreprocessor:removeInFlavor
 
     /**
      * Please refer to the base method description.
@@ -357,17 +339,6 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
 
         super.onStop();
     }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @CallSuper                                                                                                                                  //YakhontPreprocessor:removeInFlavor
-    @Override                                                                                                                                   //YakhontPreprocessor:removeInFlavor
-    public void onTrimMemory(int level) {                                                                                                       //YakhontPreprocessor:removeInFlavor
-        CoreLogger.log(Utils.getOnTrimMemoryLevel(level), getDebugMessage() + ", level " + Utils.getOnTrimMemoryLevelString(level), false);     //YakhontPreprocessor:removeInFlavor
-
-        super.onTrimMemory(level);                                                                                                              //YakhontPreprocessor:removeInFlavor
-    }                                                                                                                                           //YakhontPreprocessor:removeInFlavor
 
     /**
      * Please refer to the base method description.

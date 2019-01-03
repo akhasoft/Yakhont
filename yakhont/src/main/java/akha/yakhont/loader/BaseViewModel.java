@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,20 +23,20 @@ import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.Requester;
 
 import android.app.Activity;
-import android.arch.lifecycle.AndroidViewModel;
-import android.arch.lifecycle.LifecycleOwner;
-import android.arch.lifecycle.LiveData;
-import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ProcessLifecycleOwner;
-import android.arch.lifecycle.ViewModel;
-import android.arch.lifecycle.ViewModelProvider;
-import android.arch.lifecycle.ViewModelProvider.Factory;
-import android.arch.lifecycle.ViewModelStore;
-import android.arch.lifecycle.ViewModelStoreOwner;
-import android.arch.lifecycle.ViewModelStores;
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentActivity;
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.AndroidViewModel;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ProcessLifecycleOwner;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.lifecycle.ViewModelProvider.Factory;
+import androidx.lifecycle.ViewModelStore;
+import androidx.lifecycle.ViewModelStoreOwner;
+import androidx.lifecycle.ViewModelStores;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -56,8 +56,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     private static <D> BaseLiveData<D> getDefaultLiveData(@NonNull final Requester<D> requester,
                                                                    final String tableName) {
-        return tableName == null ?
-                new BaseLiveData<>(requester): new CacheLiveData<>(requester, tableName, null);
+        if (tableName == null)
+            CoreLogger.logWarning("cache switched off for requester " + requester);
+
+        return tableName == null ? new BaseLiveData<>(requester):
+                new CacheLiveData<>(requester, tableName, null);
     }
 
     private static String getKey(final String key) {
@@ -237,7 +240,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return (LifecycleOwner) activity;
 
         CoreLogger.logWarning("about to use ProcessLifecycleOwner for " +
-                Utils.getActivityName(activity));
+                CoreLogger.getActivityName(activity));
         return ProcessLifecycleOwner.get();
     }
 
@@ -259,7 +262,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     private static void logUnexpectedActivity(final Activity activity) {
         CoreLogger.logError("unexpected activity (should be ViewModelStoreOwner or FragmentActivity): "
-                + Utils.getActivityName(activity));
+                + CoreLogger.getActivityName(activity));
     }
 
     public static ViewModelStore getViewModelStore(@NonNull final Fragment fragment) {
@@ -292,7 +295,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     private static boolean isLoadingFragment(@NonNull final Activity activity) {
         if (!(activity instanceof FragmentActivity)) {
             CoreLogger.logError("unexpected activity (should be FragmentActivity): "
-                    + Utils.getActivityName(activity));
+                    + CoreLogger.getActivityName(activity));
             return false;
         }
         for (final Fragment fragment: ((FragmentActivity) activity)
@@ -316,14 +319,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     public static Collection<BaseViewModel<?>> getViewModels(Activity activity, final boolean includeFragments) {
 
         if (activity == null) activity = Utils.getCurrentActivity();
-/*
-        if (!(activity instanceof FragmentActivity)) {
-            CoreLogger.logWarning("getViewModels: expected FragmentActivity but actually " +
-                    Utils.getActivityName(activity));
-            return null;
-        }
-        final FragmentActivity fragmentActivity = (FragmentActivity) activity;
-*/
+
         final Collection<BaseViewModel<?>> list = new ArrayList<>();
         BaseViewModelProvider.getViewModels(getViewModelStore(activity), null, list);
 
@@ -334,7 +330,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                     BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null, list);
             else
                 CoreLogger.log("unexpected activity (should be FragmentActivity): "
-                        + Utils.getActivityName(activity));
+                        + CoreLogger.getActivityName(activity));
         return list;
     }
 

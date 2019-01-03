@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,9 @@ import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx2;
 
-import android.support.annotation.IntRange;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.IntRange;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -399,15 +399,6 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
      * Please refer to the base method description.
      */
     @Override
-    public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
-        super.init(service, retrofitBase);
-        return this;
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
     public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder) {
         super.init(service, builder);
         return this;
@@ -421,6 +412,21 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                                 @IntRange(from = 1) final int connectTimeout,
                                 @IntRange(from = 1) final int readTimeout) {
         super.init(service, builder, connectTimeout, readTimeout);
+        return this;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
+        super.init(service, retrofitBase);
+        return this;
+    }
+
+    public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
+                                @NonNull final OkHttpClient client) {
+        init(service, getDefaultBuilder(retrofitBase).client(client));
         return this;
     }
 

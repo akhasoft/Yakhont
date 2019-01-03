@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2018 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,24 +20,21 @@ import akha.yakhont.demo.MainActivity;
 import akha.yakhont.demo.R;
 
 import akha.yakhont.Core.Utils;
-import akha.yakhont.SupportHelper;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import androidx.appcompat.app.AppCompatActivity;
 
 /**
  * not directly related to the Yakhont Demo - just some GUI stuff
  */
-public class SplashActivity extends /* Activity */ android.support.v7.app.AppCompatActivity {
+public class SplashActivity extends AppCompatActivity {
 
     private final static int DELAY_ACTIVITY_START   = 2000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        //noinspection ConstantConditions
-        setTheme(SupportHelper.isSupportMode(this) ? R.style.AppThemeCompat_Splash:
-                R.style.AppThemeCompat_Splash_Special);
+        setTheme(R.style.AppThemeCompat_Splash);
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_splash);
@@ -47,7 +44,7 @@ public class SplashActivity extends /* Activity */ android.support.v7.app.AppCom
         Utils.postToMainLoop(DELAY_ACTIVITY_START, new Runnable() {
             @Override
             public void run() {
-                final Activity activity = SplashActivity.this;
+                final AppCompatActivity activity = SplashActivity.this;
 
                 activity.startActivity(new Intent(activity, MainActivity.class));
                 activity.overridePendingTransition(R.anim.hyperspace_in, R.anim.hyperspace_out);
