@@ -36,13 +36,13 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProvider.Factory;
 import androidx.lifecycle.ViewModelStore;
 import androidx.lifecycle.ViewModelStoreOwner;
-import androidx.lifecycle.ViewModelStores;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class BaseViewModel<D> extends AndroidViewModel {
@@ -79,6 +79,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 getDefaultLiveData(requester, tableName), observer, getKey(key), castBaseViewModelClass());
     }
 
+    @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                             final String           key,
                                                             final String           tableName,
@@ -88,6 +89,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 observer, getKey(key), castBaseViewModelClass());
     }
 
+    @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                             final String           key,
                                                             final String           tableName,
@@ -97,6 +99,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 observer, getKey(key), castBaseViewModelClass());
     }
 
+    @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                    @NonNull final String           key,
                                                    @NonNull final Class<? extends BaseViewModel<D>>
@@ -110,6 +113,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 new CacheLiveData<>(requester, baseDialog, tableName, null), observer);
     }
 
+    @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                    @NonNull final String           key,
                                                    @NonNull final Class<? extends BaseViewModel<D>>
@@ -123,18 +127,21 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 new CacheLiveData<>(requester, baseDialog, tableName, null), observer);
     }
 
+    @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                    @NonNull final BaseLiveData<D>  data,
                                                    @NonNull final Observer    <D>  observer) {
         return getInstance(activity, data, observer, DEFAULT_KEY, castBaseViewModelClass());
     }
 
+    @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                    @NonNull final BaseLiveData<D>  data,
                                                    @NonNull final Observer    <D>  observer) {
         return getInstance(fragment, data, observer, DEFAULT_KEY, castBaseViewModelClass());
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                    @NonNull final String           key,
                                                    @NonNull final Class<? extends BaseViewModel<D>>
@@ -144,6 +151,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return getInstance(activity, data, observer, key, cls);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                    @NonNull final String           key,
                                                    @NonNull final Class<? extends BaseViewModel<D>>
@@ -194,6 +202,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                             + "Application. You can't request ViewModel before onCreate call."));
             return null;
         }
+        CoreLogger.log("BaseViewModel.getInstance(), Activity " + CoreLogger.getDescription(activity));
 
         final T result = new BaseViewModelProvider<>(store, data, observer, key).get(key, cls);
 
@@ -213,11 +222,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     public void updateUi(@NonNull final LifecycleOwner lifecycleOwner) {
         updateUi(lifecycleOwner, mData, mObserver);
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void updateUiFragmentForWeaver(@NonNull final Fragment fragment) {
         final Collection<BaseViewModel<?>> models = new ArrayList<>();
 
@@ -227,7 +237,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             model.updateUi(fragment);
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void updateUiActivityForWeaver(@NonNull final Activity activity) {
         final Collection<BaseViewModel<?>> models = getViewModels(activity, false);
 
@@ -240,7 +250,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return (LifecycleOwner) activity;
 
         CoreLogger.logWarning("about to use ProcessLifecycleOwner for " +
-                CoreLogger.getActivityName(activity));
+                CoreLogger.getDescription(activity));
         return ProcessLifecycleOwner.get();
     }
 
@@ -252,7 +262,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
 
         if (activity instanceof FragmentActivity)
-            return ViewModelStores.of((FragmentActivity) activity);
+            return ((FragmentActivity) activity).getViewModelStore();
         if (activity instanceof ViewModelStoreOwner)
             return ((ViewModelStoreOwner) activity).getViewModelStore();
 
@@ -262,11 +272,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     private static void logUnexpectedActivity(final Activity activity) {
         CoreLogger.logError("unexpected activity (should be ViewModelStoreOwner or FragmentActivity): "
-                + CoreLogger.getActivityName(activity));
+                + CoreLogger.getDescription(activity));
     }
 
     public static ViewModelStore getViewModelStore(@NonNull final Fragment fragment) {
-        return ViewModelStores.of(fragment);
+        return fragment.getViewModelStore();
     }
 
     @SuppressWarnings("unchecked")
@@ -274,18 +284,22 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return (Class<T>) BaseViewModel.class;
     }
 
+    @SuppressWarnings("unused")
     public static boolean isLoading(@NonNull final Activity activity) {
         return isLoading(activity, null, true);
     }
 
+    @SuppressWarnings("unused")
     public static boolean isLoading(@NonNull final Fragment fragment) {
         return isLoading(fragment, null);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static boolean isLoading(@NonNull final Fragment fragment, final String key) {
         return BaseViewModelProvider.isLoading(getViewModelStore(fragment), key);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static boolean isLoading(@NonNull final Activity activity, final String key,
                                     final boolean includeFragments) {
         final boolean result = BaseViewModelProvider.isLoading(getViewModelStore(activity), key);
@@ -295,7 +309,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     private static boolean isLoadingFragment(@NonNull final Activity activity) {
         if (!(activity instanceof FragmentActivity)) {
             CoreLogger.logError("unexpected activity (should be FragmentActivity): "
-                    + CoreLogger.getActivityName(activity));
+                    + CoreLogger.getDescription(activity));
             return false;
         }
         for (final Fragment fragment: ((FragmentActivity) activity)
@@ -305,7 +319,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return false;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isLoadingForWeaver(@NonNull final Activity activity) {
         final Collection<BaseViewModel<?>> models = getViewModels(activity, true);
 
@@ -330,7 +344,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                     BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null, list);
             else
                 CoreLogger.log("unexpected activity (should be FragmentActivity): "
-                        + CoreLogger.getActivityName(activity));
+                        + CoreLogger.getDescription(activity));
         return list;
     }
 
@@ -339,6 +353,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return BaseViewModelProvider.getEntries(activity);
     }
 
+    @SuppressWarnings("unused")
     public static Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getViewModels(
             @NonNull final Fragment fragment) {
         return BaseViewModelProvider.getEntries(fragment);
@@ -349,9 +364,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return BaseViewModelProvider.getEntries(store);
     }
 
+    @SuppressWarnings("WeakerAccess")
     protected BaseViewModel(@NonNull final BaseLiveData<D>     data,
                             @NonNull final Observer    <D>     observer) {
-        super(Utils.getApplication());
+        super(Objects.requireNonNull(Utils.getApplication()));
 
         mData     = data;
         mObserver = observer;
@@ -372,6 +388,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         private final    BaseLiveData<D>        mData;
         private final    Observer    <D>        mObserver;
 
+        @SuppressWarnings("unused")
         private BaseViewModelFactory(@NonNull final ViewModelStore     store,
                                      @NonNull final BaseLiveData<D>    data,
                                      @NonNull final Observer    <D>    observer,
@@ -405,6 +422,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                          Map<ViewModelStore, Map<String, WeakReference<? extends BaseViewModel<?>>>>
                                                 sMap            = Utils.newWeakMap();
 
+        @SuppressWarnings("unused")
         private BaseViewModelProvider(@NonNull final ViewModelStore     store,
                                       @NonNull final BaseLiveData<D>    data,
                                       @NonNull final Observer    <D>    observer,
@@ -463,6 +481,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return result == null ? Collections.emptySet(): result;
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private static boolean checkModels(
                 final Map<String, WeakReference<? extends BaseViewModel<?>>> models) {
             boolean result = false;
@@ -491,9 +510,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
             final Map<String, WeakReference<? extends BaseViewModel<?>>> models = sMap.get(store);
             if (!checkModels(models)) return false;
 
-            if (key != null) return isLoading(models.get(key));
+            if (key != null) return isLoading(Objects.requireNonNull(models).get(key));
 
-            for (final WeakReference<? extends BaseViewModel<?>> model: models.values())
+            for (final WeakReference<? extends BaseViewModel<?>> model: Objects.requireNonNull(models).values())
                 if (isLoading(model)) return true;
 
             CoreLogger.log("final no key loading: false");
@@ -511,15 +530,16 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return loading;
         }
 
-        private static void getViewModels(@NonNull final ViewModelStore store, final String key,
+        private static void getViewModels(@NonNull final ViewModelStore store,
+                                          @SuppressWarnings("SameParameterValue") final String key,
                                           @NonNull final Collection<BaseViewModel<?>> baseViewModels) {
             final Map<String, WeakReference<? extends BaseViewModel<?>>> models = sMap.get(store);
             if (!checkModels(models)) return;
 
             if (key != null)
-                getViewModel(models.get(key), baseViewModels);
+                getViewModel(Objects.requireNonNull(models).get(key), baseViewModels);
             else
-                for (final WeakReference<? extends BaseViewModel<?>> model: models.values())
+                for (final WeakReference<? extends BaseViewModel<?>> model: Objects.requireNonNull(models).values())
                     getViewModel(model, baseViewModels);
         }
 

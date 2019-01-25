@@ -21,25 +21,24 @@
     <string name="yakhont_loader_alert"                 >Do you want to cancel data loading?</string>
     <string name="yakhont_loader_cancelled" tools:ignore="UnusedResources"
                                                         >Data loading was cancelled</string>
-
     <string name="yakhont_loader_error"                 >Data loading error</string>
-    <string name="yakhont_loader_error_network"         >Data loading network error</string>
 
-    <string name="yakhont_alert_ok"                     >OK</string>
-    <string name="yakhont_alert_cancel"                 >Cancel</string>
+    <string name="yakhont_send_debug_email"             >About to send debug e-mail to %s</string>
+
+    <string name="yakhont_alert_ok"         tools:keep="@string/yakhont_alert_ok"
+                                                        >OK</string>
+    <string name="yakhont_alert_cancel"     tools:keep="@string/yakhont_alert_cancel"
+                                                        >Cancel</string>
 
     <string name="yakhont_alert_yes"                    >Yes</string>
-    <string name="yakhont_alert_no"                     >No</string>
-
-    <string name="yakhont_permission_alert"             >%s permission is needed.</string>
-    <string name="yakhont_permissions_alert"            >%s permissions are needed.</string>
+    <string name="yakhont_alert_no"         tools:keep="@string/yakhont_alert_no"
+                                                        >No</string>
 
     <string name="yakhont_permission_denied_alert"      >Permission was denied, press OK to check application settings.</string>
     <string name="yakhont_permissions_denied_alert"     >Permissions were denied, press OK to check application settings.</string>
 
     <string name="yakhont_location_error"               >Your location could not be determined</string>
     <string name="yakhont_location_error_connection"    >@string/yakhont_location_error</string>
-    <string name="yakhont_location_alert"               >The application is about to use your location.</string>
 
     <string name="yakhont_location_msg"                 >Location: %s</string>
     <string name="yakhont_location_msg_na"              >N/A</string>

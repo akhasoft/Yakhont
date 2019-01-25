@@ -44,7 +44,7 @@ ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
 
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if (details.requested.group == 'com.google.android.gms') {
-        if (details.requested.name == 'play-services-location' || 
+        if (details.requested.name == 'play-services-location' ||
             details.requested.name == 'play-services-places-placereport')
             details.useVersion      libVerDemoSimpleLocation
         else
@@ -171,7 +171,7 @@ dependencies {
     implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoSimpleRxJava2}"        // Rx
     implementation      "io.reactivex:rxjava:${libVerDemoSimpleRxJava}"
 
-    implementation      name:'yakhont', ext:'aar'                                       // Yakhont
+    implementation      name:'yakhont', ext:'aar'
 }
 
 // for demo simple let's build both release and debug - just to be sure the weaver is working fine
@@ -181,7 +181,7 @@ String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
-    AbstractCompile javaCompile = variant.javaCompiler
+    JavaCompile javaCompile = variant.javaCompileProvider.get()
     javaCompile.doLast {
         //noinspection UnnecessaryQualifiedReference
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,

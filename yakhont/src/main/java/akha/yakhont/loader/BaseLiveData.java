@@ -27,6 +27,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Context;
@@ -48,6 +49,7 @@ import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -92,6 +94,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return mBaseDialog;
     }
 
+    @SuppressWarnings({"SameReturnValue", "unused"})
     protected int getDefaultTimeout() {
         return Core.TIMEOUT_CONNECTION;
     }
@@ -100,6 +103,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return LiveDataDialog.getInstance();
     }
 
+    @SuppressWarnings("unused")
     public BaseLiveData(@NonNull final Requester<D> requester) {
         this(requester, getDefaultBaseDialog());
     }
@@ -126,7 +130,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     private static Context getContext() {
-        return Utils.getApplication().getApplicationContext();
+        return Objects.requireNonNull(Utils.getApplication()).getApplicationContext();
     }
 
     private Boolean onCompleteAsync(final boolean cancel) {
@@ -148,18 +152,19 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 CoreLogger.log("mLoadParameters.mFuture == null");
         }
 
+        final boolean noProgress = mLoadParameters.mParameters.getNoProgress();
         //noinspection Convert2Lambda
         postToMainLoop(new Runnable() {
             @Override
             public void run() {
-                if (!mLoadParameters.mParameters.getNoProgress()) mBaseDialog.stop();
+                if (!noProgress) mBaseDialog.stop();
             }
         });
 
-        final boolean notDisplayErrors = mLoadParameters.mParameters.getNoErrors();
+        final boolean noErrors   = mLoadParameters.mParameters.getNoErrors();
         mLoadParameters = null;
 
-        return notDisplayErrors;
+        return noErrors;
     }
 
     private Boolean onComplete(final boolean cancel) {
@@ -201,6 +206,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         });
     }
 
+    @SuppressWarnings("WeakerAccess")
     protected void onCompleteHelper(final boolean success, final D result, Boolean notDisplayErrors) {
         if (success) {
             if (result instanceof BaseResponse) ((BaseResponse) result).setValues(null);
@@ -240,18 +246,22 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         CoreLogger.log(LOADING_FAILED, (Throwable) error);
     }
 
-    protected void handleError(final D result, final boolean notDisplayErrors) {
+    @SuppressWarnings("WeakerAccess")
+    protected void handleError(@SuppressWarnings("unused") final D result, final boolean notDisplayErrors) {
         CoreLogger.logError(LOADING_FAILED);
         displayError(null, notDisplayErrors);
     }
 
+    @SuppressWarnings("WeakerAccess")
     protected void displayError(final BaseResponse baseResponse, final boolean notDisplayErrors) {
         if (!notDisplayErrors)
             mToast.get().start(null, makeErrorMessage(baseResponse), null);
     }
 
-    protected String makeErrorMessage(final BaseResponse baseResponse) {
-        return Utils.getApplication().getString(akha.yakhont.R.string.yakhont_loader_error_network);
+    @SuppressWarnings("WeakerAccess")
+    protected String makeErrorMessage(@SuppressWarnings("unused") final BaseResponse baseResponse) {
+        return Objects.requireNonNull(Utils.getApplication())
+                .getString(akha.yakhont.R.string.yakhont_loader_error);
     }
 
     public void makeRequest(final Activity activity, final String text, final Intent data,
@@ -265,6 +275,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         });
     }
 
+    @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     protected D makeRequestHandler(final Activity activity, final String text, final Intent data,
                                    final LoadParameters loadParameters) {
         try {
@@ -284,6 +295,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     CoreLogger.logWarning("Yakhont delegates timeout handling to loader; " +
                             "if you're not agree just set 'handleTimeout' in LoadParameters to true");
 
+                //noinspection Convert2Lambda
                 mLoadParameters = new LiveDataLoadParameters(handleTimeout ?
                         Utils.runInBackground( /* loadParameters == null ? getDefaultTimeout(): */
                                 loadParameters.getTimeout(), new Runnable() {
@@ -321,11 +333,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return (D) baseResponse;
     }
 
+    @SuppressWarnings("WeakerAccess")
     protected D getErrorStub(final Exception exception) {
         return castBaseResponse(new BaseResponse<>(
                 null, null, null, null, Source.UNKNOWN, exception));
     }
 
+    @SuppressWarnings("WeakerAccess")
     protected D getTimeoutStub() {
         return castBaseResponse(TIMEOUT_STUB);
     }
@@ -429,10 +443,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             super.onCompleteHelper(success, result, notDisplayErrors);
         }
 
+        @SuppressWarnings("WeakerAccess")
         protected D getForceStub() {
             return castBaseResponse(FORCE_STUB);
         }
 
+        @SuppressWarnings("WeakerAccess")
         protected D handleCursor(final D result, @NonNull final Cursor cursor) {
             if (!(result instanceof BaseResponse)) return result;
 
@@ -441,10 +457,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     baseResponse.getError(), Source.CACHE, baseResponse.getThrowable()));
         }
 
+        @SuppressWarnings("WeakerAccess")
         protected ContentValues[] getContentValues(final D result) {
             return result instanceof BaseResponse ? ((BaseResponse) result).getValues(): null;
         }
 
+        @SuppressWarnings("WeakerAccess")
         protected void storeResult(final ContentValues[] values, final D result, final boolean merge) {
             if (result == null) {
                 CoreLogger.logError("nothing to store in cache, empty result");
@@ -503,6 +521,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             void    confirm(Activity activity);
         }
 
+        @SuppressWarnings("unused")
         public static abstract class ProgressDefault implements Progress {
 
             private              Snackbar           mSnackbar;
@@ -519,6 +538,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             @Override
             public void confirm(final Activity activity) {
+                //noinspection Convert2Lambda
                 mSnackbar = Snackbar.make(ViewHelper.getViewForSnackbar(activity, null),
 
                         akha.yakhont.R.string.yakhont_loader_alert,
@@ -564,13 +584,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 makeToast();
             }
 
+            @SuppressLint("InflateParams")
             private void makeToast() {
-
                 final Context context = getContext();
 
                 mToast = new Toast(context);
 
-                //noinspection InflateParams
                 mToast.setView(LayoutInflater.from(context)
                         .inflate(akha.yakhont.R.layout.progress, null, false));
 
@@ -629,31 +648,37 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         private LiveDataDialog() {
         }
 
+        @SuppressWarnings("unused")
         public Progress getProgress() {
             return mProgress;
         }
 
+        @SuppressWarnings("UnusedReturnValue")
         public boolean setProgress(final Progress progress) {
             final boolean result = mProgress == null && progress != null;
             if (!result)
+                //noinspection ConstantConditions
                 CoreLogger.logWarning(String.format("unexpected progress: %s (mProgress: %s)" +
-                         progress == null ? "null":  progress.toString(),
+                         progress == null ? "null": Objects.requireNonNull(progress).toString(),
                         mProgress == null ? "null": mProgress.toString()));
 
             mProgress = progress;
             return result;
         }
 
+        @SuppressWarnings("WeakerAccess")
         public boolean isLoading() {
             synchronized (mLock) {
                 return mIsLoading;
             }
         }
 
+        @SuppressWarnings("unused")
         public static String getInfoText() {
             return getInfoText(null);
         }
 
+        @SuppressWarnings("unused")
         public static String getInfoText(@StringRes final int tableInfo) {
             return getInfoText(getContext().getResources().getString(tableInfo));
         }
@@ -664,6 +689,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     tableInfo: context.getString(akha.yakhont.R.string.yakhont_loader_progress_def_info));
         }
 
+        @SuppressWarnings("WeakerAccess")
         public void start(final String text) {
             synchronized (mLock) {
                 if (mProgress == null) mProgress = ProgressDefaultImp.getInstance();
@@ -682,17 +708,20 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
         }
 
+        @SuppressWarnings("unused")
         @Override
         public boolean start(Activity context, String text, Intent data) {
             start(text);
             return true;
         }
 
+        @SuppressWarnings("unused")
         @Override
         public boolean stop() {
             return stop(false, null);
         }
 
+        @SuppressWarnings("WeakerAccess")
         public boolean stop(final boolean force, final Activity activity) {
             try {
                 return stopNotSafe(force, activity);
@@ -725,7 +754,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         BaseViewModel.getViewModels(activity, true);
                 if (models == null) {
                     CoreLogger.logWarning("only current BaseLiveData loading will be " +
-                            "stopped 'cause of unsupported Activity " + CoreLogger.getActivityName(activity));
+                            "stopped 'cause of unsupported Activity " + CoreLogger.getDescription(activity));
                     cancel();
                 }
                 else
@@ -769,8 +798,10 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return true;
         }
 
+        @SuppressWarnings("unused")
         public static void setConfirmDuration(final int duration) {
             if (sInstance.mProgress instanceof ProgressDefault)
+                //noinspection AccessStaticViaInstance
                 ((ProgressDefault) sInstance.mProgress).sSnackbarDuration = duration;
             else
                 CoreLogger.logWarning("confirmation duration " + duration + " ignored for " +
@@ -779,6 +810,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         @Override
         public boolean confirm(final Activity activity) {
+            //noinspection Convert2Lambda
             postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
@@ -788,6 +820,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return true;
         }
 
+        @SuppressWarnings("WeakerAccess")
         public static void cancel(final Activity activity) {
             sInstance.stop(true, activity);
         }

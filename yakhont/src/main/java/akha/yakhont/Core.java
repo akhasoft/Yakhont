@@ -46,7 +46,7 @@ import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
+import android.content.pm.PackageInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -150,11 +150,11 @@ public class Core implements DefaultLifecycleObserver {
     @AnyRes public static final int                     NOT_VALID_RES_ID            = 0;
 
     /** Not valid View ID (the value is {@value}). */
-    @IdRes public static final int                      NOT_VALID_VIEW_ID           = View.NO_ID;
+    @IdRes  public static final int                     NOT_VALID_VIEW_ID           = View.NO_ID;
 
     private static final String                         BASE_URI                    = "content://%s.provider";
     @SuppressWarnings("unused")
-    private static final String                         LOG_TAG_FORMAT              = "v.%d-%d-%s";
+    private static final String                         LOG_TAG_FORMAT              = "v.%s-%d-%s";
 
     private static final String                         PREFERENCES_NAME            = "BasePreferences";
 
@@ -182,7 +182,6 @@ public class Core implements DefaultLifecycleObserver {
         UNKNOWN,
         LOCATION_CHECK_SETTINGS,
         LOCATION_CONNECTION_FAILED,
-        LOCATION_ALERT,
         LOCATION_CLIENT,
         LOCATION_INTENT,
         PERMISSIONS_ALERT,
@@ -236,6 +235,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  {@code true} if dialog was stopped successfully, {@code false} otherwise
          */
+        @SuppressWarnings("UnusedReturnValue")
         boolean stop();
 
         /**
@@ -256,6 +256,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  {@code true} if data load canceling supported, {@code false} otherwise
          */
+        @SuppressWarnings("UnusedReturnValue")
         boolean setOnCancel(Runnable runnable);
 
         /**
@@ -265,6 +266,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @see #setOnCancel
          */
+        @SuppressWarnings("UnusedReturnValue")
         boolean cancel();
     }
 
@@ -282,49 +284,6 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("UnusedParameters")
         void onChangedConfiguration(Configuration newConfig);
-    }
-
-    /**
-     * The API to configure loaders.
-     */
-    public interface ConfigurableLoader {
-
-        /**
-         * Sets the "force cache" flag. Setting to {@code true} forces loading data from cache.
-         *
-         * @param forceCache
-         *        The value to set
-         */
-        @SuppressWarnings({"EmptyMethod", "UnusedReturnValue"}) void setForceCache(boolean forceCache);
-
-        /**
-         * Sets the "no progress" flag. Set to {@code true} to not display loading progress.
-         *
-         * @param noProgress
-         *        The value to set
-         */
-        @SuppressWarnings({"EmptyMethod", "UnusedReturnValue"}) void setNoProgress(boolean noProgress);
-    }
-
-    /**
-     * The API for data loading.
-     *
-     * @param <C>
-     *        The type of callback (or Retrofit API)
-     */
-    @SuppressWarnings("unused")
-    public interface Requester<C> {
-
-        /**
-         * Starts an asynchronous data loading.
-         *
-         * @param parameter
-         *        The callback (or Retrofit API)
-         *
-         * @yakhont.see BaseResponseLoaderWrapper#CoreLoad CoreLoad
-         * @yakhont.see BaseLoader#makeRequest(C) BaseLoader.makeRequest()
-         */
-        void makeRequest(C parameter);
     }
 
     /**
@@ -505,11 +464,8 @@ public class Core implements DefaultLifecycleObserver {
             return false;
         }
 
-        boolean result = true;
-        if (sInstance != null && sbyUser) {
-            CoreLogger.logWarning("the Yakhont library initialization was already done");
-            result = false;
-        }
+        if (sInstance != null && sbyUser)
+            CoreLogger.logWarning("the default Yakhont library initialization will be updated");
 
         final boolean firstInit = sInstance == null;
         if (firstInit) sInstance = new Core();
@@ -530,7 +486,18 @@ public class Core implements DefaultLifecycleObserver {
 
         Init.registerCallbacks(application, firstInit);
 
-        return result;
+        return true;
+    }
+
+    /**
+     * Adjusts logging.
+     *
+     * @param fullInfo
+     *        Indicates whether the detailed logging should be enabled or not
+     */
+    @SuppressWarnings("unused")
+    public static void setFullLoggingInfo(final boolean fullInfo) {
+        Init.logging(sApplication.get(), fullInfo);
     }
 
     /**
@@ -700,7 +667,7 @@ public class Core implements DefaultLifecycleObserver {
         final boolean result = add ?
                 sAppCallbacksListeners.add(listener): sAppCallbacksListeners.remove(listener);
 
-        CoreLogger.log(result ? Level.DEBUG: Level.WARNING,
+        CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.WARNING,
                 "result: " + result + ", listener: " + listener);
         return result;
     }
@@ -844,20 +811,25 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         private static void logging(@NonNull final Application application, final boolean fullInfo) {
-            final String  pkgName    = application.getPackageName();
-            final boolean debugBuild = Utils.isDebugMode(pkgName);
+            final String  pkgName = application.getPackageName();
 
-            int version = -1;
-            try {
-                version = application.getPackageManager().getPackageInfo(pkgName, 0).versionCode;
-            }
-            catch (PackageManager.NameNotFoundException e) {
-                CoreLogger.log("can not define version code", e);
-            }
+            if (!Utils.isDebugMode(pkgName)) {
+                String version = "N/A";
+                try {
+                    final PackageInfo packageInfo = application.getPackageManager().getPackageInfo(
+                            pkgName, 0);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+                        version = String.valueOf(packageInfo.getLongVersionCode());
+                    else
+                        version = String.valueOf(packageInfo.versionCode);
+                }
+                catch (/*PackageManager.NameNotFound*/Exception exception) {
+                    CoreLogger.log("can not define version code", exception);
+                }
 
-            if (!debugBuild)
                 CoreLogger.setTag(String.format(Utils.getLocale(), LOG_TAG_FORMAT, version,
                         akha.yakhont.BuildConfig.VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
+            }
 
             CoreLogger.setFullInfo(fullInfo);
 
@@ -985,7 +957,7 @@ public class Core implements DefaultLifecycleObserver {
         private Utils() {
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public static void check(@NonNull final RuntimeException exception,
                                  @NonNull final String           text) throws RuntimeException {
             final String message = exception.getMessage();
@@ -1087,6 +1059,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  The data loading progress indicator
          */
+        @SuppressWarnings("unused")
         public static BaseDialog getLoadingProgressDefault() {
             return LiveDataDialog.getInstance();
         }
@@ -1196,7 +1169,7 @@ public class Core implements DefaultLifecycleObserver {
             return sExecutorHelper.runInBackground(runnable, delay, false);
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public static SharedPreferences getPreferences(@NonNull final ContextWrapper contextWrapper) {
             return contextWrapper.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
         }
@@ -1272,6 +1245,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  The URI
          */
+        @SuppressWarnings("WeakerAccess")
         public static Uri getUri(@NonNull final String tableName) {
             return getUriResolver().getUri(tableName);
         }
@@ -1325,7 +1299,7 @@ public class Core implements DefaultLifecycleObserver {
                         Orientation.UNSPECIFIED: Orientation.LANDSCAPE;
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public static String getDialogInterfaceString(final int which) {
             switch (which) {
                 case        DialogInterface.BUTTON_POSITIVE                   :
@@ -1409,7 +1383,7 @@ public class Core implements DefaultLifecycleObserver {
                                             final int requestCode, final int resultCode, final Intent data) {
             CoreLogger.log((prefix.isEmpty() ? "": prefix + ".") + "onActivityResult" +
                     (prefix.isEmpty() ? "": ": subject to call by weaver"));
-            CoreLogger.log("activity   : " + CoreLogger.getActivityName(activity));
+            CoreLogger.log("activity   : " + CoreLogger.getDescription(activity));
             CoreLogger.log("requestCode: " + requestCode + " " + getRequestCode(requestCode).name());
             CoreLogger.log("resultCode : " + resultCode  + " " + getActivityResultString(resultCode));
             CoreLogger.log("intent     : " + data);
@@ -1669,7 +1643,7 @@ public class Core implements DefaultLifecycleObserver {
                     return null;
                 }
                 catch (Exception exception) {
-                    CoreLogger.log(Level.WARNING, "checkRequestCode failed", exception);
+                    CoreLogger.log(CoreLogger.getDefaultLevel(), "checkRequestCode failed", exception);
                     return exception;
                 }
             }
@@ -1794,7 +1768,7 @@ public class Core implements DefaultLifecycleObserver {
                         prepareRunnable(runnable), delay, period);
                 if (result != null) mTasks.add(result);
 
-                CoreLogger.log(result == null ? Level.ERROR: Level.DEBUG, "submit result: " + result);
+                CoreLogger.log(result == null ? Level.ERROR: CoreLogger.getDefaultLevel(), "submit result: " + result);
                 return result;
             }
 
@@ -1988,14 +1962,21 @@ public class Core implements DefaultLifecycleObserver {
             private ViewHelper() {
             }
 
-            /** @exclude */ @SuppressWarnings("JavaDoc")
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
             public static Object setTag(final View view, @IdRes final int id, final Object value) {
                 if (view == null) {
                     CoreLogger.logError("view == null");
                     return null;
                 }
+
                 final Object previous = view.getTag(id);
-                view.setTag(value);
+                try {
+                    view.setTag(id, value);
+                }
+                catch (/*IllegalArgument*/Exception exception) {
+                    CoreLogger.log(exception);
+                    return null;
+                }
 
                 if (previous != null) CoreLogger.log("view: " + CoreLogger.getViewDescription(view) +
                         ", tag: " + id + ", previous value: " + previous);
@@ -2064,7 +2045,7 @@ public class Core implements DefaultLifecycleObserver {
                     }
                 });
 
-                CoreLogger.log(viewHelper[0] == null ? Level.ERROR: Level.DEBUG,
+                CoreLogger.log(viewHelper[0] == null ? Level.ERROR: CoreLogger.getDefaultLevel(),
                         "result of find view: " + CoreLogger.getViewDescription(viewHelper[0]));
 
                 return viewHelper[0];
@@ -2080,6 +2061,7 @@ public class Core implements DefaultLifecycleObserver {
 
                 //noinspection Convert2Lambda
                 visitView(parentView, new ViewVisitor() {
+                    @SuppressWarnings("unused")
                     @Override
                     public boolean handle(final View view) {
                         if (visitor.handle(view)) views.add(view);
@@ -2111,7 +2093,7 @@ public class Core implements DefaultLifecycleObserver {
                     CoreLogger.logWarning("activity == null, current activity will be used");
                     activity = getCurrentActivity();
                 }
-                CoreLogger.logWarning("getView() from activity: " + CoreLogger.getActivityName(activity));
+                CoreLogger.logWarning("getView() from activity: " + CoreLogger.getDescription(activity));
 
                 if (viewId != NOT_VALID_VIEW_ID) {
                     final View view = activity.findViewById(viewId);
@@ -2121,7 +2103,8 @@ public class Core implements DefaultLifecycleObserver {
                     return view;
                 }
 
-                final Resources resources = activity.getResources();
+                @SuppressWarnings("ConstantConditions")
+                final Resources resources = Utils.getApplication().getResources();
                 @IdRes final int defaultViewId = getDefaultViewId(resources);
 
                 final String defaultViewDescription = CoreLogger.getResourceDescription(defaultViewId);
@@ -2136,16 +2119,16 @@ public class Core implements DefaultLifecycleObserver {
 
                     final Window window = activity.getWindow();
                     if (window == null) CoreLogger.logError("window == null, Activity " +
-                            CoreLogger.getActivityName(activity));
+                            CoreLogger.getDescription(activity));
 
                     view = window == null ? null: window.getDecorView();
                 }
                 if (view == null)
                     CoreLogger.logError("can not find View for Activity " +
-                            CoreLogger.getActivityName(activity));
+                            CoreLogger.getDescription(activity));
                 else
                     CoreLogger.log(String.format("found View %s for Activity %s",
-                            CoreLogger.getViewDescription(view), CoreLogger.getActivityName(activity)));
+                            CoreLogger.getViewDescription(view), CoreLogger.getDescription(activity)));
                 return view;
             }
 

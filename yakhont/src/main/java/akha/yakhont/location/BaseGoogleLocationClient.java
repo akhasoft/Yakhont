@@ -606,6 +606,9 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     protected void stopLocationUpdates(final Activity activity) {
         CoreLogger.log("stopLocationUpdates");
 
+        // happens when system permissions dialog pops up
+        if (mFusedLocationClient == null) return;
+
         //noinspection Anonymous2MethodRef,Convert2Lambda
         mFusedLocationClient.removeLocationUpdates(mLocationCallback)
                 .addOnCompleteListener(activity, new OnCompleteListener<Void>() {

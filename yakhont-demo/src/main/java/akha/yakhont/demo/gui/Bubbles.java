@@ -288,7 +288,9 @@ public class Bubbles {
         //noinspection SuspiciousNameCombination
         textView.getLayoutParams().height = viewWidth;
 
+        //noinspection IntegerDivisionInFloatingPointContext
         textView.setPivotX(viewWidth  / 2);
+        //noinspection IntegerDivisionInFloatingPointContext
         textView.setPivotY(viewHeight / 2);
 
         textView.setLeft(0);

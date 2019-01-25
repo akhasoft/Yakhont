@@ -134,6 +134,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     }
 
     // mostly for raw calls
+    @SuppressWarnings("WeakerAccess")
     public void setCancelHandler(final Runnable cancelHandler) {
         if (mCancelHandler != null && cancelHandler != null)
             CoreLogger.logWarning("about to redefine cancel handler " + mCancelHandler);
@@ -223,6 +224,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 final Call<D> call = CoreReflection.invoke(proxy, method, args);
                 if (call == null) throw new Exception("Call == null");
 
+                //noinspection Anonymous2MethodRef,Convert2Lambda,Anonymous2MethodRef
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
@@ -239,6 +241,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             final Object resultRx2 = Rx2.handle(proxy, method, args, callbackRx);
             if (resultRx2 != null) {
 
+                //noinspection Convert2Lambda
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
@@ -253,6 +256,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             final Object resultRx = Rx.handle(proxy, method, args, callbackRx);
             if (resultRx != null) {
 
+                //noinspection Convert2Lambda
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
@@ -437,7 +441,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                                RxJava2CallAdapterFactory.createAsync();
         }
         catch (NoClassDefFoundError error) {    // in most cases it's ok
-            CoreLogger.log(Level.DEBUG, "getFactory can't find class", error);
+            CoreLogger.log(CoreLogger.getDefaultLevel(), "getFactory can't find class", error);
         }
         catch (Exception exception) {
             CoreLogger.log("getFactory failed", exception);

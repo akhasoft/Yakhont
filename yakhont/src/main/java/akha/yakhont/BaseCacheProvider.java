@@ -18,7 +18,6 @@ package akha.yakhont;
 
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CursorHandler;
-import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 
 import android.annotation.SuppressLint;
@@ -142,16 +141,45 @@ public class BaseCacheProvider extends ContentProvider {
         return true;
     }
 
+    /**
+     * Please refer to the base method description.
+     *
+     * @param method
+     *        The method name; supported are "getDbName", "getDbVersion", "close"
+     *
+     * @param arg
+     *        always null
+     *
+     * @param extras
+     *        always null
+     *
+     * @return  Bundle with key equals to method name - or null
+     */
     @CallSuper
     @Nullable
     @Override
     public Bundle call(@NonNull String method, @Nullable String arg, @Nullable Bundle extras) {
+        final Bundle bundle;
+        switch (method) {
+            case "getDbName":
+                bundle = new Bundle();
+                bundle.putString(method, getDbName());
+                return bundle;
+            case "getDbVersion":
+                bundle = new Bundle();
+                bundle.putInt(method, getDbVersion());
+                return bundle;
+            case "close":
+                close();
+                break;
+            default:
+                CoreLogger.logError("unknown method " + method);
+                break;
+        }
         return null;
     }
 
     /**
-     * Close any open database object.
-     *
      * @see SQLiteOpenHelper#close
      */
     public void close() {
@@ -189,8 +217,6 @@ public class BaseCacheProvider extends ContentProvider {
             CoreLogger.log(String.format(getLocale(), "table %s, new id %d", tableName, id));
         }
         if (id == -1) CoreLogger.logError("table " + tableName + ": insert error");
-
-        close();
 
         return id == -1 ? null: ContentUris.withAppendedId(uri, id);
     }
@@ -294,10 +320,8 @@ public class BaseCacheProvider extends ContentProvider {
 
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         if (!isTableExist(tableName) &&
-                !createTable(db, tableName, getColumns(tableName, bulkValues))) {
-            close();
+                !createTable(db, tableName, getColumns(tableName, bulkValues)))
             return 0;
-        }
 
         int result = 0;
         switch (Matcher.match(uri)) {
@@ -323,7 +347,6 @@ public class BaseCacheProvider extends ContentProvider {
                 break;
         }
 
-        close();
         return result;
     }
 
@@ -397,13 +420,11 @@ public class BaseCacheProvider extends ContentProvider {
                                 String order, ContentValues data) {
                 if (!isTableExist(table)) {
                     CoreLogger.logWarning("tried to remove rows from not existing table " + table);
-                    close();
                     return 0;
                 }
                 // from docs: To remove all rows and get a count pass "1" as the whereClause
                 if (condition == null) condition = "1";
                 final int rows = mDbHelper.getWritableDatabase().delete(table, condition, args);
-                close();
 
                 CoreLogger.log(String.format(getLocale(), "table: %s, number of deleted rows: %d", table, rows));
                 return rows;
@@ -422,7 +443,6 @@ public class BaseCacheProvider extends ContentProvider {
             public Integer call(String table, String condition, String[] args, String[] columns,
                                 String order, ContentValues data) {
                 final int rows = mDbHelper.getWritableDatabase().update(table, data, condition, args);
-                close();
 
                 CoreLogger.log(String.format(getLocale(), "table: %s, number of updated rows: %d", table, rows));
                 return rows;
@@ -519,8 +539,9 @@ public class BaseCacheProvider extends ContentProvider {
         sUsePragma = value;
     }
 
-    private static boolean isExist1(@NonNull final SQLiteDatabase db,
-                                    @NonNull final String table, @NonNull final String column) {
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static boolean isExist1(@NonNull final SQLiteDatabase db,
+                                   @NonNull final String table, @NonNull final String column) {
         boolean result = false;
         Cursor  cursor = null;
         //noinspection TryFinallyCanBeTryWithResources
@@ -530,7 +551,7 @@ public class BaseCacheProvider extends ContentProvider {
             result = true;
         }
         catch (SQLException exception) {
-            CoreLogger.log(Level.DEBUG, table, exception);
+            CoreLogger.log(CoreLogger.getDefaultLevel(), table, exception);
         }
         finally {
             if (cursor != null) cursor.close();
@@ -538,8 +559,9 @@ public class BaseCacheProvider extends ContentProvider {
         return result;
     }
 
-    private static boolean isExist2(@NonNull final SQLiteDatabase db,
-                                    @NonNull final String table, @NonNull final String column) {
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static boolean isExist2(@NonNull final SQLiteDatabase db,
+                                   @NonNull final String table, @NonNull final String column) {
         final boolean[] result = new boolean[] {false};
         final Cursor cursor = db.rawQuery(String.format("PRAGMA table_info(%s)", table), null);
         final int idx = cursor.getColumnIndex("name");
@@ -657,9 +679,11 @@ public class BaseCacheProvider extends ContentProvider {
      *
      * @param runnable
      *        The transaction to execute
+     *
+     * @return  {@code true} if transaction completed successfully, {@code false} otherwise
      */
     @SuppressLint("ObsoleteSdkInt")
-    protected void runTransaction(@NonNull final SQLiteDatabase db, @NonNull final Runnable runnable) {
+    public static boolean runTransaction(@NonNull final SQLiteDatabase db, @NonNull final Runnable runnable) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             db.beginTransactionNonExclusive();
         else
@@ -668,6 +692,11 @@ public class BaseCacheProvider extends ContentProvider {
         try {
             runnable.run();
             db.setTransactionSuccessful();
+            return true;
+        }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+            return false;
         }
         finally {
             db.endTransaction();

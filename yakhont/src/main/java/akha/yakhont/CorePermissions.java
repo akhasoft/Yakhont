@@ -30,6 +30,7 @@ import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.View;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntRange;
@@ -84,26 +85,6 @@ public class CorePermissions implements ConfigurationChangedListener {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IdRes
     protected     int                               mViewId;
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected     PermissionsNamesTranslator        mPermissionsNamesTranslator;
-
-    /**
-     * This class can be used to customize the visual representation of permissions.
-     */
-    @SuppressWarnings("unused")
-    public interface PermissionsNamesTranslator {
-
-        /**
-         * Returns the visual representation of permissions to use in GUI.
-         *
-         * @param permissions
-         *        The permissions to display
-         *
-         * @return  The visual representation of permissions
-         */
-        String getDisplayNames(String[] permissions);
-    }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected CorePermissions() {
@@ -170,16 +151,13 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected boolean requestHandler(final Activity activity, String[] permissions) {
-
-        boolean shouldProvideRationale = false;
+    protected boolean requestHandler(final Activity activity, final String[] permissions, String rationale) {
+        final ArrayList<String> rationales = new ArrayList<>();
         for (final String permission: permissions)
-            if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)) {
-                shouldProvideRationale = true;
-                break;
-            }
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission))
+                rationales.add(permission);
 
-        if (!shouldProvideRationale) {
+        if (rationales.isEmpty()) {
             // Request permission. It's possible this can be auto answered if device policy
             // sets the permission in a given state or the user denied the permission
             // previously and checked "Never ask again".
@@ -190,33 +168,31 @@ public class CorePermissions implements ConfigurationChangedListener {
         // Provide an additional rationale to the user. This would happen if the user denied the
         // request previously, but didn't check the "Don't ask again" checkbox.
 
-        String permissions2display;
-        if (mPermissionsNamesTranslator != null)
-            permissions2display = mPermissionsNamesTranslator.getDisplayNames(permissions);
-        else {
-            final StringBuilder builder = new StringBuilder(getPermissionDisplayName(permissions[0]));
-            for (int i = 1; i < permissions.length; i++)
-                builder.append(", ").append(getPermissionDisplayName(permissions[i]));
-            permissions2display = builder.toString();
+        final String[] tmp = new String[rationales.size()];
+        final String   rationalePermissions = Arrays.deepToString(rationales.toArray(tmp));
+
+        rationale = rationale == null ? null: rationale.trim();
+        if (TextUtils.isEmpty(rationale)) {
+            CoreLogger.logWarning("rationale requested but not provided for permissions " +
+                    rationalePermissions);
+
+            return requestWrapper(activity, permissions);
         }
 
         if (mAlert != null)
-            CoreLogger.logError("permissions alert is dialog already exists");
+            CoreLogger.logError("permissions rationale alert dialog already exists");
 
         mAlert = mAlertProvider.get();
 
-        if (!mAlert.start(activity, permissions.length == 1 ?
-                        activity.getString(R.string.yakhont_permission_alert,  permissions2display):
-                        activity.getString(R.string.yakhont_permissions_alert, permissions2display),
+        if (mAlert.start(activity, rationale,
                 new Intent().putExtra(ARG_PERMISSIONS, permissions).putExtra(ARG_VIEW_ID, mViewId)))
-            CoreLogger.logError("can not start permissions alert dialog");
+            CoreLogger.log("started rationale alert dialog for permissions " +
+                    rationalePermissions);
+        else
+            CoreLogger.logError("can't start rationale alert dialog for permissions " +
+                    rationalePermissions);
 
         return false;
-    }
-
-    private static String getPermissionDisplayName(@NonNull final String permission) {
-        final int idx = permission.lastIndexOf('.');
-        return idx < 0 ? permission: permission.substring(idx + 1);
     }
 
     /**
@@ -363,7 +339,7 @@ public class CorePermissions implements ConfigurationChangedListener {
         final CorePermissions result = view == null ? null:
                 (CorePermissions) view.getTag(ID_OBJECTS);
 
-        CoreLogger.log(result == null ? Level.ERROR: Level.DEBUG, "CorePermissions == " + result);
+        CoreLogger.log(result == null ? Level.ERROR: CoreLogger.getDefaultLevel(), "CorePermissions == " + result);
         return result;
     }
 
@@ -391,7 +367,7 @@ public class CorePermissions implements ConfigurationChangedListener {
                     break;
 
                 case PackageManager.PERMISSION_DENIED:
-                    CoreLogger.logError("Permission " + permissions[i] + " was denied");
+                    CoreLogger.logWarning("Permission " + permissions[i] + " was denied");
                     granted = false;
                     break;
 
@@ -415,7 +391,7 @@ public class CorePermissions implements ConfigurationChangedListener {
         // when permissions are denied. Otherwise, your app could appear unresponsive to
         // touches or interactions which have required permissions.
 
-        CoreLogger.logError("Permission denied");
+        CoreLogger.logWarning("Permission denied");
 
         if (corePermissions.mAlertDenied != null)
             CoreLogger.logError("permissions denied alert dialog is already exists");
@@ -446,7 +422,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         final Set<Integer> set = getIdsHelper(view);
 
-        CoreLogger.log(set != null ? Level.DEBUG: Level.ERROR, "CorePermissions set of view IDs: " + set);
+        CoreLogger.log(set != null ? CoreLogger.getDefaultLevel(): Level.ERROR, "CorePermissions set of view IDs: " + set);
         return set;
     }
 
@@ -467,7 +443,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static void runCallback(final Runnable callback, final boolean denied) {
-        CoreLogger.log(!denied && callback == null ? Level.WARNING: Level.DEBUG,
+        CoreLogger.log(!denied && callback == null ? Level.WARNING: CoreLogger.getDefaultLevel(),
                 (denied ? "onDenied": "onGranted") + " == " + callback);
         if (callback != null) callback.run();
     }
@@ -485,15 +461,12 @@ public class CorePermissions implements ConfigurationChangedListener {
         protected final String[]                    mPermissions;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected       boolean                     mUseRationale   = true;
+        protected       String                      mRationale;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       Runnable                    mOnDenied;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       Runnable                    mOnGranted;
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected       PermissionsNamesTranslator  mPermissionsNamesTranslator;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       Integer                     mRequestCode;
@@ -557,31 +530,17 @@ public class CorePermissions implements ConfigurationChangedListener {
         }
 
         /**
-         * Sets the "use Rationale" flag. Please refer to
+         * Sets the permission rationale. Please refer to
          * {@link ActivityCompat#shouldShowRequestPermissionRationale} for more info.
          *
-         * @param useRationale
+         * @param rationale
          *        The value to use
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
         @SuppressWarnings("unused")
-        public RequestBuilder setUseRationale(final boolean useRationale) {
-            mUseRationale = useRationale;
-            return this;
-        }
-
-        /**
-         * Sets the {@link PermissionsNamesTranslator} to use.
-         *
-         * @param permissionsNamesTranslator
-         *        The PermissionsNamesTranslator
-         *
-         * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
-         */
-        @SuppressWarnings("unused")
-        public RequestBuilder setPermissionsNamesTranslator(final PermissionsNamesTranslator permissionsNamesTranslator) {
-            mPermissionsNamesTranslator = permissionsNamesTranslator;
+        public RequestBuilder setRationale(final String rationale) {
+            mRationale = rationale;
             return this;
         }
 
@@ -623,7 +582,7 @@ public class CorePermissions implements ConfigurationChangedListener {
         public boolean request() {
             final boolean result = requestHelper();
 
-            CoreLogger.log(result ? Level.DEBUG: Level.INFO, "request result: " + result);
+            CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.INFO, "request result: " + result);
             return result;
         }
 
@@ -653,8 +612,6 @@ public class CorePermissions implements ConfigurationChangedListener {
                 mRequestCode = Utils.getRequestCode(RequestCodes.PERMISSIONS_ALERT, activity);
             corePermissions.mRequestCode                = mRequestCode;
 
-            corePermissions.mPermissionsNamesTranslator = mPermissionsNamesTranslator;
-
             CoreLogger.log("onDenied " + mOnDenied + ", onGranted " + mOnGranted);
             if (!checkData(activity, mPermissions)) {
                 runOnDenied(mOnDenied);
@@ -667,12 +624,14 @@ public class CorePermissions implements ConfigurationChangedListener {
                 return true;
             }
 
-            if (!setupView(activity, corePermissions)) return false;
+            if (!setupView(activity, corePermissions)) {
+                CoreLogger.logError("setupView() returned false");
+                return false;
+            }
 
             Core.register(corePermissions);
 
-            return !mUseRationale ? corePermissions.requestWrapper(activity, permissions):
-                    corePermissions.requestHandler(activity, permissions);
+            return corePermissions.requestHandler(activity, permissions, mRationale);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -693,7 +652,7 @@ public class CorePermissions implements ConfigurationChangedListener {
                 return false;
             }
             final boolean result = viewIds.add(mViewId);
-            CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "CorePermissions add view ID: " + result);
+            CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR, "CorePermissions add view ID: " + result);
 
             //noinspection ConstantConditions
             ViewHelper.setTag(view, ID_OBJECTS, corePermissions);

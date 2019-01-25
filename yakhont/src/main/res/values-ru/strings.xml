@@ -19,11 +19,10 @@
                                                         >Идет загрузка данных (%s)...</string>
     <string name="yakhont_loader_progress_def_info"     >подробности недоступны</string>
     <string name="yakhont_loader_alert"                 >Отменить загрузку данных?</string>
-    <string name="yakhont_loader_cancelled" tools:ignore="UnusedResources"
-                                                        >Загрузка данных отменена</string>
-
+    <string name="yakhont_loader_cancelled"             >Загрузка данных отменена</string>
     <string name="yakhont_loader_error"                 >Ошибка загрузки данных</string>
-    <string name="yakhont_loader_error_network"         >Ошибка загрузки данных (Интернет)</string>
+
+    <string name="yakhont_send_debug_email"             >Кому собираемся отправить e-mail с debug информацией: %s</string>
 
     <string name="yakhont_alert_ok"                     >ОК</string>
     <string name="yakhont_alert_cancel"                 >Отмена</string>
@@ -31,15 +30,11 @@
     <string name="yakhont_alert_yes"                    >Да</string>
     <string name="yakhont_alert_no"                     >Нет</string>
 
-    <string name="yakhont_permission_alert"             >Необходимо разрешение: %s.</string>
-    <string name="yakhont_permissions_alert"            >Необходимы разрешения: %s.</string>
-
     <string name="yakhont_permission_denied_alert"      >В разрешении отказано, нажмите OK для проверки настроек приложения.</string>
     <string name="yakhont_permissions_denied_alert"     >В разрешениях отказано, нажмите OK для проверки настроек приложения.</string>
 
     <string name="yakhont_location_error"               >Ошибка при определении местоположения</string>
     <string name="yakhont_location_error_connection"    >@string/yakhont_location_error</string>
-    <string name="yakhont_location_alert"               >Приложение запрашивает данные о Вашем текущем местоположении.</string>
 
     <string name="yakhont_location_msg"                 >Местоположение: %s</string>
     <string name="yakhont_location_msg_na"              >не определено</string>

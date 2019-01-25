@@ -24,7 +24,6 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.BaseCallbacks.Validator;
 import akha.yakhont.callback.annotation.CallbacksInherited;
-// import akha.yakhont.location.BaseGoogleLocationClient;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
@@ -40,7 +39,6 @@ import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import androidx.annotation.StringRes;
 import androidx.appcompat.app.AppCompatActivity;
 
 import dagger.BindsInstance;
@@ -49,7 +47,7 @@ import dagger.Module;
 
 import java.util.Date;
 
-@CallbacksInherited(LocationCallbacks.class)
+@CallbacksInherited( /* value = */ LocationCallbacks.class /* , properties = R.string.permissions_rationale_demo */ )
 public class MainActivity extends AppCompatActivity implements LocationListener /* optional */ {
 
     // well, it's also possible to use all that stuff (versions 1 and 2) simultaneously
@@ -73,15 +71,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
         Core.setRxUncaughtExceptionBehavior(false /* not terminate */);
 
-        Core.init(getApplication(), BuildConfig.DEBUG, DaggerMainActivity_DemoDagger // deep customization (see below)
+        boolean debug = BuildConfig.DEBUG;
+
+        Core.init(getApplication(), debug, DaggerMainActivity_DemoDagger // deep customization (see below)
                 .builder()
                 .parameters(Parameters.create(USE_GOOGLE_LOCATION_OLD_API, USE_SNACKBAR_ISO_TOAST))
-                .build() );
-
-        LocationCallbacks.allowAccessToLocation(true);      // suppress confirmation dialog
+                .build());
 
         // optional; on shaking device email with logs will be sent to the address below
-        if (BuildConfig.DEBUG) CoreLogger.registerShakeDataSender(this, "yourname@yourcompany.com");
+        if (debug) CoreLogger.registerShakeDataSender(this, "address@company.com");
 
         //noinspection ConstantConditions
         setTheme(R.style.AppThemeCompat);
@@ -90,10 +88,11 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         setContentView(R.layout.activity_main);
 
         initLocationRx();   // optional
-
+/*
         // set location client parameters here (if necessary)
-//      ((BaseGoogleLocationClient) mLocationCallbacks.getLocationClient()).setLocationUpdatesParameters(...);
-
+        ((akha.yakhont.location.BaseGoogleLocationClient) mLocationCallbacks.getLocationClient())
+                .setLocationUpdatesParameters(...);
+*/
         //noinspection ConstantConditions,Convert2Lambda
         findViewById(R.id.fab_location).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -198,6 +197,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoCallbacksValidationModule extends CallbacksValidationModule {
+        @SuppressWarnings("EmptyMethod")
         @Override
         protected Validator getCallbacksValidator() {
             return super.getCallbacksValidator();
@@ -209,6 +209,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoLocationModule extends LocationModule {
+        @SuppressWarnings("EmptyMethod")
         @Override
         protected LocationClient getLocationClient(final boolean oldApi) {
             return super.getLocationClient(oldApi);
@@ -220,11 +221,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoUiModule extends UiModule {
+        @SuppressWarnings("EmptyMethod")
         @Override
-        protected BaseDialog getAlert(@StringRes int resId, int requestCode, Boolean yesNo) {
-            return super.getAlert(resId, requestCode, yesNo);
+        protected BaseDialog getAlert(int requestCode) {
+            return super.getAlert(requestCode);
         }
 
+        @SuppressWarnings("EmptyMethod")
         @Override
         protected BaseDialog getToast(boolean useSnackbarIsoToast, boolean durationLong) {
             return super.getToast(useSnackbarIsoToast, durationLong);

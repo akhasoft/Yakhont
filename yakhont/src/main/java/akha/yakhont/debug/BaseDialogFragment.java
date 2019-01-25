@@ -34,6 +34,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
@@ -47,7 +48,7 @@ import java.util.Arrays;
  *
  * @author akha
  */
-@SuppressWarnings("JavaDoc")
+@SuppressWarnings({"JavaDoc", "WeakerAccess"})
 public class BaseDialogFragment extends DialogFragment {        // don't modify this line: it's subject to change by the Yakhont preprocessor
 
     /**
@@ -61,7 +62,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      *
      * @return  The logging message (for debugging)
      */
-    @SuppressWarnings("JavaDoc")
+    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected String getDebugMessage() {
         return "dialog fragment " + BaseFragment.getFragmentName(this);
     }
@@ -72,7 +73,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      *
      * @return  The logging priority level (for debugging)
      */
-    @SuppressWarnings("SameReturnValue")
+    @SuppressWarnings({"SameReturnValue", "WeakerAccess"})
     protected Level getDebugLevel() {
         return Level.WARNING;
     }
@@ -175,6 +176,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     /**
      * Please refer to the base method description.
      */
+    @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
@@ -193,9 +195,11 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     /**
      * Please refer to the base method description.
      */
+    @Nullable
     @CallSuper
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull  LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         return super.onCreateView(inflater, container, savedInstanceState);
@@ -343,7 +347,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(@NonNull Bundle outState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", outState " + outState, false);
 
         super.onSaveInstanceState(outState);
@@ -376,7 +380,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onViewCreated(view, savedInstanceState);

@@ -16,13 +16,10 @@
 
 package akha.yakhont.technology.retrofit;
 
-import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.loader.BaseResponse;
-import akha.yakhont.loader.BaseResponse.Converter;
-import akha.yakhont.loader.BaseResponse.ConverterHelper;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
@@ -46,6 +43,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
     private final          Retrofit<T, D>                    mRetrofit;
 
+    @SuppressWarnings("unused")
     public RetrofitLoaderWrapper(@NonNull final ViewModelStore          viewModelStore,
                                  @NonNull final Requester<Callback<D>>  requester,
                                  @NonNull final String                  table, final String description,
@@ -55,6 +53,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
                 BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver(), retrofit);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public RetrofitLoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                  @NonNull final Requester<Callback<D>> requester,
                                  @NonNull final String         table, final String description,
@@ -66,7 +65,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
         mRetrofit = retrofit;
 
         //noinspection Convert2Lambda
-        mConverter.setConverterGetter(new BaseResponse.ConverterGetter<D>() {
+        mConverter.setConverterGetter(new ConverterGetter<D>() {
             @Override
             public ConverterHelper<D> get(Type type) {
                 if (type == null) type = getType();
@@ -93,7 +92,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             }
         });
         return null;
-    };
+    }
 
     private void onError(final RetrofitError error,
                          @NonNull final BaseViewModel<BaseResponse<Response, Exception, D>> baseViewModel) {
@@ -169,11 +168,13 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
         private final Retrofit<T, D>                                 mRetrofit;
 
+        @SuppressWarnings("WeakerAccess")
         public RetrofitLoaderBuilder(@NonNull final Retrofit<T, D> retrofit) {
 
             mRetrofit = retrofit;
         }
 
+        @SuppressWarnings("unused")
         public RetrofitLoaderBuilder(final Fragment                fragment,
                                      @NonNull final Retrofit<T, D> retrofit) {
             super(fragment);
@@ -181,6 +182,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             mRetrofit = retrofit;
         }
 
+        @SuppressWarnings("unused")
         public RetrofitLoaderBuilder(final Activity activity,
                                      @NonNull final Retrofit<T, D> retrofit) {
             super(activity);
@@ -188,6 +190,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             mRetrofit = retrofit;
         }
 
+        @SuppressWarnings("unused")
         public RetrofitLoaderBuilder(final ViewModelStore          viewModelStore,
                                      @NonNull final Retrofit<T, D> retrofit) {
             super(viewModelStore);

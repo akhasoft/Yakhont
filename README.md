@@ -36,8 +36,8 @@ Now you can load data in just two lines of code (please refer to the
 for the working example):
 
 ```
-new Retrofit2CoreLoadBuilder<>(...).setRequester(YourRetrofit::yourMethod)
-    .setDataBinding(BR.yourDataBindingID).create().load();
+Retrofit2Loader.load("http://...", YourRetrofit.class, YourRetrofit::yourMethod,
+    BR.yourDataBindingID);
 ```
 
 And take location in just a couple of lines (the working example is in the
@@ -110,7 +110,7 @@ Yakhont supports Android 4.0 (API level 14) and above.
 
 **Note:** for lower API levels support (9 and above) please use Yakhont
 [v0.9.19](https://github.com/akhasoft/Yakhont/releases/tag/v0.9.19); but the Google Location API
-requires API level 14 in any case (please visit
+requires API level 14 in any case (please refer
 [Android Developers Blog](https://android-developers.googleblog.com/2016/11/google-play-services-and-firebase-for-android-will-support-api-level-14-at-minimum.html)
 for more information).
 
@@ -129,9 +129,8 @@ demo applications can be downloaded from the
 
 ## Versions
 
-- _core_: works with native Android Fragments
-- _support_: works with support Fragments (android.support.v4.app.Fragment etc.)
-- _full_: core + support + debug classes for most of Activities and Fragments
+- _core_: main functionality
+- _full_: core + debug classes for most of Activities and Fragments
 
 ## Usage
 
@@ -174,9 +173,7 @@ android {
 dependencies {
     implementation    'com.github.akhasoft:yakhont:0.9.19'
     // or
-    // implementation 'com.github.akhasoft:yakhont-full:0.9.19'
-    // or
-    // implementation 'com.github.akhasoft:yakhont-support:0.9.19'
+//  implementation    'com.github.akhasoft:yakhont-full:0.9.19'
 }
 ```
 
@@ -200,7 +197,7 @@ String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
-    AbstractCompile javaCompile = variant.javaCompiler
+    JavaCompile javaCompile = variant.javaCompileProvider.get()
     javaCompile.doLast {
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
@@ -221,10 +218,10 @@ By the way, Jack is no longer supported too.
 ```
 <application ...>
 
-    ...
+    // your code here
     
     <provider
-        android:authorities="your_package_name.provider"
+        android:authorities="<your_package_name>.provider"
         android:name="akha.yakhont.BaseCacheProvider"
         android:enabled="true"
         android:exported="false" />
@@ -283,6 +280,9 @@ buildTypes {
         proguardFile 'proguard-square-retrofit2.pro'
         proguardFile 'proguard-support-v7-appcompat.pro'
 
+        // and (optionally)
+        proguardFile 'proguard-project.pro'
+
         // your code here
     }
 }
@@ -299,6 +299,7 @@ $ ./gradlew --configure-on-demand yakhont-weaver:clean yakhont-weaver:build
 $ ./gradlew --configure-on-demand yakhont:clean yakhont:build
 $ ./gradlew --configure-on-demand yakhont-demo:clean yakhont-demo:build
 $ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:build
+$ ./gradlew --configure-on-demand yakhont-demo-simple-kotlin:clean yakhont-demo-simple-kotlin:build
 ```
 
 **Note:** you may need to update your Android SDK before building.

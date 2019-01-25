@@ -16,14 +16,12 @@
 
 package akha.yakhont.technology.retrofit;
 
-import akha.yakhont.Core.Requester;
 import akha.yakhont.Core.UriResolver;
+import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
-import akha.yakhont.loader.BaseResponse.Converter;
-import akha.yakhont.loader.BaseResponse.ConverterHelper;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
@@ -57,14 +55,16 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
     private final          Retrofit2<T, D>                  mRetrofit;
 
+    @SuppressWarnings("unused")
     public Retrofit2LoaderWrapper(@NonNull final ViewModelStore         viewModelStore,
                                   @NonNull final Requester<Callback<D>> requester,
                                   @NonNull final String                 table, final String description,
                                   @NonNull final Retrofit2<T, D>        retrofit) {
         this(viewModelStore, null, requester, table, description,
-                BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver(), retrofit);
+                BaseResponseLoaderWrapper.getDefaultConverter(), getDefaultUriResolver(), retrofit);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public Retrofit2LoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                   @NonNull final Requester<Callback<D>> requester,
                                   @NonNull final String                 table,  final String description,
@@ -76,7 +76,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         mRetrofit = retrofit;
 
         //noinspection Convert2Lambda
-        mConverter.setConverterGetter(new BaseResponse.ConverterGetter<D>() {
+        mConverter.setConverterGetter(new ConverterGetter<D>() {
             @Override
             public ConverterHelper<D> get(Type type) {
                 if (type == null) type = getType();
@@ -88,27 +88,27 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
     @Override
     protected BaseResponse<Response<D>, Throwable, D> makeRequest(
             @NonNull final BaseViewModel<BaseResponse<Response<D>, Throwable, D>> baseViewModel) {
-        mRequester.makeRequest(new Callback<D>() {
-            @Override
-            public void onResponse(Call<D> call, Response<D> response) {
-                mRetrofit.clearCall();
-                onSuccess(call, response, baseViewModel);
-            }
+        try {
+            mRequester.makeRequest(new Callback<D>() {
+                @Override
+                public void onResponse(Call<D> call, Response<D> response) {
+                    mRetrofit.clearCall();
+                    onSuccess(call, response, baseViewModel);
+                }
 
-            @Override
-            public void onFailure(Call<D> call, Throwable throwable) {
-                mRetrofit.clearCall();
-                onError(call, null, throwable, baseViewModel);
-            }
-        });
-/*
-            // java.lang.ClassCastException: Couldn't convert result of type
-            // io.reactivex.internal.observers.LambdaObserver to io.reactivex.Observable
-            catch (ClassCastException exception) {
-                Utils.check(exception, "io.reactivex.internal.");
-                CoreLogger.log(Level.WARNING, "it seems an API bug", exception);
-            }
-*/
+                @Override
+                public void onFailure(Call<D> call, Throwable throwable) {
+                    mRetrofit.clearCall();
+                    onError(call, null, throwable, baseViewModel);
+                }
+            });
+        }
+        // java.lang.ClassCastException: Couldn't convert result of type
+        // io.reactivex.internal.observers.LambdaObserver to io.reactivex.Observable
+        catch (ClassCastException exception) {
+            Utils.check(exception, "io.reactivex.internal.");
+            CoreLogger.log(Level.WARNING, "it seems an API bug", exception);
+        }
         return null;
     }
 
@@ -241,6 +241,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         private final Retrofit2<T, D>                       mRetrofit;
         private final LoaderRx<Response<D>, Throwable, D>   mRx;
 
+        @SuppressWarnings("WeakerAccess")
         public Retrofit2LoaderBuilder(@NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
 
@@ -248,6 +249,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             mRx       = rx;
         }
 
+        @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(final Fragment                            fragment,
                                       @NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
@@ -257,6 +259,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             mRx       = rx;
         }
 
+        @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(final Activity                            activity,
                                       @NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
@@ -266,6 +269,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             mRx       = rx;
         }
 
+        @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(final ViewModelStore                      viewModelStore,
                                       @NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
@@ -388,6 +392,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    @SuppressWarnings({"WeakerAccess", "unused"})
     public static class Retrofit2Loader extends CoreLoader {
 
         public static <R> void load(@NonNull final String       url,
@@ -397,6 +402,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             get(url, clsRetrofit2, requester, dataBinding, null, null).load();
         }
 
+        @SuppressWarnings("WeakerAccess")
         public static <T, R> CoreLoad get(@NonNull final String          url,
                                           @NonNull final Class    <R>    clsRetrofit2,
                                           @NonNull final Requester<R>    requester,

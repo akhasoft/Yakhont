@@ -26,8 +26,8 @@ import akha.yakhont.adapter.BaseRecyclerViewAdapter.DataBindingArrayAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.DataBindingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
-import akha.yakhont.loader.BaseResponse.Converter;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -212,6 +212,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Resets the array adapter.
          */
+        @SuppressWarnings("unused")
         void resetArray();
 
         /**
@@ -219,6 +220,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @return  The BaseCursorAdapter
          */
+        @SuppressWarnings("unused")
         BaseCursorAdapter getCursorAdapter();
     }
 
@@ -250,13 +252,14 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         boolean setViewValue(View view, Object data, String textRepresentation);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public BaseCacheAdapter(@NonNull                final Activity          context,
                             @LayoutRes              final    int            layoutId,
                             @NonNull @Size(min = 1) final String[]          from,
                             @NonNull @Size(min = 1) final    int[]          to,
                             @NonNull final BaseArrayAdapter <T>             arrayAdapter,
                             @NonNull final DataConverter    <T, R, E, D>    converter,
-                                     final boolean                          support) {
+                            final boolean                          support) {
         this(support ? new BaseSimpleCursorSupportAdapter(context, layoutId, from, to):
                        new BaseSimpleCursorAdapter       (context, layoutId, from, to),
                 arrayAdapter, converter);
@@ -505,7 +508,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 return !ViewHelper.VIEW_FOUND;
             }
         });
-        CoreLogger.log(map.size() > 0 ? Level.DEBUG: Level.ERROR, "views binding: totally " + map.size());
+        CoreLogger.log(map.size() > 0 ? CoreLogger.getDefaultLevel(): Level.ERROR, "views binding: totally " + map.size());
 
         final int[] ids = new int[map.size()];
         set.clear();
@@ -704,7 +707,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             super(context, layoutId, from, to, arrayAdapter, converter, support);
         }
 
-        private ApiMCacheAdapter(@NonNull   final BaseCursorAdapter             stub,
+        private ApiMCacheAdapter(@SuppressWarnings("SameParameterValue")
+                                 @NonNull   final BaseCursorAdapter             stub,
                                  @NonNull   final BaseArrayAdapter<T>           arrayAdapter,
                                  @NonNull   final DataConverter   <T, R, E, D>  converter) {
             super(stub, arrayAdapter, converter);
@@ -735,6 +739,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     @RequiresApi(api = Build.VERSION_CODES.M)
     public static class ApiMDataBindingCacheAdapter<R, E, D> extends ApiMCacheAdapter<Object, R, E, D> {
 
+        @SuppressWarnings("WeakerAccess")
         public ApiMDataBindingCacheAdapter(@NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
                                            @NonNull   final DataConverter   <Object, R, E, D>  converter) {
             super(DataBindingCacheAdapter.STUB, arrayAdapter, converter);
@@ -807,6 +812,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
         private SupportCacheAdapter(@NonNull   final Activity                      context,
                                     @LayoutRes final int                           layoutId,
+                                    @SuppressWarnings("SameParameterValue")
                                     @NonNull   final BaseCursorAdapter             stub,
                                     @NonNull   final BaseArrayAdapter<T>           arrayAdapter,
                                     @NonNull   final DataConverter   <T, R, E, D>  converter) {
@@ -850,6 +856,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     public static class SupportDataBindingCacheAdapter<R, E, D> extends SupportCacheAdapter<Object, R, E, D> {
 
+        @SuppressWarnings("WeakerAccess")
         public SupportDataBindingCacheAdapter(@NonNull   final Activity                           context,
                                               @LayoutRes final int                                layoutId,
                                               @NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
@@ -923,6 +930,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             checkArray(isArray);
         }
 
+        @SuppressWarnings("SameReturnValue")
         private static boolean getCurrentAdapterData() {
             return true;
         }

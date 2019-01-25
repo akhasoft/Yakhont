@@ -17,9 +17,9 @@
 package akha.yakhont.technology.retrofit;
 
 import akha.yakhont.Core;
-import akha.yakhont.Core.Requester;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.Requester;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import androidx.annotation.CallSuper;

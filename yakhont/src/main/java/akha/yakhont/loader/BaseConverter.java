@@ -21,9 +21,9 @@ import akha.yakhont.Core.Utils.CursorHandler;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
-import akha.yakhont.loader.BaseResponse.Converter;
-import akha.yakhont.loader.BaseResponse.ConverterGetter;
-import akha.yakhont.loader.BaseResponse.ConverterHelper;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.ConverterGetter;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.ConverterHelper;
 
 import android.content.ContentValues;
 import android.database.Cursor;

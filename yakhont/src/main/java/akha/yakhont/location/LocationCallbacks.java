@@ -18,7 +18,6 @@ package akha.yakhont.location;
 
 import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
-import akha.yakhont.Core.ConfigurationChangedListener;
 import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ExecutorHelper;
@@ -27,6 +26,7 @@ import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CorePermissions;
 // ProGuard issue
 // import akha.yakhont.R;
+import akha.yakhont.callback.BaseCallbacks.CallbacksCustomizer;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
@@ -37,15 +37,13 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.res.Configuration;
 import android.location.Location;
 import android.os.Bundle;
-import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 
 import dagger.Lazy;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.EnumMap;
@@ -84,13 +82,9 @@ import javax.inject.Provider;
  *
  * @author akha
  */
-public class LocationCallbacks extends BaseActivityCallbacks implements ConfigurationChangedListener {
+public class LocationCallbacks extends BaseActivityCallbacks implements CallbacksCustomizer {
 
-    private   static final String                                   TAG                 = Utils.getTag(LocationCallbacks.class);
-
-    private   static final String                                   ARG_DECISION        = TAG + ".decision";
-
-    private   static final int                                      DELAY               = 750;    //ms
+    private   static final int                                      DELAY               = 750;    // ms
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static final CurrentActivityHelper                    sActivity           = new CurrentActivityHelper();
@@ -117,19 +111,14 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected        Provider<BaseDialog>                           mToastProvider;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected        Provider<BaseDialog>                           mAlertProvider;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected        BaseDialog                                     mAlert;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final  Map<Activity, Set<LocationRx>>                 mRx                 = Utils.newWeakMap();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static Boolean                                        sAccessToLocation;
-
+    protected        Integer                                        mPermissionsRequestCode;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static Integer                                        sPermissionsRequestCode;
+    protected        String                                         mPermissionsRationale;
 
     /**
      * Activity should implement this interface for receiving notifications when the location has changed.
@@ -274,16 +263,38 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public LocationCallbacks() {
     }
 
-    /**
-     * Sets the permissions request code to use. Please refer to {@link Activity#onActivityResult}
-     * and {@link Activity#onRequestPermissionsResult} for more info.
-     *
-     * @param requestCode
-     *        The request code to use
-     */
-    @SuppressWarnings("unused")
-    public static void setPermissionsRequestCode(@IntRange(from = 0) final Integer requestCode) {
-        sPermissionsRequestCode = requestCode;
+    @Override
+    public void set(final String[] parameters, final int[] properties) {
+        if (parameters != null && parameters.length > 0) {
+            if (properties != null && properties.length > 0 && properties[0] != Core.NOT_VALID_RES_ID)
+                CoreLogger.logWarning("properties[0] will be ignored 'cause " +
+                        "permissions rationale is already defined as 'parameters'");
+            if (parameters.length != 1)
+                CoreLogger.logWarning("only first parameter accepted, all others are ignored: " +
+                        Arrays.deepToString(parameters));
+            mPermissionsRationale = parameters[0];
+        }
+        if (properties != null && properties.length > 0) {
+            if (!(parameters != null && parameters.length > 0 && properties[0] != Core.NOT_VALID_RES_ID)) {
+                if (properties[0] == Core.NOT_VALID_RES_ID)
+                    CoreLogger.logError("wrong permissions rationale String ID " + properties[0]);
+                else
+                    mPermissionsRationale = Objects.requireNonNull(Utils.getApplication())
+                            .getString(properties[0]);
+            }
+            if (properties.length > 2) {
+                final Integer[] tmp = new Integer[properties.length];
+                for (int i = 0; i < properties.length; i++)
+                    tmp[i] = properties[i];
+                CoreLogger.logWarning("only first 2 parameter accepted, all others are ignored: " +
+                        Arrays.deepToString(tmp));
+            }
+            if (properties.length > 1) {
+                mPermissionsRequestCode = properties[1];
+                CoreLogger.log("permissions request code set to " + properties[1] +
+                        ", object: " + this);
+            }
+        }
     }
 
     /**
@@ -299,9 +310,11 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected LocationClient getLocationClient(final boolean silent) {
         synchronized (mClientLock) {
-            final LocationClient locationClient = mLocationClient == null ? null: mLocationClient.get();
-            if (locationClient == null && !silent) CoreLogger.logWarning("locationClient == null");
-            return locationClient;
+
+          final LocationClient locationClient = mLocationClient == null ? null: mLocationClient.get();
+
+          if (locationClient == null && !silent) CoreLogger.logWarning("locationClient == null");
+          return locationClient;
         }
     }
 
@@ -323,33 +336,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         synchronized (mClientLock) {
             if (mLocationClient == null) mLocationClient = Core.getDagger().getLocationClient();
         }
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    protected void onRegister() {
-        Core.register(this);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    protected void onUnregister() {
-        Core.unregister(this);
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @Override
-    public void onChangedConfiguration(Configuration newConfig) {
-        if (mAlert == null) return;
-
-        mAlert.stop();
-        mAlert = null;
     }
 
     private void addTask(@NonNull final ActivityLifecycle lifecycle, @NonNull final Runnable runnable) {
@@ -389,7 +375,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivityCreated(@NonNull final Activity activity, final Bundle savedInstanceState) {
-        if (mAlertProvider == null) mAlertProvider = Core.getDagger().getAlertLocation();
         if (mToastProvider == null) mToastProvider = Core.getDagger().getToastLong();
 
         // we need it here to allow user set location client parameters
@@ -399,38 +384,25 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         if (locationClient != null)
             locationClient.setLocationCallbacks(LocationCallbacks.this);
 
-        if (sAccessToLocation == null) sAccessToLocation = getLocationAccessDecision(activity);
-        if (sAccessToLocation == null) {
-            if (showConfirmationDialog(activity)) return;
-
-            CoreLogger.logError("can not ask user is access to location allowed - so let's try to provide it");
-            sAccessToLocation = true;
-        }
-
         onCreatedHelper(activity, savedInstanceState, false);
     }
 
     private void onCreatedHelper(@NonNull final Activity activity, final Bundle savedInstanceState,
-                                 boolean fromDialog) {
-        if (!isAccessToLocationAllowed()) return;
-
+                                 @SuppressWarnings("SameParameterValue") boolean fromDialog) {
         final String          permission        = Manifest.permission.ACCESS_FINE_LOCATION;
         final boolean         granted           = CorePermissions.check(activity, permission);
-
-        if (!granted)         sAccessToLocation = false;
 
         if (!fromDialog) fromDialog   = !granted;
         final boolean fromDialogFinal = fromDialog;
 
         @SuppressWarnings("Convert2Lambda")
         final boolean result = new CorePermissions.RequestBuilder(activity, permission)
-                .setRequestCode(sPermissionsRequestCode)
-                .setOnGranted(new Runnable() {
+                .setRationale  (mPermissionsRationale  )
+                .setRequestCode(mPermissionsRequestCode)
+                .setOnGranted  (new Runnable() {
                     @Override
                     public void run() {
                         CoreLogger.log("LocationClient.onCreate()");
-
-                        sAccessToLocation = true;
 
                         final LocationClient locationClient = getLocationClient();
                         if (locationClient != null)
@@ -451,32 +423,8 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivitySaveInstanceState(@NonNull final Activity activity, final Bundle outState) {
-        if (!isAccessToLocationAllowed()) return;
-
         final LocationClient locationClient = getLocationClient();
         if (locationClient != null) locationClient.onSaveInstanceState(activity, outState);
-    }
-
-    /**
-     * Sets whether the access to location should be allowed or not. If not set,
-     * the location access confirmation dialog will be displayed.
-     *
-     * @param value
-     *        The value to set
-     */
-    @SuppressWarnings({"SameParameterValue", "unused"})
-    public static void allowAccessToLocation(final Boolean value) {
-        sAccessToLocation = value;
-    }
-
-    /**
-     * Checks whether the access to location was allowed or not.
-     *
-     * @return  {@code true} if access to location was allowed, {@code false} otherwise
-     */
-    @SuppressWarnings("WeakerAccess")
-    protected static boolean isAccessToLocationAllowed() {
-        return sAccessToLocation != null && sAccessToLocation;
     }
 
     /**
@@ -486,7 +434,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public void onActivityStarted(@NonNull final Activity activity) {
         sActivity.set(activity);
 
-        if (isAccessToLocationAllowed() && mStartStopCounter.incrementAndGet() == 1)
+        if (mStartStopCounter.incrementAndGet() == 1)
 
             //noinspection Convert2Lambda
             addTask(ActivityLifecycle.STARTED, new Runnable() {
@@ -509,7 +457,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public void onActivityResumed(@NonNull final Activity activity) {
         sActivity.set(activity);
 
-        if (isAccessToLocationAllowed() && mPauseResumeCounter.incrementAndGet() == 1)
+        if (mPauseResumeCounter.incrementAndGet() == 1)
 
             //noinspection Convert2Lambda
             addTask(ActivityLifecycle.RESUMED, new Runnable() {
@@ -530,7 +478,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivityPaused(@NonNull final Activity activity) {
-        if (isAccessToLocationAllowed() && mPauseResumeCounter.decrementAndGet() == 0)
+        if (mPauseResumeCounter.decrementAndGet() == 0)
 
             //noinspection Convert2Lambda
             addTask(ActivityLifecycle.PAUSED, new Runnable() {
@@ -551,7 +499,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
      */
     @Override
     public void onActivityStopped(@NonNull final Activity activity) {
-        if (isAccessToLocationAllowed() && mStartStopCounter.decrementAndGet() == 0)
+        if (mStartStopCounter.decrementAndGet() == 0)
 
             //noinspection Convert2Lambda
             addTask(ActivityLifecycle.STOPPED, new Runnable() {
@@ -574,7 +522,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public void onActivityDestroyed(@NonNull final Activity activity) {
         sActivity.clear(activity);
 
-        if (isAccessToLocationAllowed() && getProceeded().size() == 0)
+        if (getProceeded().size() == 0)
 
             //noinspection Convert2Lambda
             addTask(ActivityLifecycle.DESTROYED, new Runnable() {
@@ -646,7 +594,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
             mRx.put(activity, Utils.<LocationRx>newSet());
 
         final boolean result = Objects.requireNonNull(mRx.get(activity)).add(locationRx);
-        CoreLogger.log(result ? Level.DEBUG: Level.ERROR, "register Rx: result == " + result);
+        CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR, "register Rx: result == " + result);
         return result;
     }
 
@@ -673,7 +621,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         if (setLocationRx == null) return false;
 
         final boolean result = setLocationRx.remove(locationRx);
-        CoreLogger.log(result ? Level.DEBUG: Level.WARNING, "unregister Rx: result == " + result);
+        CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.WARNING, "unregister Rx: result == " + result);
         return result;
     }
 
@@ -721,80 +669,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
     public Date getLastUpdateTime() {
         final LocationClient locationClient = getLocationClient();
         return locationClient == null ? null: locationClient.getLastUpdateTime();
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Boolean getLocationAccessDecision(@NonNull final Activity activity) {
-        final SharedPreferences preferences = Utils.getPreferences(activity);
-        final Boolean result = preferences.contains(ARG_DECISION) ?
-                preferences.getBoolean(ARG_DECISION, false): null;
-
-        CoreLogger.log("getLocationAccessDecision: result " + result);
-        return result;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public void setLocationAccessDecision(final int resultCode, @NonNull final Activity activity) {
-        CoreLogger.log("resultCode " + resultCode);
-
-        mAlert = null;
-
-        switch (resultCode) {
-            case Activity.RESULT_CANCELED:
-                return;
-            case Activity.RESULT_OK:
-            case Activity.RESULT_FIRST_USER:
-                break;
-            default:
-                CoreLogger.logWarning("unknown result code " + resultCode);
-                break;
-        }
-
-        // in case of Snackbar decision is always true
-        final boolean decision = resultCode == Activity.RESULT_OK;
-        sAccessToLocation = decision;
-
-        //noinspection Anonymous2MethodRef,Convert2Lambda
-        Utils.runInBackground(new Runnable() {
-            @Override
-            public void run() {
-                Utils.getPreferences(activity).edit().putBoolean(ARG_DECISION, decision).apply();
-            }
-
-            @NonNull
-            @Override
-            public String toString() {
-                return "save decision";
-            }
-        });
-
-        if (decision) onCreatedHelper(activity, null, true);
-    }
-
-    /**
-     * Clears the saved result of the location access confirmation dialog.
-     *
-     * @param activity
-     *        The activity
-     */
-    @SuppressWarnings("unused")
-    public static void clearLocationAccessDecision(@NonNull final Activity activity) {
-        sAccessToLocation = null;
-        Utils.getPreferences(activity).edit().remove(ARG_DECISION).apply();
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected boolean showConfirmationDialog(@NonNull final Activity activity) {
-        if (mAlert != null)
-            CoreLogger.logError("alert dialog is already exists");
-
-        mAlert = mAlertProvider.get();
-
-        final boolean result = mAlert.start(activity, null, null);
-        if (!result)
-            CoreLogger.logError("can not start alert dialog");
-
-        return result;
     }
 
     /**
@@ -922,15 +796,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Configur
         final RequestCodes code = Utils.getRequestCode(requestCode);
         if (locationClient.onActivityResult(activity, code, resultCode, data)) return;
 
-        switch (code) {
-            case LOCATION_ALERT:
-                locationCallbacks.setLocationAccessDecision(resultCode, activity);
-                break;
-
-            default:
-                CoreLogger.logWarning("unknown request code " + code);
-                break;
-        }
+        CoreLogger.logWarning("unknown request code " + code);
     }
 
     /**

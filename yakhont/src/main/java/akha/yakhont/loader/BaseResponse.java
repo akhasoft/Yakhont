@@ -33,7 +33,6 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import java.lang.reflect.Type;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -85,99 +84,6 @@ public class BaseResponse<R, E, D> {
     private                 ContentValues[]       mContentValues;
     private final           Source                mSource;
     private final           Throwable             mThrowable;
-
-    /**
-     * The API for data conversion.
-     *
-     * @param <D>
-     *        The type of data
-     */
-    public interface ConverterHelper<D> {
-
-        /**
-         * Converts serialized data to object.
-         *
-         * @param string
-         *        The additional information
-         *
-         * @param data
-         *        The serialized data
-         *
-         * @return  The data object
-         */
-        D get(String string, byte[] data);
-    }
-
-    /**
-     * Allows to get instance of {@link ConverterHelper}.
-     *
-     * @param <D>
-     *        The type of data
-     */
-    public interface ConverterGetter<D> {
-
-        /**
-         * Returns instance of {@link ConverterHelper}.
-         *
-         * @param type
-         *        The data type
-         *
-         * @return  The ConverterHelper
-         */
-        ConverterHelper<D> get(Type type);
-    }
-
-    /**
-     * The API to convert data.
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @see akha.yakhont.loader.BaseConverter
-     */
-    public interface Converter<D> {
-
-        /**
-         * Sets {@code ConverterGetter}.
-         *
-         * @param getter
-         *        The {@code ConverterGetter}
-         */
-        void setConverterGetter(ConverterGetter<D> getter);
-
-        /**
-         * Returns the data to store in cache.
-         *
-         * @param string
-         *        The string data
-         *
-         * @param bytes
-         *        The bytes data
-         *
-         * @param cls
-         *        The type of data
-         *
-         * @return  The ContentValues
-         */
-        ContentValues getValues(String string, byte[] bytes, Class cls);
-
-        /**
-         * Converts cursor to data.
-         *
-         * @param cursor
-         *        The Cursor
-         *
-         * @return  The data
-         */
-        D getData(Cursor cursor);
-
-        /**
-         * Returns the type of last converted data.
-         *
-         * @return  The type of data (or null)
-         */
-        Type getType();
-    }
 
     /**
      * Initialises a newly created {@code BaseResponse} object.
@@ -379,7 +285,7 @@ public class BaseResponse<R, E, D> {
                                         @NonNull final Locale locale) {
             final Object data = getData(cursor, columnIndex);
             return data == null ? null: data instanceof byte[] ? String.format(locale, "[%s]",
-                    CoreLogger.toHex((byte[]) data, 8, false, locale, null)):
+                    CoreLogger.toHex((byte[]) data, 0, 8, false, locale, null)):
                     data instanceof Throwable ? "error": String.valueOf(data);
         }
     }
@@ -532,9 +438,10 @@ public class BaseResponse<R, E, D> {
          * @param handleTimeout
          *        {@code true} to let Yakhont to handle data loading timeout, {@code false} to delegate it to loader
          */
-        public LoadParameters(final String  loaderId,   final Integer timeout, final boolean forceCache,
-                              final boolean noProgress, final boolean merge,   final boolean noErrors,
-                              final boolean sync,       final boolean handleTimeout) {
+        @SuppressWarnings("WeakerAccess")
+        public LoadParameters(final String  loaderId, final Integer timeout, final boolean forceCache,
+                              final boolean noProgress, final boolean merge, final boolean noErrors,
+                              final boolean sync, final boolean handleTimeout) {
             mLoaderId       = loaderId;
             mForceCache     = forceCache;
             mNoProgress     = noProgress;

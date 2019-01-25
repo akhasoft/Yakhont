@@ -166,7 +166,7 @@ public abstract class BaseRx<D> {
      */
     @SuppressWarnings({"WeakerAccess", "ThrowableResultOfMethodCallIgnored"})
     public void onError(final Throwable throwable) {
-        CoreLogger.log(throwable == null ? Level.ERROR: Level.DEBUG, "Rx failed", throwable);
+        CoreLogger.log(throwable == null ? Level.ERROR: CoreLogger.getDefaultLevel(), "Rx failed", throwable);
         onResult(null, throwable == null ? getDefaultException(null): throwable);
     }
 
@@ -406,8 +406,9 @@ public abstract class BaseRx<D> {
 
         /**
          * Stops the receipt of notifications on the anonymous subscribers (and disposables).
-         * E.g. if Rx is in Retrofit API only.
+         * e.g. if Rx is in Retrofit API only.
          */
+        @SuppressWarnings("unused")
         public static void unsubscribeAnonymous() {
             final String msg ="about to unregister anonymous %s";
 

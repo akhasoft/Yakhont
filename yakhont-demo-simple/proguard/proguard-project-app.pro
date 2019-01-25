@@ -17,24 +17,10 @@
 # -dontwarn com.google.android.gms.**
 # -dontnote com.google.android.gms.**
 
+-allowaccessmodification
+
 -keep class akha.yakhont.demosimple.BuildConfig { *; }
 
 -keep class akha.yakhont.demosimple.model.** { *; }
 
 -keep interface akha.yakhont.demosimple.retrofit.** { *; }
-
-
--allowaccessmodification
-
--dontwarn io.reactivex.**
--dontwarn okhttp3.logging.**
-
--dontnote android.os.WorkSource$WorkChain
--dontnote rx.schedulers.**
-
--keep class com.google.android.gms.common.images.ImageManager$OnImageLoadedListener
-
--dontwarn com.google.android.material.snackbar.**
-
--dontwarn retrofit2.adapter.rxjava.RxJavaCallAdapterFactory
--dontwarn retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory

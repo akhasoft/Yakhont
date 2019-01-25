@@ -56,7 +56,7 @@ import java.util.concurrent.Callable;
  * <p>Usage example (creating callback handler for <code>Activity.onActionModeStarted</code>;
  * for more examples please refer to {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks Activity}, 
  * {@yakhont.link BaseFragmentLifecycleProceed.BaseFragmentCallbacks Fragment} and
- * {@link #proceed(Object, Class) simple Activity} ones):
+ * {@link #proceed(Object, Class, BaseCallbacks) simple Activity} ones):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * package com.yourpackage;
@@ -165,6 +165,11 @@ public abstract class BaseCallbacks<T> {
         boolean validate(Object object, Class<? extends BaseCallbacks>[] callbackClasses);
     }
 
+    @SuppressWarnings("WeakerAccess")
+    public interface CallbacksCustomizer {
+        void set(String[] parameters, int[] properties);
+    }
+
     /**
      * Initialises a newly created {@code BaseCallbacks} object.
      */
@@ -192,117 +197,27 @@ public abstract class BaseCallbacks<T> {
         return this;
     }
 
-    /**
-     * Checks whether the callbacks for the given object should be proceeded or not.
-     *
-     * @param object
-     *        The object for which callbacks could be proceeded
-     *
-     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
-     */
     @SuppressWarnings("unused")
-    protected boolean proceed(@NonNull final T object) {
-        return proceed(object, (Map<T, Boolean>) null);
+    protected boolean proceed(@NonNull final T object, @NonNull final BaseCallbacks<T> callback) {
+        return proceed(object, (Map<T, Boolean>) null, callback);
     }
 
-    /**
-     * Checks whether the callbacks for the given object should be proceeded or not.
-     *
-     * @param object
-     *        The object for which callbacks could be proceeded
-     *
-     * @param cache
-     *        The cache of already checked objects
-     *
-     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
-     */
     @SuppressWarnings("WeakerAccess")
-    protected boolean proceed(@NonNull final T object, final Map<T, Boolean> cache) {
-        return proceed(object, getClass(), mForceProceed, cache);
+    protected boolean proceed(@NonNull final T object, final Map<T, Boolean> cache,
+                              @NonNull final BaseCallbacks<T>  callback) {
+        return proceed(object, getClass(), callback, mForceProceed, cache);
     }
 
-    /**
-     * Checks whether the callbacks for the given object should be proceeded or not.
-     *
-     * <p>Usage example (creating callback handler for <code>Service.onStartCommand</code>;
-     * for more examples please refer to {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks Activity}, 
-     * {@yakhont.link BaseFragmentLifecycleProceed.BaseFragmentCallbacks Fragment} and
-     * {@link BaseCallbacks general Activity} ones):
-     *
-     * <pre style="background-color: silver; border: thin solid black;">
-     * package com.yourpackage;
-     *
-     * public class YourCallbacks { // you can create new class or add handler(s) to the existing one
-     *
-     *     public static void yourHandler(Service service, Intent intent, int flags, int startId) {
-     *    
-     *         // proceed annotated Services only
-     *         if (!BaseCallbacks.proceed(service, YourCallbacks.class)) return;
-     *
-     *         // your code here (NOTE: you don't have to call service.onStartCommand() -
-     *         //   it's already done by the Weaver)
-     *     }
-     * }
-     * </pre>
-     *
-     * Annotate necessary Services:
-     *
-     * <pre style="background-color: silver; border: thin solid black;">
-     * import akha.yakhont.callback.annotation.CallbacksInherited;
-     *
-     * &#064;CallbacksInherited(com.yourpackage.YourCallbacks.class)
-     * public class YourService extends Service {
-     *     ...
-     * }
-     * </pre>
-     *
-     * And add the following line to the <code>weaver.config</code>:
-     *
-     * <pre style="background-color: silver; border: thin solid black;">
-     * android.app.Service.onStartCommand  true  'com.yourpackage.YourCallbacks.yourHandler($0, $$);'
-     * </pre>
-     *
-     * Please refer to the {@link BaseCallbacks} for more details.
-     *
-     * @param object
-     *        The object for which callbacks could be proceeded
-     *
-     * @param callbackClass
-     *        The class of the callbacks handler
-     *
-     * @param <T>
-     *        The type of object for which callbacks should be proceeded
-     *
-     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
-     */
     @SuppressWarnings("unused")
-    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass) {
-        return proceed(object, callbackClass, false, null);
+    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass,
+                                      @NonNull final BaseCallbacks<T> callback) {
+        return proceed(object, callbackClass, callback, false, null);
     }
 
-    /**
-     * Checks whether the callbacks for the given object should be proceeded or not.
-     *
-     * @param object
-     *        The object for which callbacks could be proceeded
-     *
-     * @param callbackClass
-     *        The class of the callbacks handler
-     *
-     * @param forceProceed
-     *        The "force proceed" flag
-     *
-     * @param cache
-     *        The cache of already checked objects
-     *
-     * @param <T>
-     *        The type of object for which callbacks should be proceeded
-     *
-     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
-     */
     @SuppressWarnings("WeakerAccess")
-    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass, final boolean forceProceed,
-                                      final Map<T, Boolean> cache) {
+    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass,
+                                      @NonNull final BaseCallbacks<T> callback,
+                                      final boolean forceProceed, final Map<T, Boolean> cache) {
         log("start checking", callbackClass);
 
         if (cache != null) {
@@ -321,7 +236,7 @@ public abstract class BaseCallbacks<T> {
         if (forceProceed)
             log("force proceed", callbackClass);
         else {
-            if (!isProceed(object, callbackClass)) {
+            if (!isProceed(object, callbackClass, callback)) {
                 log("no Callbacks found", callbackClass);
                 return false;
             }
@@ -338,42 +253,54 @@ public abstract class BaseCallbacks<T> {
     }
 
     private static void log(@NonNull final String text, @NonNull final Class callbackClass) {
-        CoreLogger.log(Level.DEBUG, String.format(FORMAT, text, callbackClass.getName()));
+        CoreLogger.log(String.format(FORMAT, text, callbackClass.getName()));
     }
 
-    private static <T> boolean isProceed(@NonNull final T object, @NonNull final Class callbackClass) {
+    private static <T> boolean isProceed(@NonNull final T object, @NonNull final Class callbackClass,
+                                         @NonNull final BaseCallbacks<T> callback) {
+        Annotation
+        annotation = CoreReflection.getAnnotation(object, CallbacksInherited.class);
 
-        Annotation annotation = CoreReflection.getAnnotation(object, CallbacksInherited.class);
-        final Class<? extends BaseCallbacks>[] callbacksInherited
-                = annotation == null ? null: ((CallbacksInherited) annotation).value();
+        Class<? extends BaseCallbacks>[]
+        callbacks  = annotation == null ? null: ((CallbacksInherited) annotation).value();
 
-        if (isFound(object, callbacksInherited, callbackClass)) return true;
+        String[]
+        parameters = annotation == null ? null: ((CallbacksInherited) annotation).parameters();
+        int[]
+        properties = annotation == null ? null: ((CallbacksInherited) annotation).properties();
+
+        if (isFound(object, callbacks, callbackClass, callback, parameters, properties)) return true;
 
         annotation = CoreReflection.getAnnotation(object, Callbacks.class);
-        final Class<? extends BaseCallbacks>[] callbacksNotInherited
-                = annotation == null ? null: ((Callbacks)          annotation).value();
+        callbacks  = annotation == null ? null: ((Callbacks)          annotation).value();
 
-        return isFound(object, callbacksNotInherited, callbackClass);
+        parameters = annotation == null ? null: ((Callbacks)          annotation).parameters();
+        properties = annotation == null ? null: ((Callbacks)          annotation).properties();
+
+        return isFound(object, callbacks, callbackClass, callback, parameters, properties);
     }
 
     private static <T> boolean isReject(@NonNull final T object, @NonNull final Class callbackClass) {
 
-        Annotation annotation = CoreReflection.getAnnotation(object, StopCallbacksInherited.class);
-        final Class<? extends BaseCallbacks>[] stopCallbacksInherited
-                = annotation == null ? null: ((StopCallbacksInherited) annotation).value();
+        Annotation
+        annotation    = CoreReflection.getAnnotation(object, StopCallbacksInherited.class);
 
-        if (isFound(object, stopCallbacksInherited, callbackClass)) return true;
+        Class<? extends BaseCallbacks>[]
+        stopCallbacks = annotation == null ? null: ((StopCallbacksInherited) annotation).value();
 
-        annotation = CoreReflection.getAnnotation(object, StopCallbacks.class);
-        final Class<? extends BaseCallbacks>[] stopCallbacksNotInherited
-                = annotation == null ? null: ((StopCallbacks)          annotation).value();
+        if (isFound(object, stopCallbacks, callbackClass, null, null, null)) return true;
 
-        return isFound(object, stopCallbacksNotInherited, callbackClass);
+        annotation    = CoreReflection.getAnnotation(object, StopCallbacks.class);
+        stopCallbacks = annotation == null ? null: ((StopCallbacks)          annotation).value();
+
+        return isFound(object, stopCallbacks, callbackClass, null, null, null);
     }
 
     private static <T> boolean isFound(@NonNull final T                       object,
                                        final Class<? extends BaseCallbacks>[] callbackClasses,
-                                       @NonNull final Class                   callbackClass) {
+                                       @NonNull final Class                   callbackClass,
+                                                final BaseCallbacks<T>        callback,
+                                       final String[] parameters, final int[] properties) {
         if (sValidator == null)
             CoreLogger.logWarning("sValidator == null");
         else
@@ -381,15 +308,25 @@ public abstract class BaseCallbacks<T> {
 
         if (callbackClasses != null)
             for (final Class<? extends BaseCallbacks> baseCallbacksClass: callbackClasses)
-                if (baseCallbacksClass.isAssignableFrom(callbackClass)) return true;
-
+                if (baseCallbacksClass.isAssignableFrom(callbackClass)) {
+                    if (callback != null)
+                        if (callback instanceof CallbacksCustomizer)
+                            ((CallbacksCustomizer) callback).set(parameters, properties);
+                        else if (parameters != null && parameters.length > 0 ||
+                                 properties != null && properties.length > 0)
+                            CoreLogger.log(callbackClasses.length == 1 ? Level.WARNING: CoreLogger.getDefaultLevel(),
+                                    "can't pass parameters to callback 'cause it " +
+                                    "doesn't implement CallbacksCustomizer: " +
+                                    CoreLogger.getDescription(callback));
+                    return true;
+                }
         return false;
     }
 
-    /** The callback which is called when the instance of this class registered.   */ @SuppressWarnings("WeakerAccess")
-    protected void onRegister  () {}
-    /** The callback which is called when the instance of this class unregistered. */ @SuppressWarnings("WeakerAccess")
-    protected void onUnregister() {}
+    /** The callback which is called when the instance of this class registered.   */
+    @SuppressWarnings({"WeakerAccess", "EmptyMethod"}) protected void onRegister  () {}
+    /** The callback which is called when the instance of this class unregistered. */
+    @SuppressWarnings({"WeakerAccess", "EmptyMethod"}) protected void onUnregister() {}
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -426,8 +363,8 @@ public abstract class BaseCallbacks<T> {
          * Please refer to the base method description.
          */
         @Override
-        protected boolean proceed(@NonNull final T object) {
-            return proceed(object, mAll);
+        protected boolean proceed(@NonNull final T object, @NonNull final BaseCallbacks<T> callback) {
+            return proceed(object, mAll, callback);
         }
     }
 
@@ -537,7 +474,7 @@ public abstract class BaseCallbacks<T> {
                 boolean proceed = false;
                 if (isCreate != null)
                     if (isCreate) {
-                        proceed = callbacks.proceed(object);
+                        proceed = callbacks.proceed(object, callbacks);
                         add(callbacks, proceed, object);
                     }
                     else
@@ -546,13 +483,13 @@ public abstract class BaseCallbacks<T> {
                 if (condition != null && !condition.call()) return false;
 
                 // it's possible to be registered after onCreate
-                if (!(isCreate != null &&  isCreate)) proceed = callbacks.proceed(object);
+                if (!(isCreate != null &&  isCreate)) proceed = callbacks.proceed(object, callbacks);
                 if (!(isCreate != null && !isCreate)) add(callbacks, proceed, object);
 
                 return proceed;
             }
-            catch (Exception e) {
-                CoreLogger.log("proceed failed", e);
+            catch (Exception exception) {
+                CoreLogger.log(exception);
                 return false;
             }
         }

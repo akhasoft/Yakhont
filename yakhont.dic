@@ -8,6 +8,7 @@ buildscript
 ctor
 delegator
 demosimple
+demosimplekotlin
 doclet
 doclint
 dreamin
@@ -18,12 +19,14 @@ javassist
 jcenter
 Kharitonov
 landroid
+mediarouter
 mergeable
 nand
 neenbedankt
 okhttp
 okio
 parameterized
+pojo
 reactivex
 recyclerview
 rootpage

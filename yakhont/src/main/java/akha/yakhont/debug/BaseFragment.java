@@ -33,6 +33,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
@@ -171,9 +172,11 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
+    @Nullable
     @CallSuper
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull  LayoutInflater inflater, @Nullable ViewGroup container,
+                             @Nullable Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         return super.onCreateView(inflater, container, savedInstanceState);
@@ -312,7 +315,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onSaveInstanceState(Bundle outState) {
+    public void onSaveInstanceState(@NonNull Bundle outState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", outState " + outState, false);
 
         super.onSaveInstanceState(outState);
@@ -345,7 +348,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onViewCreated(view, savedInstanceState);

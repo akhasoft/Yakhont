@@ -1,0 +1,178 @@
+/*
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+buildscript {
+    repositories {
+        jcenter()
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+
+ext.libVerDemoKotlinDefault     = rootProject.ext.projectLibVerDefault
+
+ext.libVerDemoKotlinGms         = rootProject.ext.projectLibVerGms
+ext.libVerDemoKotlinLocation    = rootProject.ext.projectLibVerLocation
+
+ext.libVerDemoKotlinRetrofit2   = rootProject.ext.projectLibVerRetrofit2
+
+ext.libVerDemoKotlinOkHttp3     = rootProject.ext.projectLibVerOkHttp3
+ext.libVerDemoKotlinGson        = rootProject.ext.projectLibVerGson
+
+ext.libVerDemoKotlinRxJava      = rootProject.ext.projectLibVerRxJava
+ext.libVerDemoKotlinRxJava2     = rootProject.ext.projectLibVerRxJava2
+
+ext.libVerDemoKotlinDagger      = rootProject.ext.projectLibVerDagger
+
+def dependenciesStrategy = { DependencyResolveDetails details ->
+    if (details.requested.group == 'com.google.android.gms') {
+        if (details.requested.name == 'play-services-location' ||
+            details.requested.name == 'play-services-places-placereport')
+            details.useVersion      libVerDemoKotlinLocation
+        else
+            details.useVersion      libVerDemoKotlinGms
+        details.because 'To enforce releasable units for Google Play Services'
+    }
+    if (details.requested.group == 'com.squareup.retrofit2') {
+        details.useVersion          libVerDemoKotlinRetrofit2
+        details.because 'To enforce releasable units for Retrofit 2'
+    }
+    if (details.requested.group == 'com.squareup.okhttp3') {
+        details.useVersion          libVerDemoKotlinOkHttp3
+        details.because 'To enforce releasable units for okhttp3'
+    }
+    if (details.requested.group == 'com.google.dagger') {
+        details.useVersion          libVerDemoKotlinDagger
+        details.because 'To enforce releasable units for Dagger 2'
+    }
+}
+
+//noinspection GroovyMissingReturnStatement
+android {
+    compileSdkVersion           28
+    buildToolsVersion          '28.0.3'
+
+    //noinspection GroovyMissingReturnStatement
+    defaultConfig {
+        applicationId         'akha.yakhont.demosimplekotlin'
+        minSdkVersion           14
+        targetSdkVersion        28
+        versionCode            10101
+        versionName           '1.1'
+
+        resConfigs            'en', 'ru'
+    }
+
+    compileOptions {
+        sourceCompatibility     JavaVersion.VERSION_1_8
+        targetCompatibility     JavaVersion.VERSION_1_8
+    }
+
+    lintOptions {
+        abortOnError            false
+    }
+
+    dataBinding {
+        enabled                 true
+    }
+
+    signingConfigs {
+        config {
+            storeFile file('../../misc/testkeystore.jks')
+            keyAlias       'test'
+            keyPassword    'qwerty'
+            storePassword  'qwerty'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled       rootProject.ext.projectDebug != '1'
+            signingConfig       signingConfigs.config
+
+            rootProject.ext.projectProGuardFiles.each {
+                //noinspection GroovyAssignabilityCheck
+                proguardFile            '../proguard/libs/' + it
+            }
+            proguardFile                '../proguard/libs/proguard-gson.pro'
+
+            proguardFile                './proguard/proguard-project-app.pro'
+            proguardFile                '../proguard/proguard-project.pro'
+            //noinspection GroovyAssignabilityCheck
+            proguardFile                getDefaultProguardFile('proguard-android.txt')
+        }
+    }
+
+    // workaround for the local Yakhont aar
+    repositories {
+        flatDir dirs: '../yakhont/build/outputs/aar'
+    }
+
+    applicationVariants.all { variant ->
+        String prefix = variant.buildType.name
+        configurations.getByName(prefix + 'UnitTestCompileClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        configurations.getByName(prefix + 'UnitTestRuntimeClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.runtimeConfiguration                 .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getAnnotationProcessorConfiguration().resolutionStrategy.eachDependency dependenciesStrategy
+    }
+    testVariants      .all { variant ->
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getRuntimeConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+    }
+}
+
+dependencies {
+    implementation      "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
+    implementation      "androidx.core:core-ktx:1.0.1"
+    kapt                "com.android.databinding:compiler:3.1.4"
+
+    implementation      "androidx.appcompat:appcompat:1.0.2"
+    implementation      "androidx.recyclerview:recyclerview:1.0.0"
+
+    implementation      "androidx.annotation:annotation:1.0.1"
+    implementation      "androidx.lifecycle:lifecycle-common-java8:2.0.0"
+    implementation      "androidx.lifecycle:lifecycle-extensions:2.0.0"
+    implementation      "androidx.lifecycle:lifecycle-viewmodel-ktx:2.0.0"
+    implementation      "androidx.lifecycle:lifecycle-reactivestreams-ktx:2.0.0"
+    // comment out if you don't need Location API
+    // (and uncomment lines in proguard-project-app.pro)
+    implementation      "com.google.android.gms:play-services-location:${libVerDemoKotlinDefault}"
+
+    implementation      "com.google.dagger:dagger:${libVerDemoKotlinDefault}"           // Dagger 2
+    kapt                "com.google.dagger:dagger-compiler:${libVerDemoKotlinDagger}"
+
+    implementation      "com.google.code.gson:gson:${libVerDemoKotlinGson}"             // Gson
+
+    implementation     ("com.squareup.retrofit2:retrofit:${libVerDemoKotlinDefault}") { // Retrofit
+        exclude group:  "com.squareup.okhttp3", module: "okhttp"
+    }
+    implementation     ("com.squareup.retrofit2:converter-gson:${libVerDemoKotlinDefault}") {
+        exclude group:  "com.google.code.gson", module: "gson"
+    }
+    implementation      "com.squareup.okhttp3:okhttp:${libVerDemoKotlinDefault}"
+    implementation      "com.squareup.okhttp3:logging-interceptor:${libVerDemoKotlinDefault}"
+
+    implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoKotlinRxJava2}"        // Rx
+    implementation      "io.reactivex:rxjava:${libVerDemoKotlinRxJava}"
+
+    implementation      name:'yakhont', ext:'aar'
+}

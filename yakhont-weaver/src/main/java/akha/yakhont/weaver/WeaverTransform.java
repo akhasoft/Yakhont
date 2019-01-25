@@ -50,7 +50,6 @@ import org.apache.commons.io.FileUtils;
  *
  * @author akha
  */
-@SuppressWarnings("WeakerAccess")
 @Deprecated
 public class WeaverTransform extends Transform {
 
@@ -160,8 +159,8 @@ public class WeaverTransform extends Transform {
                     new Weaver().run(mDebug, mApplicationId, dest.getCanonicalPath(), classPath.toString(),
                             mBootClassPath, mConfigFiles, mAddConfig);
                 }
-                catch (NotFoundException | CannotCompileException e) {
-                    throw new TransformException(e);
+                catch (CannotCompileException | NotFoundException exception) {
+                    throw new TransformException(exception);
                 }
             }
         }

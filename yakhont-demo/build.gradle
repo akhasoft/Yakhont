@@ -186,10 +186,8 @@ dependencies {
     implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoRxJava2}"          // Rx
     implementation      "io.reactivex:rxjava:${libVerDemoRxJava}"
 
-    implementation      name:'yakhont', ext:'aar'                           // tmp stub
-//    implementation      name:'yakhont-support', ext:'aar'                           // Yakhont
-// 'cause support sources doesn't exist and generated 'on the fly'
-//    implementation project(':yakhont')
+    implementation      name:'yakhont', ext:'aar'
+//  implementation      project(':yakhont')
 }
 
 android.variantFilter { variant ->
@@ -204,7 +202,7 @@ String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
-    AbstractCompile javaCompile = variant.javaCompiler
+    JavaCompile javaCompile = variant.javaCompileProvider.get()
     javaCompile.doLast {
         //noinspection UnnecessaryQualifiedReference
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,

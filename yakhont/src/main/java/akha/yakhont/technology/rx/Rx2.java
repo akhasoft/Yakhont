@@ -286,8 +286,6 @@ public class Rx2<D> extends CommonRx<D> {
      *        The {@link CallbackRx}
      *
      * @param isSafe
-     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise;
      *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
@@ -336,8 +334,6 @@ public class Rx2<D> extends CommonRx<D> {
      *        The {@link CallbackRx}
      *
      * @param isSafe
-     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise;
      *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
@@ -386,8 +382,6 @@ public class Rx2<D> extends CommonRx<D> {
      *        The {@link CallbackRx}
      *
      * @param isSafe
-     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise;
      *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
@@ -436,8 +430,6 @@ public class Rx2<D> extends CommonRx<D> {
      *        The {@link CallbackRx}
      *
      * @param isSafe
-     *        {@code false} to throw {@link io.reactivex.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise;
      *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>

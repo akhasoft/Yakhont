@@ -29,14 +29,11 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
-// import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
-// import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
-// import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;
 import akha.yakhont.technology.retrofit.Retrofit;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
 import akha.yakhont.technology.retrofit.RetrofitLoaderWrapper.RetrofitCoreLoadBuilder;
@@ -44,7 +41,6 @@ import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
-// import akha.yakhont.technology.rx.Rx2;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -52,7 +48,6 @@ import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Resources;
-import androidx.databinding.BindingAdapter;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
@@ -68,6 +63,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
+import androidx.databinding.BindingAdapter;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
@@ -76,7 +72,6 @@ import com.google.gson.reflect.TypeToken;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-// import java.util.concurrent.Callable;
 
 public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
@@ -127,14 +122,42 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
         createRetrofit(getActivity());
 
-        registerSwipeRefresh();     // SwipeRefreshLayout handling (optional)
-
-        initRx();                   // optional
+        initRx();                            // optional
 
         if (getMainActivity().isRetrofit2()) // example with Data Binding Library support (POJO Beer)
+            createLoaderForRetrofit2();
+        else                                 // example without Data Binding Library support (POJO BeerDefault)
+            createLoaderForRetrofit();       // just for historical reasons
 
-            //noinspection Convert2Diamond
-            mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(mRetrofit2) /* {
+        // uncomment to clear cache
+//      if (savedInstanceState == null) akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.clearCache(mCoreLoad);
+// or                                   Utils.clearCache("your_table_name");
+
+        registerSwipeRefresh();              // SwipeRefreshLayout handling (optional)
+
+        startLoading(savedInstanceState, false);
+    }
+
+    private void startLoading(Bundle savedInstanceState, boolean byUserRequest) {
+
+        if (byUserRequest) setBubblesState(true);
+
+        mCoreLoad.setGoBackOnCancelLoading(!byUserRequest);
+
+        mCoreLoad.load(getActivity(), getLoadParameters(
+                byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
+                !byUserRequest, mCheckBoxMerge.isChecked()));
+    }
+
+    private LoadParameters getLoadParameters(final boolean forceCache,
+                                             final boolean noProgress, final boolean merge) {
+        return new LoadParameters(null, null, forceCache, noProgress, merge,
+                mNotDisplayLoadingErrors, false, false);
+    }
+
+    private void createLoaderForRetrofit2() {
+        //noinspection Convert2Diamond
+        mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(mRetrofit2) /* {
 
                 // usage examples ('raw calls' means - without default Yakhont pre- and postprocessing)
                 @Override
@@ -146,11 +169,11 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                     // raw call for Retrofit2 API with Rx2   ('getApi()' takes null)
                     //   it's exactly the same as 'setRequester(Retrofit2Api::getDataRx)' below
                     //   and 'getApi(callback).getDataRx()' above
-                    getRx2DisposableHandler().add(Rx2.handle(
+                    getRx2DisposableHandler().add(akha.yakhont.technology.rx.Rx2.handle(
                             getApi(null).getDataRx(), getRxWrapper(callback)));
 
                     // raw call for Retrofit2 API without Rx ('getApi()' takes null)
-//                  getApi(null).getData("not used parameter").enqueue(callback);
+//                  getApi(null).getData("some parameter").enqueue(callback);
                 }
             } */
 
@@ -159,7 +182,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 //          .setType(new TypeToken<List<Beer>>() {}.getType())
 
             .setRequester(Retrofit2Api::getDataRx)
-// or       .setRequester(retrofit2Api -> retrofit2Api.getData("not used parameter"))
+// or       .setRequester(retrofit2Api -> retrofit2Api.getData("some parameter"))
 
             // recommended way - but default binding also works (see below in Retrofit 1 example)
             .setDataBinding(BR.beer)
@@ -168,7 +191,8 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             .setLoaderCallback(MainFragment.this::onLoadFinishedDataBinding)
 /*
             // just an example: it does exactly the same as call above, but provides more options to customize
-            .setLoaderCallbacks(new LoaderCallbacks<Throwable, List<Beer>>() {
+            .setLoaderCallbacks(
+                    new akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks<Throwable, List<Beer>>() {
                 @Override
                 public void onLoadFinished(List<Beer> data, Source source) {
                     MainFragment.this.onLoadFinished(data, source);
@@ -188,12 +212,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
             .setProgress(new ProgressDemo())                        // custom data loading progress screen
 /* or something like this:
-            .setProgress(new Callable<Progress>() {
+            .setProgress(new java.util.concurrent.Callable<akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress>() {
                 @Override
-                public Progress call() {
+                public akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress call() {
                     // if you're implementing your own cancel confirmation logic, you should to call
                     //   'LiveDataDialog.cancel(Activity)' to cancel data loading
-                    return new Progress() {
+                    return new akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress() {
                         @Override public void setText(String text)       {...}
                         @Override public void show()                     {...}
                         @Override public void hide()                     {...}
@@ -206,11 +230,11 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 //          .setNoCache(true)
 
             .create();
+    }
 
-        else                                 // example without Data Binding Library support (POJO BeerDefault)
-
-            //noinspection Anonymous2MethodRef,Convert2Lambda,Convert2Diamond
-            mCoreLoad = new RetrofitCoreLoadBuilder<List<BeerDefault>, RetrofitApi>(mRetrofit) /* {
+    private void createLoaderForRetrofit() {
+        //noinspection Anonymous2MethodRef,Convert2Lambda,Convert2Diamond
+        mCoreLoad = new RetrofitCoreLoadBuilder<List<BeerDefault>, RetrofitApi>(mRetrofit) /* {
 
                 // 'setRequester(...)' doesn't work for Retrofit 1
                 @Override
@@ -245,29 +269,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             .setProgress(new ProgressDemo())                        // custom data loading progress screen
 
             .create();
-
-        // uncomment to clear cache
-//      if (savedInstanceState == null) BaseResponseLoaderWrapper.clearCache(mCoreLoad);
-// or                                   Utils.clearCache("your_table_name");
-
-        startLoading(savedInstanceState, false);
-    }
-
-    private void startLoading(Bundle savedInstanceState, boolean byUserRequest) {
-
-        if (byUserRequest) setBubblesState(true);
-
-        mCoreLoad.setGoBackOnCancelLoading(!byUserRequest);
-
-        mCoreLoad.load(getActivity(), getLoadParameters(
-                byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
-                !byUserRequest, mCheckBoxMerge.isChecked()));
-    }
-
-    private LoadParameters getLoadParameters(final boolean forceCache,
-                                             final boolean noProgress, final boolean merge) {
-        return new LoadParameters(null, null, forceCache, noProgress, merge,
-                mNotDisplayLoadingErrors, false, false);
     }
 
     private void onLoadFinished(List<?> data, Source source) {
@@ -312,6 +313,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         return mCheckBoxForce.isChecked() ? View.VISIBLE: View.INVISIBLE;
     }
 
+    @SuppressWarnings("WeakerAccess")
     @BindingAdapter("android:src")
     public static void setImageUrl(ImageView view, String data) {
 
@@ -506,7 +508,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         @Override
         public void show() {
             mProgress = new ProgressDialogFragment();
-            mProgress.show(getActivity().getSupportFragmentManager(), "ProgressDialogFragment");
+            mProgress.show(Objects.requireNonNull(getActivity()).getSupportFragmentManager(), "ProgressDialogFragment");
         }
 
         @Override
@@ -525,6 +527,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         }
     }
 
+    @SuppressWarnings("WeakerAccess")
     public static class ProgressDialogFragment extends DialogFragment {
 
         private static BitmapDrawable   sBackground;
@@ -535,7 +538,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
             Activity activity = getActivity();
-            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+            AlertDialog.Builder builder = new AlertDialog.Builder(Objects.requireNonNull(activity));
 
             @SuppressLint("InflateParams")
             View view = LayoutInflater.from(activity).inflate(R.layout.progress, null);

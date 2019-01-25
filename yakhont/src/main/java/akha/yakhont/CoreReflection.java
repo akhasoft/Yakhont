@@ -220,8 +220,9 @@ public class CoreReflection {
         try {
             return tmpClass.getMethod(methodName, args);
         }
-        catch (NoSuchMethodException e) {
-            CoreLogger.log(Level.DEBUG, "Class.getMethod('" + methodName + "') failed", e);
+        catch (/*NoSuchMethod*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), "Class.getMethod('" + methodName +
+                    "') failed", exception);
         }
 
         //noinspection ConditionalBreakInInfiniteLoop

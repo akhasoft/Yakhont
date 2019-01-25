@@ -18,16 +18,17 @@ package akha.yakhont.callback.lifecycle;
 
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseCacheCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseLifecycleProceed;
 import akha.yakhont.debug.BaseFragment;
 
 import android.annotation.TargetApi;
-import androidx.fragment.app.Fragment;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.fragment.app.Fragment;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -375,7 +376,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * <p>Usage example (for more examples please refer to {@link akha.yakhont.callback.BaseCallbacks general Activity},
      * {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks Activity}
-     * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class) simple Activity} ones):
+     * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class, BaseCallbacks) simple Activity} ones):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * package com.yourpackage;

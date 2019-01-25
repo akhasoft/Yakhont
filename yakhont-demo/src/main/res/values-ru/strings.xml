@@ -27,7 +27,5 @@
 
     <string name="confirm">При отмене необходимо подтверждение</string>
 
-    <string name="db_id">from cache</string>
-
     <string name="info">В оформлении использованы работы художника Валерия Барыкина</string>
 </resources>

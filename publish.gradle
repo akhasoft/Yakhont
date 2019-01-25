@@ -60,6 +60,7 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven-publish'
 
 version = getPropertyExt('publishedVersion')
+//noinspection GroovyUnusedAssignment
 group   = getPropertyExt('publishedGroupId')
 
 def pomConfig = {
@@ -300,8 +301,8 @@ if (isAndroidApp || isAndroidLib) {
                 source          = android.sourceSets.main.java.srcDirs + android.sourceSets[flavorName].java.srcDirs
                 
                 //noinspection GroovyAssignabilityCheck
-                classpath       = variant.javaCompiler.classpath + project.files(android.getBootClasspath().join(File.pathSeparator))
-                
+                classpath       = variant.javaCompileProvider.get().classpath + project.files(android.getBootClasspath().join(File.pathSeparator))
+
                 //noinspection GroovyAssignabilityCheck
                 destinationDir  = docsDest
 
@@ -379,7 +380,7 @@ if (isAndroidApp || isAndroidLib) {
                 duplicatesStrategy      = DuplicatesStrategy.WARN
             }
 
-            project.artifacts.archives output.outputFile, javadocJar, sourcesJar
+            project.artifacts.archives variant.packageLibraryProvider, javadocJar, sourcesJar
 
             install.repositories.mavenInstaller {
 

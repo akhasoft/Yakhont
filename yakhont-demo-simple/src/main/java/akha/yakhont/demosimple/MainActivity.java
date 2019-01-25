@@ -17,32 +17,32 @@
 package akha.yakhont.demosimple;
 
 import akha.yakhont.demosimple.model.Beer;
-// import akha.yakhont.demosimple.model.BeerDefault;
 import akha.yakhont.demosimple.retrofit.LocalJsonClient2;
 import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 
+import akha.yakhont.Core;
+import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.retrofit.Retrofit2;
-// import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.location.Location;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.widget.TextView;
 import android.widget.Toast;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.Date;
 
-@CallbacksInherited(LocationCallbacks.class)
-public class MainActivity extends Activity implements LocationListener {
+@CallbacksInherited( /* value = */ LocationCallbacks.class /* , parameters = "permissions rationale demo" */ )
+public class MainActivity extends AppCompatActivity implements LocationListener {
 
     private boolean mAdvertisementShown;
 
@@ -53,33 +53,35 @@ public class MainActivity extends Activity implements LocationListener {
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
 //      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false);
 
-        // uncomment to suppress location access confirmation dialog
-//      LocationCallbacks.allowAccessToLocation(true);
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ((RecyclerView) findViewById(R.id.recycler))
-                .setLayoutManager(new LinearLayoutManager(this));
+        boolean debug = BuildConfig.DEBUG;
+        if (debug) {
+            Core.setFullLoggingInfo(true);
+            // optional; on shaking device email with logs will be sent to the address below
+            CoreLogger.registerShakeDataSender(this, "address@company.com");
+        }
+
+        ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(new LinearLayoutManager(this));
 /*
         ////////
-        // normally it's enough - but here we have the local client; so see below...
+        // normally it should be enough - but here we have the local client; so see below...
 
-        Retrofit2Loader.load("http://localhost/", Retrofit2Api.class,
-                Retrofit2Api::getData, BR.beer);
+        Retrofit2Loader.load("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.beer);
 
         ////////
 */
         final Retrofit2<Retrofit2Api, Beer[]> retrofit2 = new Retrofit2<>();
-        Retrofit2Loader.get("http://localhost/", Retrofit2Api.class,
-                Retrofit2Api::getData, BR.beer,
+        Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData, BR.beer,
                 new LocalJsonClient2(retrofit2) /* .setEmulatedNetworkDelay(10) */ , retrofit2)
                 /* .setGoBackOnCancelLoading(false) */ .load();
 /*
         // recommended binding (based on Data Binding Library) - exactly the same as code above
-        new Retrofit2CoreLoadBuilder<>(MainActivity.<Beer>createRetrofit())
+        new akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder<>
+                    (MainActivity.<Beer>createRetrofit())
                 .setRequester(Retrofit2Api::getData)
-// or           .setRequester(retrofit2Api -> retrofit2Api.getData("param"))
+// or           .setRequester(retrofit2Api -> retrofit2Api.getData("some parameter"))
 
                 // recommended way - but default binding also works (see below)
                 .setDataBinding(BR.beer)
@@ -99,7 +101,8 @@ public class MainActivity extends Activity implements LocationListener {
                 .load();
 // or
         // default binding (based on reflection)
-        new Retrofit2CoreLoadBuilder<>(MainActivity.<BeerDefault>createRetrofit())
+        new akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder<>
+                    (MainActivity.<akha.yakhont.demosimple.model.BeerDefault>createRetrofit())
                 .setRequester(Retrofit2Api::getData)
                 .setListItem(R.layout.recycler_item_default)
                 .create().load();

@@ -49,11 +49,12 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         init();
     }
 
-    @SuppressWarnings("deprecation")
-    public BaseSimpleCursorSupportAdapter(@NonNull                final Context  context,
-                                          @LayoutRes              final    int   layoutId,
-                                          @NonNull @Size(min = 1) final String[] from,
-                                          @NonNull @Size(min = 1) final    int[] to  , final int ignored) {
+    @SuppressWarnings({"deprecation", "unused"})
+    public BaseSimpleCursorSupportAdapter(@NonNull                    final Context  context ,
+                                          @LayoutRes                  final    int   layoutId,
+                                          @NonNull @Size(min = 1)     final String[] from    ,
+                                          @NonNull @Size(min = 1)     final    int[] to      ,
+                                          @SuppressWarnings("unused") final    int   ignored) {
         super(context, layoutId, null, from, to);
         mContext = new WeakReference<>(context);
         init();

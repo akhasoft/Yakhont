@@ -15,6 +15,14 @@
 
 -keep class akha.yakhont.BuildConfig { *; }
 
+# Preserve all fundamental application classes.
+
+-keep public class * extends android.app.Activity
+-keep public class * extends android.app.Application
+-keep public class * extends android.app.Service
+-keep public class * extends android.content.BroadcastReceiver
+-keep public class * extends android.content.ContentProvider
+
 # The "Exceptions" attribute has to be preserved, so the compiler knows which exceptions methods may throw.
 # The "InnerClasses" attribute (or more precisely, its source name part) has to be preserved too, for any inner classes that can be
 #   referenced from outside the library. The javac compiler would be unable to find the inner classes otherwise.

@@ -19,6 +19,7 @@ package akha.yakhont.callback.lifecycle;
 import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseCacheCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseLifecycleProceed;
 
@@ -80,7 +81,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     }
 
     private static String getActivityName(@NonNull final Activity activity) {
-        return CoreLogger.getActivityName(activity);
+        return CoreLogger.getDescription(activity);
     }
 
     private static void log(@NonNull final String info, final int value, @NonNull final String name) {
@@ -219,6 +220,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     protected static void apply(@NonNull final ActivityLifecycle lifeCycle, @NonNull final Activity activity, final Bundle state) {
 
         switch (lifeCycle) {
+            case CREATED:
             case STARTED:
             case RESUMED:
                 sActivity.set(activity);
@@ -498,7 +500,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      *
      * <p>Usage example (for more examples please refer to {@link akha.yakhont.callback.BaseCallbacks general Activity},
      * {@yakhont.link BaseFragmentLifecycleProceed.BaseFragmentCallbacks Fragment}
-     * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class) simple Activity} ones):
+     * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class, BaseCallbacks) simple Activity} ones):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * package com.yourpackage;
@@ -556,6 +558,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         /**
          * Initialises a newly created {@code BaseActivityCallbacks} object.
          */
+        @SuppressWarnings("WeakerAccess")
         public BaseActivityCallbacks() {
         }
 
@@ -601,9 +604,10 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         /** @exclude */
         @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static void hideKeyboard(@NonNull final Activity activity) {
-            final InputMethodManager inputMethodManager = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+            final InputMethodManager inputMethodManager = (InputMethodManager) activity
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
             if (inputMethodManager == null) {
-                CoreLogger.logWarning("can not get InputMethodManager");
+                CoreLogger.logWarning("can't get InputMethodManager");
                 return;
             }
 
@@ -613,7 +617,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
             if (currentFocus != null)
                 inputMethodManager.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
             else
-                CoreLogger.logWarning("can not get current focus");
+                CoreLogger.logWarning("can't hide keyboard 'cause can't find current focus");
         }
     }
 

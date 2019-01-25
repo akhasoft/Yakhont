@@ -27,7 +27,8 @@
 
     <string name="confirm">Use confirmation on cancelling</string>
 
-    <string name="db_id">from cache</string>
+    <string name="db_id"                      translatable="false">from cache</string>
+    <string name="permissions_rationale_demo" translatable="false">permissions rationale demo</string>
 
     <string name="info">The pin-up works are by Valery Barykin</string>
 </resources>

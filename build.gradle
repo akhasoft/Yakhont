@@ -15,14 +15,20 @@
  */
 
 buildscript {
+
+    ext.kotlin_version = '1.3.20'
+
     repositories {
         google()
         jcenter()
     }
+
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.2.1'
-        classpath 'com.github.dcendents:android-maven-gradle-plugin:2.0'
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3'
+        classpath "com.android.tools.build:gradle:3.3.0"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+
+        classpath "com.github.dcendents:android-maven-gradle-plugin:2.0"
+        classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3"
     }
 }
 
@@ -82,9 +88,9 @@ ext {
     projectLibVerRxJava     =  '1.3.8'
     projectLibVerRxJava2    = '2.1.16'
 
-    projectLibVerDagger     =   '2.16'
+    projectLibVerDagger     =   '2.21'
 
-    projectLibVerJavassist  = '3.23.0-GA'
+    projectLibVerJavassist  = '3.24.1-GA'
 
     projectProGuardFiles    = ['proguard-google-play-services.pro'                      ,
                                'proguard-rx-java.pro'                                   ,
@@ -105,7 +111,7 @@ allprojects {
 
     gradle.projectsEvaluated {
         tasks.withType(JavaCompile) {
-            options.compilerArgs << "-Xlint:unchecked" // << "-Xdiags:verbose" << "-Xlint:deprecation"
+            options.compilerArgs << "-Xlint:unchecked" // << "-Xlint:deprecation" << "-Xdiags:verbose"
         }
     }
 }

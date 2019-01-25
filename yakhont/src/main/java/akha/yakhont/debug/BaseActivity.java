@@ -36,7 +36,6 @@ import android.view.KeyEvent;
 import android.view.View;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
-import androidx.fragment.app.FragmentActivity;
 
 import java.util.Arrays;
 
@@ -65,7 +64,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @SuppressWarnings("JavaDoc")
     protected String getDebugMessage() {
-        return "activity " + CoreLogger.getActivityName(this);
+        return "activity " + CoreLogger.getDescription(this);
     }
 
     /**
@@ -132,8 +131,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     public void onAttachFragment(android.app.Fragment fragment) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment, false);
 
-        if (FragmentActivity.class.isInstance(this))
-            CoreLogger.logWarning("about to attach android.app.Fragment to FragmentActivity");
+    //YakhontPreprocessor:addToGenerated-FragmentActivity-    CoreLogger.logWarning("about to attach android.app.Fragment to FragmentActivity");
 
         super.onAttachFragment(fragment);
     }

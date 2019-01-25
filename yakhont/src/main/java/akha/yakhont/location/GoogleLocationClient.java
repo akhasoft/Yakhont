@@ -44,6 +44,7 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationServices;
 
 import java.lang.ref.WeakReference;
+import java.util.Objects;
 
 import javax.inject.Provider;
 
@@ -354,6 +355,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         else {
             final Dialog dialog = getErrorDialog(activity, errorCode, REQUEST_CODE_ERROR);
 
+            //noinspection Convert2Lambda
             dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
@@ -365,7 +367,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         }
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public static class LocationErrorDialogFragment extends DialogFragment {
 
         @SuppressWarnings("WeakerAccess")
@@ -392,7 +394,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
-            final int errorCode = getArguments().getInt(ARG_DIALOG_ERROR);
+            final int errorCode = Objects.requireNonNull(getArguments()).getInt(ARG_DIALOG_ERROR);
             CoreLogger.log("error code: " + errorCode);
 
             final Activity activity = getCurrentActivity();

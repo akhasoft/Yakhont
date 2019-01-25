@@ -77,8 +77,6 @@ public class SlideShow {
         mControlPanel       = mainView.findViewById(R.id.control_panel);
         mControlPanelBtn    = mainView.findViewById(R.id.btn_load);
 
-        mContainer.setPersistentDrawingCache(ViewGroup.PERSISTENT_ANIMATION_CACHE);
-
         //noinspection Convert2Lambda
         ((AbsListView) mainView.findViewById(R.id.grid)).setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -218,7 +216,9 @@ public class SlideShow {
 
         fragment.onSlideShow(showSlides);
         
+        @SuppressWarnings("IntegerDivisionInFloatingPointContext")
         float centerX = mContainer.getWidth()  / 2;
+        @SuppressWarnings("IntegerDivisionInFloatingPointContext")
         float centerY = mContainer.getHeight() / 2;
 
         Rotate3dAnimation rotation = new Rotate3dAnimation(showSlides ? 0: 180, 90, centerX, centerY, DEPTH_Z, true);
@@ -275,7 +275,9 @@ public class SlideShow {
         }
 
         public void run() {
+            @SuppressWarnings("IntegerDivisionInFloatingPointContext")
             float centerX = mContainer.getWidth()  / 2;
+            @SuppressWarnings("IntegerDivisionInFloatingPointContext")
             float centerY = mContainer.getHeight() / 2;
 
             if (mShowSlides) {

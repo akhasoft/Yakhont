@@ -156,8 +156,6 @@ import javax.inject.Provider;
 public interface Dagger2 {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    String      UI_ALERT_LOCATION               = "alert_location";
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_ALERT_PERMISSION             = "alert_permission";
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_ALERT_PERMISSION_DENIED      = "alert_permission_denied";
@@ -166,8 +164,6 @@ public interface Dagger2 {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     String      UI_TOAST_LENGTH_SHORT           = "toast_short";
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    @Named(UI_ALERT_LOCATION)          Provider<BaseDialog>     getAlertLocation();
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Named(UI_ALERT_PERMISSION)        Provider<BaseDialog>     getAlertPermission();
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -298,7 +294,7 @@ public interface Dagger2 {
                         if (!resultTmp) result = false;
                     }
 
-                    CoreLogger.log(result ? Level.DEBUG: Level.ERROR,
+                    CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR,
                             "callbacks annotations validation result " + result);
                     return result;
                 }
@@ -368,46 +364,27 @@ public interface Dagger2 {
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        @Provides @Named(UI_ALERT_LOCATION)
-        public BaseDialog provideLocationAlert(Parameters parameters) {
-            return getAlert(akha.yakhont.R.string.yakhont_location_alert,
-                    Utils.getRequestCode(RequestCodes.LOCATION_ALERT), false);
-        }
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION)
         public BaseDialog providePermissionAlert(Parameters parameters) {
-            return getAlert(akha.yakhont.R.string.yakhont_permission_alert,
-                    Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT), false);
+            return getAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT));
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION_DENIED)
         public BaseDialog providePermissionDeniedAlert(Parameters parameters) {
-            return getAlert(akha.yakhont.R.string.yakhont_permission_denied_alert,
-                    Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT), false);
+            return getAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT));
         }
 
         /**
-         * Creates new instance of the alert dialog.
-         *
-         * @param resId
-         *        The resource ID of the dialog message's text
+         * Creates new instance of the alert component.
          *
          * @param requestCode
          *        The integer request code to pass to the {@link Activity#onActivityResult Activity.onActivityResult()}
          *
-         * @param yesNo
-         *        {@code true} for YES / NO buttons, {@code false} for OK / CANCEL ones
-         *
-         * @return  The alert dialog
+         * @return  The alert component
          */
-        protected BaseDialog getAlert(@StringRes final int resId,
-                                      final int requestCode, final Boolean yesNo) {
-            return new BaseSnackbar(null, requestCode)
-                    .setString(resId)
-                    .setActionString(yesNo ? akha.yakhont.R.string.yakhont_alert_yes:
-                                             akha.yakhont.R.string.yakhont_alert_ok);
+        protected BaseDialog getAlert(final int requestCode) {
+            return new BaseToast(true, requestCode);
         }
 
         private static boolean getFlagToast(final Parameters parameters) {
@@ -477,7 +454,7 @@ public interface Dagger2 {
             if (useSnackbarIsoToast)
                 new BaseSnackbar(durationLong, null).start(Utils.getCurrentActivity(), text, null);
             else
-                new BaseToast(durationLong).start(Utils.getApplication(), text);
+                new BaseToast(durationLong).startToast(null, text, null);
         }
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -500,6 +477,21 @@ public interface Dagger2 {
             if (!result) CoreLogger.logError("text is empty");
             return result;
         }
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    static void onActivityResult(final Activity activity, final Intent intent,
+                                 final int requestCode, final int resultCode) {
+        if (activity == null)
+            CoreLogger.logError("activity == null");
+        else
+            Utils.onActivityResult(activity, requestCode, resultCode, intent);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    static void checkRequestCode(final Integer requestCode) {
+        if (requestCode == null)
+            CoreLogger.log("requestCode == null, onActivityResult() will not be called");
     }
 }
 
@@ -527,21 +519,24 @@ class BaseSnackbar implements BaseDialog {
     private       boolean                   mShown;
 
     @SuppressWarnings("unused")
-    BaseSnackbar(final Boolean durationLong, final Integer requestCode) {
+    public BaseSnackbar(final Boolean durationLong, final Integer requestCode) {
         this(Core.NOT_VALID_VIEW_ID, durationLong, requestCode);
     }
 
     @SuppressWarnings({"WeakerAccess", "unused"})
-    BaseSnackbar(@SuppressWarnings("SameParameterValue") @IdRes final int listViewId,
-                 final Boolean durationLong, final Integer requestCode) {
+    public BaseSnackbar(@SuppressWarnings("SameParameterValue") @IdRes final int listViewId,
+                        final Boolean durationLong, final Integer requestCode) {
 
         mViewId      = listViewId;
         mRequestCode = requestCode;
+
+        Dagger2.checkRequestCode(requestCode);
 
         if (durationLong != null)
             mDuration = durationLong ? Snackbar.LENGTH_LONG: Snackbar.LENGTH_SHORT;
     }
 
+    @SuppressWarnings("unused")
     public BaseSnackbar setString(@StringRes final int stringId) {
         mStringId = stringId;
         return this;
@@ -553,6 +548,7 @@ class BaseSnackbar implements BaseDialog {
         return this;
     }
 
+    @SuppressWarnings("unused")
     public BaseSnackbar setActionString(@StringRes final int actionStringId) {
         mActionStringId = actionStringId;
         return this;
@@ -571,18 +567,14 @@ class BaseSnackbar implements BaseDialog {
     }
 
     private void onActivityResult(final int resultCode) {
-        final Activity activity = mActivity.get();
-        if (activity == null)
-            CoreLogger.logError("activity == null");
-        else
-            Utils.onActivityResult(activity, mRequestCode, resultCode, mIntent);
+        Dagger2.onActivityResult(mActivity.get(), mIntent, mRequestCode, resultCode);
     }
 
     @Override
-    public boolean start(final Activity activity, final String text, final Intent data) {
+    public boolean start(Activity activity, final String text, final Intent data) {
         if (activity == null) {
-            CoreLogger.logError("activity == null");
-            return false;
+            CoreLogger.logWarning("activity == null");
+            activity = Utils.getCurrentActivity();
         }
         try {
             mActivity   = new WeakReference<>(activity);
@@ -590,8 +582,8 @@ class BaseSnackbar implements BaseDialog {
 
             return start(text);
         }
-        catch (Exception e) {
-            CoreLogger.log("start failed", e);
+        catch (Exception exception) {
+            CoreLogger.log(exception);
             return false;
         }
     }
@@ -699,6 +691,7 @@ class BaseSnackbar implements BaseDialog {
         return true;
     }
 
+    @SuppressWarnings("unused")
     public static View getView(final Activity activity, Integer viewId) {
         View view = viewId == null ? null: ViewHelper.getView(activity, viewId);
 
@@ -709,6 +702,7 @@ class BaseSnackbar implements BaseDialog {
         if (view != null) {
             //noinspection Convert2Lambda
             final View viewChild = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
+                @SuppressWarnings("unused")
                 @Override
                 public boolean handle(final View view) {
                     return !(view instanceof ViewGroup || view instanceof ViewStub);
@@ -755,31 +749,61 @@ class BaseSnackbar implements BaseDialog {
 
 class BaseToast implements BaseDialog {
 
-    private final boolean       mDurationLong;
+    private static final int                DELAY               = 3000;
 
-    BaseToast(final boolean durationLong) {
-        mDurationLong = durationLong;
+    private final boolean                   mDurationLong;
+    private final Integer                   mRequestCode;
+
+    public BaseToast(final boolean durationLong) {
+        this(durationLong, null);
     }
 
-    public boolean start(Context context, final String text) {
+    public BaseToast(final boolean durationLong, final Integer requestCode) {
+        mDurationLong   = durationLong;
+        mRequestCode    = requestCode;
+
+        Dagger2.checkRequestCode(requestCode);
+    }
+
+    public boolean startToast(Context context, final String text, final Intent data) {
+
+        if (!Dagger2.UiModule.validate(text)) return false;
+
         try {
-            if (context == null)
-                context = Utils.getApplication().getApplicationContext();
-            if (Dagger2.UiModule.validate(text)) {
-                Toast.makeText(context, text,
-                        mDurationLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
-                return true;
+            if (context == null) {
+                context = Utils.getCurrentActivity();
+                if (context == null)
+                    context = Utils.getApplication();
             }
+
+            Toast.makeText(context, text,
+                    mDurationLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
+
+            if (mRequestCode != null)
+                if (context instanceof Activity) {
+                    final Activity activity = (Activity) context;
+                    //noinspection Convert2Lambda
+                    Utils.runInBackground(DELAY, new Runnable() {
+                        @Override
+                        public void run() {
+                            Dagger2.onActivityResult(activity, data, mRequestCode, Activity.RESULT_OK);
+                        }
+                    });
+                }
+                else
+                    CoreLogger.log("context is not Activity, onActivityResult() will not be called");
+
+            return true;
         }
-        catch (Exception e) {
-            CoreLogger.log("start failed", e);
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+            return false;
         }
-        return false;
     }
 
     @Override
     public boolean start(final Activity activity, final String text, final Intent data) {
-        return start(activity, text);
+        return startToast(activity, text, data);
     }
 
     @Override
