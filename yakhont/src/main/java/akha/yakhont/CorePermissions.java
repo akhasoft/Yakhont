@@ -106,6 +106,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     protected static boolean checkData(final Context context, final String permission) {
         if (context    == null) CoreLogger.logError("context == null");
         if (permission == null) CoreLogger.logError("permission == null");
+
         return context != null && permission != null;
     }
 
@@ -123,6 +124,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         for (final String permission: permissions)
             if (!checkData(activity, permission)) return false;
+
         return true;
     }
 
@@ -215,12 +217,13 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /**
-     * Called by the Yakhont Weaver. Please refer to {@link Activity#onActivityResult Activity.onActivityResult()}.
+     * Called by the Yakhont Weaver. Please refer to {@link Activity#onActivityResult}.
      */
     @SuppressWarnings({"UnusedParameters", "unused"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
         Utils.onActivityResult("CorePermissions", activity, requestCode, resultCode, data);
+
         final RequestCodes code = Utils.getRequestCode(requestCode);
 
         if (code != RequestCodes.PERMISSIONS_RATIONALE_ALERT &&
@@ -229,12 +232,13 @@ public class CorePermissions implements ConfigurationChangedListener {
             CoreLogger.logWarning("unknown request code " + requestCode);
             return;
         }
+
         if (data == null) {
-            CoreLogger.logError("intent == null");
+            CoreLogger.logError("permission data == null");
             return;
         }
         if (!data.hasExtra(ARG_VIEW_ID)) {
-            CoreLogger.logError("no view info in intent");
+            CoreLogger.logError("no view info in permission data");
             return;
         }
 
@@ -294,7 +298,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /**
-     * Called by the Yakhont Weaver. Please refer to {@link Activity#onRequestPermissionsResult Activity.onRequestPermissionsResult()}.
+     * Called by the Yakhont Weaver. Please refer to {@link Activity#onRequestPermissionsResult}.
      */
     @SuppressWarnings("unused")
     public static void onRequestPermissionsResult(final Activity activity, final int requestCode,
@@ -339,7 +343,8 @@ public class CorePermissions implements ConfigurationChangedListener {
         final CorePermissions result = view == null ? null:
                 (CorePermissions) view.getTag(ID_OBJECTS);
 
-        CoreLogger.log(result == null ? Level.ERROR: CoreLogger.getDefaultLevel(), "CorePermissions == " + result);
+        CoreLogger.log(result == null ? Level.ERROR: CoreLogger.getDefaultLevel(),
+                "CorePermissions == " + result);
         return result;
     }
 
@@ -383,13 +388,12 @@ public class CorePermissions implements ConfigurationChangedListener {
             return true;
         }
 
-        // Notify the user that they have rejected a permission.
+        // Notify the user that they have rejected a permission (copied from the official Google resources).
 
-        // It is important to remember that a permission might have been
-        // rejected without asking the user for permission (device policy or "Never ask
-        // again" prompts). Therefore, a user interface affordance is typically implemented
-        // when permissions are denied. Otherwise, your app could appear unresponsive to
-        // touches or interactions which have required permissions.
+        // It is important to remember that a permission might have been rejected without asking
+        // the user for permission (device policy or "Never ask again" prompts). Therefore, a user
+        // interface 'affordance' is typically implemented when permissions are denied. Otherwise,
+        // your app could appear unresponsive to touches or interactions which have required permissions.
 
         CoreLogger.logWarning("Permission denied");
 
@@ -422,7 +426,8 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         final Set<Integer> set = getIdsHelper(view);
 
-        CoreLogger.log(set != null ? CoreLogger.getDefaultLevel(): Level.ERROR, "CorePermissions set of view IDs: " + set);
+        CoreLogger.log(set != null ? CoreLogger.getDefaultLevel(): Level.ERROR,
+                "CorePermissions set of view IDs: " + set);
         return set;
     }
 
@@ -652,7 +657,8 @@ public class CorePermissions implements ConfigurationChangedListener {
                 return false;
             }
             final boolean result = viewIds.add(mViewId);
-            CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR, "CorePermissions add view ID: " + result);
+            CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR,
+                    "CorePermissions add view ID: " + result);
 
             //noinspection ConstantConditions
             ViewHelper.setTag(view, ID_OBJECTS, corePermissions);

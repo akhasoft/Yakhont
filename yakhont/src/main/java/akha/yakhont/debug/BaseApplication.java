@@ -30,7 +30,8 @@ import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 
 /**
- * The <code>BaseApplication</code> class is intended for debug purposes. Overridden methods most of the time just adds some logging.
+ * The <code>BaseApplication</code> class is intended for debug purposes.
+ * Overridden methods most of the time just adds some logging.
  *
  * @see LogDebug
  *
@@ -58,13 +59,13 @@ public class BaseApplication extends Application {
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#WARNING WARNING}.
+     * <br>The default value is {@link Level#INFO INFO}.
      *
      * @return  The logging priority level (for debugging)
      */
     @SuppressWarnings("SameReturnValue")
     protected Level getDebugLevel() {
-        return Level.WARNING;
+        return CoreLogger.getDefaultLevel();
     }
 
     /**

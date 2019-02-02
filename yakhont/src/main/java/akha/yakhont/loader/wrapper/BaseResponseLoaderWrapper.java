@@ -29,13 +29,19 @@ import akha.yakhont.adapter.BaseCacheAdapter.DataBindingCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
+import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseConverter;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.technology.retrofit.BaseRetrofit;
+import akha.yakhont.technology.retrofit.Retrofit2;
+import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
+import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
+import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import android.app.Activity;
@@ -51,6 +57,7 @@ import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Size;
 import androidx.annotation.StringRes;
+import androidx.databinding.ViewDataBinding;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelStore;
 import androidx.recyclerview.widget.RecyclerView;
@@ -63,6 +70,28 @@ import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+/**
+ * Extends the {@link BaseLoaderWrapper} class to provide {@link BaseResponse} and cache support.
+ * Most implementations should not use <code>BaseResponseLoaderWrapper</code> directly, but instead
+ * utilise {@link Retrofit2LoaderWrapper} or {@link Retrofit2LoaderBuilder}.
+ *
+ * @param <C>
+ *        The type of callback
+ *
+ * @param <R>
+ *        The type of network response
+ *
+ * @param <E>
+ *        The type of error (if any)
+ *
+ * @param <D>
+ *        The type of data to load
+ *
+ * @see CacheLiveData
+ * @see CoreLoad
+ *
+ * @author akha
+ */
 public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWrapper<BaseResponse<R, E, D>> {
 
     // just a placeholder for the moment
@@ -101,26 +130,62 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @param parameter
          *        The callback (or Retrofit API)
          *
-         * @yakhont.see BaseResponseLoaderWrapper#CoreLoad CoreLoad
-         * @yakhont.see BaseLoader#makeRequest(C) BaseLoader.makeRequest()
+         * @see CoreLoad CoreLoad
          */
         void makeRequest(C parameter);
     }
 
-    // for lambda support
+    /**
+     * Mainly for lambda support.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     */
     @SuppressWarnings("WeakerAccess")
     public interface LoaderCallback<D> {
+
+        /**
+         * Called when data loading process completes.
+         *
+         * @param data
+         *        The data loaded
+         *
+         * @param source
+         *        The data loaded source
+         */
         void onLoadFinished(D data, Source source);
     }
 
+    /**
+     * The API for data loading process customization.
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data to load
+     */
     @SuppressWarnings("unused")
     public static abstract class LoaderCallbacks<E, D> implements LoaderCallback<D> {
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void onLoadFinished(final D data, final Source source) {
             CoreLogger.log("empty onLoadFinished in " + this);
         }
 
+        /**
+         * Called when data loading process aborted with error.
+         *
+         * @param error
+         *        The data loading error
+         *
+         * @param source
+         *        The data loading source
+         */
         @SuppressWarnings("WeakerAccess")
         public void onLoadError(@SuppressWarnings("unused") final E      error,
                                 @SuppressWarnings("unused") final Source source) {
@@ -128,6 +193,30 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
     }
 
+    /**
+     * Initialises a newly created {@code BaseResponseLoaderWrapper} object.
+     *
+     * @param viewModelStore
+     *        The {@code ViewModelStore}
+     *
+     * @param loaderId
+     *        The loader ID (or null)
+     *
+     * @param requester
+     *        The data loading requester
+     *
+     * @param tableName
+     *        The cache table name, pass {@code null} for disable caching
+     *
+     * @param description
+     *        The data description (if any)
+     *
+     * @param converter
+     *        The data converter (most implementations should use {@link BaseConverter})
+     *
+     * @param uriResolver
+     *        The URI resolver (for cache provider)
+     */
     protected BaseResponseLoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                         @NonNull final Requester<C> requester,
                                         @NonNull final String tableName, final String description,
@@ -158,6 +247,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return tableName;
     }
 
+    /**
+     * Clears all database cache associated with given {@code CoreLoad} component.
+     *
+     * @param coreLoad
+     *        The {@code CoreLoad} component
+     */
     @SuppressWarnings("unused")
     public static void clearCache(final CoreLoad coreLoad) {
         if (coreLoad == null) {
@@ -190,6 +285,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return tableName;
     }
 
+    /**
+     * Please refer to the base method description.
+     */
     @Override
     public BaseLoaderWrapper findLoader(final Collection<BaseLoaderWrapper<?>> loaders) {
         final BaseLoaderWrapper baseLoaderWrapper = super.findLoader(loaders);
@@ -204,6 +302,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return baseLoaderWrapper;
     }
 
+    /**
+     * Sets "no cache" flag.
+     *
+     * @param noCache
+     *        {@code true} to disable database caching of loaded data, {@code false} otherwise
+     *
+     * @return  This {@code BaseResponseLoaderWrapper} object
+     */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     @NonNull
     public BaseResponseLoaderWrapper<C, R, E, D> setNoCache(final boolean noCache) {
@@ -211,6 +317,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return this;
     }
 
+    /**
+     * Sets {@code LoaderCallbacks} component.
+     *
+     * @param loaderCallbacks
+     *        The {@code LoaderCallbacks}
+     *
+     * @return  This {@code BaseResponseLoaderWrapper} object
+     */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     @NonNull
     public BaseResponseLoaderWrapper<C, R, E, D> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
@@ -218,6 +332,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return this;
     }
 
+    /**
+     * Sets adapter.
+     *
+     * @param adapter
+     *        The adapter
+     *
+     * @return  This {@code BaseResponseLoaderWrapper} object
+     */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     @NonNull
     public BaseResponseLoaderWrapper<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
@@ -225,6 +347,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return this;
     }
 
+    /**
+     * Sets Rx component.
+     *
+     * @param rx
+     *        The Rx component
+     *
+     * @return  This {@code BaseResponseLoaderWrapper} object
+     */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
     @NonNull
     public BaseResponseLoaderWrapper<C, R, E, D> setRx(final LoaderRx<R, E, D> rx) {
@@ -232,26 +362,49 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return this;
     }
 
+    /**
+     * Returns the Rx component.
+     *
+     * @return  The Rx component
+     */
     @SuppressWarnings("unused")
     public LoaderRx<R, E, D> getRx() {
         return mRx;
     }
 
+    /**
+     * Returns the adapter.
+     *
+     * @return  The adapter
+     */
     @SuppressWarnings("unused")
     public CacheAdapter<R, E, D> getAdapter() {
         return mAdapter;
     }
 
+    /**
+     * Returns the database cache table name.
+     *
+     * @return  The table name
+     */
     @Override
     public String getTableName() {
         return mNoCache ? null: mTableName;
     }
 
+    /**
+     * Returns the loading data description.
+     *
+     * @return  The data description
+     */
     @Override
     protected String getTableDescription() {
         return mTableDescription;
     }
 
+    /**
+     * Please refer to the base method description.
+     */
     @Override
     public Type getType() {
         final Type type = super.getType();
@@ -268,6 +421,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return Utils.getUriResolver();
     }
 
+    /**
+     * Please refer to the base method description.
+     */
     @CallSuper
     @Override
     protected void onLoadFinished(final BaseResponse<R, E, D> data, final LoadParameters parameters) {
@@ -301,6 +457,22 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Builder class for {@link BaseResponseLoaderWrapper} objects. Provides a convenient way
+     * to set the various fields of a {@link BaseResponseLoaderWrapper}.
+     *
+     * @param <C>
+     *        The type of callback
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data
+     */
     public static abstract class BaseResponseLoaderBuilder<C, R, E, D> implements LoaderBuilder<C, R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -332,26 +504,55 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         protected Callable<BaseViewModel<BaseResponse<R, E, D>>>
                                                                 mBaseViewModel;
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
+         */
         @SuppressWarnings("WeakerAccess")
         public BaseResponseLoaderBuilder() {
             mViewModelStore     = BaseViewModel.getViewModelStore((Activity) null);
         }
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
+         *
+         * @param fragment
+         *        The Fragment
+         */
         @SuppressWarnings("WeakerAccess")
         public BaseResponseLoaderBuilder(@NonNull final Fragment fragment) {
             mViewModelStore     = BaseViewModel.getViewModelStore(fragment);
         }
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
+         *
+         * @param activity
+         *        The Activity
+         */
         @SuppressWarnings("WeakerAccess")
         public BaseResponseLoaderBuilder(@NonNull final Activity activity) {
             mViewModelStore     = BaseViewModel.getViewModelStore(activity);
         }
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
+         *
+         * @param viewModelStore
+         *        The ViewModelStore
+         */
         @SuppressWarnings("WeakerAccess")
         public BaseResponseLoaderBuilder(@NonNull final ViewModelStore viewModelStore) {
             mViewModelStore     = viewModelStore;
         }
 
+        /**
+         * Sets the data loading requester.
+         *
+         * @param requester
+         *        The requester
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setRequester(@NonNull final Requester<C> requester) {
@@ -359,6 +560,17 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the data loading database cache table name.
+         *
+         * @param context
+         *        The context
+         *
+         * @param tableNameId
+         *        The resource ID of the table name
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setTableName(@NonNull final Context context,
@@ -366,6 +578,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return setTableName(context.getString(tableNameId));
         }
 
+        /**
+         * Sets the data loading database cache table name.
+         *
+         * @param tableName
+         *        The table name
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("WeakerAccess")
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setTableName(@NonNull final String tableName) {
@@ -373,6 +593,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the loader ID.
+         *
+         * @param loaderId
+         *        The loader ID
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setLoaderId(final String loaderId) {
@@ -380,6 +608,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the loading data description.
+         *
+         * @param description
+         *        The data description
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("WeakerAccess")
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setDescription(@NonNull final String description) {
@@ -387,6 +623,17 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the loading data description.
+         *
+         * @param context
+         *        The context
+         *
+         * @param descriptionId
+         *        The resource ID of the data description
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setDescription(@NonNull final Context context,
@@ -394,6 +641,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return setDescription(context.getString(descriptionId));
         }
 
+        /**
+         * Sets the loading data converter (most implementations should use {@link BaseConverter}).
+         *
+         * @param converter
+         *        The converter
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setConverter(@NonNull final Converter<D> converter) {
@@ -401,6 +656,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the URI resolver (for cache provider).
+         *
+         * @param uriResolver
+         *        The URI resolver
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setUriResolver(@NonNull final UriResolver uriResolver) {
@@ -408,6 +671,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the loading data type.
+         *
+         * @param type
+         *        The type of data
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         *
+         * @see CoreLoadExtendedBuilder#setType
+         */
         @SuppressWarnings("UnusedReturnValue")
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setType(@NonNull final Type type) {
@@ -415,6 +688,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets "no cache" flag.
+         *
+         * @param noCache
+         *        {@code true} to disable database caching of loaded data, {@code false} otherwise
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setNoCache(final Boolean noCache) {
@@ -422,6 +703,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets {@code LoaderCallbacks} component.
+         *
+         * @param loaderCallbacks
+         *        The {@code LoaderCallbacks}
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
@@ -429,6 +718,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the data loading progress GUI component.
+         *
+         * @param progress
+         *        The data loading progress component
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setProgress(final Callable<Progress> progress) {
@@ -436,6 +733,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the {@code BaseViewModel} component.
+         *
+         * @param baseViewModel
+         *        The {@code BaseViewModel} component
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setBaseViewModel(
@@ -444,6 +749,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public final BaseResponseLoaderWrapper<C, R, E, D> createBaseResponseLoader() {
             final BaseResponseLoaderWrapper<C, R, E, D> loaderWrapper =
@@ -459,6 +767,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return loaderWrapper;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public final BaseLoaderWrapper<D> createBaseLoader() {
             return null;
@@ -559,18 +870,33 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return null;
         }
 
+        /**
+         * Returns the data converter.
+         *
+         * @return  The converter
+         */
         @NonNull
         public Converter<D> getConverter() {
             if (mConverter == null) mConverter = new BaseConverter<>();
             return mConverter;
         }
 
+        /**
+         * Returns the URI resolver (for cache provider).
+         *
+         * @return  The URI resolver
+         */
         @NonNull
         protected UriResolver getUriResolver() {
             if (mUriResolver == null) mUriResolver = Utils.getUriResolver();
             return mUriResolver;
         }
 
+        /**
+         * Indicates whether the loader ID was auto generated or not.
+         *
+         * @return  {@code true} if the loader ID was auto generated, {@code false} otherwise
+         */
         @SuppressWarnings("unused")
         protected boolean isLoaderIdAutoGenerated() {
             return mLoaderId == null;
@@ -583,6 +909,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return tableName;
         }
 
+        /**
+         * Returns the database cache table name.
+         *
+         * @return  The table name
+         */
         @SuppressWarnings("WeakerAccess")
         public String getTableName() {
             if (TextUtils.isEmpty(mTableName)) CoreLogger.logError("empty table name");
@@ -616,22 +947,63 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Builder class for {@link BaseResponseLoaderWrapper} objects. Provides a convenient way
+     * to set the various fields of a {@link BaseResponseLoaderWrapper}.
+     * For the moment just contains some common code for Retrofit loaders builders.
+     *
+     * @param <C>
+     *        The type of callback
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @param <T>
+     *        The type of API
+     */
     public static abstract class BaseResponseLoaderExtendedBuilder<C, R, E, D, T> extends BaseResponseLoaderBuilder<C, R, E, D> {
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderExtendedBuilder} object.
+         */
         @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder() {
         }
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderExtendedBuilder} object.
+         *
+         * @param fragment
+         *        The Fragment
+         */
         @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder(final Fragment fragment) {
             super(fragment);
         }
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderExtendedBuilder} object.
+         *
+         * @param activity
+         *        The Activity
+         */
         @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder(final Activity activity) {
             super(activity);
         }
 
+        /**
+         * Initialises a newly created {@code BaseResponseLoaderExtendedBuilder} object.
+         *
+         * @param viewModelStore
+         *        The ViewModelStore
+         */
         @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder(final ViewModelStore viewModelStore) {
             super(viewModelStore);
@@ -689,8 +1061,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     }
 
     /**
-     * The API to create new {@code BaseResponseLoaderWrapper} (or {@code BaseLoaderWrapper})
-     * instances.
+     * The API to create new {@code BaseResponseLoaderWrapper} (or {@code BaseLoaderWrapper}) instances.
      * <p>First, {@link #createBaseResponseLoader} will be called. In case of returned null,
      * the result of calling {@link #createBaseLoader} will be used.
      *
@@ -753,9 +1124,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *     public void onActivityCreated(Bundle savedInstanceState) {
      *         super.onActivityCreated(savedInstanceState);
      *
-     *         // SwipeRefreshLayout handling (optional)
-     *         SwipeRefreshWrapper.register(this, R.id.swipeContainer);
-     *
      *         // optional Rx component
      *         Retrofit2Rx&lt;YourData[]&gt; rx = new Retrofit2Rx&lt;&gt;();
      *
@@ -768,13 +1136,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *             //.setDataBinding(new String[] {"name",    "age"   },
      *             //                new int   [] {R.id.name, R.id.age})
      *
-     *             // 3 methods below are optional too
+     *             // optional too
      *             .setListView(R.id.list_view)       // recycler view / list / grid ID
      *             .setListItem(R.layout.list_item)   // view item layout
      *
-     *             .setRx(rx)
+     *             .setRx(rx)                         // also optional
      *
      *             .create();
+     *
+     *         // SwipeRefreshLayout handling (optional)
+     *         SwipeRefreshWrapper.register(getActivity(), R.id.swipeContainer, coreLoad.getLoaders());
      *
      *         coreLoad.load();
      *     }
@@ -819,14 +1190,15 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * </pre>
      *
      * @see BaseLoaderWrapper
-     * @see akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper
-     * @see akha.yakhont.technology.retrofit.Retrofit2
-     * @see akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx
+     * @see SwipeRefreshWrapper
+     * @see Retrofit2
+     * @see Retrofit2Rx
      */
     public interface CoreLoad {
 
         /**
-         * Returns the collection of {@link BaseLoaderWrapper loaders} associated with the given {@code CoreLoad} component.
+         * Returns the collection of {@link BaseLoaderWrapper loaders} associated with
+         * the given {@code CoreLoad} component.
          *
          * @return  The loaders
          */
@@ -891,6 +1263,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         CoreLoad setGoBackOnCancelLoading(final boolean isGoBackOnCancelLoading);
     }
 
+    /**
+     * The CoreLoad implementation.
+     */
     @SuppressWarnings("unused")
     public static class CoreLoader implements CoreLoad {
 
@@ -898,11 +1273,17 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         private final   AtomicBoolean                           mGoBackOnCancelLoading  = new AtomicBoolean(true);
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public Collection<BaseLoaderWrapper<?>> getLoaders() {
             return mLoaders;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public boolean addLoader(final BaseLoaderWrapper<?> loader, final boolean replace) {
             if (loader == null) {
@@ -926,6 +1307,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return result;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public CoreLoad cancelLoading(final Activity activity) {
             CoreLogger.logWarning("about to cancel loading");
@@ -956,17 +1340,26 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return mGoBackOnCancelLoading.get();
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public CoreLoad setGoBackOnCancelLoading(final boolean isGoBackOnCancelLoading) {
             mGoBackOnCancelLoading.set(isGoBackOnCancelLoading);
             return this;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public boolean load() {
             return load(null, new LoadParameters());
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public boolean load(final Activity activity, final LoadParameters parameters) {
             return BaseLoaderWrapper.start(activity, getLoaders(), parameters);
@@ -1014,6 +1407,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected boolean                               mNoBinding;
 
+        /**
+         * Initialises a newly created {@code CoreLoadBuilder} object.
+         */
         @SuppressWarnings("WeakerAccess")
         public CoreLoadBuilder() {
         }
@@ -1184,6 +1580,17 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return activity != null ? activity: Utils.getCurrentActivity();
         }
 
+        /**
+         * Returns the {@link CoreLoad} with the arguments supplied to this builder.
+         *
+         * @param activity
+         *        The Activity (or null to use current one)
+         *
+         * @param fragment
+         *        The Fragment (or null)
+         *
+         * @return  The {@code CoreLoad} instance
+         */
         @SuppressWarnings("WeakerAccess")
         protected CoreLoad create(Activity activity, final Fragment fragment) {
 
@@ -1291,7 +1698,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Builder class for {@link CoreLoad} objects. For the moment just contains some common code
+     * Builder class for {@link CoreLoad} instances. For the moment just contains some common code
      * for {@link BaseResponseLoaderBuilder} customization.
      *
      * @param <C>
@@ -1367,9 +1774,20 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected UriResolver                           mUriResolver;
 
+        /**
+         * Initialises a newly created {@code CoreLoadExtendedBuilder} object.
+         */
         protected CoreLoadExtendedBuilder() {
         }
 
+        /**
+         * Sets the "no cache" flag.
+         *
+         * @param noCache
+         *        {@code true} to disable data loading results caching (in database), {@code false} otherwise
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setNoCache(final boolean noCache) {
@@ -1377,13 +1795,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
-        @SuppressWarnings("WeakerAccess")
-        @NonNull
-        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
-            mLoaderCallbacks = loaderCallbacks;
-            return this;
-        }
-
+        /**
+         * Sets component to display progress.
+         *
+         * @param progress
+         *        The {@code Progress}
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Progress progress) {
@@ -1397,6 +1816,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets component to display progress.
+         *
+         * @param progress
+         *        The {@code Progress}
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Callable<Progress> progress) {
@@ -1404,6 +1831,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the {@code BaseViewModel} component.
+         *
+         * @param baseViewModel
+         *        The {@code BaseViewModel}
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModel(
@@ -1412,6 +1847,29 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Sets the {@code LoaderCallbacks} component.
+         *
+         * @param loaderCallbacks
+         *        The {@code LoaderCallbacks}
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings("WeakerAccess")
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
+            mLoaderCallbacks = loaderCallbacks;
+            return this;
+        }
+
+        /**
+         * Sets the {@code LoaderCallback} component.
+         *
+         * @param loaderCallback
+         *        The {@code LoaderCallback}
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
@@ -1456,7 +1914,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          *
-         * @see androidx.databinding.ViewDataBinding#setVariable ViewDataBinding.setVariable()
+         * @see ViewDataBinding#setVariable
          */
         @NonNull
         @SuppressWarnings("unused")
@@ -1467,7 +1925,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Sets the data binding.
+         * Sets the data binding (not related to the Data Binding Library).
          *
          * @param from
          *        The list of names representing the data to bind to the UI
@@ -1507,10 +1965,10 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Sets the data description ID.
+         * Sets the data description.
          *
          * @param descriptionId
-         *        The data description ID
+         *        The data description ID in resources
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
@@ -1524,10 +1982,10 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Sets the table name.
+         * Sets the database cache table name.
          *
          * @param tableName
-         *        The name of the table in the database (to cache the loaded data)
+         *        The table name
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
@@ -1540,7 +1998,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Sets the loader ID.
+         * Sets the data loader ID.
          *
          * @param loaderId
          *        The loader ID
@@ -1557,7 +2015,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Sets the URI resolver.
+         * Sets the URI resolver (for cache provider).
          *
          * @param uriResolver
          *        The URI resolver
@@ -1636,7 +2094,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * Sets the adapter wrapper component.
          *
          * @param adapterWrapper
-         *        The adapter wrapper component
+         *        The adapter wrapper
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
@@ -1649,7 +2107,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Sets the converter.
+         * Sets the loading data converter.
          *
          * @param converter
          *        The converter
@@ -1664,7 +2122,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
-        @SuppressWarnings("unused")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setSupportMode(final boolean support) {
             checkData(mSupport, support, "support");
@@ -1705,7 +2163,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * </pre>
          *
          * @param requester
-         *        The requester
+         *        The data loading requester
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          *
@@ -1719,8 +2177,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Starts an asynchronous data loading. Usage examples ('raw calls' means - without default
-         * Yakhont pre- and postprocessing):
+         * Starts an asynchronous data loading. Usage examples below are copied from the Yakhont demo
+         * (and 'raw calls' means - without default Yakhont pre- and postprocessing).
          *
          * <p><pre style="background-color: silver; border: thin solid black;">
          * import com.yourpackage.model.YourData;
@@ -1856,37 +2314,59 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                     new ValuesCacheAdapterWrapper<>(activity, item, mFrom, mTo,        support, supportCursorAdapter));
         }
 
-        // compiler issue
+        // looks like compiler issue
         private void setAdapterWrapperHelper(
                 @NonNull final BaseCacheAdapterWrapper<?, R, E, D> adapterWrapper) {
             super.setAdapterWrapper(adapterWrapper);
         }
 
+        /**
+         * Returns the {@link CoreLoad} with the arguments supplied to this builder.
+         *
+         * @return  The {@code CoreLoad} instance
+         */
         @SuppressWarnings("unused")
         public CoreLoad create() {
             return super.create(null, null);
         }
 
+        /**
+         * Returns the {@link CoreLoad} with the arguments supplied to this builder.
+         *
+         * @param activity
+         *        The Activity
+         *
+         * @return  The {@code CoreLoad} instance
+         */
         @SuppressWarnings("unused")
         public CoreLoad create(@NonNull final Activity activity) {
             return super.create(activity, null);
         }
 
+        /**
+         * Returns the {@link CoreLoad} with the arguments supplied to this builder.
+         *
+         * @param fragment
+         *        The Fragment
+         *
+         * @return  The {@code CoreLoad} instance
+         */
         @SuppressWarnings("unused")
         public CoreLoad create(@NonNull final Fragment fragment) {
             return super.create(fragment.getActivity(), fragment);
         }
 
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         protected CoreLoad create(BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(null, null, builder);
         }
 
-        @SuppressWarnings("unused")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         protected CoreLoad create(@NonNull final Activity activity, BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(activity, null, builder);
         }
 
-        @SuppressWarnings("unused")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         protected CoreLoad create(@NonNull final Fragment fragment, BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(fragment.getActivity(), fragment, builder);
         }

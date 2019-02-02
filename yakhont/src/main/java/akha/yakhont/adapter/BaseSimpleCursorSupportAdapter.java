@@ -33,6 +33,11 @@ import androidx.cursoradapter.widget.SimpleCursorAdapter;
 
 import java.lang.ref.WeakReference;
 
+/**
+ * Extends {@code SimpleCursorAdapter} to provide additional view binding possibilities.
+ *
+ * @author akha
+ */
 public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implements BaseCursorAdapter {
 
     private final WeakReference<Context>    mContext;
@@ -40,6 +45,21 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
     private BaseCacheAdapter.ViewBinder     mViewBinder;
     private BaseCacheAdapter.DataConverter  mDataConverter;
 
+    /**
+     * Initialises a newly created {@code BaseSimpleCursorSupportAdapter} object.
+     *
+     * @param context
+     *        The Context
+     *
+     * @param layoutId
+     *        The resource identifier of a layout file that defines the views
+     *
+     * @param from
+     *        The list of names representing the data to bind to the UI
+     *
+     * @param to
+     *        The views that should display data in the "from" parameter
+     */
     public BaseSimpleCursorSupportAdapter(@NonNull                final Context  context,
                                           @LayoutRes              final    int   layoutId,
                                           @NonNull @Size(min = 1) final String[] from,
@@ -49,7 +69,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         init();
     }
 
-    @SuppressWarnings({"deprecation", "unused"})
+    @SuppressWarnings({"JavaDoc", "deprecation", "unused"})
     public BaseSimpleCursorSupportAdapter(@NonNull                    final Context  context ,
                                           @LayoutRes                  final    int   layoutId,
                                           @NonNull @Size(min = 1)     final String[] from    ,
@@ -78,6 +98,11 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         return result;
     }
 
+    /**
+     * Gets the registered {@code ViewBinder} (if any).
+     *
+     * @return  The {@code ViewBinder} or null
+     */
     @SuppressWarnings("unused")
     public BaseCacheAdapter.ViewBinder getAdapterViewBinder() {
         return mViewBinder;
@@ -97,6 +122,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         mDataConverter = dataConverter;
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     @CallSuper
     public Cursor swapCursor(Cursor cursor) {

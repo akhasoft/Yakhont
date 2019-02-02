@@ -22,13 +22,15 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseCacheCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseLifecycleProceed;
+import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.BaseFragmentCallbacks;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
-import android.app.Application;
+import android.app.Application.ActivityLifecycleCallbacks;
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.os.Build;
+import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -46,7 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Extends the {@link BaseLifecycleProceed} class to provide the {@link Activity} lifecycle support.
- * For the moment supported lifecycle is similar to the {@link android.app.Application.ActivityLifecycleCallbacks}
+ * For the moment supported lifecycle is similar to the {@link ActivityLifecycleCallbacks}
  * but will likely expand in future releases.
  *
  * @see BaseActivityCallbacks
@@ -275,7 +277,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
 
     /**
      * Activates Yakhont Weaver (normally on devices with API version &lt;
-     * {@link android.os.Build.VERSION_CODES#ICE_CREAM_SANDWICH ICE_CREAM_SANDWICH}).
+     * {@link VERSION_CODES#ICE_CREAM_SANDWICH}).
      *
      * @param active
      *        {@code true} to activate Yakhont Weaver, {@code false} otherwise
@@ -407,11 +409,12 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
 
     /**
      * Extends the {@link BaseActivityLifecycleProceed} class to use on devices with
-     * API version >= {@link android.os.Build.VERSION_CODES#ICE_CREAM_SANDWICH}.
+     * API version >= {@link VERSION_CODES#ICE_CREAM_SANDWICH}.
      */
     @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-    public static class ActivityLifecycleProceed extends BaseActivityLifecycleProceed implements Application.ActivityLifecycleCallbacks {
+    public static class ActivityLifecycleProceed extends BaseActivityLifecycleProceed
+            implements ActivityLifecycleCallbacks {
 
         /**
          * Initialises a newly created {@code ActivityLifecycleProceed} object.
@@ -494,13 +497,13 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
 
     /**
      * Extends the {@link BaseCacheCallbacks} class to provide the activity life cycle callbacks support.
-     * For the moment supported callbacks are similar to the {@link android.app.Application.ActivityLifecycleCallbacks}
+     * For the moment supported callbacks are similar to the {@link ActivityLifecycleCallbacks}
      * but will likely expand in future releases.
      * <br>By default all callbacks are empty.
      *
-     * <p>Usage example (for more examples please refer to {@link akha.yakhont.callback.BaseCallbacks general Activity},
-     * {@yakhont.link BaseFragmentLifecycleProceed.BaseFragmentCallbacks Fragment}
-     * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class, BaseCallbacks) simple Activity} ones):
+     * <p>Usage example (for more examples please refer to {@link BaseCallbacks general Activity},
+     * {@link BaseFragmentCallbacks Fragment}
+     * and {@link BaseCallbacks#proceed(Object, Class, BaseCallbacks) simple Activity} ones):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * package com.yourpackage;
@@ -527,7 +530,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * }
      * </pre>
      *
-     * And register your callbacks handler (see also {@link akha.yakhont.Core}):
+     * And register your callbacks handler (see also {@link Core}):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.Core;
@@ -549,7 +552,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * }
      * </pre>
      *
-     * Please refer to the {@link akha.yakhont.callback.BaseCallbacks} for more details.
+     * Please refer to the {@link BaseCallbacks} for more details.
      *
      * @see ActivityLifecycle
      */
@@ -617,7 +620,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
             if (currentFocus != null)
                 inputMethodManager.hideSoftInputFromWindow(currentFocus.getWindowToken(), 0);
             else
-                CoreLogger.logWarning("can't hide keyboard 'cause can't find current focus");
+                CoreLogger.log("can't hide keyboard 'cause can't find current focus");
         }
     }
 

@@ -30,6 +30,8 @@ import akha.yakhont.debug.BaseFragment;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
+import akha.yakhont.technology.Dagger2.Parameters;
+import akha.yakhont.technology.Dagger2.UiModule;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx2;
@@ -77,6 +79,8 @@ import androidx.lifecycle.Lifecycle.Event;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ProcessLifecycleOwner;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.io.BufferedInputStream;
@@ -224,7 +228,7 @@ public class Core implements DefaultLifecycleObserver {
          *        The text to display
          *
          * @param data
-         *        The additional data to send to {@link Activity#onActivityResult Activity.onActivityResult()}
+         *        The additional data to send to {@link Activity#onActivityResult}
          *
          * @return  {@code true} if dialog was started successfully, {@code false} otherwise
          */
@@ -271,8 +275,11 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * The callback API which allows registered components to be notified about device configuration changes.
-     * Please refer to {@link #register(ConfigurationChangedListener)} and {@link #unregister(ConfigurationChangedListener)}.
+     * The callback API which allows registered components to be notified about device configuration
+     * changes.
+     *
+     * @see   #register(ConfigurationChangedListener)
+     * @see #unregister(ConfigurationChangedListener)
      */
     public interface ConfigurationChangedListener {
 
@@ -316,9 +323,10 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Forces working in support mode (use weaving mechanism for calling the application callbacks instead of registering via
-     * {@link Application#registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks)} and
-     * {@link Application#registerComponentCallbacks(ComponentCallbacks)}).
+     * Forces working in support mode (use weaving mechanism for calling the application callbacks
+     * instead of registering via
+     * {@link Application#registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks)}
+     * and{@link Application#registerComponentCallbacks(ComponentCallbacks)}).
      * <p>Mostly for debug purposes.
      * <p>Don't forget to call some {@code init(...)} method after this call.
      */
@@ -336,8 +344,8 @@ public class Core implements DefaultLifecycleObserver {
      *        The Application
      *
      * @param useGoogleLocationOldApi
-     *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
-     *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
+     *        {@code true} for {@link GoogleApiClient}-based Google Location API,
+     *        {@code false} for {@link FusedLocationProviderClient}-based one
      *
      * @param useSnackbarIsoToast
      *        {@code true} for using {@link Snackbar} instead of {@link Toast}
@@ -356,14 +364,16 @@ public class Core implements DefaultLifecycleObserver {
      *
      * <pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.callback.BaseCallbacks.Validator;
-     * import akha.yakhont.fragment.dialog.CommonDialogFragment;
      * import akha.yakhont.location.LocationCallbacks.LocationClient;
      * import akha.yakhont.technology.Dagger2;
+     * import akha.yakhont.technology.Dagger2.CallbacksValidationModule;
+     * import akha.yakhont.technology.Dagger2.LocationModule;
+     * import akha.yakhont.technology.Dagger2.Parameters;
+     * import akha.yakhont.technology.Dagger2.UiModule;
      *
      * import dagger.BindsInstance;
      * import dagger.Component;
      * import dagger.Module;
-     * import dagger.Provides;
      *
      * public class YourActivity extends Activity {
      *
@@ -372,7 +382,7 @@ public class Core implements DefaultLifecycleObserver {
      *
      *         Core.init(getApplication(), null, DaggerYourActivity_YourDagger
      *             .builder()
-     *             .parameters(Dagger2.Parameters.create())
+     *             .parameters(Parameters.create())
      *             .build()
      *         );
      *
@@ -381,46 +391,53 @@ public class Core implements DefaultLifecycleObserver {
      *         // your code here: setContentView(...) etc.
      *     }
      *
-     *     // custom progress dialog theme example
+     *     // default implementation - customize only modules you need
+     * //  &#064;Component(modules = {CallbacksValidationModule.class, LocationModule.class, UiModule.class})
      *
-     *     &#064;Component(modules = {YourLocationModule.class, YourUiModule.class,
-     *                                YourCallbacksValidationModule.class})
+     *     &#064;Component(modules = {YourLocationModule.class, YourCallbacksValidationModule.class,
+     *                                YourUiModule.class})
      *     interface YourDagger extends Dagger2 {
      *
      *         &#064;Component.Builder
      *         interface Builder {
      *             &#064;BindsInstance
-     *             Builder parameters(Dagger2.Parameters parameters);
+     *             Builder parameters(Parameters parameters);
      *             YourDagger build();
      *         }
      *     }
      *
+     *     // customize Yakhont callbacks validation here
      *     &#064;Module
-     *     static class YourCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
-     *
-     *         &#064;Provides
-     *         Validator provideCallbacksValidator() {
-     *             return getCallbacksValidator();
-     *         }
-     *     }
-     *
-     *     &#064;Module
-     *     static class YourLocationModule extends Dagger2.LocationModule {
-     *
-     *         &#064;Provides
-     *         LocationClient provideLocationClient(Dagger2.Parameters parameters) {
-     *             // return null if you don't need location API
-     *             return getLocationClient(getFlagLocation(parameters));
-     *         }
-     *     }
-     *
-     *     &#064;Module
-     *     static class YourUiModule extends Dagger2.UiModule {
+     *     static class YourCallbacksValidationModule extends CallbacksValidationModule {
      *
      *         &#064;Override
-     *         protected Core.BaseDialog getProgress() {
-     *             return ((CommonDialogFragment) super.getProgress())
-     *                 .setTheme(R.style.YourTheme);
+     *         protected Validator getCallbacksValidator() {
+     *             return super.getCallbacksValidator();
+     *         }
+     *     }
+     *
+     *     // customize Yakhont location client here
+     *     &#064;Module
+     *     static class YourLocationModule extends LocationModule {
+     *
+     *         &#064;Override
+     *         protected LocationClient getLocationClient(boolean oldApi) {
+     *             return super.getLocationClient(oldApi);
+     *         }
+     *     }
+     *
+     *     // customize Yakhont GUI here
+     *     &#064;Module
+     *     static class YourUiModule extends UiModule {
+     *
+     *         &#064;Override
+     *         protected BaseDialog getAlert(int requestCode) {
+     *             return super.getAlert(requestCode);
+     *         }
+     *
+     *         &#064;Override
+     *         protected BaseDialog getToast(boolean useSnackbarIsoToast, boolean durationLong) {
+     *             return super.getToast(useSnackbarIsoToast, durationLong);
      *         }
      *     }
      * }
@@ -480,9 +497,9 @@ public class Core implements DefaultLifecycleObserver {
                 Utils.isDebugMode(application.getPackageName()));
         Init.allRemaining(application);
 
-        CoreLogger.log("orientation "   + Utils.getOrientation(application));
-        CoreLogger.log("uri "           + Utils.getBaseUri());
-        CoreLogger.log("support "       + sSupport);
+        CoreLogger.log("orientation " + Utils.getOrientation(application));
+        CoreLogger.log("uri "         + Utils.getBaseUri());
+        CoreLogger.log("support "     + sSupport);
 
         Init.registerCallbacks(application, firstInit);
 
@@ -501,8 +518,8 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Sets the Rx components behaviour in case of uncaught exceptions.
-     * For more info please refer to {@link <a href="https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling">Rx error handling</a>}.
+     * Sets the Rx components behaviour in case of uncaught exceptions. For more info please refer to
+     * {@link <a href="https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling">Rx error handling</a>}.
      *
      * @param terminate
      *        {@code true} to terminate application in case of uncaught Rx exception, {@code false} otherwise
@@ -529,14 +546,14 @@ public class Core implements DefaultLifecycleObserver {
 
     private static Dagger2 getDefaultDagger(final boolean useGoogleLocationOldApi,
                                             final boolean useSnackbarIsoToast) {
-        return getDefaultDagger(Dagger2.Parameters.create(useGoogleLocationOldApi, useSnackbarIsoToast));
+        return getDefaultDagger(Parameters.create(useGoogleLocationOldApi, useSnackbarIsoToast));
     }
 
     private static Dagger2 getDefaultDagger() {
-        return getDefaultDagger(Dagger2.Parameters.create());
+        return getDefaultDagger(Parameters.create());
     }
 
-    private static Dagger2 getDefaultDagger(final Dagger2.Parameters parameters) {
+    private static Dagger2 getDefaultDagger(final Parameters parameters) {
         return akha.yakhont.technology.DaggerDagger2_DefaultComponent
                 .builder()
                 .parameters(parameters)
@@ -617,12 +634,11 @@ public class Core implements DefaultLifecycleObserver {
 
     @SuppressWarnings("SameReturnValue")
     private Level getDebugLevel() {
-        return Level.WARNING;
+        return CoreLogger.getDefaultLevel();
     }
 
     private String getDebugMessage() {
-        final Application app = Utils.getApplication();
-        return "application: " + (app  == null ? "unknown": app.getClass().getName());
+        return "application " + CoreLogger.getDescription(Utils.getApplication());
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -646,7 +662,8 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Removes a {@code ConfigurationChangedListener} component that was previously registered with {@link #register(ConfigurationChangedListener)}.
+     * Removes a {@code ConfigurationChangedListener} component that was previously registered
+     * with {@link #register(ConfigurationChangedListener)}.
      *
      * @param listener
      *        The component to remove
@@ -698,8 +715,9 @@ public class Core implements DefaultLifecycleObserver {
                         try {
                             listener.onChangedConfiguration(newConfig);
                         }
-                        catch (Exception e) {
-                            CoreLogger.log("onConfigurationChanged failed, listener: " + listener);
+                        catch (Exception exception) {
+                            CoreLogger.log("onConfigurationChanged failed, listener: " +
+                                    listener, exception);
                         }
                     }
                 });
@@ -715,7 +733,8 @@ public class Core implements DefaultLifecycleObserver {
 
         @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
         @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-        private static class ApplicationCallbacks2 extends ApplicationCallbacks implements ComponentCallbacks2 {
+        private static class ApplicationCallbacks2 extends ApplicationCallbacks
+                implements ComponentCallbacks2 {
 
             /**
              * Please refer to the base method description.
@@ -737,8 +756,8 @@ public class Core implements DefaultLifecycleObserver {
             try {
                 runnable.run();
             }
-            catch (Exception e) {
-                CoreLogger.log("notifyListener failed", e);
+            catch (Exception exception) {
+                CoreLogger.log(exception);
             }
         }
     }
@@ -767,8 +786,8 @@ public class Core implements DefaultLifecycleObserver {
             // don't remove
             BaseActivityLifecycleProceed.register(new ValidateActivityCallbacks(), true);
 
-            register((BaseActivityCallbacks) new HideKeyboardCallbacks()               .setForceProceed(true));
-            register((BaseActivityCallbacks) new OrientationCallbacks()                .setForceProceed(true));
+            register((BaseActivityCallbacks) new HideKeyboardCallbacks().setForceProceed(true));
+            register((BaseActivityCallbacks) new OrientationCallbacks() .setForceProceed(true));
 
             register(new LocationCallbacks());
 
@@ -838,6 +857,7 @@ public class Core implements DefaultLifecycleObserver {
 
         @SuppressWarnings("UnusedReturnValue")
         private static void allRemaining(@NonNull final Application application) {
+
             sBaseUri = String.format(BASE_URI, application.getPackageName());
 
             if (!sRunNetworkMonitor) return;
@@ -853,7 +873,8 @@ public class Core implements DefaultLifecycleObserver {
                     final ConnectivityManager connectivityManager =
                             (ConnectivityManager) application.getSystemService(Context.CONNECTIVITY_SERVICE);
                     if (connectivityManager == null) {
-                        CoreLogger.logWarning(Context.CONNECTIVITY_SERVICE + ": connectivityManager == null");
+                        CoreLogger.logWarning(Context.CONNECTIVITY_SERVICE +
+                                ": connectivityManager == null");
                         return;
                     }
 
@@ -876,14 +897,16 @@ public class Core implements DefaultLifecycleObserver {
 
                                     if (sConnected.getAndSet(isConnected) != isConnected) {
                                         CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
-                                                "network is " + (isConnected ? "": "NOT ") + "available");
+                                                "network is " + (isConnected ? "": "NOT ") +
+                                                        "available");
                                         onNetworkStatusChanged(isConnected);
                                     }
                                 }
                             })
                             .request();
 
-                    CoreLogger.log(PERMISSION + " request result: " + (result ? "already granted": "not granted yet"));
+                    CoreLogger.log(PERMISSION + " request result: " +
+                            (result ? "already granted": "not granted yet"));
                 }
 
                 @NonNull
@@ -936,7 +959,7 @@ public class Core implements DefaultLifecycleObserver {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * An utility class.
+     * The Yakhont utilities class.
      */
     public static class Utils {
 
@@ -1021,7 +1044,7 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("unused")
         public static void showToast(final String text, final boolean durationLong) {
-            Dagger2.UiModule.showToast(text, durationLong);
+            UiModule.showToast(text, durationLong);
         }
 
         /**
@@ -1036,7 +1059,7 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("unused")
         public static void showToast(@StringRes final int resId, final boolean durationLong) {
-            Dagger2.UiModule.showToast(resId, durationLong);
+            UiModule.showToast(resId, durationLong);
         }
 
         /**
@@ -1051,7 +1074,7 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("unused")
         public static void showSnackbar(final String text, final boolean durationLong) {
-            Dagger2.UiModule.showSnackbar(text, durationLong);
+            UiModule.showSnackbar(text, durationLong);
         }
 
         /**
@@ -1076,7 +1099,7 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("unused")
         public static void showSnackbar(@StringRes final int resId, final boolean durationLong) {
-            Dagger2.UiModule.showSnackbar(resId, durationLong);
+            UiModule.showSnackbar(resId, durationLong);
         }
 
         /**
@@ -1133,7 +1156,8 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Returns {@code true} if the current thread is the main thread of the application, {@code false} otherwise.
+         * Returns {@code true} if the current thread is the main thread of the application,
+         * {@code false} otherwise.
          *
          * @return  The main thread indication
          */
@@ -1201,7 +1225,7 @@ public class Core implements DefaultLifecycleObserver {
                 return uri.getPathSegments().get(0);
             }
             catch (Exception exception) {
-                CoreLogger.log("can't find loader table name for uri " + uri, exception);
+                CoreLogger.log("can't find DB cache table name for uri " + uri, exception);
                 return null;
             }
         }
@@ -1399,13 +1423,14 @@ public class Core implements DefaultLifecycleObserver {
                 return;
             }
 */
-            CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, resultCode, data);
+            CoreReflection.invokeSafe(activity, "onActivityResult",
+                    requestCode, resultCode, data);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @NonNull
-        public static String getTag(@NonNull final Class cl) {
-            return getTag(cl.getSimpleName());
+        public static String getTag(@NonNull final Class cls) {
+            return getTag(cls.getSimpleName());
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1493,15 +1518,15 @@ public class Core implements DefaultLifecycleObserver {
                             outputStream.write(buffer, 0, length);
                         inputStream.close();
                     }
-                    catch (Exception e) {
-                        handleError("failed creating ZIP entry " + srcFile, e, errors);
+                    catch (Exception exception) {
+                        handleError("failed creating ZIP entry " + srcFile, exception, errors);
                     }
 
                 outputStream.close();
                 return true;
             }
-            catch (Exception e) {
-                handleError("failed creating ZIP " + zipFile, e, errors);
+            catch (Exception exception) {
+                handleError("failed creating ZIP " + zipFile, exception, errors);
                 return false;
             }
         }
@@ -1554,7 +1579,8 @@ public class Core implements DefaultLifecycleObserver {
                         intent.putExtra(Intent.EXTRA_STREAM,
                                 Uri.parse( "file://" + attachment.getAbsolutePath()));
 
-                    activity.startActivity(Intent.createChooser(intent, "Sending email..."));
+                    activity.startActivity(Intent.createChooser(intent,
+                            activity.getString(R.string.yakhont_sending_email)));
                 }
             });
         }
@@ -1587,8 +1613,8 @@ public class Core implements DefaultLifecycleObserver {
             try {
                 return CoreReflection.getField(Class.forName(packageName + ".BuildConfig"), fieldName);
             }
-            catch (ClassNotFoundException e) {
-                CoreLogger.log(Level.INFO, "getBuildConfigField failed", e);
+            catch (/*ClassNotFound*/Exception exception) {
+                CoreLogger.log(exception);
                 return null;
             }
         }
@@ -1637,7 +1663,8 @@ public class Core implements DefaultLifecycleObserver {
                 return requestCode.ordinal() + offset;
             }
 
-            private static Exception checkRequestCode(final int requestCode, final Activity activity, final Method method) {
+            private static Exception checkRequestCode(final int requestCode, final Activity activity,
+                                                      final Method method) {
                 try {
                     CoreReflection.invoke(activity, method, requestCode);
                     return null;
@@ -1649,7 +1676,8 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-            public static int getRequestCode(@NonNull final RequestCodes requestCode, @NonNull final Activity activity) {
+            public static int getRequestCode(@NonNull final RequestCodes requestCode,
+                                             @NonNull final Activity     activity) {
                 int result = getRequestCode(requestCode);
 
                 final Method method = CoreReflection.findMethod(activity,
@@ -1730,8 +1758,8 @@ public class Core implements DefaultLifecycleObserver {
                         try {
                             runnable.run();
                         }
-                        catch (Exception e) {
-                            CoreLogger.log("Runnable failed: " + runnable, e);
+                        catch (Exception exception) {
+                            CoreLogger.log("Runnable failed: " + runnable, exception);
                         }
                     }
 
@@ -1768,7 +1796,8 @@ public class Core implements DefaultLifecycleObserver {
                         prepareRunnable(runnable), delay, period);
                 if (result != null) mTasks.add(result);
 
-                CoreLogger.log(result == null ? Level.ERROR: CoreLogger.getDefaultLevel(), "submit result: " + result);
+                CoreLogger.log(result == null ? Level.ERROR: CoreLogger.getDefaultLevel(),
+                        "submit result: " + result);
                 return result;
             }
 
@@ -1780,8 +1809,8 @@ public class Core implements DefaultLifecycleObserver {
                             TimeUnit.MILLISECONDS): delay > 0 ? service.schedule(runnable, delay,
                             TimeUnit.MILLISECONDS): service.submit(runnable);
                 }
-                catch (Exception e) {
-                    CoreLogger.log("submit failed: " + runnable, e);
+                catch (Exception exception) {
+                    CoreLogger.log("submit failed: " + runnable, exception);
                     return null;
                 }
             }
@@ -1815,12 +1844,14 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Helper class for handling the Back key in ActionMode. For example (in Activity):
+         * Helper class for handling the Back key in ActionMode
+         * (in {@code BaseActivity} it's already done). For example (in Activity):
          * <p>
          * <pre style="background-color: silver; border: thin solid black;">
-         * // in BaseActivity it's already done
-         * private final Core.Utils.BackKeyInActionModeHandler mBackKeyHandler =
-         *     new Core.Utils.BackKeyInActionModeHandler();
+         * import akha.yakhont.Core.Utils;
+         *
+         * private final Utils.BackKeyInActionModeHandler mBackKeyHandler =
+         *     new Utils.BackKeyInActionModeHandler();
          *
          * private ActionMode.Callback mCallback = new ActionMode.Callback() {
          *
@@ -1844,7 +1875,6 @@ public class Core implements DefaultLifecycleObserver {
          *     // are skipped for simplification
          * };
          *
-         * // in BaseActivity it's already done
          * &#064;Override
          * public boolean dispatchKeyEvent(&#064;NonNull KeyEvent event) {
          *     mBackKeyHandler.handleKeyEvent(event);
@@ -1900,19 +1930,20 @@ public class Core implements DefaultLifecycleObserver {
          * {@link MeasuredViewAdjuster#adjustMeasuredView(View)}. For example:
          *
          * <pre style="background-color: silver; border: thin solid black;">
-         * import akha.yakhont.Core;
+         * import akha.yakhont.Core.Utils;
+         * import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
          *
-         * public class YourFragment extends Fragment
-         *         implements Core.Utils.MeasuredViewAdjuster {
+         * public class YourFragment extends Fragment implements MeasuredViewAdjuster {
          *
          *     &#064;Override
          *     public View onCreateView(LayoutInflater inflater, ViewGroup container,
          *                              Bundle savedInstanceState) {
          *         super.onCreateView(inflater, container, savedInstanceState);
          *
+         *         // your code here
          *         View view = ...;
          *
-         *         Core.Utils.onAdjustMeasuredView(this, view);
+         *         Utils.onAdjustMeasuredView(this, view);
          *         return view;
          *     }
          *
@@ -2104,7 +2135,7 @@ public class Core implements DefaultLifecycleObserver {
                 }
 
                 @SuppressWarnings("ConstantConditions")
-                final Resources resources = Utils.getApplication().getResources();
+                final Resources resources = getApplication().getResources();
                 @IdRes final int defaultViewId = getDefaultViewId(resources);
 
                 final String defaultViewDescription = CoreLogger.getResourceDescription(defaultViewId);

@@ -88,8 +88,8 @@ public class CoreReflection {
         try {
             return invoke(object, methodName, args);
         }
-        catch (Exception e) {
-            CoreLogger.log("invoke", e);
+        catch (Exception exception) {
+            CoreLogger.log(exception);
             return null;
         }
     }
@@ -159,26 +159,32 @@ public class CoreReflection {
             throws InvocationTargetException, IllegalAccessException {
         checkForNull(method, "method == null");
 
-        CoreLogger.log("about to invoke method " + method.toGenericString());
-
-        final boolean accessible = method.isAccessible();
-        if (!accessible) {
-            CoreLogger.logWarning("method is not accessible");
-            method.setAccessible(true);
-        }
+        CoreLogger.log(String.format("about to invoke method %s on object %s",
+                method.toGenericString(), CoreLogger.getDescription(object)));
 
         try {
-            @SuppressWarnings("unchecked")
-            final T result = (T) method.invoke(object, args);
-            return result;
+            final boolean accessible = method.isAccessible();
+            if (!accessible) {
+                CoreLogger.logWarning("method is not accessible");
+                method.setAccessible(true);
+            }
+
+            try {
+                @SuppressWarnings("unchecked")
+                final T result = (T) method.invoke(object, args);
+                return result;
+            }
+            catch (IllegalAccessException exception) {
+                CoreLogger.log(method.getName(), exception);
+                throw exception;
+            }
+            finally {
+                if (!accessible) method.setAccessible(false);
+            }
         }
-        catch (ClassCastException | IllegalAccessException exception) {
-            CoreLogger.log(method.getName(), exception);
-            throw exception;
-        }
-        finally {
-            if (!accessible) //noinspection ThrowFromFinallyBlock
-                method.setAccessible(false);
+        catch (RuntimeException exception) {
+            CoreLogger.log(exception);
+            return null;
         }
     }
 
@@ -190,8 +196,8 @@ public class CoreReflection {
         try {
             return invoke(object, method, args);
         }
-        catch (Exception e) {
-            CoreLogger.log("invoke", e);
+        catch (Exception exception) {
+            CoreLogger.log(exception);
             return null;
         }
     }
@@ -211,11 +217,13 @@ public class CoreReflection {
      * @return  The method object or null (if not found)
      */
     @SuppressWarnings("WeakerAccess")
-    public static Method findMethod(@NonNull final Object object, @NonNull final String methodName, @NonNull final Class... args) {
+    public static Method findMethod(@NonNull final Object object,
+                                    @NonNull final String methodName, @NonNull final Class... args) {
         return findMethod(Level.WARNING, object, methodName, args);
     }
 
-    private static Method findMethod(Level level, @NonNull final Object object, @NonNull final String methodName, @NonNull final Class... args) {
+    private static Method findMethod(Level level, @NonNull final Object object,
+                                     @NonNull final String methodName, @NonNull final Class... args) {
         Class<?> tmpClass = getClass(object);
         try {
             return tmpClass.getMethod(methodName, args);
@@ -253,7 +261,8 @@ public class CoreReflection {
             if ((tmpClass = tmpClass.getSuperclass()) == null) break;
         }
 
-        CoreLogger.log(level,"class " + getClass(object).getName() + ", method " + methodName + " not found");
+        CoreLogger.log(level,"class " + CoreLogger.getDescription(getClass(object)) +
+                ", method " + methodName + " not found");
         return null;
     }
 
@@ -287,7 +296,7 @@ public class CoreReflection {
         if (cls.isArray())                          return Array.getLength(object);
         if (Collection.class.isAssignableFrom(cls)) return ((Collection) object).size();
 
-        CoreLogger.logError("failed getSize() for class " + cls.getName());
+        CoreLogger.logError("failed getSize() for class " + CoreLogger.getDescription(cls));
         return 0;
     }
 
@@ -318,11 +327,12 @@ public class CoreReflection {
                 result = new ArrayList<>((Collection<?>) object);
         }
         catch (Exception exception) {
-            CoreLogger.log("failed getObjects() for class " + cls.getName(), exception);
+            CoreLogger.log("failed getObjects() for class " + CoreLogger.getDescription(cls), exception);
             return null;
         }
 
-        if (result == null) CoreLogger.logWarning("neither array nor Collection: " + cls.getName());
+        if (result == null)
+            CoreLogger.logWarning("neither array nor Collection: " + CoreLogger.getDescription(cls));
         return result;
     }
 
@@ -368,20 +378,20 @@ public class CoreReflection {
             }
         }
         catch (Exception exception) {
-            CoreLogger.log("failed getObject() for class " + cls.getName(), exception);
+            CoreLogger.log("failed getObject() for class " + CoreLogger.getDescription(cls), exception);
             return null;
         }
 
-        CoreLogger.logError("unknown collection: " + cls.getName());
+        CoreLogger.logError("unknown collection: " + CoreLogger.getDescription(cls));
         return null;
     }
 
     private static boolean checkSize(final int size, final int position, @NonNull final String info) {
-        final boolean nok = position < 0 || position >= size;
-        if (nok)
+        final boolean nOk = position < 0 || position >= size;
+        if (nOk)
             CoreLogger.logError(String.format(Utils.getLocale(),
                     "wrong position %d, %s length is %d", position, info, size));
-        return !nok;
+        return !nOk;
     }
 
     /**
@@ -423,7 +433,7 @@ public class CoreReflection {
                 ((Collection) object1).addAll((Collection) object2);
 
             else if (cls2.isArray())
-                for (int i = 0; i < size2; i++)             // @SuppressWarnings("unchecked")
+                for (int i = 0; i < size2; i++)           // @SuppressWarnings("unchecked")
                     ((Collection) object1).add(Array.get(object2, i));
 
             else
@@ -485,16 +495,17 @@ public class CoreReflection {
             return methods;
         }
         if (derivedClass.equals(baseClass)) {
-            CoreLogger.logWarning("derived class and super class are the same: " + derivedClass.getName());
+            CoreLogger.logWarning("derived class and super class are the same: " + CoreLogger.getDescription(derivedClass));
             return methods;
         }
         if (!baseClass.isAssignableFrom(derivedClass)) {
-            CoreLogger.logError("class " + derivedClass.getName() + " is not derived from " +
-                    baseClass.getName());
+            CoreLogger.logError("class " + CoreLogger.getDescription(derivedClass) +
+                    " is not derived from " + CoreLogger.getDescription(baseClass));
             return methods;
         }
         if (baseClass.equals(Object.class))
-            CoreLogger.logWarning("about to find overridden methods of java.lang.Object: " + derivedClass.getName());
+            CoreLogger.logWarning("about to find overridden methods of java.lang.Object: " +
+                    CoreLogger.getDescription(derivedClass));
 
         final List<Method> derivedMethods = findMethods(derivedClass, baseClass,
                 true, true, false, true,
@@ -560,7 +571,7 @@ public class CoreReflection {
             if (return1.equals(return2)) return true;
 
             CoreLogger.logWarning("return types of methods " + name1 + " are not the same: " +
-                    return1.getName() + " and " + return2.getName());
+                    CoreLogger.getDescription(return1) + " and " + CoreLogger.getDescription(return2));
             return null;
         }
         return false;
@@ -719,7 +730,8 @@ public class CoreReflection {
             if ((tmpClass = tmpClass.getSuperclass()) == null) break;
         }
 
-        CoreLogger.logWarning("class " + getClass(object).getName() + ", field " + fieldName + " not found");
+        CoreLogger.logWarning("class " + CoreLogger.getDescription(getClass(object)) +
+                ", field " + fieldName + " not found");
         return null;
     }
 
@@ -781,7 +793,8 @@ public class CoreReflection {
      * @return  The field's previous value
      */
     @SuppressWarnings("unused")
-    public static <T> T setField(@NonNull final Object object, @NonNull final String fieldName, final T newValue) {
+    public static <T> T setField(@NonNull final Object object, @NonNull final String fieldName,
+                                 final T newValue) {
         final Field field = findField(object, fieldName);
         return field == null ? null: setField(object, field, newValue);
     }
@@ -811,22 +824,26 @@ public class CoreReflection {
     private static <T> T doField(final boolean set, final Object object, final Field field, final T newValue) {
         checkForNull(field, "field == null");
 
-        final boolean accessible = field.isAccessible();
-        field.setAccessible(true);
-
         try {
-            @SuppressWarnings("unchecked")
-            final T value = (T) field.get(object);
+            final boolean accessible = field.isAccessible();
+            if (!accessible) field.setAccessible(true);
 
-            if (set) field.set(object, newValue);
-            return value;
+            try {
+                @SuppressWarnings("unchecked")
+                final T value = (T) field.get(object);
+
+                if (set) field.set(object, newValue);
+                return value;
+            }
+            catch (ClassCastException | IllegalAccessException e) {
+                CoreLogger.log(field.getName(), e);
+            }
+            finally {
+                if (!accessible) field.setAccessible(false);
+            }
         }
-        catch (ClassCastException | IllegalAccessException e) {
-            CoreLogger.log(field.getName(), e);
-        }
-        finally {
-            //noinspection ThrowFromFinallyBlock
-            field.setAccessible(accessible);
+        catch (RuntimeException exception) {
+            CoreLogger.log(exception);
         }
 
         return null;
@@ -977,8 +994,8 @@ public class CoreReflection {
         return set;
     }
 
-    private static String adjustFieldName(@NonNull final String name, @NonNull final Class c) {
-        return String.format("%s.%s", c.getName(), name);
+    private static String adjustFieldName(@NonNull final String name, @NonNull final Class cls) {
+        return String.format("%s.%s", cls.getName(), name);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -994,7 +1011,8 @@ public class CoreReflection {
      *
      * @return  The annotation object or null (if not found)
      */
-    public static Annotation getAnnotation(@NonNull final Object object, @NonNull final Class<? extends Annotation> annotation) {
+    public static Annotation getAnnotation(@NonNull final Object object,
+                                           @NonNull final Class<? extends Annotation> annotation) {
         return ((Class<?>) getClass(object)).getAnnotation(annotation);
     }
 
@@ -1010,7 +1028,8 @@ public class CoreReflection {
      * @return  {@code true} if the object was annotated, {@code false} otherwise
      */
     @SuppressWarnings("unused")
-    public static boolean isAnnotated(@NonNull final Object object, @NonNull final Class<? extends Annotation> annotation) {
+    public static boolean isAnnotated(@NonNull final Object object,
+                                      @NonNull final Class<? extends Annotation> annotation) {
         return ((Class<?>) getClass(object)).isAnnotationPresent(annotation);
     }
 
@@ -1032,7 +1051,8 @@ public class CoreReflection {
      * @return  {@code true} if the method was annotated, {@code false} otherwise
      */
     @SuppressWarnings("unused")
-    public static boolean isAnnotatedMethod(@NonNull final Object object, @NonNull final Class<? extends Annotation> annotation,
+    public static boolean isAnnotatedMethod(@NonNull final Object object,
+                                            @NonNull final Class<? extends Annotation> annotation,
                                             @NonNull final String methodName, @NonNull final Class... args) {
         final Method method = findMethod(Level.ERROR, object, methodName, args);
         checkForNull(method, "method == null");

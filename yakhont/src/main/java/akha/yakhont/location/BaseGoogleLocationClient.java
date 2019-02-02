@@ -591,7 +591,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                         }
                     });
         }
-        catch (SecurityException exception) {   // should never happen
+        catch (/*Security*/Exception exception) {   // should never happen
             CoreLogger.log("requestLocationUpdates failed", exception);
         }
     }
@@ -641,7 +641,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                         }
             });
         }
-        catch (SecurityException exception) {   // should never happen
+        catch (/*Security*/Exception exception) {   // should never happen
             CoreLogger.log("getLastLocation failed", exception);
         }
     }

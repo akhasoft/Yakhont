@@ -91,8 +91,8 @@ public class Rx2<D> extends CommonRx<D> {
     }
 
     /**
-     * Sets Rx error handler to the one which does logging only.
-     * For more info please refer to {@link <a href="https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling">Rx error handling</a>}.
+     * Sets Rx error handler to the one which does logging only. For more info please refer to
+     * {@link <a href="https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling">Rx error handling</a>}.
      *
      * @see RxJavaPlugins#setErrorHandler
      */
@@ -107,7 +107,8 @@ public class Rx2<D> extends CommonRx<D> {
     }
 
     /**
-     * Sets Rx error handler. Please refer to {@link RxJavaPlugins#setErrorHandler RxJavaPlugins.setErrorHandler()} for more info.
+     * Sets Rx error handler. Please refer to
+     * {@link RxJavaPlugins#setErrorHandler RxJavaPlugins.setErrorHandler()} for more info.
      *
      * @param handler
      *        The Rx error handler to set

@@ -20,7 +20,9 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.location.LocationCallbacks;
+import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.rx.Rx.RxSubscription;
 import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
@@ -339,13 +341,13 @@ public abstract class BaseRx<D> {
          * @param errMgsParam
          *        The error message parameter
          *
-         * @param nok
+         * @param nOk
          *        The error message trigger
          */
         @SuppressWarnings("WeakerAccess")
         @RestrictTo(Scope.LIBRARY)
-        protected CommonRx(@NonNull final String errMgsParam, final boolean nok) {
-            if (nok) CoreLogger.logError(String.format(
+        protected CommonRx(@NonNull final String errMgsParam, final boolean nOk) {
+            if (nOk) CoreLogger.logError(String.format(
                     "in your application initialization code please call "                   +
                     "'Core.setRxUncaughtExceptionBehavior()' (or any of '%s.setErrorHandler*()'" +
                     " methods); ignore this information only if you know what you're doing", errMgsParam));
@@ -635,7 +637,7 @@ public abstract class BaseRx<D> {
             if (mActivity != null) {
                 activity = mActivity.get();
                 if (activity == null)
-                    CoreLogger.logWarning("activity is null, let's try the current one");
+                    CoreLogger.logWarning("activity is null, let's try to use the current one");
             }
             return LocationCallbacks.getCurrentLocation(
                     activity != null ? activity: LocationCallbacks.getActivity());
@@ -645,7 +647,8 @@ public abstract class BaseRx<D> {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Extends the {@link BaseRx} class to provide {@link BaseResponse} support. For example, in Fragment:
+     * Extends the {@link BaseRx} class to provide {@link BaseResponse} support.
+     * For example, in Fragment:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * import com.yourpackage.model.YourData;
@@ -675,7 +678,7 @@ public abstract class BaseRx<D> {
      *             }
      *         });
      *
-     *         new Retrofit2CoreLoadBuilder&lt;&gt;(this, getRetrofit())
+     *         new Retrofit2CoreLoadBuilder&lt;&gt;(getRetrofit())
      *             .setRequester(YourRetrofit::yourMethod).setDataBinding(BR.yourDataBindingId)
      *             .setRx(mRx).create().load();
      *     }
@@ -704,8 +707,8 @@ public abstract class BaseRx<D> {
      * @param <D>
      *        The type of data
      *
-     * @yakhont.see BaseResponseLoaderWrapper.CoreLoad
-     * @yakhont.see Retrofit.RetrofitRx
+     * @see CoreLoad
+     * @see Retrofit2Rx
      */
     public static class LoaderRx<R, E, D> extends BaseRx<BaseResponse<R, E, D>> {
 
@@ -782,7 +785,8 @@ public abstract class BaseRx<D> {
         }
 
         /**
-         * Subscribes common subscriber (suitable for both RxJava and RxJava 2) to receive Rx push-based notifications.
+         * Subscribes common subscriber (suitable for both RxJava and RxJava 2) to receive Rx
+         * push-based notifications.
          * For simplification automatically extracts result from {@link BaseResponse}.
          *
          * @param subscriber
@@ -835,26 +839,22 @@ public abstract class BaseRx<D> {
 
             mCached = baseResponse;
 
-            if (baseResponse == null) {     // should never happen
+            if (baseResponse == null)       // should never happen
                 super.onResult(null);
-                return;
+            else {
+                final Throwable error = baseResponse.getErrorOrThrowable();
+                if (error != null)
+                    onError(error);
+                else {
+                    final D result = baseResponse.getResult();
+                    if (result == null && !isNullable()) {
+                        CoreLogger.logError("BaseResponse.getResult() is null");
+                        super.onResult(null);
+                    }
+                    else
+                        super.onResult(baseResponse);
+                }
             }
-
-            final Throwable error = baseResponse.getErrorOrThrowable();
-            if (error != null) {
-                onError(error);
-                return;
-            }
-
-            final D result = baseResponse.getResult();
-            if (result == null && !isNullable()) {
-                CoreLogger.logError("BaseResponse.getResult() is null");
-
-                super.onResult(null);
-                return;
-            }
-
-            super.onResult(baseResponse);
         }
     }
 }

@@ -92,19 +92,9 @@ android {
         enabled                 true
     }
 
-    signingConfigs {
-        config {
-            storeFile file('../../misc/testkeystore.jks')
-            keyAlias       'test'
-            keyPassword    'qwerty'
-            storePassword  'qwerty'
-        }
-    }
-
     buildTypes {
         release {
             minifyEnabled       rootProject.ext.projectDebug != '1'
-            signingConfig       signingConfigs.config
 
             rootProject.ext.projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck

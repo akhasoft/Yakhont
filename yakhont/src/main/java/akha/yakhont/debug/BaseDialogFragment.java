@@ -41,7 +41,8 @@ import androidx.fragment.app.Fragment;
 import java.util.Arrays;
 
 /**
- * The <code>BaseDialogFragment</code> class is intended for debug purposes. Overridden methods most of the time just adds lifecycle logging.
+ * The <code>BaseDialogFragment</code> class is intended for debug purposes.
+ * Overridden methods most of the time just adds lifecycle logging.
  * Some additional debug Fragments can be found in the full version.        {@yakhont.preprocessor.remove.in.generated}
  *
  * @see LogDebug
@@ -62,20 +63,20 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      *
      * @return  The logging message (for debugging)
      */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    @SuppressWarnings("WeakerAccess")
     protected String getDebugMessage() {
         return "dialog fragment " + BaseFragment.getFragmentName(this);
     }
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#WARNING WARNING}.
+     * <br>The default value is {@link Level#INFO INFO}.
      *
      * @return  The logging priority level (for debugging)
      */
     @SuppressWarnings({"SameReturnValue", "WeakerAccess"})
     protected Level getDebugLevel() {
-        return Level.WARNING;
+        return CoreLogger.getDefaultLevel();
     }
 
     /**
@@ -325,7 +326,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestCode " + requestCode +
-                ", permissions " + Arrays.deepToString(permissions) +
+                ", permissions "  + Arrays.deepToString(permissions) +
                 ", grantResults " + Arrays.toString(grantResults), false);
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

@@ -40,7 +40,8 @@ import androidx.annotation.NonNull;
 import java.util.Arrays;
 
 /**
- * The <code>BaseActivity</code> class is intended for debug purposes. Overridden methods most of the time just adds lifecycle logging.
+ * The <code>BaseActivity</code> class is intended for debug purposes.
+ * Overridden methods most of the time just adds lifecycle logging.
  * Some additional debug Activities can be found in the full version.   {@yakhont.preprocessor.remove.in.generated}
  *
  * @see LogDebug
@@ -69,13 +70,13 @@ public class BaseActivity extends Activity {        // don't modify this line: i
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#WARNING WARNING}.
+     * <br>The default value is {@link Level#INFO INFO}.
      *
      * @return  The logging priority level (for debugging)
      */
     @SuppressWarnings("SameReturnValue")
     protected Level getDebugLevel() {
-        return Level.WARNING;
+        return CoreLogger.getDefaultLevel();
     }
 
     /**
@@ -617,7 +618,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      *
      * @return  {@code true} if the Back key was pressed, {@code false} otherwise
      *
-     * @see akha.yakhont.Core.Utils.BackKeyInActionModeHandler
+     * @see BackKeyInActionModeHandler
      */
     public boolean checkBackKeyAndReset() {                                                     //YakhontPreprocessor:removeInGenerated
         return mBackKeyHandler.checkBackKeyAndReset();                                          //YakhontPreprocessor:removeInGenerated

@@ -48,8 +48,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @param <D>
  *        The type of data
  *
- * @yakhont.see BaseLoader
- 
+ * @see BaseLiveData
+ * @see BaseViewModel
+
  * @author akha
  */
 public class BaseResponse<R, E, D> {
@@ -351,6 +352,7 @@ public class BaseResponse<R, E, D> {
 
         private final static AtomicBoolean        sSafe                   = new AtomicBoolean(true);
 
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         public static final Parcelable.Creator<LoadParameters> CREATOR
                 = new Parcelable.Creator<LoadParameters>() {
 
@@ -381,6 +383,9 @@ public class BaseResponse<R, E, D> {
             mTimeout        = in.readInt();
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void writeToParcel(Parcel out, int flags) {
             out.writeString  (mLoaderId);
@@ -398,6 +403,9 @@ public class BaseResponse<R, E, D> {
             out.writeInt     (mTimeout);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public int describeContents() {
             return 0;

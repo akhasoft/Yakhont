@@ -15,6 +15,7 @@
 -->
 
 <resources xmlns:tools="http://schemas.android.com/tools">
+
     <string name="yakhont_loader_progress" tools:ignore="TypographyEllipsis"
                                                         >Data loading is in progress (%s)...</string>
     <string name="yakhont_loader_progress_def_info"     >no details</string>
@@ -23,6 +24,7 @@
                                                         >Data loading was cancelled</string>
     <string name="yakhont_loader_error"                 >Data loading error</string>
 
+    <string name="yakhont_sending_email"                >Sending debug email</string>
     <string name="yakhont_send_debug_email"             >About to send debug e-mail to %s</string>
 
     <string name="yakhont_alert_ok"         tools:keep="@string/yakhont_alert_ok"
@@ -47,4 +49,5 @@
     <string name="yakhont_location_s"                   >S</string>
     <string name="yakhont_location_w"                   >W</string>
     <string name="yakhont_location_e"                   >E</string>
+
 </resources>

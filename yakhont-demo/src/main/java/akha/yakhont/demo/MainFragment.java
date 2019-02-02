@@ -149,8 +149,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                 !byUserRequest, mCheckBoxMerge.isChecked()));
     }
 
-    private LoadParameters getLoadParameters(final boolean forceCache,
-                                             final boolean noProgress, final boolean merge) {
+    private LoadParameters getLoadParameters(boolean forceCache, boolean noProgress, boolean merge) {
         return new LoadParameters(null, null, forceCache, noProgress, merge,
                 mNotDisplayLoadingErrors, false, false);
     }
@@ -451,7 +450,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         return mainView;
     }
 
-    private void initGui(final Bundle savedInstanceState) {
+    private void initGui(Bundle savedInstanceState) {
 
         if (savedInstanceState != null && savedInstanceState.keySet().contains(ARG_PART_COUNTER))
             mPartCounter = savedInstanceState.getInt(ARG_PART_COUNTER);
@@ -478,12 +477,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         super.onDestroyView();
     }
     
-    public void onSlideShow(final boolean isStarted) {
+    public void onSlideShow(boolean isStarted) {
         getMainActivity().setSlideShow(isStarted ? mSlideShow: null);
         setBubblesState(isStarted);
     }
 
-    private void setBubblesState(final boolean cancel) {
+    private void setBubblesState(boolean cancel) {
         Bubbles.setState(cancel, false);
     }
 

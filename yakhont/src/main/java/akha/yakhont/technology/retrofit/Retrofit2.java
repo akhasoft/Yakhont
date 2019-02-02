@@ -129,11 +129,21 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         setCancelHandler(null);
     }
 
+    /**
+     * Returns the data request canceling handler (if any).
+     *
+     * @return  The cancel handler
+     */
     public Runnable getCancelHandler() {
         return mCancelHandler;
     }
 
-    // mostly for raw calls
+    /**
+     * Sets the data request canceling handler (mostly for raw calls).
+     *
+     * @param cancelHandler
+     *        The cancel handler
+     */
     @SuppressWarnings("WeakerAccess")
     public void setCancelHandler(final Runnable cancelHandler) {
         if (mCancelHandler != null && cancelHandler != null)
@@ -428,6 +438,20 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         return this;
     }
 
+    /**
+     * Initialises Retrofit client.
+     *
+     * @param service
+     *        The service interface
+     *
+     * @param retrofitBase
+     *        The Retrofit API endpoint URL
+     *
+     * @param client
+     *        The {@code OkHttpClient}
+     *
+     * @return  This {@code Retrofit2} object to allow for chaining of calls
+     */
     public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase,
                                 @NonNull final OkHttpClient client) {
         init(service, getDefaultBuilder(retrofitBase).client(client));
@@ -885,7 +909,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
          *
          * @param isSingle
-         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx}
+         *        {@code true} if {@link CommonRx}
          *        either emits one value only or an error notification, {@code false} otherwise
          */
         @SuppressWarnings("unused")
@@ -897,7 +921,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          * Initialises a newly created {@code Retrofit2Rx} object.
          *
          * @param commonRx
-         *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
+         *        The {@link CommonRx} to use
          */
         @SuppressWarnings("unused")
         public Retrofit2Rx(final CommonRx<BaseResponse<Response<D>, Throwable, D>> commonRx) {
@@ -908,10 +932,10 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          * Initialises a newly created {@code Retrofit2Rx} object.
          *
          * @param commonRx
-         *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
+         *        The {@link CommonRx} to use
          *
          * @param isSingle
-         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx}
+         *        {@code true} if {@link CommonRx}
          *        either emits one value only or an error notification, {@code false} otherwise
          */
         @SuppressWarnings("unused")

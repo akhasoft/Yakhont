@@ -23,6 +23,7 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -39,10 +40,39 @@ import retrofit.RetrofitError;
 import retrofit.client.Response;
 import retrofit.mime.TypedString;
 
+/**
+ * Extends the {@link BaseResponseLoaderWrapper} class to provide Retrofit support.
+ *
+ * @param <D>
+ *        The type of data
+ *
+ * @param <T>
+ *        The type of Retrofit API
+ *
+ * @author akha
+ */
 public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callback<D>, Response, Exception, D> {
 
     private final          Retrofit<T, D>                    mRetrofit;
 
+    /**
+     * Initialises a newly created {@code RetrofitLoaderWrapper} object.
+     *
+     * @param viewModelStore
+     *        The {@code ViewModelStore}
+     *
+     * @param requester
+     *        The requester
+     *
+     * @param table
+     *        The name of the table in the database (to cache the loaded data)
+     *
+     * @param description
+     *        The data description
+     *
+     * @param retrofit
+     *        The Retrofit component
+     */
     @SuppressWarnings("unused")
     public RetrofitLoaderWrapper(@NonNull final ViewModelStore          viewModelStore,
                                  @NonNull final Requester<Callback<D>>  requester,
@@ -53,6 +83,33 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
                 BaseResponseLoaderWrapper.<D>getDefaultConverter(), getDefaultUriResolver(), retrofit);
     }
 
+    /**
+     * Initialises a newly created {@code RetrofitLoaderWrapper} object.
+     *
+     * @param viewModelStore
+     *        The {@code ViewModelStore}
+     *
+     * @param loaderId
+     *        The loader ID
+     *
+     * @param requester
+     *        The requester
+     *
+     * @param table
+     *        The name of the table in the database (to cache the loaded data)
+     *
+     * @param description
+     *        The data description
+     *
+     * @param converter
+     *        The data converter
+     *
+     * @param uriResolver
+     *        The URI resolver (for cache provider)
+     *
+     * @param retrofit
+     *        The Retrofit component
+     */
     @SuppressWarnings("WeakerAccess")
     public RetrofitLoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                  @NonNull final Requester<Callback<D>> requester,
@@ -75,6 +132,9 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
         });
     }
 
+    /**
+     * Please refer to the base method description.
+     */
     @Override
     protected BaseResponse<Response, Exception, D> makeRequest(
             @NonNull final BaseViewModel<BaseResponse<Response, Exception, D>> baseViewModel) {
@@ -164,16 +224,41 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static class RetrofitLoaderBuilder<D, T> extends BaseResponseLoaderExtendedBuilder<Callback<D>, Response, Exception, D, T> {
+    /**
+     * Builder class for {@link BaseResponseLoaderWrapper} objects. Creates the Retrofit-based ones.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @param <T>
+     *        The type of Retrofit API
+     */
+    public static class RetrofitLoaderBuilder<D, T>
+            extends BaseResponseLoaderExtendedBuilder<Callback<D>, Response, Exception, D, T> {
 
         private final Retrofit<T, D>                                 mRetrofit;
 
+        /**
+         * Initialises a newly created {@code RetrofitLoaderBuilder} object.
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
         @SuppressWarnings("WeakerAccess")
         public RetrofitLoaderBuilder(@NonNull final Retrofit<T, D> retrofit) {
 
             mRetrofit = retrofit;
         }
 
+        /**
+         * Initialises a newly created {@code RetrofitLoaderBuilder} object.
+         *
+         * @param fragment
+         *        The Fragment
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
         @SuppressWarnings("unused")
         public RetrofitLoaderBuilder(final Fragment                fragment,
                                      @NonNull final Retrofit<T, D> retrofit) {
@@ -182,6 +267,15 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             mRetrofit = retrofit;
         }
 
+        /**
+         * Initialises a newly created {@code RetrofitLoaderBuilder} object.
+         *
+         * @param activity
+         *        The Activity
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
         @SuppressWarnings("unused")
         public RetrofitLoaderBuilder(final Activity activity,
                                      @NonNull final Retrofit<T, D> retrofit) {
@@ -190,6 +284,15 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             mRetrofit = retrofit;
         }
 
+        /**
+         * Initialises a newly created {@code RetrofitLoaderBuilder} object.
+         *
+         * @param viewModelStore
+         *        The ViewModelStore
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
         @SuppressWarnings("unused")
         public RetrofitLoaderBuilder(final ViewModelStore          viewModelStore,
                                      @NonNull final Retrofit<T, D> retrofit) {
@@ -239,10 +342,25 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Builder class for {@link CoreLoad} objects. Creates the Retrofit-based ones.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @param <T>
+     *        The type of Retrofit API
+     */
     public static class RetrofitCoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D, T> {
 
         private final Retrofit<T, D>                                 mRetrofit;
 
+        /**
+         * Initialises a newly created {@code RetrofitCoreLoadBuilder} object.
+         *
+         * @param retrofit
+         *        The Retrofit component
+         */
         @SuppressWarnings("unused")
         public RetrofitCoreLoadBuilder(@NonNull final Retrofit<T, D> retrofit) {
             super();

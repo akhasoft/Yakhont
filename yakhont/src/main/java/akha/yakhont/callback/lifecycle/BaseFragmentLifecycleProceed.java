@@ -16,14 +16,19 @@
 
 package akha.yakhont.callback.lifecycle;
 
+import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseCacheCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseLifecycleProceed;
+import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle;
+import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 import akha.yakhont.debug.BaseFragment;
 
 import android.annotation.TargetApi;
+import android.app.Activity;
+import android.app.Application.ActivityLifecycleCallbacks;
 import android.os.Build;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
@@ -38,7 +43,7 @@ import java.util.Set;
 
 /**
  * Extends the {@link BaseLifecycleProceed} class to provide the {@link Fragment} lifecycle support.
- * For the moment supported lifecycle is close to the {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle}
+ * For the moment supported lifecycle is close to the {@link ActivityLifecycle}
  * but will likely expand in future releases.
  *
  * @see BaseFragmentCallbacks
@@ -74,7 +79,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
         /** Called to ask the fragment to save its current dynamic state. */
         SAVE_INSTANCE_STATE,
 
-        /** Tells the fragment that its activity has completed its own {@link android.app.Activity#onCreate(Bundle) Activity.onCreate()}. */
+        /** Tells the fragment that its activity has completed its own {@link Activity#onCreate(Bundle)}. */
         ACTIVITY_CREATED
     }
 
@@ -166,7 +171,8 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *        The additional information concerning the fragment state
      */
     @SuppressWarnings("WeakerAccess")
-    protected static void apply(@NonNull final FragmentLifecycle lifeCycle, @NonNull final Fragment fragment, final Bundle state) {
+    protected static void apply(@NonNull final FragmentLifecycle lifeCycle, @NonNull final Fragment fragment,
+                                final Bundle state) {
 
         final Boolean created;
         switch (lifeCycle) {
@@ -370,13 +376,13 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
 
     /**
      * Extends the {@link BaseCacheCallbacks} class to provide the fragment life cycle callbacks support.
-     * For the moment supported callbacks are close to the {@link android.app.Application.ActivityLifecycleCallbacks}
+     * For the moment supported callbacks are close to the {@link ActivityLifecycleCallbacks}
      * but will likely expand in future releases.
      * <br>By default all callbacks are empty.
      *
-     * <p>Usage example (for more examples please refer to {@link akha.yakhont.callback.BaseCallbacks general Activity},
-     * {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks Activity}
-     * and {@link akha.yakhont.callback.BaseCallbacks#proceed(Object, Class, BaseCallbacks) simple Activity} ones):
+     * <p>Usage example (for more examples please refer to {@link BaseCallbacks general Activity},
+     * {@link BaseActivityCallbacks Activity}
+     * and {@link BaseCallbacks#proceed(Object, Class, BaseCallbacks) simple Activity} ones):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * package com.yourpackage;
@@ -403,7 +409,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * }
      * </pre>
      *
-     * And register your callbacks handler (see also {@link akha.yakhont.Core}):
+     * And register your callbacks handler (see also {@link Core}):
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.Core;
@@ -425,7 +431,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * }
      * </pre>
      *
-     * Please refer to the {@link akha.yakhont.callback.BaseCallbacks} for more details.
+     * Please refer to the {@link BaseCallbacks} for more details.
      *
      * @see FragmentLifecycle
      */

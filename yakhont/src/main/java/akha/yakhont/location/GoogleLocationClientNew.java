@@ -24,7 +24,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.Intent;
-import android.content.IntentSender.SendIntentException;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
@@ -253,9 +252,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                             activity, REQUEST_CODE);
                     return true;
                 }
-                catch (SendIntentException sendIntentException) {
-                    CoreLogger.log("ResolvableApiException: unable startResolutionForResult",
-                            sendIntentException);
+                catch (/*SendIntent*/Exception e) {
+                    CoreLogger.log("ResolvableApiException: unable startResolutionForResult", e);
                 }
                 break;
 
@@ -514,8 +512,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                         }
                     });
         }
-        catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("requestLocationUpdates failed", exception);
+        catch (/*Security*/Exception exception) {   // should never happen
+            CoreLogger.log(exception);
         }
     }
 

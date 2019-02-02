@@ -108,7 +108,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      */
     @SuppressWarnings("unused")
     public BaseRecyclerViewAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
-                                   final DataBinder<T>                dataBinder) {
+                                            final DataBinder<T>                dataBinder) {
         this(baseCacheAdapter, dataBinder, Core.NOT_VALID_RES_ID);
     }
 
@@ -362,7 +362,6 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
                 CoreLogger.logError("data for binding is null");
                 return;
             }
-//          CoreLogger.log("DataBindingViewHolder, Data Binding ID " + mDataBindingId);
 
             mViewDataBinding.setVariable(mDataBindingId, data);
             mViewDataBinding.executePendingBindings();
@@ -420,7 +419,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @SuppressWarnings("unused")
         public static <R, E, D> void bind(final ViewHolder              viewHolder,
-                                          final BaseResponse<R, E, D> data,
+                                          final BaseResponse<R, E, D>   data,
                                           final Integer                 position) {
             if (data == null)
                 CoreLogger.logError("BaseResponse for binding == null");

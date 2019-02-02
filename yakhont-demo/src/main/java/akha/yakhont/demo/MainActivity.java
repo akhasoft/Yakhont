@@ -133,7 +133,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         mRx = new LocationRx(isRxJava2(), this).subscribe(new SubscriberRx<Location>() {
             @Override
-            public void onNext(final Location location) {
+            public void onNext(Location location) {
                 Log.w("MainActivity", "LocationRx: " + location);
             }
 
@@ -172,12 +172,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             super.onBackPressed();
     }
 
-    public void setSlideShow(final SlideShow slideShow) {
+    public void setSlideShow(SlideShow slideShow) {
         mSlideShow = slideShow;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // deep customization example
+    // deep Yakhont customization example
 
     // default implementation - customize only modules you need
 //  @Component(modules = {CallbacksValidationModule.class, LocationModule.class, UiModule.class})
@@ -192,7 +192,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
     }
 
-    // customize callbacks validation here
+    // customize Yakhont callbacks validation here
     // it's optional - use CallbacksValidationModule.class for default implementation (see @Component above)
     @SuppressWarnings("WeakerAccess")
     @Module
@@ -204,14 +204,14 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
     }
 
-    // customize location client here
+    // customize Yakhont location client here
     // it's optional - use LocationModule.class for default implementation (see @Component above)
     @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoLocationModule extends LocationModule {
         @SuppressWarnings("EmptyMethod")
         @Override
-        protected LocationClient getLocationClient(final boolean oldApi) {
+        protected LocationClient getLocationClient(boolean oldApi) {
             return super.getLocationClient(oldApi);
         }
     }

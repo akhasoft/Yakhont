@@ -62,6 +62,22 @@ import java.util.Set;
  */
 public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<ContentValues, R, E, D> {
 
+    /**
+     * Initialises a newly created {@code ValuesCacheAdapterWrapper} object. The data binding goes by default:
+     * cursor's column {@link BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title etc.
+     *
+     * @param context
+     *        The {@code Activity}
+     *
+     * @param layoutId
+     *        The resource identifier of a layout file that defines the views
+     *
+     * @param support
+     *        {@code true} to use the {@code SupportCacheAdapter} instance, {@code false} otherwise
+     *
+     * @param supportCursorAdapter
+     *        {@code true} if SimpleCursorAdapter from support library should be used, {@code false} otherwise
+     */
     @SuppressWarnings("WeakerAccess")
     public ValuesCacheAdapterWrapper(@NonNull   final Activity context,
                                      @LayoutRes final int      layoutId,
@@ -70,6 +86,27 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
         this(context, layoutId, init(context, layoutId, support, supportCursorAdapter));
     }
 
+    /**
+     * Initialises a newly created {@code ValuesCacheAdapterWrapper} object.
+     *
+     * @param context
+     *        The {@code Activity}
+     *
+     * @param layoutId
+     *        The resource identifier of a layout file that defines the views
+     *
+     * @param from
+     *        The list of names representing the data to bind to the UI
+     *
+     * @param to
+     *        The views that should display data in the "from" parameter
+     *
+     * @param support
+     *        {@code true} to use the {@code SupportCacheAdapter} instance, {@code false} otherwise
+     *
+     * @param supportCursorAdapter
+     *        {@code true} if SimpleCursorAdapter from support library should be used, {@code false} otherwise
+     */
     @SuppressWarnings("WeakerAccess")
     public ValuesCacheAdapterWrapper(@NonNull                final Activity context,
                                      @LayoutRes              final int      layoutId,
@@ -87,7 +124,10 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
      *        The {@code BaseCacheAdapterFactory}
      *
      * @param support
-     *        The support flag for the {@code BaseCacheAdapterFactory}
+     *        {@code true} to use the {@code SupportCacheAdapter} instance, {@code false} otherwise
+     *
+     * @param supportCursorAdapter
+     *        {@code true} if SimpleCursorAdapter from support library should be used, {@code false} otherwise
      *
      * @param context
      *        The {@code Activity}

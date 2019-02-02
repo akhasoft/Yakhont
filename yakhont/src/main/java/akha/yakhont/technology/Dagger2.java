@@ -33,6 +33,7 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
+import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.text.TextUtils;
@@ -45,6 +46,8 @@ import androidx.annotation.StringRes;
 
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.FusedLocationProviderClient;
 
 import java.lang.ref.WeakReference;
 
@@ -59,20 +62,21 @@ import javax.inject.Provider;
 
 /**
  * The {@link <a href="http://google.github.io/dagger/">Dagger 2</a>} component. Usage example (see also
- * {@link akha.yakhont.Core#init(android.app.Application, Boolean, Dagger2) Theme example}):
+ * {@link Core#init(Application, Boolean, Dagger2) Theme example}):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * import akha.yakhont.Core;
  * import akha.yakhont.callback.BaseCallbacks.Validator;
- * import akha.yakhont.fragment.dialog.ProgressDialogFragment;
- * import akha.yakhont.fragment.dialog.ProgressDialogFragment.ProgressLoaderDialogFragment;
  * import akha.yakhont.location.LocationCallbacks.LocationClient;
  * import akha.yakhont.technology.Dagger2;
+ * import akha.yakhont.technology.Dagger2.CallbacksValidationModule;
+ * import akha.yakhont.technology.Dagger2.LocationModule;
+ * import akha.yakhont.technology.Dagger2.Parameters;
+ * import akha.yakhont.technology.Dagger2.UiModule;
  *
  * import dagger.BindsInstance;
  * import dagger.Component;
  * import dagger.Module;
- * import dagger.Provides;
  *
  * public class YourActivity extends Activity {
  *
@@ -81,7 +85,7 @@ import javax.inject.Provider;
  *
  *         Core.init(getApplication(), null, DaggerYourActivity_YourDagger
  *             .builder()
- *             .parameters(Dagger2.Parameters.create())
+ *             .parameters(Parameters.create())
  *             .build()
  *         );
  *
@@ -90,62 +94,53 @@ import javax.inject.Provider;
  *         // your code here: setContentView(...) etc.
  *     }
  *
- *     // custom progress dialog example (with custom view R.layout.progress)
+ *     // default implementation - customize only modules you need
+ * //  &#064;Component(modules = {CallbacksValidationModule.class, LocationModule.class, UiModule.class})
  *
- *     &#064;Component(modules = {YourLocationModule.class, YourUiModule.class,
- *                                YourCallbacksValidationModule.class})
+ *     &#064;Component(modules = {YourLocationModule.class, YourCallbacksValidationModule.class,
+ *                                YourUiModule.class})
  *     interface YourDagger extends Dagger2 {
  *
  *         &#064;Component.Builder
  *         interface Builder {
  *             &#064;BindsInstance
- *             Builder parameters(Dagger2.Parameters parameters);
+ *             Builder parameters(Parameters parameters);
  *             YourDagger build();
  *         }
  *     }
  *
+ *     // customize Yakhont callbacks validation here
  *     &#064;Module
- *     static class YourCallbacksValidationModule extends Dagger2.CallbacksValidationModule {
- *
- *         &#064;Provides
- *         Validator provideCallbacksValidator() {
- *             return getCallbacksValidator();
- *         }
- *     }
- *
- *     &#064;Module
- *     static class YourLocationModule extends Dagger2.LocationModule {
- *
- *         &#064;Provides
- *         LocationClient provideLocationClient(Dagger2.Parameters parameters) {
- *             return getLocationClient(getFlagLocation(parameters));
- *         }
- *     }
- *
- *     &#064;Module
- *     static class YourUiModule extends Dagger2.UiModule {
+ *     static class YourCallbacksValidationModule extends CallbacksValidationModule {
  *
  *         &#064;Override
- *         protected Core.BaseDialog getProgress() {
- *             return YourProgress.newInstance();
+ *         protected Validator getCallbacksValidator() {
+ *             return super.getCallbacksValidator();
  *         }
  *     }
  *
- *     public static class YourProgress extends ProgressLoaderDialogFragment {
+ *     // customize Yakhont location client here
+ *     &#064;Module
+ *     static class YourLocationModule extends LocationModule {
  *
  *         &#064;Override
- *         public Dialog onCreateDialog(Bundle savedInstanceState) {
- *             Activity activity = getActivity();
- *             AlertDialog.Builder builder = new AlertDialog.Builder(activity);
+ *         protected LocationClient getLocationClient(boolean oldApi) {
+ *             return super.getLocationClient(oldApi);
+ *         }
+ *     }
  *
- *             View view = LayoutInflater.from(activity).inflate(R.layout.progress, null);
- *             ((TextView) view.findViewById(R.id.progress_message)).setText(getMessage(activity));
+ *     // customize Yakhont GUI here
+ *     &#064;Module
+ *     static class YourUiModule extends UiModule {
  *
- *             return builder.setView(view).create();
+ *         &#064;Override
+ *         protected BaseDialog getAlert(int requestCode) {
+ *             return super.getAlert(requestCode);
  *         }
  *
- *         public static YourProgress newInstance() {
- *             return (YourProgress) ProgressDialogFragment.newInstance(new YourProgress());
+ *         &#064;Override
+ *         protected BaseDialog getToast(boolean useSnackbarIsoToast, boolean durationLong) {
+ *             return super.getToast(useSnackbarIsoToast, durationLong);
  *         }
  *     }
  * }
@@ -229,8 +224,8 @@ public interface Dagger2 {
          * Creates new {@code Parameters} object.
          *
          * @param useGoogleLocationOldApi
-         *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
-         *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
+         *        {@code true} for {@link GoogleApiClient}-based Google Location API,
+         *        {@code false} for {@link FusedLocationProviderClient}-based one
          *
          * @param useSnackbarIsoToast
          *        {@code true} for using {@link Snackbar} instead of {@link Toast}
@@ -335,8 +330,8 @@ public interface Dagger2 {
          * Creates new instance of the location client.
          *
          * @param oldApi
-         *        {@code true} for {@link com.google.android.gms.common.api.GoogleApiClient}-based Google Location API,
-         *        {@code false} for {@link com.google.android.gms.location.FusedLocationProviderClient}-based one
+         *        {@code true} for {@link GoogleApiClient}-based Google Location API,
+         *        {@code false} for {@link FusedLocationProviderClient}-based one
          *
          * @return  The location client
          */
@@ -379,7 +374,7 @@ public interface Dagger2 {
          * Creates new instance of the alert component.
          *
          * @param requestCode
-         *        The integer request code to pass to the {@link Activity#onActivityResult Activity.onActivityResult()}
+         *        The integer request code to pass to the {@link Activity#onActivityResult}
          *
          * @return  The alert component
          */
@@ -452,7 +447,8 @@ public interface Dagger2 {
                 text = Utils.getApplication().getString(resId);
 
             if (useSnackbarIsoToast)
-                new BaseSnackbar(durationLong, null).start(Utils.getCurrentActivity(), text, null);
+                new BaseSnackbar(durationLong, null)
+                        .start(Utils.getCurrentActivity(), text, null);
             else
                 new BaseToast(durationLong).startToast(null, text, null);
         }
@@ -464,7 +460,7 @@ public interface Dagger2 {
                 return validate(Utils.getApplication().getString(resId));
             }
             catch (Exception exception) {
-                CoreLogger.log("validate failed", exception);
+                CoreLogger.log(exception);
                 return false;
             }
         }

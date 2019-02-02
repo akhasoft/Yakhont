@@ -34,6 +34,7 @@ import android.util.Log;
 import android.view.PixelCopy;
 import android.view.View;
 
+import androidx.annotation.AnyRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -141,7 +142,8 @@ public class CoreLogger {
         /**
          * Intended to log the info provided. The way of logging is up to implementation.
          * When logging is handled by this {@code LoggerExtender}, this method must return {@code true}.
-         * If this method returns {@code false}, {@code CoreLogger} will attempts to handle the logging on its own.
+         * If this method returns {@code false}, {@code CoreLogger} will attempts to handle
+         * the logging on its own.
          *
          * @param level
          *        The logging priority level
@@ -473,6 +475,21 @@ public class CoreLogger {
         log(level, str, null, showStack);
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static boolean isNotLog() {
+        return isNotLog(getDefaultLevel());
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static boolean isNotLog(@NonNull final Level level) {
+        // allows to check whether the given level will be logged, or not
+        return !isLogHelper(level) && sLoggerExtender == null;
+    }
+
+    private static boolean isLogHelper(@NonNull final Level level) {
+        return level.ordinal() >= sLogLevelThreshold.get().ordinal();
+    }
+
     /**
      * Performs logging.
      *
@@ -492,8 +509,8 @@ public class CoreLogger {
     public static void log(@NonNull final Level level, @NonNull final String str,
                            final Throwable throwable, Boolean showStack) {
 
-        final boolean isLog = level.ordinal() >= sLogLevelThreshold.get().ordinal();
-        if (!isLog && sLoggerExtender == null) return;
+        if (isNotLog(level)) return;
+        final boolean isLog = isLogHelper(level);
 
         if (showStack == null) showStack = sForceShowStack.get() || throwable != null ||
                 (level.ordinal() >= LEVEL_STACK.ordinal() && isFullInfo());
@@ -571,7 +588,8 @@ public class CoreLogger {
      * @return  The list of parts
      */
     @SuppressWarnings("WeakerAccess")
-    public static List<String> split(List<String> list, String text, final int maxLength, final boolean clearList) {
+    public static List<String> split(List<String> list, String text, final int maxLength,
+                                     final boolean clearList) {
         if (text == null) return list;
 
         if (list == null)
@@ -626,12 +644,13 @@ public class CoreLogger {
 
     @NonNull
     private static String addMethodInfo(@NonNull final Level level, @NonNull String str,
-                                        final String className, final String methodName, final Integer line) {
+                                        final String className, final String methodName,
+                                        final Integer lineNumber) {
         if (isMethodInfo()) {
             final String methodInfo = String.format(Utils.getLocale(), FORMAT_INFO,
                     className  == null ? "<unknown class>" : className,
                     methodName == null ? "<unknown method>": methodName,
-                    line       == null ? "unknown"         : line.toString());
+                    lineNumber == null ? "unknown"         : lineNumber.toString());
             str = String.format(FORMAT, methodInfo, str);
         }
         return sForceShowThread.get() || level.ordinal() >= LEVEL_THREAD.ordinal() ?
@@ -792,8 +811,16 @@ public class CoreLogger {
         return String.format(locale, "%02X", data);
     }
 
+    /**
+     * Returns resource name for the given ID.
+     *
+     * @param id
+     *        The resource ID
+     *
+     * @return  The resource name
+     */
     @SuppressWarnings("WeakerAccess")
-    public static String getResourceName(final int id) {
+    public static String getResourceName(@AnyRes final int id) {
         try {
             return Objects.requireNonNull(Utils.getApplication()).getResources().getResourceName(id);
         }
@@ -803,11 +830,13 @@ public class CoreLogger {
         }
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     public static String getResourceDescription(final int id) {
         final String name = getResourceName(id);
         return String.format("%s (%s)", toHex(id), name != null ? name: "unknown name");
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     public static String getViewDescription(final View view) {
         if (view == null) return "null";
         final int id = view.getId();
@@ -817,7 +846,8 @@ public class CoreLogger {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @NonNull
     public static String getDescription(final Object object) {
-        return getDescription(object == null ? null: object.getClass());
+        return getDescription(object == null ? null:
+                object instanceof Class ? (Class) object: object.getClass());
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -841,6 +871,7 @@ public class CoreLogger {
 
     private static final String                         LOGCAT_CMD               = "logcat -d";
     private static final int                            LOGCAT_BUFFER_SIZE       = 1024;
+    private static final String                         LOGCAT_DEFAULT_SUBJECT   = "logcat";
 
     private interface LogHandler {
         @SuppressWarnings("RedundantThrows")
@@ -861,7 +892,7 @@ public class CoreLogger {
             while ((line = reader.readLine()) != null)
                 handler.handle(line);
         }
-        catch (IOException exception) {
+        catch (/*IO*/Exception exception) {
             log("failed running logcat", exception);
         }
         finally {
@@ -911,11 +942,11 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static void sendLogCat(@NonNull final Activity activity, @NonNull final String address) {
-        sendLogCat(activity, address, "logcat", true, null);
+        sendLogCat(activity, address, LOGCAT_DEFAULT_SUBJECT, true, null);
     }
 
     /**
-     * Sends e-mail with log records collected by the {@link #getLogCat getLogCat()}.
+     * Sends e-mail with log records collected by the {@link #getLogCat}.
      *
      * @param activity
      *        The Activity
@@ -936,7 +967,8 @@ public class CoreLogger {
     public static void sendLogCat(@NonNull final Activity activity,
                                   @NonNull final String address, @NonNull final String subject,
                                   final boolean clearList, final String cmd) {
-        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(Objects.requireNonNull(sNewLine),
+        Utils.sendEmail(activity, new String[] {address}, subject,
+                TextUtils.join(Objects.requireNonNull(sNewLine),
                 getLogCat(null, clearList, cmd)), null);
     }
 
@@ -977,7 +1009,7 @@ public class CoreLogger {
                     Sender.sendEmailSync(context, addresses, subject, cmd, hasScreenShot, hasDb, moreFiles);
                 }
                 catch (Exception exception) {
-                    log("failed sending email", exception);
+                    log("failed to send CoreLogger shake debug email", exception);
                 }
             }
         });
@@ -1001,7 +1033,8 @@ public class CoreLogger {
             logError("address == null");
             return;
         }
-        registerShakeDataSender(context, new String[] {address}, null, null, true, true, null);
+        registerShakeDataSender(context, new String[] {address}, null, null,
+                true, true, null);
     }
 
     /**
@@ -1086,7 +1119,7 @@ public class CoreLogger {
         }
 
         @Override
-        public void onSensorChanged(SensorEvent event) {
+        public void onSensorChanged(final SensorEvent event) {
             if (event.sensor.getType() != Sensor.TYPE_ACCELEROMETER) return;
 
             double gravityTotal = 0;
@@ -1106,6 +1139,7 @@ public class CoreLogger {
 
         @Override
         public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            log("onAccuracyChanged: Sensor " + sensor + ", accuracy " + accuracy);
         }
     }
 
@@ -1117,6 +1151,8 @@ public class CoreLogger {
         private static final String                     ZIP_PREFIX               = "data_yakhont";
         private static final int                        SCREENSHOT_QUALITY       =  100;
         private static final int                        DELAY                    = 3000;
+        private static final String                     DEFAULT_PREFIX           = "log";
+        private static final String                     DEFAULT_EXTENSION        = "txt";
 
         private static void sendEmailSync(final Context context, final String[] addresses, final String subject,
                                           final String cmd, final boolean hasScreenShot, final boolean hasDb,
@@ -1151,7 +1187,7 @@ public class CoreLogger {
             final File log = getLogFile(cmd, tmpDir, suffix, errors);
             if (log != null)            list.add(log.getAbsolutePath());
 
-            final String subjectToSend = subject == null ? "log" + suffix: subject;
+            final String subjectToSend = subject == null ? DEFAULT_PREFIX + suffix: subject;
             @SuppressWarnings("ConstantConditions")
             final StringBuilder body = new StringBuilder(String.format(
                     "ANR traces %b, screenshot %b, database %b", hasAnr,
@@ -1198,6 +1234,7 @@ public class CoreLogger {
         private static void delete(final File file) {
             if (file == null) return;
             log("about to delete " + file);
+
             final boolean result = file.delete();
             if (!result) logWarning("can not delete " + file);
         }
@@ -1232,7 +1269,7 @@ public class CoreLogger {
         private static File getLogFile(final String cmd, final File tmpDir, final String suffix,
                                        final Map<String, Exception> errors) {
             try {
-                final File tmpFile = getTmpFile("log", suffix, "txt", tmpDir);
+                final File tmpFile = getTmpFile(DEFAULT_PREFIX, suffix, DEFAULT_EXTENSION, tmpDir);
                 final PrintWriter output = new PrintWriter(tmpFile);
 
                 //noinspection Anonymous2MethodRef,Convert2Lambda
@@ -1255,8 +1292,12 @@ public class CoreLogger {
         private static void handleError(final String text, final Exception exception,
                                         final Map<String, Exception> map) {
             log(text, exception);
-            if (map != null) //noinspection ThrowableResultOfMethodCallIgnored
-                map.put(text, exception);
+            try {
+                if (map != null) map.put(text, exception);
+            }
+            catch (RuntimeException runtimeException) {
+                log(runtimeException);
+            }
         }
 
         private static void getScreenShot(final Activity     activity, final File tmpDir,
@@ -1280,8 +1321,7 @@ public class CoreLogger {
             final boolean saved = view.isDrawingCacheEnabled();
             try {
                 view.setDrawingCacheEnabled(true);
-                complete(saveScreenShot(view.getDrawingCache(), tmpDir, suffix, errors),
-                        list, runnable);
+                complete(saveScreenShot(view.getDrawingCache(), tmpDir, suffix, errors), list, runnable);
             }
             finally {
                 view.setDrawingCacheEnabled(saved);

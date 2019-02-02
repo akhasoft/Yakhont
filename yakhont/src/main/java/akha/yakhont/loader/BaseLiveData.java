@@ -16,6 +16,7 @@
 
 package akha.yakhont.loader;
 
+import akha.yakhont.BaseCacheProvider;
 import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.UriResolver;
@@ -26,6 +27,8 @@ import akha.yakhont.CoreLogger;
 // import akha.yakhont.R;
 import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
+import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -43,6 +46,7 @@ import android.widget.Toast;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
+import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
 import com.google.android.material.snackbar.BaseTransientBottomBar;
@@ -56,6 +60,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Provider;
 
+/**
+ * {@link LiveData} extender, adjusted to work with {@link BaseViewModel}.
+ *
+ * @param <D>
+ *        The type of data
+ *
+ * @see BaseViewModel
+ */
 public class BaseLiveData<D> extends MutableLiveData<D> {
 
     private static class LiveDataLoadParameters {
@@ -86,14 +98,34 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     private        final Provider<BaseDialog>       mToast;
 
+    /**
+     * The API to make data loading requests.
+     *
+     * @param <D>
+     *        The type of data
+     */
     public interface Requester<D> extends Callable<D> {
+
+        /**
+         * Cancels the current data loading request (if any).
+         */
         void cancel();
     }
 
+    /**
+     * Returns {@code BaseDialog} which shows data loading progress.
+     *
+     * @return  The {@code BaseDialog}
+     */
     public BaseDialog getBaseDialog() {
         return mBaseDialog;
     }
 
+    /**
+     * Returns the default data loading timeout.
+     *
+     * @return  The timeout
+     */
     @SuppressWarnings({"SameReturnValue", "unused"})
     protected int getDefaultTimeout() {
         return Core.TIMEOUT_CONNECTION;
@@ -103,11 +135,26 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return LiveDataDialog.getInstance();
     }
 
+    /**
+     * Initialises a newly created {@code BaseLiveData} object.
+     *
+     * @param requester
+     *        The data loading requester
+     */
     @SuppressWarnings("unused")
     public BaseLiveData(@NonNull final Requester<D> requester) {
         this(requester, getDefaultBaseDialog());
     }
 
+    /**
+     * Initialises a newly created {@code BaseLiveData} object.
+     *
+     * @param requester
+     *        The data loading requester
+     *
+     * @param dialog
+     *        The data loading progress GUI
+     */
     public BaseLiveData(@NonNull final Requester<D> requester, final BaseDialog dialog) {
 
         mRequester              = requester;
@@ -173,6 +220,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
     }
 
+    /**
+     * Called when data loading process completes.
+     *
+     * @param success
+     *        Indicates whether the data loading process was successful or not
+     *
+     * @param result
+     *        The data loading process result
+     */
     public void onComplete(final boolean success, final D result) {
         onComplete(success, result, false);
     }
@@ -206,7 +262,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         });
     }
 
-    @SuppressWarnings("WeakerAccess")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected void onCompleteHelper(final boolean success, final D result, Boolean notDisplayErrors) {
         if (success) {
             if (result instanceof BaseResponse) ((BaseResponse) result).setValues(null);
@@ -246,24 +302,39 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         CoreLogger.log(LOADING_FAILED, (Throwable) error);
     }
 
-    @SuppressWarnings("WeakerAccess")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected void handleError(@SuppressWarnings("unused") final D result, final boolean notDisplayErrors) {
         CoreLogger.logError(LOADING_FAILED);
         displayError(null, notDisplayErrors);
     }
 
-    @SuppressWarnings("WeakerAccess")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected void displayError(final BaseResponse baseResponse, final boolean notDisplayErrors) {
         if (!notDisplayErrors)
             mToast.get().start(null, makeErrorMessage(baseResponse), null);
     }
 
-    @SuppressWarnings("WeakerAccess")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected String makeErrorMessage(@SuppressWarnings("unused") final BaseResponse baseResponse) {
         return Objects.requireNonNull(Utils.getApplication())
                 .getString(akha.yakhont.R.string.yakhont_loader_error);
     }
 
+    /**
+     * Makes data loading request.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param text
+     *        The text to display in data loading progress GUI
+     *
+     * @param data
+     *        The additional data (if any) to pass to data loading progress GUI
+     *
+     * @param loadParameters
+     *        The LoadParameters
+     */
     public void makeRequest(final Activity activity, final String text, final Intent data,
                             final LoadParameters loadParameters) {
         //noinspection Convert2Lambda
@@ -275,7 +346,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         });
     }
 
-    @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue", "WeakerAccess"})
     protected D makeRequestHandler(final Activity activity, final String text, final Intent data,
                                    final LoadParameters loadParameters) {
         try {
@@ -333,13 +404,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return (D) baseResponse;
     }
 
-    @SuppressWarnings("WeakerAccess")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected D getErrorStub(final Exception exception) {
         return castBaseResponse(new BaseResponse<>(
                 null, null, null, null, Source.UNKNOWN, exception));
     }
 
-    @SuppressWarnings("WeakerAccess")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected D getTimeoutStub() {
         return castBaseResponse(TIMEOUT_STUB);
     }
@@ -354,6 +425,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
     }
 
+    /**
+     * Gets the data loading status.
+     *
+     * @return  {@code true} if data loading is in progress, {@code false} otherwise
+     */
     public boolean isLoading() {
         final boolean loading = isLoadingSync();
         if (mBaseDialog instanceof LiveDataDialog) {
@@ -365,12 +441,33 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return loading;
     }
 
+    /**
+     * Confirms data load canceling.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @return  {@code true} if confirmation supported, {@code false} otherwise
+     *
+     * @see BaseDialog#confirm
+     */
     public boolean confirm(final Activity activity) {
         return mBaseDialog.confirm(activity);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * A class that performs loading of data. If network is not available, loading goes from cache
+     * (which is updated after every successful loading from network). Most implementations should not
+     * use <code>CacheLiveData</code> directly, but instead utilise {@link Retrofit2LoaderWrapper}
+     * or {@link Retrofit2LoaderBuilder}.
+     *
+     * @param <D>
+     *        The type of data in this loader
+     *
+     * @see BaseCacheProvider
+     */
     public static class CacheLiveData<D> extends BaseLiveData<D> {
 
         private static final BaseResponse           FORCE_STUB              = new BaseResponse(Source.CACHE);
@@ -379,12 +476,39 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         private        final AtomicBoolean          mMerge                  = new AtomicBoolean();
 
+        /**
+         * Initialises a newly created {@code CacheLiveData} object.
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param tableName
+         *        The name of the table in the database (to cache the loaded data)
+         *
+         * @param uriResolver
+         *        The URI resolver
+         */
         public CacheLiveData(@NonNull final Requester<D> requester,
                              @NonNull final String tableName, final UriResolver uriResolver) {
             super(requester);
             mUri = init(tableName, uriResolver);
         }
 
+        /**
+         * Initialises a newly created {@code CacheLiveData} object.
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param dialog
+         *        The data loading progress GUI
+         *
+         * @param tableName
+         *        The name of the table in the database (to cache the loaded data)
+         *
+         * @param uriResolver
+         *        The URI resolver
+         */
         public CacheLiveData(@NonNull final Requester<D> requester, final BaseDialog dialog,
                              @NonNull final String tableName, final UriResolver uriResolver) {
             super(requester, dialog);
@@ -396,6 +520,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return uriResolver.getUri(tableName);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void makeRequest(final Activity activity, final String text, final Intent data,
                                 final LoadParameters loadParameters) {
@@ -411,6 +538,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 super.makeRequest(activity, text, data, loadParameters);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void onComplete(final boolean success, D result) {
             if (success && result != null)
@@ -437,18 +567,19 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
         }
 
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         @Override
         protected void onCompleteHelper(final boolean success, final D result, final Boolean notDisplayErrors) {
             if (!success) setValue(result);
             super.onCompleteHelper(success, result, notDisplayErrors);
         }
 
-        @SuppressWarnings("WeakerAccess")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected D getForceStub() {
             return castBaseResponse(FORCE_STUB);
         }
 
-        @SuppressWarnings("WeakerAccess")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected D handleCursor(final D result, @NonNull final Cursor cursor) {
             if (!(result instanceof BaseResponse)) return result;
 
@@ -457,12 +588,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     baseResponse.getError(), Source.CACHE, baseResponse.getThrowable()));
         }
 
-        @SuppressWarnings("WeakerAccess")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ContentValues[] getContentValues(final D result) {
             return result instanceof BaseResponse ? ((BaseResponse) result).getValues(): null;
         }
 
-        @SuppressWarnings("WeakerAccess")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected void storeResult(final ContentValues[] values, final D result, final boolean merge) {
             if (result == null) {
                 CoreLogger.logError("nothing to store in cache, empty result");
@@ -512,21 +643,57 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * The GUI which shows data loading progress.
+     */
     public static class LiveDataDialog implements BaseDialog {
 
+        /**
+         * The API to show the data loading progress.
+         */
         public interface Progress {
-            void    setText(String text);
-            void    show();
-            void    hide();
-            void    confirm(Activity activity);
+
+            /**
+             * Sets text to show in the data loading progress GUI.
+             *
+             * @param text
+             *        The text to show
+             */
+            void setText(String text);
+
+            /**
+             * Shows the data loading progress GUI.
+             */
+            void show();
+
+            /**
+             * Hides the data loading progress GUI.
+             */
+            void hide();
+
+            /**
+             * Confirms data load canceling.
+             *
+             * @param activity
+             *        The Activity
+             *
+             * @see BaseDialog#confirm
+             */
+            void confirm(Activity activity);
         }
 
+        /**
+         * The base (not completed) {@code Progress} implementation.
+         */
         @SuppressWarnings("unused")
         public static abstract class ProgressDefault implements Progress {
 
             private              Snackbar           mSnackbar;
             private       static Integer            sSnackbarDuration;
 
+            /**
+             * Please refer to the base method description.
+             */
             @CallSuper
             @Override
             public void hide() {
@@ -536,6 +703,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 mSnackbar = null;
             }
 
+            /**
+             * Please refer to the base method description.
+             */
             @Override
             public void confirm(final Activity activity) {
                 //noinspection Convert2Lambda
@@ -640,6 +810,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         private final static LiveDataDialog         sInstance               = new LiveDataDialog();
 
+        /**
+         * Gets instance of LiveDataDialog (yes, it's Singleton).
+         *
+         * @return  The LiveDataDialog instance
+         */
         @NonNull
         public static LiveDataDialog getInstance() {
             return sInstance;
@@ -648,11 +823,24 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         private LiveDataDialog() {
         }
 
+        /**
+         * Gets component to show the data loading progress.
+         *
+         * @return  The Progress
+         */
         @SuppressWarnings("unused")
         public Progress getProgress() {
             return mProgress;
         }
 
+        /**
+         * Sets component to show the data loading progress.
+         *
+         * @param progress
+         *        The Progress component
+         *
+         * @return  {@code true} if component set was OK, {@code false} otherwise
+         */
         @SuppressWarnings("UnusedReturnValue")
         public boolean setProgress(final Progress progress) {
             final boolean result = mProgress == null && progress != null;
@@ -666,6 +854,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return result;
         }
 
+        /**
+         * Gets the data loading status.
+         *
+         * @return  {@code true} if data loading is in progress, {@code false} otherwise
+         */
         @SuppressWarnings("WeakerAccess")
         public boolean isLoading() {
             synchronized (mLock) {
@@ -673,22 +866,51 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
         }
 
+        /**
+         * Gets default text for data loading GUI.
+         *
+         * @return  The text for data loading GUI
+         */
         @SuppressWarnings("unused")
         public static String getInfoText() {
             return getInfoText(null);
         }
 
+        /**
+         * Gets customized text for data loading GUI.
+         *
+         * @param info
+         *        The additional info describing data to load
+         *
+         * @return  The text for data loading GUI
+         */
         @SuppressWarnings("unused")
-        public static String getInfoText(@StringRes final int tableInfo) {
-            return getInfoText(getContext().getResources().getString(tableInfo));
+        public static String getInfoText(@StringRes final int info) {
+            return getInfoText(getContext().getResources().getString(info));
         }
 
-        public static String getInfoText(final String tableInfo) {
+        /**
+         * Gets customized text for data loading GUI.
+         *
+         * @param info
+         *        The additional info describing data to load
+         *
+         * @return  The text for data loading GUI
+         */
+        public static String getInfoText(final String info) {
             final Context context = getContext();
-            return context.getString(akha.yakhont.R.string.yakhont_loader_progress, tableInfo != null ?
-                    tableInfo: context.getString(akha.yakhont.R.string.yakhont_loader_progress_def_info));
+            return context.getString(akha.yakhont.R.string.yakhont_loader_progress, info != null ?
+                    info: context.getString(akha.yakhont.R.string.yakhont_loader_progress_def_info));
         }
 
+        /**
+         * Shows the data loading progress GUI.
+         *
+         * @param text
+         *        The text to display in data loading progress GUI
+         *
+         * @see Progress#show
+         */
         @SuppressWarnings("WeakerAccess")
         public void start(final String text) {
             synchronized (mLock) {
@@ -708,6 +930,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @SuppressWarnings("unused")
         @Override
         public boolean start(Activity context, String text, Intent data) {
@@ -715,13 +940,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return true;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @SuppressWarnings("unused")
         @Override
         public boolean stop() {
             return stop(false, null);
         }
 
-        @SuppressWarnings("WeakerAccess")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public boolean stop(final boolean force, final Activity activity) {
             try {
                 return stopNotSafe(force, activity);
@@ -765,6 +993,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return true;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public boolean cancel() {
             synchronized (mLockCancel) {
@@ -790,15 +1021,18 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
-        public boolean setOnCancel(final Runnable runnable) {
+        public boolean setOnCancel(final Runnable handler) {
             synchronized (mLockCancel) {
-                mOnCancel = runnable;
+                mOnCancel = handler;
             }
             return true;
         }
 
-        @SuppressWarnings("unused")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public static void setConfirmDuration(final int duration) {
             if (sInstance.mProgress instanceof ProgressDefault)
                 //noinspection AccessStaticViaInstance
@@ -808,6 +1042,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         sInstance.mProgress.getClass());
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public boolean confirm(final Activity activity) {
             //noinspection Convert2Lambda
@@ -820,6 +1057,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return true;
         }
 
+        /**
+         * Cancels the current data loading request (if any).
+         *
+         * @param activity
+         *        The Activity
+         */
         @SuppressWarnings("WeakerAccess")
         public static void cancel(final Activity activity) {
             sInstance.stop(true, activity);

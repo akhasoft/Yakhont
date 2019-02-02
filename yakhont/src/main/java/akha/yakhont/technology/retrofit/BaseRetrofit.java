@@ -201,7 +201,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
         try {
             makeBogusRequest(requester);
         }
-        catch (RawCallException e) {
+        catch (RawCallException exception) {
             CoreLogger.logError("can not find method 'cause of raw Retrofit call");
             return null;
         }

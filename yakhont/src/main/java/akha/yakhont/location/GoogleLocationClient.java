@@ -29,7 +29,6 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentSender.SendIntentException;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
@@ -60,7 +59,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     private static final String                ARG_SYSTEM_ERROR_DIALOG  = TAG + ".system_error_dialog";
 
     private static final int                   REQUEST_CODE_ERROR       = Utils.getRequestCode(
-            Core.RequestCodes.LOCATION_CLIENT);
+            RequestCodes.LOCATION_CLIENT);
     private static final int                   REQUEST_CODE_FAILED      = Utils.getRequestCode(
             RequestCodes.LOCATION_CONNECTION_FAILED);
 
@@ -193,46 +192,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     public void onStop(Activity activity) {
         if (mClient.isConnected()) mClient.disconnect();
     }
-/*
-    @SuppressWarnings("WeakerAccess")
-    @Override
-    protected void requestLocationUpdates(@NonNull final Activity        activity,
-                                          @NonNull final LocationRequest locationRequest) {
-        super.requestLocationUpdates(activity, locationRequest);
 
-        try {
-            final PendingResult<Status> result = LocationServices.FusedLocationApi.requestLocationUpdates(
-                    mClient, locationRequest, this, activity.getMainLooper());
-            handleStatusResult("requestLocationUpdates", result);
-        }
-        catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("requestLocationUpdates failed", exception);
-        }
-    }
-
-    @SuppressWarnings("WeakerAccess")
-    @Override
-    protected void stopLocationUpdates(final Activity activity) {
-        super.stopLocationUpdates(activity);
-
-        final PendingResult<Status> result = LocationServices.FusedLocationApi.removeLocationUpdates(
-                mClient, this);
-
-        handleStatusResult("stopLocationUpdates", result);
-    }
-
-    private void handleStatusResult(@NonNull final String prefix, @NonNull final PendingResult<Status> result) {
-        result.setResultCallback(new ResultCallback<Status>() {
-            @Override
-            public void onResult(@NonNull Status status) {
-                CoreLogger.log(prefix + ", status success: " + status.isSuccess());
-                CoreLogger.log(prefix + ", status code   : " + status.getStatusCode());
-                CoreLogger.log(prefix + ", status message: " + status.getStatusMessage());
-                CoreLogger.log(prefix + ", status info   : " + status);
-            }
-        });
-    }
-*/
     /**
      * Please refer to the base method description.
      */
@@ -255,14 +215,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         CoreLogger.log("onConnected");
 
         final Activity activity = LocationCallbacks.getActivity();
-/*
-        try {
-            onLocationChanged(LocationServices.FusedLocationApi.getLastLocation(mClient));
-        }
-        catch (SecurityException exception) {   // should never happen
-            CoreLogger.log("onConnected failed", exception);
-        }
-*/
+
         getLastLocation(activity);
 
         startLocationUpdates(activity);
@@ -324,8 +277,8 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         try {
             result.startResolutionForResult(activity, REQUEST_CODE_FAILED);
         }
-        catch (SendIntentException e) {
-            CoreLogger.log("startResolutionForResult failed", e);
+        catch (/*SendIntent*/Exception exception) {
+            CoreLogger.log(exception);
             clearResolvingError();
             connect();
         }
@@ -371,7 +324,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     public static class LocationErrorDialogFragment extends DialogFragment {
 
         @SuppressWarnings("WeakerAccess")
-        public  static final String            TAG                      = LocationErrorDialogFragment.class.getName();
+        public  static final String            TAG                      = "LocationErrorDialogFragment";
 
         private WeakReference<Activity>        mActivity;
 

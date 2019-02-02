@@ -24,7 +24,12 @@ import akha.yakhont.callback.annotation.Callbacks;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.callback.annotation.StopCallbacks;
 import akha.yakhont.callback.annotation.StopCallbacksInherited;
+import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
+import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
+import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed;
+import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.BaseFragmentCallbacks;
 
+import android.app.Application.ActivityLifecycleCallbacks;
 import androidx.annotation.NonNull;
 
 import java.lang.annotation.Annotation;
@@ -37,16 +42,15 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 
 /**
- * The <code>BaseCallbacks</code> is the one of the base classes for working with callbacks. Most implementations should not
- * derive directly from it, but instead inherit from 
- * {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks} or 
- * {@yakhont.link BaseFragmentLifecycleProceed.BaseFragmentCallbacks}.
+ * The <code>BaseCallbacks</code> is the one of the base classes for working with callbacks. Most
+ * implementations should not derive directly from it, but instead inherit from
+ * {@link BaseActivityCallbacks} or {@link BaseFragmentCallbacks}.
  *
- * <p>Since the <code>BaseCallbacks</code> is a base class for callbacks handlers, the instances of it should be registered
- * (it's close to the process of registering {@link android.app.Application.ActivityLifecycleCallbacks}).
- * <br>The low-level registration goes via call to {@link BaseProceed#register BaseProceed.register}, but most implementations
- * should do it using {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed#register BaseActivityLifecycleProceed.register} or
- * {@yakhont.link BaseFragmentLifecycleProceed#register(akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.BaseFragmentCallbacks) BaseFragmentLifecycleProceed.register}.
+ * <p>Since the <code>BaseCallbacks</code> is a base class for callbacks handlers, the instances of
+ * it should be registered (it's close to the process of registering {@link ActivityLifecycleCallbacks}).
+ * <br>The low-level registration goes via call to {@link BaseProceed#register BaseProceed.register},
+ * but most implementations should do it using {@link BaseActivityLifecycleProceed#register} or
+ * {@link BaseFragmentLifecycleProceed#register(BaseFragmentCallbacks)}.
  *
  * <p>After registering, the implemented callbacks are ready to be called for every object of type T.
  * To proceed callbacks the object should be annotated with {@link Callbacks} or {@link CallbacksInherited}.
@@ -54,8 +58,8 @@ import java.util.concurrent.Callable;
  * (see {@link #setForceProceed(boolean)}) to <code>true</code>.
  *
  * <p>Usage example (creating callback handler for <code>Activity.onActionModeStarted</code>;
- * for more examples please refer to {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks Activity}, 
- * {@yakhont.link BaseFragmentLifecycleProceed.BaseFragmentCallbacks Fragment} and
+ * for more examples please refer to {@link BaseActivityCallbacks Activity},
+ * {@link BaseFragmentCallbacks Fragment} and
  * {@link #proceed(Object, Class, BaseCallbacks) simple Activity} ones):
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
@@ -131,9 +135,9 @@ import java.util.concurrent.Callable;
  * @param <T>
  *        The type of objects for which callbacks should be proceeded
  *
- * @yakhont.see BaseCallbacks.BaseProceed
- * @yakhont.see BaseActivityLifecycleProceed.BaseActivityCallbacks
- * @yakhont.see BaseFragmentLifecycleProceed.BaseFragmentCallbacks
+ * @see BaseProceed
+ * @see BaseActivityCallbacks
+ * @see BaseFragmentCallbacks
  *
  * @author akha
  */
@@ -165,8 +169,21 @@ public abstract class BaseCallbacks<T> {
         boolean validate(Object object, Class<? extends BaseCallbacks>[] callbackClasses);
     }
 
+    /**
+     * The API for sending parameters to callbacks.
+     */
     @SuppressWarnings("WeakerAccess")
     public interface CallbacksCustomizer {
+
+        /**
+         * Sends parameters to callback.
+         *
+         * @param parameters
+         *        The parameters to send (if any)
+         *
+         * @param properties
+         *        The properties to send (if any)
+         */
         void set(String[] parameters, int[] properties);
     }
 
@@ -183,7 +200,8 @@ public abstract class BaseCallbacks<T> {
     }
 
     /**
-     * Sets the "force proceed" flag. If set to {@code true} it forces to proceed callbacks for all objects of type T.
+     * Sets the "force proceed" flag. If set to {@code true} it forces to proceed callbacks for all
+     * objects of type T.
      * <br>The default value is {@code false}.
      *
      * @param forceProceed
@@ -197,23 +215,127 @@ public abstract class BaseCallbacks<T> {
         return this;
     }
 
+    /**
+     * Checks whether the callbacks for the given object should be proceeded or not.
+     *
+     * @param object
+     *        The object for which callbacks could be proceeded
+     *
+     * @param callback
+     *        The {@code BaseCallbacks}
+     *
+     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
+     */
     @SuppressWarnings("unused")
     protected boolean proceed(@NonNull final T object, @NonNull final BaseCallbacks<T> callback) {
         return proceed(object, (Map<T, Boolean>) null, callback);
     }
 
+    /**
+     * Checks whether the callbacks for the given object should be proceeded or not.
+     *
+     * @param object
+     *        The object for which callbacks could be proceeded
+     *
+     * @param cache
+     *        The cache of already checked objects
+     *
+     * @param callback
+     *        The {@code BaseCallbacks}
+     *
+     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
+     */
     @SuppressWarnings("WeakerAccess")
     protected boolean proceed(@NonNull final T object, final Map<T, Boolean> cache,
                               @NonNull final BaseCallbacks<T>  callback) {
         return proceed(object, getClass(), callback, mForceProceed, cache);
     }
 
+    /**
+     * Checks whether the callbacks for the given object should be proceeded or not.
+     *
+     * <p>Usage example (creating callback handler for <code>Service.onStartCommand</code>;
+     * for more examples please refer to {@link BaseActivityCallbacks Activity},
+     * {@link BaseFragmentCallbacks Fragment} and {@link BaseCallbacks general Activity} ones):
+     *
+     * <pre style="background-color: silver; border: thin solid black;">
+     * package com.yourpackage;
+     *
+     * public class YourCallbacks { // you can create new class or add handler(s) to the existing one
+     *
+     *     public static void yourHandler(Service service, Intent intent, int flags, int startId) {
+     *
+     *         // proceed annotated Services only
+     *         if (!BaseCallbacks.proceed(service, YourCallbacks.class)) return;
+     *
+     *         // your code here (NOTE: you don't have to call service.onStartCommand() -
+     *         //   it's already done by the Weaver)
+     *     }
+     * }
+     * </pre>
+     *
+     * Annotate necessary Services:
+     *
+     * <pre style="background-color: silver; border: thin solid black;">
+     * import akha.yakhont.callback.annotation.CallbacksInherited;
+     *
+     * &#064;CallbacksInherited(com.yourpackage.YourCallbacks.class)
+     * public class YourService extends Service {
+     *     ...
+     * }
+     * </pre>
+     *
+     * And add the following line to the <code>weaver.config</code>:
+     *
+     * <pre style="background-color: silver; border: thin solid black;">
+     * android.app.Service.onStartCommand  true  'com.yourpackage.YourCallbacks.yourHandler($0, $$);'
+     * </pre>
+     *
+     * Please refer to the {@link BaseCallbacks} for more details.
+     *
+     * @param object
+     *        The object for which callbacks could be proceeded
+     *
+     * @param callbackClass
+     *        The class of the callbacks handler
+     *
+     * @param callback
+     *        The {@code BaseCallbacks}
+     *
+     * @param <T>
+     *        The type of object for which callbacks should be proceeded
+     *
+     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
+     */
     @SuppressWarnings("unused")
     public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass,
                                       @NonNull final BaseCallbacks<T> callback) {
         return proceed(object, callbackClass, callback, false, null);
     }
 
+    /**
+     * Checks whether the callbacks for the given object should be proceeded or not.
+     *
+     * @param object
+     *        The object for which callbacks could be proceeded
+     *
+     * @param callbackClass
+     *        The class of the callbacks handler
+     *
+     * @param callback
+     *        The {@code BaseCallbacks}
+     *
+     * @param forceProceed
+     *        The "force proceed" flag
+     *
+     * @param cache
+     *        The cache of already checked objects
+     *
+     * @param <T>
+     *        The type of object for which callbacks should be proceeded
+     *
+     * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
+     */
     @SuppressWarnings("WeakerAccess")
     public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass,
                                       @NonNull final BaseCallbacks<T> callback,
@@ -373,8 +495,8 @@ public abstract class BaseCallbacks<T> {
     /**
      * The <code>BaseProceed</code> is intended for support of {@link BaseCallbacks} instances registration.
      * Most implementations should not use it directly, but instead call
-     * {@link akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed#register BaseActivityLifecycleProceed.register} or
-     * {@yakhont.link BaseFragmentLifecycleProceed#register(akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.BaseFragmentCallbacks) BaseFragmentLifecycleProceed.register}.
+     * {@link BaseActivityLifecycleProceed#register} or
+     * {@link BaseFragmentLifecycleProceed#register(BaseFragmentCallbacks)}.
      *
      * @see BaseCallbacks
      */
@@ -513,9 +635,9 @@ public abstract class BaseCallbacks<T> {
     /**
      * Extends the {@link BaseProceed} class to provide the base object's lifecycle support.
      *
-     * @yakhont.see BaseCallbacks
-     * @yakhont.see BaseActivityLifecycleProceed
-     * @yakhont.see BaseFragmentLifecycleProceed
+     * @see BaseCallbacks
+     * @see BaseActivityLifecycleProceed
+     * @see BaseFragmentLifecycleProceed
      */
     public static abstract class BaseLifecycleProceed extends BaseProceed {
                                                                                                   /*

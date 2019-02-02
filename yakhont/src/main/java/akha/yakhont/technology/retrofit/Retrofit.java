@@ -20,6 +20,7 @@ import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
 import androidx.annotation.IntRange;
@@ -357,7 +358,7 @@ public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
          *
          * @param isSingle
-         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx}
+         *        {@code true} if {@link CommonRx}
          *        either emits one value only or an error notification, {@code false} otherwise
          */
         public RetrofitRx(final boolean isRx2, final boolean isSingle) {
@@ -368,7 +369,7 @@ public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          * Initialises a newly created {@code RetrofitRx} object.
          *
          * @param commonRx
-         *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
+         *        The {@link CommonRx} to use
          */
         public RetrofitRx(final CommonRx<BaseResponse<Response, Exception, D>> commonRx) {
             super(commonRx);
@@ -378,10 +379,10 @@ public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          * Initialises a newly created {@code RetrofitRx} object.
          *
          * @param commonRx
-         *        The {@link akha.yakhont.technology.rx.BaseRx.CommonRx} to use
+         *        The {@link CommonRx} to use
          *
          * @param isSingle
-         *        {@code true} if {@link akha.yakhont.technology.rx.BaseRx.CommonRx} either emits one value only or an error notification, {@code false} otherwise
+         *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
          */
         public RetrofitRx(final CommonRx<BaseResponse<Response, Exception, D>> commonRx, final boolean isSingle) {
             super(commonRx, isSingle);

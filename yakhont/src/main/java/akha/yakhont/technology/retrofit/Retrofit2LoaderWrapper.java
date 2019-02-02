@@ -25,6 +25,7 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
@@ -35,6 +36,7 @@ import android.app.Activity;
 import android.content.ContentValues;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModelStore;
 
 import java.io.IOException;
@@ -49,12 +51,41 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
+/**
+ * Extends the {@link BaseResponseLoaderWrapper} class to provide Retrofit 2 support.
+ *
+ * @param <D>
+ *        The type of data
+ *
+ * @param <T>
+ *        The type of Retrofit 2 API
+ *
+ * @author akha
+ */
 public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callback<D>, Response<D>, Throwable, D> {
 
     private static final   Annotation[]                     EMPTY_ANNOTATIONS   = new Annotation[] {};
 
     private final          Retrofit2<T, D>                  mRetrofit;
 
+    /**
+     * Initialises a newly created {@code Retrofit2LoaderWrapper} object.
+     *
+     * @param viewModelStore
+     *        The {@code ViewModelStore}
+     *
+     * @param requester
+     *        The requester
+     *
+     * @param table
+     *        The name of the table in the database (to cache the loaded data)
+     *
+     * @param description
+     *        The data description
+     *
+     * @param retrofit
+     *        The Retrofit2 component
+     */
     @SuppressWarnings("unused")
     public Retrofit2LoaderWrapper(@NonNull final ViewModelStore         viewModelStore,
                                   @NonNull final Requester<Callback<D>> requester,
@@ -64,6 +95,33 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                 BaseResponseLoaderWrapper.getDefaultConverter(), getDefaultUriResolver(), retrofit);
     }
 
+    /**
+     * Initialises a newly created {@code Retrofit2LoaderWrapper} object.
+     *
+     * @param viewModelStore
+     *        The {@code ViewModelStore}
+     *
+     * @param loaderId
+     *        The loader ID
+     *
+     * @param requester
+     *        The requester
+     *
+     * @param table
+     *        The name of the table in the database (to cache the loaded data)
+     *
+     * @param description
+     *        The data description
+     *
+     * @param converter
+     *        The data converter
+     *
+     * @param uriResolver
+     *        The URI resolver (for cache provider)
+     *
+     * @param retrofit
+     *        The Retrofit2 component
+     */
     @SuppressWarnings("WeakerAccess")
     public Retrofit2LoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                   @NonNull final Requester<Callback<D>> requester,
@@ -85,6 +143,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         });
     }
 
+    /**
+     * Please refer to the base method description.
+     */
     @Override
     protected BaseResponse<Response<D>, Throwable, D> makeRequest(
             @NonNull final BaseViewModel<BaseResponse<Response<D>, Throwable, D>> baseViewModel) {
@@ -112,6 +173,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         return null;
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     protected boolean cancelRequest(@NonNull final Level level) {
         final Runnable cancelHandler = mRetrofit.getCancelHandler();
@@ -236,11 +298,29 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Builder class for {@link BaseResponseLoaderWrapper} objects. Creates the Retrofit2-based ones.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @param <T>
+     *        The type of Retrofit 2 API
+     */
     public static class Retrofit2LoaderBuilder<D, T> extends BaseResponseLoaderExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
 
         private final Retrofit2<T, D>                       mRetrofit;
         private final LoaderRx<Response<D>, Throwable, D>   mRx;
 
+        /**
+         * Initialises a newly created {@code Retrofit2LoaderBuilder} object.
+         *
+         * @param retrofit
+         *        The Retrofit2 component
+         *
+         * @param rx
+         *        The Rx component
+         */
         @SuppressWarnings("WeakerAccess")
         public Retrofit2LoaderBuilder(@NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
@@ -249,6 +329,18 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             mRx       = rx;
         }
 
+        /**
+         * Initialises a newly created {@code Retrofit2LoaderBuilder} object.
+         *
+         * @param fragment
+         *        The Fragment
+         *
+         * @param retrofit
+         *        The Retrofit2 component
+         *
+         * @param rx
+         *        The Rx component
+         */
         @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(final Fragment                            fragment,
                                       @NonNull final Retrofit2<T, D>            retrofit,
@@ -259,6 +351,18 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             mRx       = rx;
         }
 
+        /**
+         * Initialises a newly created {@code Retrofit2LoaderBuilder} object.
+         *
+         * @param activity
+         *        The Activity
+         *
+         * @param retrofit
+         *        The Retrofit2 component
+         *
+         * @param rx
+         *        The Rx component
+         */
         @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(final Activity                            activity,
                                       @NonNull final Retrofit2<T, D>            retrofit,
@@ -269,6 +373,18 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             mRx       = rx;
         }
 
+        /**
+         * Initialises a newly created {@code Retrofit2LoaderBuilder} object.
+         *
+         * @param viewModelStore
+         *        The ViewModelStore
+         *
+         * @param retrofit
+         *        The Retrofit2 component
+         *
+         * @param rx
+         *        The Rx component
+         */
         @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(final ViewModelStore                      viewModelStore,
                                       @NonNull final Retrofit2<T, D>            retrofit,
@@ -330,10 +446,25 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Builder class for {@link CoreLoad} objects. Creates the Retrofit2-based ones.
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @param <T>
+     *        The type of Retrofit 2 API
+     */
     public static class Retrofit2CoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
 
         private final Retrofit2<T, D>                        mRetrofit;
 
+        /**
+         * Initialises a newly created {@code Retrofit2CoreLoadBuilder} object.
+         *
+         * @param retrofit
+         *        The Retrofit2 component
+         */
         @SuppressWarnings("unused")
         public Retrofit2CoreLoadBuilder(@NonNull final Retrofit2<T, D> retrofit) {
             super();
@@ -392,19 +523,88 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Helper class for Retrofit 2. Usage example (copied from Yakhont demo simple):
+     *
+     * <p><pre style="background-color: silver; border: thin solid black;">
+     * public class YourActivity extends AppCompatActivity {
+     *
+     *     &#064;Override
+     *     protected void onCreate(Bundle savedInstanceState) {
+     *
+     *         super.onCreate(savedInstanceState);
+
+     *         // your code here: setContentView(...), RecyclerView.setLayoutManager(...) etc.
+     *
+     *         Retrofit2Loader.load("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id);
+     *     }
+     * }
+     * </pre>
+     */
     @SuppressWarnings({"WeakerAccess", "unused"})
     public static class Retrofit2Loader extends CoreLoader {
 
+        /**
+         * Starts data loading.
+         *
+         * @param url
+         *        The Retrofit 2 API endpoint URL
+         *
+         * @param service
+         *        The Retrofit 2 service interface
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param dataBinding
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param <R>
+         *        The type of Retrofit API
+         *
+         * @see CoreLoad#load
+         */
         public static <R> void load(@NonNull final String       url,
-                                    @NonNull final Class    <R> clsRetrofit2,
+                                    @NonNull final Class    <R> service,
                                     @NonNull final Requester<R> requester,
                                              final Integer      dataBinding) {
-            get(url, clsRetrofit2, requester, dataBinding, null, null).load();
+            get(url, service, requester, dataBinding, null, null).load();
         }
 
+        /**
+         * Returns the {@code CoreLoad} instance.
+         *
+         * @param url
+         *        The Retrofit 2 API endpoint URL
+         *
+         * @param service
+         *        The Retrofit 2 service interface
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param dataBinding
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param client
+         *        The {@code OkHttpClient} component
+         *
+         * @param retrofit
+         *        The {@code Retrofit2} component
+         *
+         * @param <T>
+         *        The type of data
+         *
+         * @param <R>
+         *        The type of Retrofit API
+         *
+         * @return  The {@code CoreLoad} instance
+         */
         @SuppressWarnings("WeakerAccess")
         public static <T, R> CoreLoad get(@NonNull final String          url,
-                                          @NonNull final Class    <R>    clsRetrofit2,
+                                          @NonNull final Class    <R>    service,
                                           @NonNull final Requester<R>    requester,
                                                    final Integer         dataBinding,
                                                    final OkHttpClient    client,
@@ -413,7 +613,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
             final Retrofit2CoreLoadBuilder<T, R> builder = (Retrofit2CoreLoadBuilder<T, R>)
                     new Retrofit2CoreLoadBuilder<>(client == null ?
-                            retrofit.init(clsRetrofit2, url): retrofit.init(clsRetrofit2, url, client))
+                            retrofit.init(service, url): retrofit.init(service, url, client))
                             .setRequester(requester);
 
             if (dataBinding != null) builder.setDataBinding(dataBinding);

@@ -46,20 +46,20 @@ abstract class LocalJsonClient2Base: OkHttpClient() {
     private var mEmulatedNetworkDelay: Int = 0
 
     protected abstract fun getJson(): String
-
+/*
     fun setEmulatedNetworkDelay(delay: Int): LocalJsonClient2Base {
         mEmulatedNetworkDelay = delay
         return this
     }
-
+*/
     fun add(interceptor: Interceptor): LocalJsonClient2Base {
         return handle(interceptor, true)
     }
-
+/*
     fun remove(interceptor: Interceptor): LocalJsonClient2Base {
         return handle(interceptor, false)
     }
-
+*/
     private fun handle(interceptor: Interceptor?, add: Boolean): LocalJsonClient2Base {
         if (interceptor == null)
             Log.w(TAG, "interceptor == null")

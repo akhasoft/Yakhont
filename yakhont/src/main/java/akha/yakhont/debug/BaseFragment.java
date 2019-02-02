@@ -40,7 +40,8 @@ import androidx.fragment.app.FragmentManager;
 import java.util.Arrays;
 
 /**
- * The <code>BaseFragment</code> class is intended for debug purposes. Overridden methods most of the time just adds lifecycle logging.
+ * The <code>BaseFragment</code> class is intended for debug purposes.
+ * Overridden methods most of the time just adds lifecycle logging.
  * Some additional debug Fragments can be found in the full version.    {@yakhont.preprocessor.remove.in.generated}
  *
  * @see LogDebug
@@ -70,19 +71,19 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#WARNING WARNING}.
+     * <br>The default value is {@link Level#INFO INFO}.
      *
      * @return  The logging priority level (for debugging)
      */
     @SuppressWarnings({"SameReturnValue", "WeakerAccess"})
     protected Level getDebugLevel() {
-        return Level.WARNING;
+        return CoreLogger.getDefaultLevel();
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @NonNull
     public static String getFragmentName(@NonNull final Fragment fragment) {
-        return fragment.getClass().getSimpleName();
+        return CoreLogger.getDescription(fragment);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -293,7 +294,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestCode " + requestCode +
-                ", permissions " + Arrays.deepToString(permissions) +
+                ", permissions "  + Arrays.deepToString(permissions) +
                 ", grantResults " + Arrays.toString(grantResults), false);
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -396,7 +397,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      * @param view
      *        The view to handle
      *
-     * @see akha.yakhont.Core.Utils.MeasuredViewAdjuster#adjustMeasuredView(View)
+     * @see MeasuredViewAdjuster#adjustMeasuredView(View)
      */
     @SuppressWarnings({"EmptyMethod", "UnusedParameters", "WeakerAccess"})                      //YakhontPreprocessor:removeInGenerated
     protected void adjustMeasuredView(@NonNull final View view) {                               //YakhontPreprocessor:removeInGenerated

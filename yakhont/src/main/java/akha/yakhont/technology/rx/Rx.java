@@ -27,6 +27,7 @@ import androidx.annotation.NonNull;
 import java.lang.reflect.Method;
 
 import rx.Completable;
+import rx.exceptions.OnErrorNotImplementedException;
 import rx.Observable;
 import rx.Producer;
 import rx.Single;
@@ -112,7 +113,8 @@ public class Rx<D> extends CommonRx<D> {
     }
 
     /**
-     * Sets Rx error handler. Please refer to {@link RxJavaHooks#setOnError RxJavaHooks.setOnError()} for more info.
+     * Sets Rx error handler. Please refer to {@link RxJavaHooks#setOnError RxJavaHooks.setOnError()}
+     * for more info.
      *
      * @param handler
      *        The Rx error handler to set
@@ -169,7 +171,7 @@ public class Rx<D> extends CommonRx<D> {
             CoreLogger.logError("subscriber is null");
             return null;
         }
-        final Subscriber<D> s = new Subscriber<D>() {
+        final Subscriber<D> subscriberWrapper = new Subscriber<D>() {
             @Override
             public void onNext(final D result) {
                 subscriber.onNext(result);
@@ -186,13 +188,13 @@ public class Rx<D> extends CommonRx<D> {
             }
         };
         if (mHasProducer) //noinspection Anonymous2MethodRef,Convert2Lambda
-            s.setProducer(new Producer() {
+            subscriberWrapper.setProducer(new Producer() {
                 @Override
                 public void request(long n) {
                     subscriber.request(n);
                 }
             });
-        return s;
+        return subscriberWrapper;
     }
 
     /**
@@ -307,8 +309,8 @@ public class Rx<D> extends CommonRx<D> {
      *        The {@link CallbackRx}
      *
      * @param isSafe
-     *        {@code false} to throw {@link rx.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise;
+     *        {@code false} to throw {@link OnErrorNotImplementedException} in case of error,
+     *        {@code true} otherwise;
      *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>
@@ -357,8 +359,8 @@ public class Rx<D> extends CommonRx<D> {
      *        The {@link CallbackRx}
      *
      * @param isSafe
-     *        {@code false} to throw {@link rx.exceptions.OnErrorNotImplementedException}
-     *        in case of error, {@code true} otherwise;
+     *        {@code false} to throw {@link OnErrorNotImplementedException} in case of error,
+     *        {@code true} otherwise;
      *        please refer to {@link #setSafeFlag} for more information
      *
      * @param <D>

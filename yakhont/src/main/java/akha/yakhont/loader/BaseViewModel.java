@@ -45,6 +45,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * {@link ViewModel} extender, adjusted to work with {@link BaseLiveData}.
+ *
+ * @param <D>
+ *        The type of data
+ *
+ * @see BaseLiveData
+ */
 public class BaseViewModel<D> extends AndroidViewModel {
 
     private static final String                 DEFAULT_KEY     = "cf2a52ae-6f9f-4800-8f14-bc8a2794de8e";
@@ -67,6 +75,32 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return key == null ? DEFAULT_KEY: key;
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param store
+     *        The ViewModelStore
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param tableName
+     *        The cache table name, pass {@code null} for disable caching
+     *
+     * @param requester
+     *        The data loading requester
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     public static <D> BaseViewModel<D> getInstance(               Activity         activity,
                                                    @NonNull final ViewModelStore   store,
                                                             final String           key,
@@ -79,6 +113,29 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 getDefaultLiveData(requester, tableName), observer, getKey(key), castBaseViewModelClass());
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param tableName
+     *        The cache table name, pass {@code null} for disable caching
+     *
+     * @param requester
+     *        The data loading requester
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                             final String           key,
@@ -89,6 +146,29 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 observer, getKey(key), castBaseViewModelClass());
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param fragment
+     *        The Fragment
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param tableName
+     *        The cache table name, pass {@code null} for disable caching
+     *
+     * @param requester
+     *        The data loading requester
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                             final String           key,
@@ -99,6 +179,35 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 observer, getKey(key), castBaseViewModelClass());
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param cls
+     *        The {@code BaseViewModel} class
+     *
+     * @param baseDialog
+     *        The data loading progress GUI
+     *
+     * @param tableName
+     *        The cache table name, pass {@code null} for disable caching
+     *
+     * @param requester
+     *        The data loading requester
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                    @NonNull final String           key,
@@ -113,6 +222,35 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 new CacheLiveData<>(requester, baseDialog, tableName, null), observer);
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param fragment
+     *        The Fragment
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param cls
+     *        The {@code BaseViewModel} class
+     *
+     * @param baseDialog
+     *        The data loading progress GUI
+     *
+     * @param tableName
+     *        The cache table name, pass {@code null} for disable caching
+     *
+     * @param requester
+     *        The data loading requester
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                    @NonNull final String           key,
@@ -127,6 +265,23 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 new CacheLiveData<>(requester, baseDialog, tableName, null), observer);
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param data
+     *        The {@code BaseLiveData}
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                    @NonNull final BaseLiveData<D>  data,
@@ -134,6 +289,23 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return getInstance(activity, data, observer, DEFAULT_KEY, castBaseViewModelClass());
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param fragment
+     *        The Fragment
+     *
+     * @param data
+     *        The {@code BaseLiveData}
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("unused")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                    @NonNull final BaseLiveData<D>  data,
@@ -141,6 +313,29 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return getInstance(fragment, data, observer, DEFAULT_KEY, castBaseViewModelClass());
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param cls
+     *        The {@code BaseViewModel} class
+     *
+     * @param data
+     *        The {@code BaseLiveData}
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("WeakerAccess")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
                                                    @NonNull final String           key,
@@ -151,6 +346,29 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return getInstance(activity, data, observer, key, cls);
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param fragment
+     *        The Fragment
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param cls
+     *        The {@code BaseViewModel} class
+     *
+     * @param data
+     *        The {@code BaseLiveData}
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@code BaseViewModel}
+     */
     @SuppressWarnings("WeakerAccess")
     public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
                                                    @NonNull final String           key,
@@ -222,6 +440,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
     }
 
+    /**
+     * Please refer to {@link LiveData#observe}.
+     */
     @SuppressWarnings("WeakerAccess")
     public void updateUi(@NonNull final LifecycleOwner lifecycleOwner) {
         updateUi(lifecycleOwner, mData, mObserver);
@@ -254,6 +475,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return ProcessLifecycleOwner.get();
     }
 
+    /**
+     * Gets ViewModelStore.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @return  The ViewModelStore
+     */
     public static ViewModelStore getViewModelStore(Activity activity) {
 
         if (activity == null) {
@@ -275,6 +504,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 + CoreLogger.getDescription(activity));
     }
 
+    /**
+     * Gets ViewModelStore.
+     *
+     * @param fragment
+     *        The Fragment
+     *
+     * @return  The ViewModelStore
+     */
     public static ViewModelStore getViewModelStore(@NonNull final Fragment fragment) {
         return fragment.getViewModelStore();
     }
@@ -284,21 +521,62 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return (Class<T>) BaseViewModel.class;
     }
 
+    /**
+     * Gets the data loading status.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @return  {@code true} if data loading is in progress, {@code false} otherwise
+     */
     @SuppressWarnings("unused")
     public static boolean isLoading(@NonNull final Activity activity) {
         return isLoading(activity, null, true);
     }
 
+    /**
+     * Gets the data loading status.
+     *
+     * @param fragment
+     *        The Fragment
+     *
+     * @return  {@code true} if data loading is in progress, {@code false} otherwise
+     */
     @SuppressWarnings("unused")
     public static boolean isLoading(@NonNull final Fragment fragment) {
         return isLoading(fragment, null);
     }
 
+    /**
+     * Gets the data loading status.
+     *
+     * @param fragment
+     *        The Fragment
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @return  {@code true} if data loading is in progress, {@code false} otherwise
+     */
     @SuppressWarnings("WeakerAccess")
     public static boolean isLoading(@NonNull final Fragment fragment, final String key) {
         return BaseViewModelProvider.isLoading(getViewModelStore(fragment), key);
     }
 
+    /**
+     * Gets the data loading status.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @param includeFragments
+     *        {@code true} to include fragments data loading status, {@code false} otherwise
+     *
+     * @return  {@code true} if data loading is in progress, {@code false} otherwise
+     */
     @SuppressWarnings("WeakerAccess")
     public static boolean isLoading(@NonNull final Activity activity, final String key,
                                     final boolean includeFragments) {
@@ -330,6 +608,17 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return false;
     }
 
+    /**
+     * Returns collection of {@code BaseViewModel} associated with the current Activity.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param includeFragments
+     *        {@code true} to include fragments data loading status, {@code false} otherwise
+     *
+     * @return  The {@code BaseViewModel} collection
+     */
     public static Collection<BaseViewModel<?>> getViewModels(Activity activity, final boolean includeFragments) {
 
         if (activity == null) activity = Utils.getCurrentActivity();
@@ -348,22 +637,33 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return list;
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     public static Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getViewModels(
             @NonNull final Activity activity) {
         return BaseViewModelProvider.getEntries(activity);
     }
 
-    @SuppressWarnings("unused")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getViewModels(
             @NonNull final Fragment fragment) {
         return BaseViewModelProvider.getEntries(fragment);
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     public static Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getViewModels(
             @NonNull final ViewModelStore store) {
         return BaseViewModelProvider.getEntries(store);
     }
 
+    /**
+     * Initialises a newly created {@code BaseViewModel} object.
+     *
+     * @param data
+     *        The {@code BaseLiveData}
+     *
+     * @param observer
+     *        Please refer to {@link LiveData#observe}
+     */
     @SuppressWarnings("WeakerAccess")
     protected BaseViewModel(@NonNull final BaseLiveData<D>     data,
                             @NonNull final Observer    <D>     observer) {
@@ -373,6 +673,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
         mObserver = observer;
     }
 
+    /**
+     * Returns loaded data (if any).
+     *
+     * @param <S>
+     *        The {@code BaseLiveData} customization
+     *
+     * @return  The {@code BaseLiveData}
+     */
     @SuppressWarnings("unchecked")
     public <S extends BaseLiveData<D>> S getData() {
         return (S) mData;

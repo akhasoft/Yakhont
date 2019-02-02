@@ -16,6 +16,7 @@
 
 package akha.yakhont;
 
+import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CursorHandler;
 import akha.yakhont.loader.BaseResponse;
@@ -43,7 +44,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
@@ -76,9 +76,9 @@ import java.util.Set;
  * &lt;/manifest&gt;
  * </pre>
  *
- * If you prefer to design another authority (for example, not based on the name of the package), please implement the
- * {@link akha.yakhont.Core.UriResolver} interface and register it via the
- * {@link akha.yakhont.Core.Utils#setUriResolver setUriResolver()} method.
+ * If you prefer to design another authority (for example, not based on the name of the package),
+ * please implement the {@link UriResolver} interface and register it via the
+ * {@link Utils#setUriResolver setUriResolver()} method.
  *
  * @author akha
  */
@@ -165,13 +165,16 @@ public class BaseCacheProvider extends ContentProvider {
                 bundle = new Bundle();
                 bundle.putString(method, getDbName());
                 return bundle;
+
             case "getDbVersion":
                 bundle = new Bundle();
                 bundle.putInt(method, getDbVersion());
                 return bundle;
+
             case "close":
                 close();
                 break;
+
             default:
                 CoreLogger.logError("unknown method " + method);
                 break;
@@ -212,7 +215,8 @@ public class BaseCacheProvider extends ContentProvider {
 
         if (!silent) CoreLogger.log(String.format(getLocale(), "table %s, id %d", tableName, id));
 
-        if (id == -1 && isMissedColumnsOrTable(db, tableName, bulkValues == null ? new ContentValues[] {values}: bulkValues)) {
+        if (id == -1 && isMissedColumnsOrTable(db, tableName,
+                bulkValues == null ? new ContentValues[] {values}: bulkValues)) {
             id = insert(db, tableName, values);
             CoreLogger.log(String.format(getLocale(), "table %s, new id %d", tableName, id));
         }
@@ -221,7 +225,8 @@ public class BaseCacheProvider extends ContentProvider {
         return id == -1 ? null: ContentUris.withAppendedId(uri, id);
     }
 
-    private long insert(@NonNull final SQLiteDatabase db, @NonNull final String tableName, @NonNull final ContentValues values) {
+    private long insert(@NonNull final SQLiteDatabase db, @NonNull final String tableName,
+                        @NonNull final ContentValues values) {
         return db.insert(tableName, null, values);
     }
 
@@ -263,6 +268,7 @@ public class BaseCacheProvider extends ContentProvider {
         final Set<String> set = Utils.newSet();
         for (final Map.Entry<String, Object> entry: values.valueSet())
             set.add(entry.getKey());
+
         return set;
     }
 
@@ -316,7 +322,8 @@ public class BaseCacheProvider extends ContentProvider {
             CoreLogger.logError("bulkInsert failed");
             return 0;
         }
-        CoreLogger.log(String.format(getLocale(), "table: %s, number of rows to add: %d", tableName, bulkValues.length));
+        CoreLogger.log(String.format(getLocale(), "table: %s, number of rows to add: %d",
+                tableName, bulkValues.length));
 
         final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         if (!isTableExist(tableName) &&
@@ -396,7 +403,8 @@ public class BaseCacheProvider extends ContentProvider {
      * Please refer to the base method description.
      */
     @Override
-    public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+    public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs,
+                        String sortOrder) {
         //noinspection Convert2Lambda
         return handle(new CallableHelper<Cursor>() {
             @Override
@@ -426,7 +434,8 @@ public class BaseCacheProvider extends ContentProvider {
                 if (condition == null) condition = "1";
                 final int rows = mDbHelper.getWritableDatabase().delete(table, condition, args);
 
-                CoreLogger.log(String.format(getLocale(), "table: %s, number of deleted rows: %d", table, rows));
+                CoreLogger.log(String.format(getLocale(),
+                        "table: %s, number of deleted rows: %d", table, rows));
                 return rows;
             }
         }, 0, uri, selection, selectionArgs, null, null, null);
@@ -444,7 +453,8 @@ public class BaseCacheProvider extends ContentProvider {
                                 String order, ContentValues data) {
                 final int rows = mDbHelper.getWritableDatabase().update(table, data, condition, args);
 
-                CoreLogger.log(String.format(getLocale(), "table: %s, number of updated rows: %d", table, rows));
+                CoreLogger.log(String.format(getLocale(),
+                        "table: %s, number of updated rows: %d", table, rows));
                 return rows;
             }
         }, 0, uri, selection, selectionArgs, null, null, values);
@@ -529,7 +539,7 @@ public class BaseCacheProvider extends ContentProvider {
             CoreLogger.logError("not existing table: " + table);
             return false;
         }
-        return sUsePragma ? isExist2(db, table, column): isExist1(db, table, column);
+        return sUsePragma ? isExistPragma(db, table, column): isExistQuery(db, table, column);
     }
 
     private static boolean              sUsePragma;
@@ -540,8 +550,8 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static boolean isExist1(@NonNull final SQLiteDatabase db,
-                                   @NonNull final String table, @NonNull final String column) {
+    public static boolean isExistQuery(@NonNull final SQLiteDatabase db,
+                                       @NonNull final String table, @NonNull final String column) {
         boolean result = false;
         Cursor  cursor = null;
         //noinspection TryFinallyCanBeTryWithResources
@@ -560,8 +570,8 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static boolean isExist2(@NonNull final SQLiteDatabase db,
-                                   @NonNull final String table, @NonNull final String column) {
+    public static boolean isExistPragma(@NonNull final SQLiteDatabase db,
+                                        @NonNull final String table, @NonNull final String column) {
         final boolean[] result = new boolean[] {false};
         final Cursor cursor = db.rawQuery(String.format("PRAGMA table_info(%s)", table), null);
         final int idx = cursor.getColumnIndex("name");
@@ -758,8 +768,8 @@ public class BaseCacheProvider extends ContentProvider {
 
             return executeSQLScript(db, outputStream.toString().split(";"));
         }
-        catch (IOException exception) {
-            CoreLogger.log(scriptName, exception);
+        catch (/*IO*/Exception exception) {
+            CoreLogger.log("failed SQLScript " + scriptName, exception);
             return false;
         }
     }
@@ -915,7 +925,8 @@ public class BaseCacheProvider extends ContentProvider {
      *        The database
      */
     protected void onCreate(@SuppressWarnings("UnusedParameters") @NonNull final SQLiteDatabase db) {
-        CoreLogger.log(String.format(getLocale(), "on create database %s, version %d", DB_NAME, getDbVersion()));
+        CoreLogger.log(String.format(getLocale(), "on create database %s, version %d",
+                DB_NAME, getDbVersion()));
     }
 
     /**
@@ -930,7 +941,8 @@ public class BaseCacheProvider extends ContentProvider {
      * @param newVersion
      *        The version of the DB after upgrade
      */
-    protected void onUpgrade(@SuppressWarnings("UnusedParameters") @NonNull final SQLiteDatabase db, final int oldVersion, final int newVersion) {
+    protected void onUpgrade(@SuppressWarnings("UnusedParameters") @NonNull final SQLiteDatabase db,
+                             final int oldVersion, final int newVersion) {
         CoreLogger.log(String.format(getLocale(),
                 "on upgrade database %s from version %d to %d", DB_NAME, oldVersion, newVersion));
         if (newVersion == 2 && oldVersion == 1)
@@ -1006,7 +1018,8 @@ public class BaseCacheProvider extends ContentProvider {
     // copyDbs below are for debug only
 
     /**
-     * Copies the current database to the default backup directory (in debug builds only, see {@link Utils#isDebugMode Utils.isDebugMode()}).
+     * Copies the current database to the default backup directory (in debug builds only,
+     * see {@link Utils#isDebugMode}).
      *
      * @param context
      *        The context
@@ -1017,7 +1030,8 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     /**
-     * Copies the database to the file specified (in debug builds only, see {@link Utils#isDebugMode Utils.isDebugMode()}).
+     * Copies the database to the file specified (in debug builds only,
+     * see {@link Utils#isDebugMode}).
      *
      * @param context
      *        The context
@@ -1030,14 +1044,15 @@ public class BaseCacheProvider extends ContentProvider {
      */
     public static void copyDb(@NonNull final Context context, final File srcDb, final File dstDb) {
         if (!Utils.isDebugMode(context.getPackageName())) {
-            CoreLogger.logWarning(
-                    "db copying is available in debug builds only; please consider to use CoreLogger.registerShakeDataSender()");
+            CoreLogger.logWarning("db copying is available in debug builds only; " +
+                    "please consider to use CoreLogger.registerShakeDataSender()");
             return;
         }
         copyFile(context, getSrcDb(context, srcDb), dstDb);
     }
 
-    private static void copyFile(@NonNull final Context context, @NonNull final File srcFile, final File dstFileOrg) {
+    private static void copyFile(@NonNull final Context context, @NonNull final File srcFile,
+                                 final File dstFileOrg) {
         //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
@@ -1086,11 +1101,11 @@ public class BaseCacheProvider extends ContentProvider {
             CoreLogger.log(srcFile + " copied to " + dstFile);
             return dstFile;
         }
-        catch (Exception e) {
+        catch (Exception exception) {
             final String text = "copying failed: " + srcFile;
-            CoreLogger.log(text, e);
+            CoreLogger.log(text, exception);
             if (errors != null) //noinspection ThrowableResultOfMethodCallIgnored
-                errors.put(text, e);
+                errors.put(text, exception);
             return null;
         }
     }

@@ -108,7 +108,7 @@ public class BaseConverter<D> implements Converter<D> {
         try {
             return Class.forName(data);
         }
-        catch (/*ClassNotFound*/ Exception exception) {
+        catch (/*ClassNotFound*/Exception exception) {
             CoreLogger.log(Level.WARNING, exception);
         }
         return null;

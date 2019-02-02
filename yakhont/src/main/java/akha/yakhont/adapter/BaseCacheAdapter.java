@@ -27,7 +27,9 @@ import akha.yakhont.adapter.BaseRecyclerViewAdapter.DataBindingRecyclerViewAdapt
 import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -57,6 +59,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.cursoradapter.widget.SimpleCursorAdapter;
+import androidx.databinding.ViewDataBinding;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
@@ -69,8 +72,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- *  The {@link android.widget.Adapter Adapter} which was designed for {@yakhont.link CacheLoader}.
- *  Intended to use with {@yakhont.link BaseResponseLoaderWrapper}.
+ *  The {@link android.widget.Adapter Adapter} which was designed for {@link CacheLiveData}.
+ *  Intended to use with {@link BaseResponseLoaderWrapper}.
  *
  * @param <T>
  *        The type of {@code BaseResponse} values
@@ -84,7 +87,7 @@ import java.util.Set;
  * @param <D>
  *        The type of data in this adapter
  *
- * @yakhont.see CacheLoader
+ * @see CacheLiveData
  *
  * @author akha
  */
@@ -252,6 +255,30 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         boolean setViewValue(View view, Object data, String textRepresentation);
     }
 
+    /**
+     * Initialises a newly created {@code BaseCacheAdapter} object.
+     *
+     * @param context
+     *        The Activity
+     *
+     * @param layoutId
+     *        The resource identifier of a layout file that defines the views
+     *
+     * @param from
+     *        The list of names representing the data to bind to the UI
+     *
+     * @param to
+     *        The views that should display data in the "from" parameter
+     *
+     * @param arrayAdapter
+     *        The {@code BaseArrayAdapter}
+     *
+     * @param converter
+     *        The {@code DataConverter}
+     *
+     * @param support
+     *        {@code true} if SimpleCursorAdapter from support library should be used, {@code false} otherwise
+     */
     @SuppressWarnings("WeakerAccess")
     public BaseCacheAdapter(@NonNull                final Activity          context,
                             @LayoutRes              final    int            layoutId,
@@ -259,7 +286,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                             @NonNull @Size(min = 1) final    int[]          to,
                             @NonNull final BaseArrayAdapter <T>             arrayAdapter,
                             @NonNull final DataConverter    <T, R, E, D>    converter,
-                            final boolean                          support) {
+                                     final boolean                          support) {
         this(support ? new BaseSimpleCursorSupportAdapter(context, layoutId, from, to):
                        new BaseSimpleCursorAdapter       (context, layoutId, from, to),
                 arrayAdapter, converter);
@@ -656,7 +683,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     *  The adapter intended to use on modern devices (API version &gt;= {@link android.os.Build.VERSION_CODES#M M}).
+     *  The adapter intended to use on devices with API version &gt;= {@link android.os.Build.VERSION_CODES#M M}.
      *
      * @param <T>
      *        The type of {@code BaseResponse} values
@@ -695,6 +722,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @param converter
          *        The {@code DataConverter}
+         *
+         * @param support
+         *        {@code true} if SimpleCursorAdapter from support library should be used, {@code false} otherwise
          */
         @SuppressWarnings("WeakerAccess")
         public ApiMCacheAdapter(@NonNull                final Activity          context,
@@ -735,16 +765,41 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         }
     }
 
+    /**
+     *  The adapter intended to use on devices with API version &gt;= {@link android.os.Build.VERSION_CODES#M M},
+     *  supports Data Binding Library.
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data in this adapter
+     */
     @TargetApi  (      Build.VERSION_CODES.M)
     @RequiresApi(api = Build.VERSION_CODES.M)
     public static class ApiMDataBindingCacheAdapter<R, E, D> extends ApiMCacheAdapter<Object, R, E, D> {
 
+        /**
+         * Initialises a newly created {@code ApiMDataBindingCacheAdapter} object.
+         *
+         * @param arrayAdapter
+         *        The {@code BaseArrayAdapter}
+         *
+         * @param converter
+         *        The {@code DataConverter}
+         */
         @SuppressWarnings("WeakerAccess")
         public ApiMDataBindingCacheAdapter(@NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
                                            @NonNull   final DataConverter   <Object, R, E, D>  converter) {
             super(DataBindingCacheAdapter.STUB, arrayAdapter, converter);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void setCurrentAdapter(final boolean isArray) {
             super.setCurrentAdapter(DataBindingCacheAdapter.getCurrentAdapterData());
@@ -753,7 +808,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     /**
-     *  The adapter intended to use on devices with API version &lt; {@link android.os.Build.VERSION_CODES#M M}.
+     *  The adapter with {@link androidx.appcompat.widget.ThemedSpinnerAdapter ThemedSpinnerAdapter} support.
      *
      * @param <T>
      *        The type of {@code BaseResponse} values
@@ -795,6 +850,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @param converter
          *        The {@code DataConverter}
+         *
+         * @param support
+         *        {@code true} if SimpleCursorAdapter from support library should be used, {@code false} otherwise
          */
         @SuppressWarnings("WeakerAccess")
         public SupportCacheAdapter(@NonNull                final Activity       context,
@@ -854,8 +912,36 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         }
     }
 
+    /**
+     *  The adapter with {@link androidx.appcompat.widget.ThemedSpinnerAdapter ThemedSpinnerAdapter} support,
+     *  also supports Data Binding Library.
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data in this adapter
+     */
     public static class SupportDataBindingCacheAdapter<R, E, D> extends SupportCacheAdapter<Object, R, E, D> {
 
+        /**
+         * Initialises a newly created {@code SupportDataBindingCacheAdapter} object.
+         *
+         * @param context
+         *        The Activity
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @param arrayAdapter
+         *        The {@code BaseArrayAdapter}
+         *
+         * @param converter
+         *        The {@code DataConverter}
+         */
         @SuppressWarnings("WeakerAccess")
         public SupportDataBindingCacheAdapter(@NonNull   final Activity                           context,
                                               @LayoutRes final int                                layoutId,
@@ -864,6 +950,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             super(context, layoutId, DataBindingCacheAdapter.STUB, arrayAdapter, converter);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void setCurrentAdapter(final boolean isArray) {
             super.setCurrentAdapter(DataBindingCacheAdapter.getCurrentAdapterData());
@@ -965,6 +1054,35 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         public BaseCacheAdapterFactory() {
         }
 
+        /**
+         * Returns a new {@code BaseCacheAdapter} instance.
+         *
+         * @param context
+         *        The Activity
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @param from
+         *        The list of names representing the data to bind to the UI
+         *
+         * @param to
+         *        The views that should display data in the "from" parameter
+         *
+         * @param arrayAdapter
+         *        The {@code BaseArrayAdapter}
+         *
+         * @param converter
+         *        The {@code DataConverter}
+         *
+         * @param support
+         *        {@code true} to return the {@code SupportCacheAdapter} instance, {@code false} otherwise
+         *
+         * @param supportCursorAdapter
+         *        {@code true} if SimpleCursorAdapter from support library should be used, {@code false} otherwise
+         *
+         * @return  The {@code BaseCacheAdapter} instance
+         */
         @SuppressLint("ObsoleteSdkInt")
         public BaseCacheAdapter<T, R, E, D> getAdapter(
                 @NonNull                final Activity                          context,
@@ -992,6 +1110,26 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                         converter, supportCursorAdapter);
         }
 
+        /**
+         * Returns a new {@code BaseCacheAdapter} instance for use with Data Binding Library.
+         *
+         * @param context
+         *        The Activity
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @param arrayAdapter
+         *        The {@code BaseArrayAdapter}
+         *
+         * @param converter
+         *        The {@code DataConverter}
+         *
+         * @param support
+         *        {@code true} to return the {@code SupportDataBindingCacheAdapter} instance, {@code false} otherwise
+         *
+         * @return  The {@code BaseCacheAdapter} instance
+         */
         public BaseCacheAdapter<Object, R, E, D> getAdapter(
                 @NonNull                final Activity                          context,
                 @LayoutRes              final int                               layoutId,
@@ -1388,8 +1526,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param <D>
      *        The type of data in the adapter
      */
-    public static abstract class BaseCacheAdapterWrapper<T, R, E, D>
-            implements CacheAdapter<R, E, D> {
+    public static abstract class BaseCacheAdapterWrapper<T, R, E, D> implements CacheAdapter<R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final BaseCacheAdapter       <T, R, E, D>         mBaseCacheAdapter;
@@ -1548,6 +1685,22 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     public static class DataBindingCacheAdapterWrapper<R, E, D>
             extends BaseCacheAdapterWrapper<Object, R, E, D> {
 
+        /**
+         * Initialises a newly created {@code DataBindingCacheAdapterWrapper} object.
+         *
+         * @param id
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param context
+         *        The Activity
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @param support
+         *        {@code true} to return the {@code SupportDataBindingCacheAdapter} instance, {@code false} otherwise
+         */
         public DataBindingCacheAdapterWrapper(           final int       id,
                                               @NonNull   final Activity  context,
                                               @LayoutRes final int       layoutId,
@@ -1555,6 +1708,25 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             this(id, context, layoutId, new BaseCacheAdapterFactory<>(), support);
         }
 
+        /**
+         * Initialises a newly created {@code DataBindingCacheAdapterWrapper} object.
+         *
+         * @param id
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param context
+         *        The Activity
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @param factory
+         *        The {@code BaseCacheAdapterFactory}
+         *
+         * @param support
+         *        {@code true} to return the {@code SupportDataBindingCacheAdapter} instance, {@code false} otherwise
+         */
         @SuppressWarnings("WeakerAccess")
         public DataBindingCacheAdapterWrapper(
                            final int                                      id,

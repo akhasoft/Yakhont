@@ -31,6 +31,7 @@ import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.BaseActivityCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.CurrentActivityHelper;
+import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.rx.BaseRx.LocationRx;
 
 import android.Manifest;
@@ -329,7 +330,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     }
 
     /**
-     * Sets the location client (via {@link akha.yakhont.technology.Dagger2 Dagger2}).
+     * Sets the location client (via {@link Dagger2}).
      */
     @SuppressWarnings("WeakerAccess")
     protected void setLocationClient() {
