@@ -365,7 +365,7 @@ public abstract class BaseCallbacks<T> {
             log("Callbacks found", callbackClass);
         }
 
-        if (isReject(object, callbackClass)) {
+        if (isReject(object, callbackClass, callback)) {
             log("StopCallbacks found", callbackClass);
             return false;
         }
@@ -402,20 +402,29 @@ public abstract class BaseCallbacks<T> {
         return isFound(object, callbacks, callbackClass, callback, parameters, properties);
     }
 
-    private static <T> boolean isReject(@NonNull final T object, @NonNull final Class callbackClass) {
+    private static <T> boolean isReject(@NonNull final T object, @NonNull final Class callbackClass,
+                                        @NonNull final BaseCallbacks<T> callback) {
 
         Annotation
-        annotation    = CoreReflection.getAnnotation(object, StopCallbacksInherited.class);
+        annotation = CoreReflection.getAnnotation(object, StopCallbacksInherited.class);
 
         Class<? extends BaseCallbacks>[]
-        stopCallbacks = annotation == null ? null: ((StopCallbacksInherited) annotation).value();
+        callbacks  = annotation == null ? null: ((StopCallbacksInherited) annotation).value();
 
-        if (isFound(object, stopCallbacks, callbackClass, null, null, null)) return true;
+        String[]
+        parameters = annotation == null ? null: ((StopCallbacksInherited) annotation).parameters();
+        int[]
+        properties = annotation == null ? null: ((StopCallbacksInherited) annotation).properties();
 
-        annotation    = CoreReflection.getAnnotation(object, StopCallbacks.class);
-        stopCallbacks = annotation == null ? null: ((StopCallbacks)          annotation).value();
+        if (isFound(object, callbacks, callbackClass, callback, parameters, properties)) return true;
 
-        return isFound(object, stopCallbacks, callbackClass, null, null, null);
+        annotation = CoreReflection.getAnnotation(object, StopCallbacks.class);
+        callbacks  = annotation == null ? null: ((StopCallbacks)          annotation).value();
+
+        parameters = annotation == null ? null: ((StopCallbacks)          annotation).parameters();
+        properties = annotation == null ? null: ((StopCallbacks)          annotation).properties();
+
+        return isFound(object, callbacks, callbackClass, callback, parameters, properties);
     }
 
     private static <T> boolean isFound(@NonNull final T                       object,
@@ -439,7 +448,7 @@ public abstract class BaseCallbacks<T> {
                             CoreLogger.log(callbackClasses.length == 1 ? Level.WARNING: CoreLogger.getDefaultLevel(),
                                     "can't pass parameters to callback 'cause it " +
                                     "doesn't implement CallbacksCustomizer: " +
-                                    CoreLogger.getDescription(callback));
+                                            CoreLogger.getDescription(callback));
                     return true;
                 }
         return false;

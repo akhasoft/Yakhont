@@ -22,6 +22,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
@@ -79,7 +80,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
  * @param <D>
  *        The type of data
  *
- * @yakhont.see BaseResponseLoaderWrapper.CoreLoad
+ * @see CoreLoad
  *
  * @author akha
  */

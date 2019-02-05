@@ -20,6 +20,7 @@ import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 
@@ -57,7 +58,7 @@ import retrofit.YakhontRestAdapter;
  * @param <D>
  *        The type of data
  *
- * @yakhont.see BaseResponseLoaderWrapper.CoreLoad
+ * @see CoreLoad
  *
  * @author akha
  */

@@ -65,12 +65,12 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @SuppressWarnings("WeakerAccess")
     protected String getDebugMessage() {
-        return "dialog fragment " + BaseFragment.getFragmentName(this);
+        return "dialog fragment " + BaseFragment.getFragmentDescription(this);
     }
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#INFO INFO}.
+     * <br>The default value is {@link CoreLogger#getDefaultLevel()}.
      *
      * @return  The logging priority level (for debugging)
      */
@@ -125,13 +125,13 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
         super.onAttach(context);
     }
 
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@CallSuper
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-protected void onBindDialogView(View view) {
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    super.onBindDialogView(view);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-}
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-protected void onBindDialogView(View view) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    super.onBindDialogView(view);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
 
     /**
      * Please refer to the base method description.
@@ -144,13 +144,13 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
         super.onCancel(dialog);
     }
 
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@CallSuper
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-public void onClick(DialogInterface dialog, int which) {
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", which " + which, false);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    super.onClick(dialog, which);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-}
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-public void onClick(DialogInterface dialog, int which) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", which " + which, false);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    super.onClick(dialog, which);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
 
     /**
      * Please refer to the base method description.
@@ -185,13 +185,13 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
         return super.onCreateDialog(savedInstanceState);
     }
 
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@CallSuper
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-protected View onCreateDialogView(Context context) {
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    return super.onCreateDialogView(context);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-}
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-protected View onCreateDialogView(Context context) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    return super.onCreateDialogView(context);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
 
     /**
      * Please refer to the base method description.
@@ -239,13 +239,13 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
         super.onDetach();
     }
 
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@CallSuper
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-public void onDialogClosed(boolean positiveResult) {
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", positiveResult " + positiveResult, false);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-    super.onDialogClosed(positiveResult);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragment,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragment-}
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-public void onDialogClosed(boolean positiveResult) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", positiveResult " + positiveResult, false);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    super.onDialogClosed(positiveResult);
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
 
     /**
      * Please refer to the base method description.
@@ -302,14 +302,6 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
 
         super.onPause();
     }
-
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,ListPreferenceDialogFragment,MultiSelectListPreferenceDialogFragment-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,ListPreferenceDialogFragment,MultiSelectListPreferenceDialogFragment-@CallSuper
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,ListPreferenceDialogFragment,MultiSelectListPreferenceDialogFragment-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,ListPreferenceDialogFragment,MultiSelectListPreferenceDialogFragment-protected void onPrepareDialogBuilder(android.app.AlertDialog.Builder builder) {
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,ListPreferenceDialogFragment,MultiSelectListPreferenceDialogFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,ListPreferenceDialogFragment,MultiSelectListPreferenceDialogFragment-    super.onPrepareDialogBuilder(builder);
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragment,ListPreferenceDialogFragment,MultiSelectListPreferenceDialogFragment-}
 
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-@CallSuper

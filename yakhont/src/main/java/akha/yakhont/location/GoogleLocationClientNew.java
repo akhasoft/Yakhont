@@ -252,8 +252,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                             activity, REQUEST_CODE);
                     return true;
                 }
-                catch (/*SendIntent*/Exception e) {
-                    CoreLogger.log("ResolvableApiException: unable startResolutionForResult", e);
+                catch (/*SendIntent*/Exception localException) {
+                    CoreLogger.log("ResolvableApiException: unable startResolutionForResult", localException);
                 }
                 break;
 

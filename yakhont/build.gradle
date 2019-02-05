@@ -16,7 +16,7 @@
 
 apply plugin: 'com.android.library'
 
-// apply from:   'preprocessor.gradle'
+apply from:   'preprocessor.gradle'
 
 String verName                  = '0.9.19'
 int    verCode                  =    901901
@@ -104,12 +104,9 @@ android {
         core {
             dimension          'common'
         }
-//        support {   // same as core but based on support library (android.support.v4.app.Fragment etc.)
-//            dimension          'common'
-//        }
-//        full {      // core + support + debug classes for Activities and Fragments
-//            dimension          'common'
-//        }
+        full {                 // core + debug classes (for Activities and Fragments)
+            dimension          'common'
+        }
     }
 
     defaultPublishConfig       'core' + (rootProject.ext.projectDebug == '1' ? 'Debug': 'Release')
@@ -179,10 +176,10 @@ dependencies {
     api                 "com.google.android.gms:play-services-location:${libVerDefault}"
 
     // for debug package only
-//    fullApi             "androidx.leanback:leanback:1.0.0"
-//    fullApi             "androidx.leanback:leanback-preference:1.0.0"
-//    fullApi             "androidx.legacy:legacy-preference-v14:1.0.0"
-//    fullApi             "androidx.mediarouter:mediarouter:1.0.0"
+    fullApi             "androidx.leanback:leanback:1.0.0"
+    fullApi             "androidx.leanback:leanback-preference:1.0.0"
+    fullApi             "androidx.legacy:legacy-preference-v14:1.0.0"
+    fullApi             "androidx.mediarouter:mediarouter:1.0.0"
 
     api                 "com.google.dagger:dagger:${libVerDefault}"             // Dagger 2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDefault}"

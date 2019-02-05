@@ -24,6 +24,7 @@ import akha.yakhont.Core.Utils.ExecutorHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CorePermissions;
+import akha.yakhont.CorePermissions.RequestBuilder;
 // ProGuard issue
 // import akha.yakhont.R;
 import akha.yakhont.callback.BaseCallbacks.CallbacksCustomizer;
@@ -264,9 +265,18 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     public LocationCallbacks() {
     }
 
+    /**
+     * Please refer to the base method description.
+     * <p>Note: first element in parameters used for setting
+     * {@link RequestBuilder#setRationale}, pass null to avoid such setting.
+     * <p>First and second elements in properties used for setting
+     * {@link RequestBuilder#setRationale} and
+     * {@link RequestBuilder#setRequestCode}, pass {@link Core#NOT_VALID_RES_ID}
+     * to avoid first setting and any int (which is not conflict with your other request codes).
+     */
     @Override
     public void set(final String[] parameters, final int[] properties) {
-        if (parameters != null && parameters.length > 0) {
+        if (parameters != null && parameters.length > 0 && parameters[0] != null) {
             if (properties != null && properties.length > 0 && properties[0] != Core.NOT_VALID_RES_ID)
                 CoreLogger.logWarning("properties[0] will be ignored 'cause " +
                         "permissions rationale is already defined as 'parameters'");
@@ -278,7 +288,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         if (properties != null && properties.length > 0) {
             if (!(parameters != null && parameters.length > 0 && properties[0] != Core.NOT_VALID_RES_ID)) {
                 if (properties[0] == Core.NOT_VALID_RES_ID)
-                    CoreLogger.logError("wrong permissions rationale String ID " + properties[0]);
+                    CoreLogger.logWarning("wrong permissions rationale String ID " + properties[0]);
                 else
                     mPermissionsRationale = Objects.requireNonNull(Utils.getApplication())
                             .getString(properties[0]);
@@ -397,7 +407,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         final boolean fromDialogFinal = fromDialog;
 
         @SuppressWarnings("Convert2Lambda")
-        final boolean result = new CorePermissions.RequestBuilder(activity, permission)
+        final boolean result = new RequestBuilder(activity, permission)
                 .setRationale  (mPermissionsRationale  )
                 .setRequestCode(mPermissionsRequestCode)
                 .setOnGranted  (new Runnable() {

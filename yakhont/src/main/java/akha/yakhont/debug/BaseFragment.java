@@ -66,12 +66,12 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @SuppressWarnings("WeakerAccess")
     protected String getDebugMessage() {
-        return "fragment " + getFragmentName(this);
+        return "fragment " + getFragmentDescription(this);
     }
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#INFO INFO}.
+     * <br>The default value is {@link CoreLogger#getDefaultLevel()}.
      *
      * @return  The logging priority level (for debugging)
      */
@@ -82,7 +82,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @NonNull
-    public static String getFragmentName(@NonNull final Fragment fragment) {
+    public static String getFragmentDescription(@NonNull final Object fragment) {
         return CoreLogger.getDescription(fragment);
     }
 
@@ -140,13 +140,13 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @CallSuper
-    @Override
-    public void onAttachFragment(Fragment childFragment) {
-        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", childFragment " + childFragment, false);
+    @CallSuper                                                                                          //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    @Override                                                                                           //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    public void onAttachFragment(Fragment childFragment) {                                              //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", childFragment " + childFragment, false); //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
 
-        super.onAttachFragment(childFragment);
-    }
+        super.onAttachFragment(childFragment);                                                          //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    }                                                                                                   //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
 
     /**
      * Please refer to the base method description.
@@ -216,13 +216,13 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
         super.onDetach();
     }
 
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-@CallSuper
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-@Override
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-public void onGuidedActionClicked(androidx.leanback.widget.GuidedAction action) {
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", action " + action, false);
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-    super.onGuidedActionClicked(action);
-    //YakhontPreprocessor:addToGenerated-GuidedStepFragment,GuidedStepSupportFragment-}
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-@CallSuper
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-@Override
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-public void onGuidedActionClicked(androidx.leanback.widget.GuidedAction action) {
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", action " + action, false);
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-    super.onGuidedActionClicked(action);
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-}
 
     /**
      * Please refer to the base method description.
@@ -278,14 +278,14 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
         super.onPause();
     }
 
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-@CallSuper
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-@Override
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-public boolean onPreferenceTreeClick(android.preference.PreferenceScreen preferenceScreen,
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-                                     android.preference.Preference preference) {
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-    return super.onPreferenceTreeClick(preferenceScreen, preference);
-    //YakhontPreprocessor:addToGenerated-PreferenceFragment-}
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-@CallSuper
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-@Override
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-public boolean onPreferenceTreeClick(android.preference.PreferenceScreen preferenceScreen,
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-                                     android.preference.Preference preference) {
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-    return super.onPreferenceTreeClick(preferenceScreen, preference);
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-}
 
     /**
      * Please refer to the base method description.
@@ -380,13 +380,13 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @CallSuper
-    @Override
-    public void setTargetFragment(Fragment fragment, int requestCode) {
-        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment + ", requestCode " + requestCode, true);
+    @CallSuper                                                                                                                //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    @Override                                                                                                                 //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    public void setTargetFragment(Fragment fragment, int requestCode) {                                                       //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment + ", requestCode " + requestCode, true); //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
 
-        super.setTargetFragment(fragment, requestCode);
-    }
+        super.setTargetFragment(fragment, requestCode);                                                                       //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    }                                                                                                                         //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -438,8 +438,9 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
         Utils.onAdjustMeasuredView(mViewAdjusterImpl, view);                                    //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated
 
-    class MeasuredViewAdjusterImpl implements MeasuredViewAdjuster {                            //YakhontPreprocessor:removeInGenerated
-        public void adjustMeasuredView(View view) {                                             //YakhontPreprocessor:removeInGenerated
+    private class MeasuredViewAdjusterImpl implements MeasuredViewAdjuster {                    //YakhontPreprocessor:removeInGenerated
+        @Override                                                                               //YakhontPreprocessor:removeInGenerated
+        public void adjustMeasuredView(final View view) {                                       //YakhontPreprocessor:removeInGenerated
             BaseFragment.this.adjustMeasuredView(view);                                         //YakhontPreprocessor:removeInGenerated
         }                                                                                       //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated

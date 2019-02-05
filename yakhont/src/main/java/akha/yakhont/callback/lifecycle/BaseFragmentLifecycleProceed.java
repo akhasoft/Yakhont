@@ -230,14 +230,14 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
         sActive = active;
     }
 
-    private static String getFragmentName(@NonNull final Fragment fragment) {
-        return BaseFragment.getFragmentName(fragment);
+    private static String getFragmentDescription(@NonNull final Fragment fragment) {
+        return BaseFragment.getFragmentDescription(fragment);
     }
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static void log(@NonNull final Fragment fragment, @NonNull final String info) {
-        log(getFragmentName(fragment), info);
+        log(getFragmentDescription(fragment), info);
     }
 
     /**

@@ -168,7 +168,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * <p>As Martin Fowler pointed out, {@link <a href="http://martinfowler.com/ieeeSoftware/published.pdf">"Yet there’s something
      * to be said for the public–published distinction being more important than the more common public–private distinction."</a>}
      *
-     * @yakhont.see BaseSimpleCursorAdapter
+     * @see BaseSimpleCursorAdapter
      */
     public interface BaseCursorAdapter extends ListAdapter, SpinnerAdapter, Filterable {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})

@@ -38,4 +38,9 @@ import java.lang.annotation.Target;
 public @interface StopCallbacksInherited {
     /** The list of types derived from {@link BaseCallbacks}. */
     Class<? extends BaseCallbacks>[] value() default {};
+
+    /** The additional info (if any) to pass to the annotated element. */
+    String[] parameters() default {};
+    /** The additional info (if any) to pass to the annotated element. */
+    int   [] properties() default {};
 }

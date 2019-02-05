@@ -104,7 +104,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 400 KB (except the _full_ version, which is about 620 KB).
+The Yakhont AAR is about 400 KB (except the _full_ version, which is about 480 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above.
 
@@ -329,7 +329,7 @@ kill the Gradle daemon (or just restart your PC).
 
 ```
 Execution failed for task ':app:transformClassesWithWeaverTransformForDebug'.
-> com.yourproject.YourActivity class is frozen
+> com.yourpackage.YourActivity class is frozen
 ```
 
 ## Bugs and Feedback

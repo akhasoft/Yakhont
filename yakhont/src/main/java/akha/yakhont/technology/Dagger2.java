@@ -33,7 +33,6 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
-import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.text.TextUtils;
@@ -61,8 +60,7 @@ import javax.inject.Named;
 import javax.inject.Provider;
 
 /**
- * The {@link <a href="http://google.github.io/dagger/">Dagger 2</a>} component. Usage example (see also
- * {@link Core#init(Application, Boolean, Dagger2) Theme example}):
+ * The {@link <a href="http://google.github.io/dagger/">Dagger 2</a>} component. Usage example:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * import akha.yakhont.Core;

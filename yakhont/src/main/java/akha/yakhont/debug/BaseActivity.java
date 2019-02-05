@@ -70,7 +70,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#INFO INFO}.
+     * <br>The default value is {@link CoreLogger#getDefaultLevel()}.
      *
      * @return  The logging priority level (for debugging)
      */
@@ -132,7 +132,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     public void onAttachFragment(android.app.Fragment fragment) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment, false);
 
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-    CoreLogger.logWarning("about to attach android.app.Fragment to FragmentActivity");
+        //YakhontPreprocessor:addToGenerated-FragmentActivity-CoreLogger.logWarning("about to attach android.app.Fragment to FragmentActivity");
 
         super.onAttachFragment(fragment);
     }
@@ -539,29 +539,29 @@ public class BaseActivity extends Activity {        // don't modify this line: i
         super.onStop();
     }
 
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@Override
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-public void onSupportActionModeFinished(androidx.appcompat.view.ActionMode mode) {
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    super.onSupportActionModeFinished(mode);
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-}
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-@CallSuper
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-@Override
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-public void onSupportActionModeFinished(androidx.appcompat.view.ActionMode mode) {
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-    super.onSupportActionModeFinished(mode);
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-}
 
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@Override
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-public void onSupportActionModeStarted(androidx.appcompat.view.ActionMode mode) {
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    super.onSupportActionModeStarted(mode);
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-}
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-@CallSuper
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-@Override
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-public void onSupportActionModeStarted(androidx.appcompat.view.ActionMode mode) {
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-    super.onSupportActionModeStarted(mode);
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-}
 
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-@Override
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-public boolean onSupportNavigateUp() {
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-    return super.onSupportNavigateUp();
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity,ActionBarActivity-}
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-/** Please refer to the base method description. */
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-@CallSuper
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-@Override
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-public boolean onSupportNavigateUp() {
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-    return super.onSupportNavigateUp();
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-}
 
     /**
      * Please refer to the base method description.

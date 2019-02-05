@@ -175,7 +175,7 @@ public class CoreReflection {
                 return result;
             }
             catch (IllegalAccessException exception) {
-                CoreLogger.log(method.getName(), exception);
+                CoreLogger.log("failed invoke " + method.getName(), exception);
                 throw exception;
             }
             finally {
@@ -183,7 +183,7 @@ public class CoreReflection {
             }
         }
         catch (RuntimeException exception) {
-            CoreLogger.log(exception);
+            CoreLogger.log("failed invoke " + method.getName(), exception);
             return null;
         }
     }
@@ -835,15 +835,15 @@ public class CoreReflection {
                 if (set) field.set(object, newValue);
                 return value;
             }
-            catch (ClassCastException | IllegalAccessException e) {
-                CoreLogger.log(field.getName(), e);
+            catch (IllegalAccessException exception) {
+                CoreLogger.log("failed doField " + field.getName(), exception);
             }
             finally {
                 if (!accessible) field.setAccessible(false);
             }
         }
         catch (RuntimeException exception) {
-            CoreLogger.log(exception);
+            CoreLogger.log("failed doField " + field.getName(), exception);
         }
 
         return null;

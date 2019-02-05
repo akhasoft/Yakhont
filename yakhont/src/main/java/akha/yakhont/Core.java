@@ -326,7 +326,7 @@ public class Core implements DefaultLifecycleObserver {
      * Forces working in support mode (use weaving mechanism for calling the application callbacks
      * instead of registering via
      * {@link Application#registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks)}
-     * and{@link Application#registerComponentCallbacks(ComponentCallbacks)}).
+     * and {@link Application#registerComponentCallbacks(ComponentCallbacks)}).
      * <p>Mostly for debug purposes.
      * <p>Don't forget to call some {@code init(...)} method after this call.
      */

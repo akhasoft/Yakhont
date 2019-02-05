@@ -173,12 +173,24 @@ public class CoreLogger {
     private CoreLogger() {
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /**
+     * Gets the default log level. The default value is {@link Level#INFO}.
+     *
+     * @return  The default log level
+     */
     public static Level getDefaultLevel() {
         return sLogLevelDefault.get();
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /**
+     * Sets the default log level.
+     *
+     * @param level
+     *        The default log level
+     *
+     * @return  The previous default log level
+     */
+    @SuppressWarnings("unused")
     public static Level setDefaultLevel(@NonNull final Level level) {
         return sLogLevelDefault.getAndSet(level);
     }
@@ -831,9 +843,9 @@ public class CoreLogger {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static String getResourceDescription(final int id) {
+    public static String getResourceDescription(@AnyRes final int id) {
         final String name = getResourceName(id);
-        return String.format("%s (%s)", toHex(id), name != null ? name: "unknown name");
+        return String.format("%s (%s)", toHex(id), name != null ? name: "unknown");
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1138,7 +1150,7 @@ public class CoreLogger {
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        public void onAccuracyChanged(final Sensor sensor, final int accuracy) {
             log("onAccuracyChanged: Sensor " + sensor + ", accuracy " + accuracy);
         }
     }
@@ -1289,15 +1301,10 @@ public class CoreLogger {
             return null;
         }
 
-        private static void handleError(final String text, final Exception exception,
+        private static void handleError(@NonNull final String text, @NonNull final Exception exception,
                                         final Map<String, Exception> map) {
             log(text, exception);
-            try {
-                if (map != null) map.put(text, exception);
-            }
-            catch (RuntimeException runtimeException) {
-                log(runtimeException);
-            }
+            if (map != null) map.put(text, exception);
         }
 
         private static void getScreenShot(final Activity     activity, final File tmpDir,

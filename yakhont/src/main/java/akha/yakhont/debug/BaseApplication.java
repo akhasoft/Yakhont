@@ -59,7 +59,7 @@ public class BaseApplication extends Application {
 
     /**
      * Override to change the logging level.
-     * <br>The default value is {@link Level#INFO INFO}.
+     * <br>The default value is {@link CoreLogger#getDefaultLevel()}.
      *
      * @return  The logging priority level (for debugging)
      */
