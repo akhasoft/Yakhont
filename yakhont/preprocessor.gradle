@@ -14,36 +14,30 @@
  * limitations under the License.
  */
  
-// Yakhont preprocessor
+// Yakhont preprocessor (generates the "full" flavor's sources "on the fly")
 
 task preprocessor {
     doLast {
         // based on search and replace
-        // but if something goes wrong - it'll just not compile (or throw GradleException)
+        // but if something will go wrong - it'll just not compile (or throw GradleException)
 
         boolean addDebugActivities = true       // auto generate additional debug Activities
         boolean addDebugFragments  = true       // auto generate additional debug Fragments
 
-        println('Yakhont: preprocessing sources...')
+        println('Yakhont: preprocess sources (for the "full" flavor)...')
 
         clearTmpSources()
 
-        if (addDebugActivities) {
-            generateActivities()
-        }
-        if (addDebugFragments) {
-            generateFragments()
-        }
+        if (addDebugActivities) { generateActivities() }
+        if (addDebugFragments ) { generateFragments () }
 
-        completeDebugPackage(addDebugActivities, addDebugFragments)
+        completePreprocessor(addDebugActivities, addDebugFragments)
     }
 }
 
 preBuild.dependsOn preprocessor
 
-gradle.buildFinished { buildResult ->
-    clearTmpSources()
-}
+gradle.buildFinished { buildResult -> clearTmpSources() }
 
 import groovy.transform.Field
 
@@ -77,12 +71,12 @@ def generateActivities() {
         'androidx.appcompat.app.AppCompatActivity'
     ]
 
-    prepareTemplate(false, true)
+    prepareTemplates(false, true)
     addActivities(fullPathDebug, false, debugActivityClasses       )
 
     delete fullPathDebug + '/BaseActivity.java'
 
-    prepareTemplate(true, true)
+    prepareTemplates(true, true)
     addActivities(fullPathDebug,  true, debugSupportActivityClasses)
 }
 
@@ -113,7 +107,7 @@ def generateFragments() {
         'androidx.preference.MultiSelectListPreferenceDialogFragmentCompat'
     ]
 
-    prepareTemplate(true, false)
+    prepareTemplates(true, false)
     addFragments(fullPathDebug, false, debugFragmentClasses      )
     addFragments(fullPathDebug,  true, debugDialogFragmentClasses)
 }
@@ -127,30 +121,28 @@ def generateFragments() {
 @Field String fragmentActivity                 = 'androidx.fragment.app.FragmentActivity'
 
 def addActivities(String componentDir, boolean isSupport, String[] data) {
-    data.each {
-        addActivity(componentDir, getShortClassName(it), it, isSupport, false)
-    }
+    data.each { addActivity(componentDir, getShortClassName(it), it, isSupport, false) }
 }
 
-def addActivity(String componentDir, String shortClassName, String fullClassName, boolean isSupport, boolean justRename) {
+def addActivity(String componentDir, String shortClassName, String fullClassName,
+                boolean isSupport, boolean justRename) {
     addComponent(componentDir, 'BaseActivity', 'Base' + shortClassName, justRename,
         isSupport ? fragmentActivity: 'Activity', fullClassName)
 }
 
 def addFragments(String componentDir, boolean isDialog, String[] data) {
-    data.each {
-        addFragment(componentDir, getShortClassName(it), it, isDialog)
-    }
+    data.each { addFragment(componentDir, getShortClassName(it), it, isDialog) }
 }
 
 def addFragment(String componentDir, String shortClassName, String fullClassName, boolean isDialog) {
     String add = isDialog ? 'Dialog': ''
-    addComponent(componentDir, 'Base' + add + 'Fragment', 'Base' + shortClassName, false, add + 'Fragment', fullClassName)
+    addComponent(componentDir, 'Base' + add + 'Fragment', 'Base' + shortClassName, false,
+                 add + 'Fragment', fullClassName)
 }
 
-def addComponent(String componentDir, String oldName, String newName, boolean justRename, String oldClass, String newClass) {
+def addComponent(String componentDir, String oldName, String newName, boolean justRename,
+                 String oldClass, String newClass) {
     String oldFileName = oldName + '.java'
-    
     copy {
         from       (componentDir)
         include    (oldFileName )
@@ -164,41 +156,42 @@ def addComponent(String componentDir, String oldName, String newName, boolean ju
             filter { line     -> //noinspection GroovyAssignabilityCheck
                 replaceExtends(  line, oldClass, newClass, oldFileName) }
 
-            filter { line     -> line.replace(preprocessorRemoveInFlavor, '')}
+            filter { line     -> line.replace(preprocessorRemoveInFlavor, '') }
 
             filter { line     -> //noinspection GroovyAssignabilityCheck
-                removeLine(line, preprocessorRemoveInGenerated,    shortClassName,  true,  true)}
+                removeLine(line, preprocessorRemoveInGenerated,    shortClassName,  true,  true) }
             filter { line     -> //noinspection GroovyAssignabilityCheck
-                removeLine(line, preprocessorDocRemoveInGenerated, shortClassName, false, false)}
+                removeLine(line, preprocessorDocRemoveInGenerated, shortClassName, false, false) }
 
             filter { line     -> //noinspection GroovyAssignabilityCheck
-                addLine   (line, preprocessorAddToGenerated,       shortClassName,  true)}
+                addLine   (line, preprocessorAddToGenerated,       shortClassName,  true)        }
         }
     }
 }
 
-static def removeLine(String line, String target, String className, boolean endsWith, boolean commentOut) {
+static def removeLine(String line, String target, String className, boolean endsWith,
+                      boolean commentOut) {
     String newLine = line
 
-    int pos       = line.lastIndexOf('-')
-    int posTarget = line.lastIndexOf(target)
+    int idx       = line.lastIndexOf('-')
+    int idxTarget = line.lastIndexOf(target)
 
     boolean endsCheck = line.trim().endsWith(target)
-    if (posTarget > 0 && pos > posTarget) {
-        endsCheck = line.substring(0, pos).trim().endsWith(target)
+    if (idxTarget > 0 && idx > idxTarget) {
+        endsCheck = line.substring(0, idx).trim().endsWith(target)
     }
     if (endsWith ? endsCheck: line.contains(target)) {
         boolean update = true
-        if (pos > posTarget && className.length() > 0) {
-            List<String> names = Arrays.asList(line.substring(pos + 1).trim().split(','))
+        if (idx > idxTarget && className.length() > 0) {
+            List<String> names = Arrays.asList(line.substring(idx + 1).trim().split(','))
             update = names.contains(className)
         }
         if (update) {
             newLine = !commentOut ? null:
-                    '// ' + (endsWith ? line.substring(0, posTarget): line.replace(target, ''))
+                    '// ' + (endsWith ? line.substring(0, idxTarget): line.replace(target, ''))
         }
-        else if (posTarget > 0) {
-            newLine = line.substring(0, posTarget)
+        else if (idxTarget > 0) {
+            newLine = line.substring(0, idxTarget)
         }
     }
     return newLine
@@ -208,12 +201,13 @@ static def addLine(String line, String target, String className, boolean removeE
     String newLine = line
     if (line.trim().startsWith(target)) {
         if (removeExtraAddLines) newLine = null
-        int pos1 = line.indexOf('-')
-        int pos2 = line.indexOf('-', pos1 + 1)
 
-        List<String> names = Arrays.asList(line.substring(pos1 + 1, pos2).trim().split(','))
+        int idx1 = line.indexOf('-')
+        int idx2 = line.indexOf('-', idx1 + 1)
+
+        List<String> names = Arrays.asList(line.substring(idx1 + 1, idx2).trim().split(','))
         if (names.contains(className)) {
-            newLine = line.substring(pos2 + 1)
+            newLine = line.substring(idx2 + 1)
         }
     }
     return newLine
@@ -223,31 +217,21 @@ static def getShortClassName(String fullClassName) {
     return fullClassName.substring(fullClassName.lastIndexOf('.') + 1)
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////
-
-def prepareTemplate(boolean isSupport, boolean activities) {
-
+def prepareTemplates(boolean isSupport, boolean activities) {
     String filesMask = activities ? '**/BaseActivity.java': '**/*Fragment*'
-
     copy {
         from (fileTree(corePathDebug).include(filesMask))
         into (fullPathDebug)
 
         eachFile { copyDetails ->
-
-            String fileName = copyDetails.getName()
-
-            //noinspection ChangeToOperator
             if (activities && isSupport) {
                 filter { line ->    //noinspection GroovyAssignabilityCheck
-                    replaceExtends(line, 'Activity', fragmentActivity, fileName)
+                    replaceExtends(line, 'Activity', fragmentActivity, copyDetails.getName())
                 }
-
                 filter { line ->    //noinspection GroovyAssignabilityCheck
                     addLine(line, preprocessorAddToGenerated, 'FragmentActivity', false)
                 }
             }
-
             filter { line ->        //noinspection GroovyAssignabilityCheck
                 removeLine(line, preprocessorRemoveInFlavor, '', true, true)
             }
@@ -269,7 +253,7 @@ static def replaceExtends(String line, String oldString, String newString, Strin
     return newLine
 }
 
-def completeDebugPackage(boolean addDebugActivities, boolean addDebugFragments) {
+def completePreprocessor(boolean addDebugActivities, boolean addDebugFragments) {
     if (addDebugActivities) {
         addActivity(fullPathDebug, 'FragmentActivity', null, true, true)
         delete fullPathDebug + '/BaseActivity.java'

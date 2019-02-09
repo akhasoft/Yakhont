@@ -24,6 +24,25 @@ import okhttp3.logging.HttpLoggingInterceptor
 
 class LocalJsonClient2(private val mRetrofit2: Retrofit2<*, *>): LocalJsonClient2Base() {
 
+    private val mData = arrayOf(
+            "Duvel",
+            "Abbaye de Brogne",
+            "Chimay",
+            "Delirium Tremens",
+            "Gouden Carolus",
+            "Green Killer",
+            "Gulden Draak",
+            "Liefmans",
+            "Orval Trappist",
+            "Pauwel Kwak",
+            "Petrus",
+            "Rodenbach Grand Cru",
+            "Val-Dieu",
+            "Waterloo",
+            "Westmalle",
+            "Westvleteren",
+            "Wilderen Goud")
+
     init {
         val logger = HttpLoggingInterceptor()
         logger.level = HttpLoggingInterceptor.Level.BODY
@@ -38,29 +57,8 @@ class LocalJsonClient2(private val mRetrofit2: Retrofit2<*, *>): LocalJsonClient
 
     override fun getJson(): String {
         val builder = StringBuilder("[")
-        for (str in DATA)
+        for (str in mData)
             builder.append("{\"title\":\"").append(str).append("\"},")
         return builder.replace(builder.length - 1, builder.length, "]").toString()
-    }
-
-    companion object {
-        private val DATA = arrayOf(
-                "Duvel",
-                "Abbaye de Brogne",
-                "Chimay",
-                "Delirium Tremens",
-                "Gouden Carolus",
-                "Green Killer",
-                "Gulden Draak",
-                "Liefmans",
-                "Orval Trappist",
-                "Pauwel Kwak",
-                "Petrus",
-                "Rodenbach Grand Cru",
-                "Val-Dieu",
-                "Waterloo",
-                "Westmalle",
-                "Westvleteren",
-                "Wilderen Goud")
     }
 }

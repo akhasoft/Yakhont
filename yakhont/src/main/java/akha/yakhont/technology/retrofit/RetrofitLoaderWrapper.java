@@ -406,7 +406,8 @@ class RetrofitException extends AndroidException {
         try {
             return String.format("RetrofitError (%s, %s, %s)", error.getKind().name(), error.getUrl(), error.toString());
         }
-        catch (Exception e) {
+        catch (Exception exception) {
+            CoreLogger.log(exception);
             return "can not handle RetrofitError";
         }
     }

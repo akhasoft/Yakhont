@@ -841,7 +841,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             final BufferedSource source = body.source();
             source.request(Long.MAX_VALUE);
 
-            Buffer buffer = source.buffer();
+            Buffer buffer = source.getBuffer();
             if ("gzip".equalsIgnoreCase(response.headers().get("Content-Encoding"))) {
                 GzipSource gzip = null;
                 //noinspection TryFinallyCanBeTryWithResources

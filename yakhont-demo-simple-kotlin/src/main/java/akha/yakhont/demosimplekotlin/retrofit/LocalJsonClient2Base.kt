@@ -39,6 +39,9 @@ import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 
 import okio.ByteString
+import okio.Timeout
+
+private const val TAG = "LocalJsonClient2"
 
 abstract class LocalJsonClient2Base: OkHttpClient() {
 
@@ -121,25 +124,26 @@ abstract class LocalJsonClient2Base: OkHttpClient() {
             }
         }
 
-        override fun clone     (): Call    { return CallI(mRequest) }
-        override fun request   (): Request { return mRequest        }
         override fun cancel    ()          {                        }
-        override fun isExecuted(): Boolean { return false           }
+        override fun clone     (): Call    { return CallI(mRequest) }
         override fun isCanceled(): Boolean { return false           }
+        override fun isExecuted(): Boolean { return false           }
+        override fun request   (): Request { return mRequest        }
+        override fun timeout   (): Timeout { return Timeout.NONE    }
 
         private inner class ChainI constructor(private val mResponse: Response): Chain {
 
             // for application interceptors this is always null
             override fun connection          (                   ): Connection? { return null       }
             override fun call                (                   ): Call        { return this@CallI }
-            override fun request             (                   ): Request     { return mRequest   }
-            override fun proceed             (r: Request         ): Response    { return mResponse  }
             override fun connectTimeoutMillis(                   ): Int         { return 0          }
-            override fun withConnectTimeout  (i: Int, t: TimeUnit): Chain       { return this       }
+            override fun proceed             (r: Request         ): Response    { return mResponse  }
             override fun readTimeoutMillis   (                   ): Int         { return 0          }
+            override fun request             (                   ): Request     { return mRequest   }
+            override fun withConnectTimeout  (i: Int, t: TimeUnit): Chain       { return this       }
             override fun withReadTimeout     (i: Int, t: TimeUnit): Chain       { return this       }
-            override fun writeTimeoutMillis  (                   ): Int         { return 0          }
             override fun withWriteTimeout    (i: Int, t: TimeUnit): Chain       { return this       }
+            override fun writeTimeoutMillis  (                   ): Int         { return 0          }
         }
     }
 
@@ -149,16 +153,12 @@ abstract class LocalJsonClient2Base: OkHttpClient() {
 
     override fun newWebSocket(request: Request, listener: WebSocketListener): WebSocket {
         return object: WebSocket {
-            override fun request  (                  ): Request { return request }
-            override fun queueSize(                  ): Long    { return 0       }
-            override fun send     (s: String         ): Boolean { return true    }
-            override fun send     (b: ByteString     ): Boolean { return true    }
-            override fun close    (i: Int, s: String?): Boolean { return true    }
             override fun cancel   (                  )          {                }
+            override fun close    (i: Int, s: String?): Boolean { return true    }
+            override fun queueSize(                  ): Long    { return 0       }
+            override fun request  (                  ): Request { return request }
+            override fun send     (b: ByteString     ): Boolean { return true    }
+            override fun send     (s: String         ): Boolean { return true    }
         }
-    }
-
-    companion object {
-        private const val TAG = "LocalJsonClient2"
     }
 }

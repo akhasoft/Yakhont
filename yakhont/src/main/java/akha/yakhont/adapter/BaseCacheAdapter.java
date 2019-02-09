@@ -1152,11 +1152,11 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         try {
             imageView.setImageResource(Integer.parseInt(strValue));
         }
-        catch (NumberFormatException e) {
+        catch (NumberFormatException exception) {
             if (context == null)
                 CoreLogger.logError("context for Picasso == null");
             else
-                Picasso.with(context).load(strValue).into(imageView);
+                Picasso.get().load(strValue).into(imageView);
         }
     }
 

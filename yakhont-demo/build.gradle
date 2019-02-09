@@ -107,8 +107,8 @@ android {
                 proguardFile            '../proguard/libs/' + it
             }
             proguardFile                '../proguard/libs/proguard-gson.pro'
-
             proguardFile                './proguard/libs/proguard-support-design.pro'
+
             proguardFile                './proguard/proguard-project-app.pro'
             proguardFile                '../proguard/proguard-project.pro'
             //noinspection GroovyAssignabilityCheck
@@ -190,14 +190,15 @@ dependencies {
 //  implementation      project(':yakhont')
 }
 
+// let's build release (or debug) only - just to reduce building time
 android.variantFilter { variant ->
-    // let's build release (or debug) only - just to reduce building time
     if (variant.buildType.name == (rootProject.ext.projectDebug == '1' ? 'release': 'debug')) {
         variant.setIgnore(true)
     }
 }
 
-String[] weaverConfigFiles = null   // use default one; or something like "new String[] {projectDir.absolutePath + '/weaver.config'}"
+// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
+String[] weaverConfigFiles = null
 String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 

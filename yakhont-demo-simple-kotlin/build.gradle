@@ -17,6 +17,11 @@
 buildscript {
     repositories {
         jcenter()
+        flatDir dirs: '../yakhont-weaver/build/libs'                        // Yakhont weaver
+    }
+    dependencies {                                                          // Yakhont weaver
+        classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"
+        classpath "org.javassist:javassist:${rootProject.ext.projectLibVerJavassist}"
     }
 }
 
@@ -165,4 +170,29 @@ dependencies {
     implementation      "io.reactivex:rxjava:${libVerDemoKotlinRxJava}"
 
     implementation      name:'yakhont', ext:'aar'
+}
+
+// let's build release (or debug) only - just to reduce building time
+android.variantFilter { variant ->
+    if (variant.buildType.name == (rootProject.ext.projectDebug == '1' ? 'release': 'debug')) {
+        variant.setIgnore(true)
+    }
+}
+
+// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
+String[] weaverConfigFiles = null
+String pkg = android.defaultConfig.applicationId, kotlin = '/tmp/kotlin-classes/'
+boolean weaverDebug = false, weaverAddConfig = true
+
+android.applicationVariants.all { variant ->
+    JavaCompile javaCompile  = variant.javaCompileProvider.get()
+    javaCompile.doLast {
+        String kotlinBase    = buildDir.toString()  + kotlin.replace('/', File.separator)
+        String kotlinClasses = kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
+        //noinspection UnnecessaryQualifiedReference
+        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
+                javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
+                javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
+                weaverConfigFiles, weaverAddConfig)
+    }
 }

@@ -184,7 +184,7 @@ dependencies {
     api                 "com.google.dagger:dagger:${libVerDefault}"             // Dagger 2
     annotationProcessor "com.google.dagger:dagger-compiler:${libVerDefault}"
 
-    api                 "com.squareup.picasso:picasso:2.5.2"                    // Picasso
+    api                 "com.squareup.picasso:picasso:2.71828"                  // Picasso
 
     api                ("com.squareup.retrofit2:retrofit:${libVerDefault}") {   // Retrofit
         exclude group:  "com.squareup.okhttp3", module: "okhttp"

@@ -368,8 +368,9 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
             public void run() {
                 try {
                     runnable.run();
-                } catch (Exception e) {
-                    CoreLogger.log("addTaskNotSync failed " + lifecycle, e);
+                }
+                catch (Exception exception) {
+                    CoreLogger.log("addTaskNotSync failed " + lifecycle, exception);
                 }
             }
 

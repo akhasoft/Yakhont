@@ -18,7 +18,6 @@ package akha.yakhont.loader;
 
 import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CursorHandler;
 
@@ -323,9 +322,9 @@ public class BaseResponse<R, E, D> {
             }
             return cursor.getString(columnIndex);
         }
-        catch (Exception e) {
-            CoreLogger.log(Level.ERROR, "getData failed", e);
-            return e;
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+            return exception;
         }
     }
 

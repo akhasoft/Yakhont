@@ -901,8 +901,8 @@ public abstract class BaseLoaderWrapper<D> {
         try {
             countDownLatch.await();
         }
-        catch (InterruptedException e) {
-            CoreLogger.log("interrupted", e);
+        catch (InterruptedException exception) {
+            CoreLogger.log(exception);
         }
     }
 

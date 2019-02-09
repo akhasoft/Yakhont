@@ -63,8 +63,8 @@ public class LocalJsonClient implements Client {
             try {
                 countDownLatch.await();
             }
-            catch (InterruptedException e) {
-                Log.e("LocalJsonClient", "interrupted", e);
+            catch (InterruptedException exception) {
+                Log.e("LocalJsonClient", "interrupted", exception);
             }
         }
         LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.getUrl(), request.getMethod());
@@ -91,8 +91,8 @@ public class LocalJsonClient implements Client {
             try {
                 return mData.stream().available();
             }
-            catch (IOException e) {
-                Log.e("LocalJsonClient", "error", e);
+            catch (IOException exception) {
+                Log.e("LocalJsonClient", "error", exception);
                 return 0;
             }
         }

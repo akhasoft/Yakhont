@@ -41,6 +41,7 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
 import okio.ByteString;
+import okio.Timeout;
 
 public abstract class LocalJsonClient2Base extends OkHttpClient {
 
@@ -143,10 +144,11 @@ public abstract class LocalJsonClient2Base extends OkHttpClient {
 
         @SuppressWarnings("MethodDoesntCallSuperMethod")
         @Override public Call    clone     () { return new CallI(mRequest); }
-        @Override public Request request   () { return            mRequest; }
         @Override public void    cancel    () {                             }
-        @Override public boolean isExecuted() { return               false; }
         @Override public boolean isCanceled() { return               false; }
+        @Override public boolean isExecuted() { return               false; }
+        @Override public Request request   () { return            mRequest; }
+        @Override public Timeout timeout   () { return        Timeout.NONE; }
 
         private class ChainI implements Chain {
 
@@ -159,14 +161,14 @@ public abstract class LocalJsonClient2Base extends OkHttpClient {
             @Nullable   // for application interceptors this is always null
             @Override public Connection connection          (                 ) { return       null; }
             @Override public Call       call                (                 ) { return CallI.this; }
-            @Override public Request    request             (                 ) { return   mRequest; }
-            @Override public Response   proceed             (Request r        ) { return  mResponse; }
             @Override public int        connectTimeoutMillis(                 ) { return          0; }
-            @Override public Chain      withConnectTimeout  (int i, TimeUnit t) { return       this; }
+            @Override public Response   proceed             (Request r        ) { return  mResponse; }
             @Override public int        readTimeoutMillis   (                 ) { return          0; }
+            @Override public Request    request             (                 ) { return   mRequest; }
+            @Override public Chain      withConnectTimeout  (int i, TimeUnit t) { return       this; }
             @Override public Chain      withReadTimeout     (int i, TimeUnit t) { return       this; }
-            @Override public int        writeTimeoutMillis  (                 ) { return          0; }
             @Override public Chain      withWriteTimeout    (int i, TimeUnit t) { return       this; }
+            @Override public int        writeTimeoutMillis  (                 ) { return          0; }
         }
     }
 
@@ -178,12 +180,12 @@ public abstract class LocalJsonClient2Base extends OkHttpClient {
     @Override
     public WebSocket newWebSocket(final Request request, WebSocketListener listener) {
         return new WebSocket() {
-            @Override public Request request  (               ) { return request; }
-            @Override public long    queueSize(               ) { return       0; }
-            @Override public boolean send     (String s       ) { return    true; }
-            @Override public boolean send     (ByteString b   ) { return    true; }
-            @Override public boolean close    (int i, String s) { return    true; }
             @Override public void    cancel   (               ) {                 }
+            @Override public boolean close    (int i, String s) { return    true; }
+            @Override public long    queueSize(               ) { return       0; }
+            @Override public Request request  (               ) { return request; }
+            @Override public boolean send     (ByteString b   ) { return    true; }
+            @Override public boolean send     (String s       ) { return    true; }
         };
     }
 }

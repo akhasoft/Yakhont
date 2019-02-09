@@ -120,9 +120,6 @@
 -keepclassmembers class okio.** {
     *** close(...);
 }
--keepclassmembers class retrofit2.OkHttpCall$ExceptionCatchingRequestBody {
-    *** close(...);
-}
 -keepclassmembers class com.google.android.gms.common.** {
     *** close(...);
 }

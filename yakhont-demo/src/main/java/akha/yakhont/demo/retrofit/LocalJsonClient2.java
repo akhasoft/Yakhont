@@ -48,6 +48,7 @@ import okhttp3.WebSocketListener;
 import okhttp3.logging.HttpLoggingInterceptor;
 
 import okio.ByteString;
+import okio.Timeout;
 
 // for Retrofit 2
 public class LocalJsonClient2 extends OkHttpClient {
@@ -178,10 +179,11 @@ public class LocalJsonClient2 extends OkHttpClient {
 
         @SuppressWarnings("MethodDoesntCallSuperMethod")
         @Override public Call    clone     () { return new CallI(mRequest); }
-        @Override public Request request   () { return            mRequest; }
         @Override public void    cancel    () {                             }
-        @Override public boolean isExecuted() { return               false; }
         @Override public boolean isCanceled() { return               false; }
+        @Override public boolean isExecuted() { return               false; }
+        @Override public Request request   () { return            mRequest; }
+        @Override public Timeout timeout   () { return        Timeout.NONE; }
 
         private class ChainI implements Chain {
 
@@ -194,14 +196,14 @@ public class LocalJsonClient2 extends OkHttpClient {
             @Nullable   // for application interceptors this is always null
             @Override public Connection connection          (                 ) { return       null; }
             @Override public Call       call                (                 ) { return CallI.this; }
-            @Override public Request    request             (                 ) { return   mRequest; }
-            @Override public Response   proceed             (Request r        ) { return  mResponse; }
             @Override public int        connectTimeoutMillis(                 ) { return          0; }
-            @Override public Chain      withConnectTimeout  (int i, TimeUnit t) { return       this; }
+            @Override public Response   proceed             (Request r        ) { return  mResponse; }
             @Override public int        readTimeoutMillis   (                 ) { return          0; }
+            @Override public Request    request             (                 ) { return   mRequest; }
+            @Override public Chain      withConnectTimeout  (int i, TimeUnit t) { return       this; }
             @Override public Chain      withReadTimeout     (int i, TimeUnit t) { return       this; }
-            @Override public int        writeTimeoutMillis  (                 ) { return          0; }
             @Override public Chain      withWriteTimeout    (int i, TimeUnit t) { return       this; }
+            @Override public int        writeTimeoutMillis  (                 ) { return          0; }
         }
 
     }

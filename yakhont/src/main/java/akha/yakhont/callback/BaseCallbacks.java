@@ -446,9 +446,8 @@ public abstract class BaseCallbacks<T> {
                         else if (parameters != null && parameters.length > 0 ||
                                  properties != null && properties.length > 0)
                             CoreLogger.log(callbackClasses.length == 1 ? Level.WARNING: CoreLogger.getDefaultLevel(),
-                                    "can't pass parameters to callback 'cause it " +
-                                    "doesn't implement CallbacksCustomizer: " +
-                                            CoreLogger.getDescription(callback));
+                                    "can't pass parameters to callback 'cause it doesn't implement" +
+                                    " CallbacksCustomizer: " + CoreLogger.getDescription(callback));
                     return true;
                 }
         return false;
@@ -753,8 +752,8 @@ public abstract class BaseCallbacks<T> {
                 try {
                     runnable.run();
                 }
-                catch (Exception e) {
-                    CoreLogger.log("apply failed", e);
+                catch (Exception exception) {
+                    CoreLogger.log(exception);
                 }
         }
     }

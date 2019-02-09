@@ -20,8 +20,6 @@ import akha.yakhont.demosimplekotlin.model.Beer
 import akha.yakhont.demosimplekotlin.retrofit.LocalJsonClient2
 import akha.yakhont.demosimplekotlin.retrofit.Retrofit2Api
 
-import akha.yakhont.Core
-import akha.yakhont.CorePermissions
 import akha.yakhont.callback.annotation.CallbacksInherited
 import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
@@ -43,8 +41,6 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
-        Core.init(application, true, null)
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -65,11 +61,5 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
     override fun onLocationChanged(location: Location, date: Date) {
         (findViewById<View>(R.id.location) as TextView).text = LocationCallbacks.toDms(location, this)
-    }
-
-    // for Location
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        CorePermissions.onRequestPermissionsResult(this, requestCode, permissions, grantResults)
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 }

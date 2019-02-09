@@ -171,12 +171,13 @@ dependencies {
     implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoSimpleRxJava2}"        // Rx
     implementation      "io.reactivex:rxjava:${libVerDemoSimpleRxJava}"
 
-    implementation      name:'yakhont', ext:'aar'
+    implementation      name:'yakhont-full', ext:'aar'
 }
 
 // for demo simple let's build both release and debug - just to be sure the weaver is working fine
 
-String[] weaverConfigFiles = null   // use default one; or something like "new String[] {projectDir.absolutePath + '/weaver.config'}"
+// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
+String[] weaverConfigFiles = null
 String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 

@@ -62,6 +62,9 @@ public class Weaver {
 
     private static final String DEF_CONFIG          = "weaver.config";
 
+    private static final String ERROR               = "  *** Yakhont weaver error - ";
+    private static final String WARNING             = "  *** Yakhont weaver warning - ";
+
     private static final String sNewLine            = System.getProperty("line.separator");
 
     private        final Map<String, Map<String, List<String>>>
@@ -83,7 +86,7 @@ public class Weaver {
     }
 
     private String  mPackageName, mClassPath, mBootClassPath;
-    private boolean mDebug, mDebugBuild;
+    private boolean mDebug, mDebugBuild, mUpdated;
 
     /**
      * Initialises a newly created {@code Weaver} object.
@@ -148,7 +151,7 @@ public class Weaver {
             run(false, debug, packageName, classesDir, classPath, bootClassPath,
                     configFiles, addConfig);
         else
-            log(false, "error - can not detect build type");
+            log(false, ERROR + "can not detect build type");
     }
 
     /**
@@ -163,8 +166,8 @@ public class Weaver {
      * @param packageName
      *        The application's package name
      *
-     * @param classesDir
-     *        The location of the given application's compiled classes
+     * @param classesDirs
+     *        The location(s) of the given application's compiled classes
      *
      * @param classPath
      *        The Java compiler's class path, used to compile the given application
@@ -185,11 +188,27 @@ public class Weaver {
      * @throws  IOException
      *          please refer to the exception description
      */
-    public void run(boolean debugBuild, boolean debug, String packageName, String classesDir,
+    public void run(boolean debugBuild, boolean debug, String packageName, String classesDirs,
                     String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
             throws NotFoundException, CannotCompileException, IOException {
 
-        log(false, "Yakhont: weaving compiled classes in " + classesDir);
+        log(false, sNewLine + "Yakhont: weaving compiled classes in " + classesDirs);
+
+        try {
+            runReal(debugBuild, debug, packageName, classesDirs,
+                    classPath, bootClassPath, configFiles, addConfig);
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+            throw exception;
+        }
+    }
+
+    private void runReal(boolean debugBuild, boolean debug, String packageName, String classesDirs,
+                         String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
+            throws NotFoundException, CannotCompileException, IOException {
+
+        mUpdated    = false;
 
         mDebugBuild = debugBuild;
         mDebug      = debug;
@@ -204,8 +223,7 @@ public class Weaver {
         log(sNewLine + "boot classpath:");
         for (String token: bootClassPath.split(File.pathSeparator)) log(token);
 
-        log(sNewLine + "compiled classes dir: " + classesDir + sNewLine + sNewLine +
-                "package name: " + packageName);
+        log(sNewLine + "package name: " + packageName);
 
         mAnnotations   .clear();
         mMethodsToWeave.clear();
@@ -221,7 +239,13 @@ public class Weaver {
         validateMethods();
         validateAnnotations();
 
-        searchClasses(new File(classesDir).listFiles());
+        for (String classesDir: classesDirs.split(File.pathSeparator)) {
+            log(sNewLine + sNewLine + "-- about to weave compiled classes in " + classesDir + sNewLine);
+            searchClasses(new File(classesDir).listFiles());
+        }
+
+        if (mMethodsToWeave.size() + mAnnotations.size() > 0 && !mUpdated)
+            log(false, sNewLine + WARNING + "no classes to weave");
     }
 
     private void parseConfig() throws IOException, CannotCompileException {
@@ -305,7 +329,7 @@ public class Weaver {
                     condition = Condition.DEBUG;
                     break;
                 default:        // fall through
-                    log(false, "warning - unknown annotation qualifier: " + methodName);
+                    log(false, ERROR + "unknown annotation qualifier: " + methodName);
                 case "":
                     condition = Condition.NOT_DEFINED;
             }
@@ -410,6 +434,8 @@ public class Weaver {
 
         log(sNewLine + "about to write class " + clsDest.getName() + " to " + rootDir);
         clsDest.writeFile(rootDir.endsWith(File.separator) ? rootDir: rootDir + File.separator);
+
+        mUpdated = true;
     }
 
     private void handleMethods(CtClass clsDest, ClassPool pool, String destClassName)
@@ -422,7 +448,7 @@ public class Weaver {
                     "error - can not find class: " + className);
 
             if (clsDest.subclassOf(clsSrc)) {
-                log(sNewLine + "--- class to weaving: " + destClassName + " (based on " +
+                log(sNewLine + "--- class to weave: " + destClassName + " (based on " +
                         clsSrc.getName() + ")");
                 for (String methodName: mMethodsToWeave.get(className).keySet())
                     insertMethods(clsDest, clsSrc, methodName, pool);
@@ -490,7 +516,7 @@ public class Weaver {
     private void validate(List<String> methodData, String name) {
         for (String data: methodData)
             if (Collections.frequency(methodData, data) > 1)
-                log(false, "warning - duplicated entries for " + name + ": " + getCode(data));
+                log(false, ERROR + "duplicated entries for " + name + ": " + getCode(data));
     }
 
     private void weave(CtMethod method, String methodData, ClassPool pool, boolean before)
@@ -545,7 +571,7 @@ public class Weaver {
         boolean ignoreSignature = methodName.endsWith(IGNORE_SIGNATURE);
         if (ignoreSignature) idx = -1;
         if (methods.length > 1 && idx < 0 && !ignoreSignature)
-            log(false, "warning - there're several methods " + methodName +
+            log(false, ERROR + "there're several methods " + methodName +
                     ", please specify signature or use " + IGNORE_SIGNATURE);
 
         for (CtMethod methodSrc: methods) {

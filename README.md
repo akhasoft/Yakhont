@@ -187,8 +187,11 @@ dependencies {
 }
 ```
 
+**Note:** for Kotlin replace 'annotationProcessor' with 'kapt'.
+
 4. The code which runs Yakhont Weaver:
 
+for Java
 ```groovy
 // use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
@@ -200,8 +203,31 @@ android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
     javaCompile.doLast {
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
-            javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
-            android.bootClasspath.join(File.pathSeparator), weaverConfigFiles, weaverAddConfig)
+            javaCompile.destinationDir.toString(), 
+            javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
+            weaverConfigFiles, weaverAddConfig)
+    }
+}
+```
+
+for Kotlin
+```groovy
+// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
+String[] weaverConfigFiles = null
+
+String pkg = android.defaultConfig.applicationId, kotlin = '/tmp/kotlin-classes/'
+boolean weaverDebug = false, weaverAddConfig = true
+
+android.applicationVariants.all { variant ->
+    JavaCompile javaCompile  = variant.javaCompileProvider.get()
+    javaCompile.doLast {
+        String kotlinBase    = buildDir.toString()  + kotlin.replace('/', File.separator)
+        String kotlinClasses = kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
+        
+        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
+                javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
+                javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
+                weaverConfigFiles, weaverAddConfig)
     }
 }
 ```
