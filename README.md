@@ -25,23 +25,23 @@
 
 Yakhont is an Android high-level library offering developer-defined callbacks,
 loader wrappers and adapters, fully automatic cache, location-awareness, dynamic permissions handling, 
-lifecycle debug classes, advanced logging and many more helpful developer-oriented features.
+lifecycle debug classes, advanced logging and many more helpful developer-oriented features
+(both Java and Kotlin supported).
 
-There is also the Yakhont Weaver - a small but powerful utility which manipulates the compiled Java 
+There is also the Yakhont Weaver - a small but powerful utility which manipulates the compiled Java (and Kotlin)
 bytecode and can be used separately, without the Yakhont library (you will find more info
 [below](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)).
 
 Now you can load data in just two lines of code (please refer to the
-[simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainFragment.java)
+[simplified demo](yakhont-demo-simple-kotlin/src/main/java/akha/yakhont/demosimplekotlin/MainActivity.kt)
 for the working example):
 
 ```
-Retrofit2Loader.load("http://...", YourRetrofit.class, YourRetrofit::yourMethod,
-    BR.yourDataBindingID);
+Retrofit2Loader.load("http://...", YourRetrofit.class, YourRetrofit::yourMethod, BR.yourDataBindingID);
 ```
 
 And take location in just a couple of lines (the working example is in the
-[simplified demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainActivity.java)
+[simplified demo](yakhont-demo-simple-kotlin/src/main/java/akha/yakhont/demosimplekotlin/MainActivity.kt)
 too):
 
 ```
@@ -130,12 +130,12 @@ demo applications can be downloaded from the
 ## Versions
 
 - _core_: main functionality
-- _full_: core + debug classes for most of Activities and Fragments
+- _full_: core + debug classes for Activities and Fragments
 
 ## Usage
 
 Add the following to your build.gradle (you can use **build.gradle** files from [demo](yakhont-demo/build.gradle)
-and [simplified demo](yakhont-demo-simple/build.gradle) as working examples).
+and [simplified demo](yakhont-demo-simple-kotlin/build.gradle) as working examples).
 
 1. Update the **buildscript** block:
 
@@ -150,7 +150,7 @@ buildscript {
 }
 ```
 
-**Note:** the Yakhont components (com.github.akhasoft:yakhont...) are available from both
+    **Note:** the Yakhont components (com.github.akhasoft:yakhont...) are available from both
 [jcenter](http://jcenter.bintray.com/com/github/akhasoft/) and
 [mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/).
 
@@ -177,8 +177,8 @@ dependencies {
 }
 ```
 
-And if you're about to customize Yakhont using build-in [Dagger 2](http://google.github.io/dagger/),
-something like following lines are required:
+    And if you're about to customize Yakhont using build-in [Dagger 2](http://google.github.io/dagger/),
+the following lines are required:
 
 ```groovy
 dependencies {
@@ -187,11 +187,11 @@ dependencies {
 }
 ```
 
-**Note:** for Kotlin replace 'annotationProcessor' with 'kapt'.
+    **Note:** for Kotlin replace 'annotationProcessor' with 'kapt'.
 
 4. The code which runs Yakhont Weaver:
 
-for Java
+    4.1. For Java:
 ```groovy
 // use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
@@ -210,7 +210,7 @@ android.applicationVariants.all { variant ->
 }
 ```
 
-for Kotlin
+    4.2. For Kotlin (plus - optionally - Java):
 ```groovy
 // use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
@@ -225,19 +225,20 @@ android.applicationVariants.all { variant ->
         String kotlinClasses = kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
         
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
-                javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
-                javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
-                weaverConfigFiles, weaverAddConfig)
+            javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
+            javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
+            weaverConfigFiles, weaverAddConfig)
     }
 }
 ```
 
-Here the Yakhont Weaver manipulates the Java bytecode just compiled, which makes possible
+```
+Here the Yakhont Weaver manipulates the Java (and Kotlin) bytecode just compiled, which makes possible
 to alternate classes implementation (e.g. add / modify callbacks in Activities and Fragments)
 without changing their source code.
+```
 
-**Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation.
-By the way, Jack is no longer supported too.
+    **Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation - but is no longer supported too.
 
 5. Finally, don't forget to add to your _AndroidManifest.xml_ something like code snippet below:
 
@@ -255,12 +256,12 @@ By the way, Jack is no longer supported too.
 </application>        
 ```
 
-**Note:** "your_package_name" is a placeholder, you should provide real name, e.g. "com.yourpackage". 
+    **Note:** "your_package_name" is a placeholder, you should provide real name, e.g. "com.yourpackage". 
 
 ## Weaver: usage and configuration
 
-The Yakhont Weaver is a small but powerful utility which manipulates the compiled Java bytecode
-(e.g. in Yakhont demo applications it customizes "Activity.onStart()" and other callbacks).
+The Yakhont Weaver is a small but powerful utility which manipulates the compiled Java (and Kotlin) bytecode
+(e.g. in Yakhont demo applications it customizes "Activity.onCreate()" and other callbacks).
 
 By default the Yakhont Weaver uses configuration from it's JAR, but you can provide your own
 configuration file(s) as a parameter (see above). The "weaverAddConfig = true" means adding your

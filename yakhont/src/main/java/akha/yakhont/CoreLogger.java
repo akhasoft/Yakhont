@@ -1146,7 +1146,7 @@ public class CoreLogger {
 
             log("shake detected");
             mLastShakeTime = currentTime;
-            mHandler.run();
+            Utils.safeRunnableRun(mHandler);
         }
 
         @Override
@@ -1321,6 +1321,7 @@ public class CoreLogger {
             }
         }
 
+        @SuppressWarnings("deprecation")
         private static void getScreenShotOld(final Activity activity, final File tmpDir,
                                              final String suffix,     final Map<String, Exception> errors,
                                              final List<String> list, final Runnable runnable) {
@@ -1338,7 +1339,7 @@ public class CoreLogger {
         private static void complete(final File screenShot, final List<String> list, final Runnable runnable) {
             try {
                 if (screenShot != null) list.add(screenShot.getAbsolutePath());
-                runnable.run();
+                Utils.safeRunnableRun(runnable);
             }
             finally {
                 delete(screenShot);

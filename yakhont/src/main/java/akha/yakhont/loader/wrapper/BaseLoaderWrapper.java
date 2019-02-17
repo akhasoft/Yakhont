@@ -16,6 +16,7 @@
 
 package akha.yakhont.loader.wrapper;
 
+import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ViewHelper;
@@ -27,8 +28,8 @@ import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.BaseLiveData.Requester;
-import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseViewModel;
+import akha.yakhont.loader.BaseViewModel.PagingViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
@@ -36,6 +37,8 @@ import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBu
 import android.app.Activity;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.view.View;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
@@ -57,6 +60,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The <code>BaseLoaderWrapper</code> class is a wrapper for data loading classes like {@link BaseViewModel}.
@@ -558,6 +562,22 @@ public abstract class BaseLoaderWrapper<D> {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected BaseViewModel<D> getBaseViewModel(         final Activity         activity,
+                                                @NonNull final ViewModelStore   store,
+                                                         final String           key,
+                                                         final String           tableName,
+                                                @NonNull final Requester<D>     requester,
+                                                @NonNull final Observer <D>     observer) {
+        return new BaseViewModel.Builder<>(observer)
+                .setViewModelStore(store)
+                .setActivity(activity)
+                .setKey(key)
+                .setTableName(tableName)
+                .setRequester(requester)
+                .create();
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected BaseViewModel<D> getBaseViewModel(final Activity activity, final LoadParameters parameters) {
 
         try {
@@ -571,7 +591,7 @@ public abstract class BaseLoaderWrapper<D> {
         final RequesterHelper requesterHelper = new RequesterHelper();
 
         @SuppressWarnings("Convert2Lambda")
-        final BaseViewModel<D> baseViewModel = BaseViewModel.getInstance(activity, mViewModelStore,
+        final BaseViewModel<D> baseViewModel = getBaseViewModel(activity, mViewModelStore,
                 mLoaderId, getTableName(), requesterHelper, new Observer<D>() {
                     @Override
                     public void onChanged(@Nullable D data) {
@@ -597,8 +617,7 @@ public abstract class BaseLoaderWrapper<D> {
 
     private class RequesterHelper implements Requester<D> {
 
-        private                                             WeakReference<BaseViewModel<D>>
-                                                                                        mBaseViewModel;
+        private                                     WeakReference<BaseViewModel<D>>     mBaseViewModel;
         @Override
         public void cancel() {
             cancelRequest(CoreLogger.getDefaultLevel());
@@ -623,11 +642,13 @@ public abstract class BaseLoaderWrapper<D> {
         private BaseViewModel<D> getBaseViewModel(
                 @SuppressWarnings("SameParameterValue") final boolean isError) {
             BaseViewModel<D> result = null;
+
             if (mBaseViewModel == null)     // should never happen
                 CoreLogger.log(isError ? Level.ERROR: CoreLogger.getDefaultLevel(),
                         "mBaseViewModel == null, loader ID: " + mLoaderId);
             else {
                 result = mBaseViewModel.get();
+
                 if (result == null)         // should never happen
                     CoreLogger.log(isError ? Level.ERROR: CoreLogger.getDefaultLevel(),
                             "baseViewModel == null, loader ID: " + mLoaderId);
@@ -654,7 +675,7 @@ public abstract class BaseLoaderWrapper<D> {
         mData = data;
 
         handleSync();
-        setRefreshing();
+        stopRefreshing();
     }
 
     /**
@@ -670,6 +691,19 @@ public abstract class BaseLoaderWrapper<D> {
     protected boolean cancelRequest(@NonNull final Level level) {
         CoreLogger.log(level, "request cancelling is not supported");
         return false;
+    }
+
+    /**
+     * Finds ViewModel (if any) for the given Activity.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @return  The ViewModel (or null)
+     */
+    public BaseViewModel<?> findViewModel(Activity activity) {
+        if (activity == null) activity = Utils.getCurrentActivity();
+        return findViewModel(getSetModels(activity));
     }
 
     private BaseViewModel<?> findViewModel(final Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> viewModels) {
@@ -733,8 +767,21 @@ public abstract class BaseLoaderWrapper<D> {
         return false;
     }
 
-    private void setRefreshing() {
-        if (mSwipeRefreshWrapper != null) mSwipeRefreshWrapper.setRefreshing();
+    /**
+     * Invalidates paging DataSource (mainly for swipe-to-refresh).
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @return  {@code false} if no DataSources to invalidate, {@code true} otherwise
+     */
+    public boolean invalidateDataSource(Activity activity) {
+        final BaseViewModel<?> model = findViewModel(activity);
+        return model instanceof PagingViewModel && ((PagingViewModel) model).invalidateDataSource();
+    }
+
+    private void stopRefreshing() {
+        if (mSwipeRefreshWrapper != null) mSwipeRefreshWrapper.stopRefreshing();
     }
 
     private void handleSync() {
@@ -1016,7 +1063,7 @@ public abstract class BaseLoaderWrapper<D> {
                                        final LoadParameters                   parameters) {
             final int size = baseLoaderWrappers.size();
             if (size != 1) {
-                CoreLogger.logError("wrong BaseLoaderWrapper collection size " + size);
+                CoreLogger.logError("wrong BaseLoaderWrapper collection size " + size + ", expected 1");
                 return false;
             }
             return register(activity, resId, baseLoaderWrappers.iterator().next(), parameters);
@@ -1094,10 +1141,21 @@ public abstract class BaseLoaderWrapper<D> {
 
                         ViewHelper.setTag(swipeRefreshLayout, ID_SWIPE_LAYOUT,
                                 new WeakReference<SwipeRefreshWrapper>(swipeRefreshWrapper));
+
+                        final BaseViewModel<?> baseViewModel = baseLoaderWrapper.findViewModel(activity);
+                        if (baseViewModel instanceof PagingViewModel)
+                            ((PagingViewModel) baseViewModel).setOnChangedCallback(new Runnable() {
+                                @Override
+                                public void run() {
+                                    stopRefreshing((SwipeRefreshLayout) swipeRefreshLayout);
+                                }
+                            });
+
                         return true;
                     }
                 }
             }
+
             CoreLogger.logError("can't register");
             return false;
         }
@@ -1116,8 +1174,11 @@ public abstract class BaseLoaderWrapper<D> {
 
             @Override
             public void onRefresh() {
-                LoadParameters loadParameters = null;
 
+                // in case of paging
+                if (mBaseLoaderWrapper.invalidateDataSource(null)) return;
+
+                LoadParameters loadParameters = null;
                 try {
                     if (mParameters != null) loadParameters = mParameters.call();
                     if (loadParameters != null)
@@ -1183,9 +1244,288 @@ public abstract class BaseLoaderWrapper<D> {
             return swipeRefreshLayout;
         }
 
-        private void setRefreshing() {
-            final SwipeRefreshLayout swipeRefreshLayout = get();
+        private void stopRefreshing() {
+            stopRefreshing(get());
+        }
+
+        private static void stopRefreshing(final SwipeRefreshLayout swipeRefreshLayout) {
             if (swipeRefreshLayout != null) swipeRefreshLayout.setRefreshing(false);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * The class representing data loading parameters.
+     */
+    public static class LoadParameters implements Parcelable {
+
+        private static final int                  ARRAY_SIZE              = 6;
+        private static final int                  IDX_FORCE_CACHE         = 0;
+        private static final int                  IDX_NO_PROGRESS         = 1;
+        private static final int                  IDX_MERGE               = 2;
+        private static final int                  IDX_NO_ERRORS           = 3;
+        private static final int                  IDX_SYNC                = 4;
+        private static final int                  IDX_HANDLE_TIMEOUT      = 5;
+
+        private final String                      mLoaderId;
+        private final boolean                     mForceCache, mNoProgress, mMerge, mNoErrors, mSync,
+                mHandleTimeout;
+        private final String                      mError;
+        private final int                         mTimeout;
+
+        private final static AtomicBoolean sSafe                   = new AtomicBoolean(true);
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static final Parcelable.Creator<LoadParameters> CREATOR
+                = new Parcelable.Creator<LoadParameters>() {
+
+            @Override
+            public LoadParameters createFromParcel(Parcel in) {
+                return new LoadParameters(in);
+            }
+
+            @Override
+            public LoadParameters[] newArray(int size) {
+                return new LoadParameters[size];
+            }
+        };
+
+        private LoadParameters(final Parcel in) {
+            mLoaderId       = in.readString();
+
+            final boolean tmp[] = new boolean[ARRAY_SIZE];
+            in.readBooleanArray(tmp);
+            mForceCache    = tmp[IDX_FORCE_CACHE   ];
+            mNoProgress    = tmp[IDX_NO_PROGRESS   ];
+            mMerge         = tmp[IDX_MERGE         ];
+            mNoErrors      = tmp[IDX_NO_ERRORS     ];
+            mSync          = tmp[IDX_SYNC          ];
+            mHandleTimeout = tmp[IDX_HANDLE_TIMEOUT];
+
+            mError          = in.readString();
+            mTimeout        = in.readInt();
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public void writeToParcel(Parcel out, int flags) {
+            out.writeString  (mLoaderId);
+
+            final boolean tmp[] = new boolean[ARRAY_SIZE];
+            tmp[IDX_FORCE_CACHE   ] = mForceCache;
+            tmp[IDX_NO_PROGRESS   ] = mNoProgress;
+            tmp[IDX_MERGE         ] = mMerge;
+            tmp[IDX_NO_ERRORS     ] = mNoErrors;
+            tmp[IDX_SYNC          ] = mSync;
+            tmp[IDX_HANDLE_TIMEOUT] = mHandleTimeout;
+            out.writeBooleanArray(tmp);
+
+            out.writeString  (mError);
+            out.writeInt     (mTimeout);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public int describeContents() {
+            return 0;
+        }
+
+        /**
+         * Initialises a newly created {@code LoadParameters} object.
+         */
+        public LoadParameters() {
+            this(null, null, false, false,
+                    false, false, false, false);
+        }
+
+        /**
+         * Initialises a newly created {@code LoadParameters} object.
+         *
+         * @param loaderId
+         *        The loader ID (or null)
+         *
+         * @param timeout
+         *        The data loading timeout
+         *
+         * @param forceCache
+         *        {@code true} to force loading data from cache, {@code false} otherwise
+         *
+         * @param noProgress
+         *        {@code true} to not display loading progress, {@code false} otherwise
+         *
+         * @param merge
+         *        {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
+         *
+         * @param noErrors
+         *        {@code true} to not display loading errors, {@code false} otherwise
+         *
+         * @param sync
+         *        {@code true} to load data synchronously, {@code false} otherwise
+         *
+         * @param handleTimeout
+         *        {@code true} to let Yakhont to handle data loading timeout, {@code false} to delegate it to loader
+         */
+        @SuppressWarnings("WeakerAccess")
+        public LoadParameters(final String  loaderId, final Integer timeout, final boolean forceCache,
+                              final boolean noProgress, final boolean merge, final boolean noErrors,
+                              final boolean sync, final boolean handleTimeout) {
+            mLoaderId       = loaderId;
+            mForceCache     = forceCache;
+            mNoProgress     = noProgress;
+            mMerge          = merge;
+            mNoErrors       = noErrors;
+            mSync           = sync;
+            mHandleTimeout  = handleTimeout;
+            mTimeout        = Core.adjustTimeout(timeout != null ? timeout: Core.TIMEOUT_CONNECTION);
+
+            CoreLogger.log("loader ID: " + loaderId + ", force cache: " + forceCache +
+                    ", no progress: " + noProgress + ", merge: " + merge + ", no errors: " +
+                    noErrors + ", sync: " + sync + ", handleTimeout: " + handleTimeout +
+                    "timeout (ms): " + mTimeout);
+
+            if (mForceCache && mMerge) {
+                mError = "wrong combination: force cache and merge";
+                reportNotSafe();
+                CoreLogger.logError(mError);
+            }
+            else
+                mError = null;
+        }
+
+        private void reportNotSafe() {
+            if (!sSafe.get()) throw new LoadParametersException(mError);
+        }
+
+        /**
+         * Validates the data loading parameters provided.
+         *
+         * @return  {@code true} if the parameters are consistent, {@code false} otherwise
+         */
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+        public boolean checkArguments() {
+            reportNotSafe();
+            return mError == null;
+        }
+
+        /**
+         * Gets the loader ID.
+         *
+         * @return  The loader ID
+         */
+        public String getLoaderId() {
+            return mLoaderId;
+        }
+
+        /**
+         * Gets the data loading timeout.
+         *
+         * @return  The timeout (ms)
+         */
+        public int getTimeout() {
+            return mTimeout;
+        }
+
+        /**
+         * Gets the "force cache" flag.
+         *
+         * @return  {@code true} to force loading data from cache, {@code false} otherwise
+         */
+        public boolean getForceCache() {
+            return mForceCache;
+        }
+
+        /**
+         * Gets the "no progress" flag.
+         *
+         * @return  {@code true} to not display loading progress, {@code false} otherwise
+         */
+        public boolean getNoProgress() {
+            return mNoProgress;
+        }
+
+        /**
+         * Gets the "merge" flag.
+         *
+         * @return  {@code true} to merge the newly loaded data with already existing, {@code false} otherwise
+         */
+        public boolean getMerge() {
+            return mMerge;
+        }
+
+        /**
+         * Gets the "no errors" flag.
+         *
+         * @return  {@code true} to not display loading errors, {@code false} otherwise
+         */
+        public boolean getNoErrors() {
+            return mNoErrors;
+        }
+
+        /**
+         * Gets the "sync" flag.
+         *
+         * @return  {@code true} to load data synchronously, {@code false} otherwise
+         */
+        public boolean getSync() {
+            return mSync;
+        }
+
+        /**
+         * Gets the "handle timeout" flag.
+         *
+         * @return  {@code true} to handle data loading timeout, {@code false} to delegate it to loader
+         */
+        public boolean getHandleTimeout() {
+            return mHandleTimeout;
+        }
+
+        /**
+         * Sets safe mode: if {@code false}, the {@link LoadParametersException} will be thrown
+         * in case of not consistent parameters. The default value is {@code true}.
+         *
+         * @param value
+         *        The value to set
+         *
+         * @return  The previous value
+         */
+        @SuppressWarnings("unused")
+        public static boolean setSafeMode(final boolean value) {
+            return sSafe.getAndSet(value);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        public String toString() {
+            return String.format(Utils.getLocale(), "force cache %b, no progress %b, " +
+                            "no errors %b, merge %b, sync %b, handle timeout %b, params error %s, " +
+                            "loader id %s, timeout (ms) %d",
+                    mForceCache, mNoProgress, mNoErrors, mMerge, mSync, mHandleTimeout, mError,
+                    mLoaderId, mTimeout);
+        }
+
+        /**
+         * The exception which indicates not consistent loading parameters.
+         */
+        @SuppressWarnings("WeakerAccess")
+        public static class LoadParametersException extends RuntimeException {
+
+            /**
+             * Initialises a newly created {@code LoadParametersException} object.
+             *
+             * @param msg
+             *        The message
+             */
+            public LoadParametersException(@NonNull final String msg) {
+                super(msg);
+            }
         }
     }
 }

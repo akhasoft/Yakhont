@@ -21,46 +21,31 @@ buildscript {
     }
     dependencies {                                                          // Yakhont weaver
         classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"
-        classpath "org.javassist:javassist:${rootProject.ext.projectLibVerJavassist}"
+        classpath "org.javassist:javassist:$projectLibVerJavassist"
     }
 }
 
 apply plugin: 'com.android.application'
 
-ext.libVerDemoSimpleDefault     = rootProject.ext.projectLibVerDefault
-
-ext.libVerDemoSimpleGms         = rootProject.ext.projectLibVerGms
-ext.libVerDemoSimpleLocation    = rootProject.ext.projectLibVerLocation
-
-ext.libVerDemoSimpleRetrofit2   = rootProject.ext.projectLibVerRetrofit2
-
-ext.libVerDemoSimpleOkHttp3     = rootProject.ext.projectLibVerOkHttp3
-ext.libVerDemoSimpleGson        = rootProject.ext.projectLibVerGson
-
-ext.libVerDemoSimpleRxJava      = rootProject.ext.projectLibVerRxJava
-ext.libVerDemoSimpleRxJava2     = rootProject.ext.projectLibVerRxJava2
-
-ext.libVerDemoSimpleDagger      = rootProject.ext.projectLibVerDagger
-
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if (details.requested.group == 'com.google.android.gms') {
         if (details.requested.name == 'play-services-location' ||
             details.requested.name == 'play-services-places-placereport')
-            details.useVersion      libVerDemoSimpleLocation
+            details.useVersion      projectLibVerLocation
         else
-            details.useVersion      libVerDemoSimpleGms
+            details.useVersion      projectLibVerGms
         details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
-        details.useVersion          libVerDemoSimpleRetrofit2
+        details.useVersion          projectLibVerRetrofit2
         details.because 'To enforce releasable units for Retrofit 2'
     }
     if (details.requested.group == 'com.squareup.okhttp3') {
-        details.useVersion          libVerDemoSimpleOkHttp3
+        details.useVersion          projectLibVerOkHttp3
         details.because 'To enforce releasable units for okhttp3'
     }
     if (details.requested.group == 'com.google.dagger') {
-        details.useVersion          libVerDemoSimpleDagger
+        details.useVersion          projectLibVerDagger
         details.because 'To enforce releasable units for Dagger 2'
     }
 }
@@ -96,9 +81,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       rootProject.ext.projectDebug != '1'
+            minifyEnabled       projectDebug != '1'
 
-            rootProject.ext.projectProGuardFiles.each {
+            projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
                 proguardFile            '../proguard/libs/' + it
             }
@@ -135,41 +120,41 @@ android {
 dependencies {
     // v4 Support Libraries
     // fragment has dependencies on compat, core-utils, core-ui, and media-compat
-    implementation      "androidx.core:core:1.0.1"
-    implementation      "androidx.fragment:fragment:1.0.0"
-    implementation      "androidx.legacy:legacy-support-core-ui:1.0.0"
-    implementation      "androidx.legacy:legacy-support-core-utils:1.0.0"
-    implementation      "androidx.media:media:1.0.1"
+    implementation      "androidx.core:core:$projectLibVerCoreCore"
+    implementation      "androidx.fragment:fragment:$projectLibVerFragmentFragment"
+    implementation      "androidx.legacy:legacy-support-core-ui:$projectLibVerLegacyLegacySupportCoreUi"
+    implementation      "androidx.legacy:legacy-support-core-utils:$projectLibVerLegacyLegacySupportCoreUtils"
+    implementation      "androidx.media:media:$projectLibVerMediaMedia"
     // v7 Support Libraries
     // appcompat (includes support for material design) depends on the v4 Support Library
-    implementation      "androidx.appcompat:appcompat:1.0.2"
-    implementation      "androidx.recyclerview:recyclerview:1.0.0"
+    implementation      "androidx.appcompat:appcompat:$projectLibVerAppcompatAppcompat"
+    implementation      "androidx.recyclerview:recyclerview:$projectLibVerRecyclerViewRecyclerView"
     // v13 Support Library (support for the Fragment with the FragmentCompat)
-    implementation      "androidx.legacy:legacy-support-v13:1.0.0"
+    implementation      "androidx.legacy:legacy-support-v13:$projectLibVerLegacyLegacySupportV13"
 
-    implementation      "androidx.annotation:annotation:1.0.1"
-    implementation      "androidx.lifecycle:lifecycle-common-java8:2.0.0"
-    implementation      "androidx.lifecycle:lifecycle-extensions:2.0.0"
+    implementation      "androidx.annotation:annotation:$projectLibVerAnnotationAnnotation"
+    implementation      "androidx.lifecycle:lifecycle-common-java8:$projectLibVerLifecycleLifecycleCommonJava8"
+    implementation      "androidx.lifecycle:lifecycle-extensions:$projectLibVerLifecycleLifecycleExtensions"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
-    implementation      "com.google.android.gms:play-services-location:${libVerDemoSimpleDefault}"
+    implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
-    implementation      "com.google.dagger:dagger:${libVerDemoSimpleDefault}"           // Dagger 2
-    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDemoSimpleDefault}"
+    implementation      "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2
+    annotationProcessor "com.google.dagger:dagger-compiler:$projectLibVerDefault"
 
-    implementation      "com.google.code.gson:gson:${libVerDemoSimpleGson}"             // Gson
+    implementation      "com.google.code.gson:gson:$projectLibVerGson"              // Gson
 
-    implementation     ("com.squareup.retrofit2:retrofit:${libVerDemoSimpleDefault}") { // Retrofit
+    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {  // Retrofit
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
-    implementation     ("com.squareup.retrofit2:converter-gson:${libVerDemoSimpleDefault}") {
+    implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerDefault") {
         exclude group:  "com.google.code.gson", module: "gson"
     }
-    implementation      "com.squareup.okhttp3:okhttp:${libVerDemoSimpleDefault}"
-    implementation      "com.squareup.okhttp3:logging-interceptor:${libVerDemoSimpleDefault}"
+    implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
+    implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
-    implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoSimpleRxJava2}"        // Rx
-    implementation      "io.reactivex:rxjava:${libVerDemoSimpleRxJava}"
+    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
+    implementation      "io.reactivex:rxjava:$projectLibVerRxJava"
 
     implementation      name:'yakhont-full', ext:'aar'
 }

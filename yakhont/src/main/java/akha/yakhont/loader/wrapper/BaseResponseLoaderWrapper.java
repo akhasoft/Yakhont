@@ -27,12 +27,13 @@ import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.DataBindingCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter;
+import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
+import akha.yakhont.loader.BaseLiveData;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.BaseResponse;
-import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseConverter;
@@ -59,7 +60,11 @@ import androidx.annotation.Size;
 import androidx.annotation.StringRes;
 import androidx.databinding.ViewDataBinding;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelStore;
+import androidx.paging.DataSource;
+import androidx.paging.PagedList.Config;
+import androidx.recyclerview.widget.DiffUtil.ItemCallback;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.lang.reflect.Method;
@@ -111,9 +116,13 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
     private             CacheAdapter<R, E, D>                   mAdapter;
 
-    private             LoaderRx<R, E, D>                       mRx;
+    private             LoaderRx    <R, E, D>                   mRx;
 
     private             LoaderCallbacks<E, D>                   mLoaderCallbacks;
+
+    private             Callable<DataSource<Object, Object>>    mDataSourceProducer;
+    private             PagingRecyclerViewAdapter<Object, R, E> mPagingAdapter;
+    private             Config                                  mPagingConfig;
 
     /**
      * The API for data loading.
@@ -455,6 +464,32 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             CoreLogger.logWarning("adapter == null, table name: " + mTableName);
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    @Override
+    protected BaseViewModel<BaseResponse<R, E, D>> getBaseViewModel(
+                     final Activity                                         activity,
+            @NonNull final ViewModelStore                                   store,
+                     final String                                           key,
+                     final String                                           tableName,
+            @NonNull final BaseLiveData.Requester<BaseResponse<R, E, D>>    requester,
+            @NonNull final Observer<BaseResponse<R, E, D>>                  observer) {
+
+        @SuppressWarnings("unchecked")
+        final PagingRecyclerViewAdapter<Object, Object, Object> adapter =
+                (PagingRecyclerViewAdapter<Object, Object, Object>) mPagingAdapter;
+
+        return new BaseViewModel.Builder<>(observer)
+                .setViewModelStore(store)
+                .setActivity(activity)
+                .setKey(key)
+                .setTableName(tableName)
+                .setRequester(requester)
+                .setDataSourceProducer(mDataSourceProducer)
+                .setConfig(mPagingConfig)
+                .setAdapter(adapter)
+                .create();
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
@@ -499,9 +534,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         protected       LoaderCallbacks<E, D>                   mLoaderCallbacks;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected Callable<Progress>                            mProgress;
+        protected       Callable<Progress>                      mProgress;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected Callable<BaseViewModel<BaseResponse<R, E, D>>>
+        protected       Callable<BaseViewModel<BaseResponse<R, E, D>>>
                                                                 mBaseViewModel;
 
         /**
@@ -1252,6 +1287,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         CoreLoad cancelLoading(Activity activity);
 
         /**
+         * Invalidates all {@link DataSource DataSource} associated with the given {@code CoreLoad} component.
+         *
+         * @param activity
+         *        The Activity
+         */
+        void invalidateDataSources(Activity activity);
+
+        /**
          * Indicates whether the back key press should be emulated if data loading was cancelled or not
          *
          * @param isGoBackOnCancelLoading
@@ -1336,6 +1379,17 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public void invalidateDataSources(final Activity activity) {
+            CoreLogger.log("about to invalidate DataSources");
+
+            for (final BaseLoaderWrapper baseLoaderWrapper: mLoaders)
+                baseLoaderWrapper.invalidateDataSource(activity);
+        }
+
         private boolean isGoBackOnCancelLoading() {
             return mGoBackOnCancelLoading.get();
         }
@@ -1407,11 +1461,61 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected boolean                               mNoBinding;
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Callable<DataSource<Object, Object>>  mDataSourceProducer;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Config                                mPagingConfig;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected ItemCallback<Object>                  mPagingItemCallback;
+
         /**
          * Initialises a newly created {@code CoreLoadBuilder} object.
          */
         @SuppressWarnings("WeakerAccess")
         public CoreLoadBuilder() {
+        }
+
+        /**
+         * Sets DataSource producer for paging.
+         *
+         * @param dataSourceProducer
+         *        The DataSource producer
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        public CoreLoadBuilder<C, R, E, D> setPagingDataSourceProducer(
+                final Callable<DataSource<Object, Object>> dataSourceProducer) {
+            checkData(mDataSourceProducer, dataSourceProducer, "DataSourceProducer");
+            mDataSourceProducer = dataSourceProducer;
+            return this;
+        }
+
+        /**
+         * Sets paging configuration.
+         *
+         * @param config
+         *        The configuration
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        public CoreLoadBuilder<C, R, E, D> setPagingConfig(final Config config) {
+            checkData(mPagingConfig, config, "PagingConfig");
+            mPagingConfig = config;
+            return this;
+        }
+
+        /**
+         * Sets paging items callback (for calculating the difference between items in a list).
+         *
+         * @param itemCallback
+         *        The configuration
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        public CoreLoadBuilder<C, R, E, D> setPagingItemCallback(final ItemCallback<Object> itemCallback) {
+            checkData(mPagingItemCallback, itemCallback, "PagingItemCallback");
+            mPagingItemCallback = itemCallback;
+            return this;
         }
 
         /**
@@ -1634,8 +1738,20 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             final BaseResponseLoaderWrapper<C, R, E, D> loader = mLoaderBuilder.createBaseResponseLoader();
             if (loader == null) return mLoaderBuilder.createBaseLoader();
 
+            if (mDataSourceProducer != null) {
+                @SuppressWarnings("unchecked")
+                final BaseRecyclerViewAdapter<Object, R, E, Object> tmp =
+                        (BaseRecyclerViewAdapter<Object, R, E, Object>) mAdapterWrapper.getRecyclerViewAdapter();
+                loader.mPagingAdapter      = new PagingRecyclerViewAdapter<>(
+                        mPagingItemCallback != null ? mPagingItemCallback: tmp.getDefaultDiffCallback(), tmp);
+
+                loader.mDataSourceProducer = mDataSourceProducer;
+                loader.mPagingConfig       = mPagingConfig;
+            }
+
             if (mRx             != null) loader.setRx(mRx);
             if (mAdapterWrapper != null) loader.setAdapter(mAdapterWrapper);
+
             return loader;
         }
 
@@ -2103,6 +2219,53 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         public <S> CoreLoadExtendedBuilder<C, R, E, D, T> setAdapterWrapper(
                 final BaseCacheAdapterWrapper<S, R, E, D> adapterWrapper) {
             super.setAdapterWrapper(adapterWrapper);
+            return this;
+        }
+
+        /**
+         * Sets DataSource producer for paging.
+         *
+         * @param dataSourceProducer
+         *        The DataSource producer
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingDataSourceProducer(
+                final Callable<DataSource<Object, Object>> dataSourceProducer) {
+            super.setPagingDataSourceProducer(dataSourceProducer);
+            return this;
+        }
+
+        /**
+         * Sets paging configuration.
+         *
+         * @param config
+         *        The configuration
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingConfig(final Config config) {
+            super.setPagingConfig(config);
+            return this;
+        }
+
+        /**
+         * Sets paging items callback (for calculating the difference between items in a list).
+         *
+         * @param itemCallback
+         *        The configuration
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingItemCallback(
+                final ItemCallback<Object> itemCallback) {
+            super.setPagingItemCallback(itemCallback);
             return this;
         }
 

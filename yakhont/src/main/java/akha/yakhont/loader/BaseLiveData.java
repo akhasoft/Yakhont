@@ -25,8 +25,8 @@ import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 // ProGuard issue
 // import akha.yakhont.R;
-import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
 
@@ -1009,7 +1009,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         synchronized (mLockCancel) {
                             try {
                                 CoreLogger.log("about to cancel data loading, object " + this);
-                                mOnCancel.run();
+                                Utils.safeRunnableRun(mOnCancel);
                             }
                             catch (Exception exception) {
                                 CoreLogger.log(exception);

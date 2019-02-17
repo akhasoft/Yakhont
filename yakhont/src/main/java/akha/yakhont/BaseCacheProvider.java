@@ -705,7 +705,7 @@ public class BaseCacheProvider extends ContentProvider {
             return true;
         }
         catch (Exception exception) {
-            CoreLogger.log(exception);
+            CoreLogger.log("failed runnable " + runnable, exception);
             return false;
         }
         finally {

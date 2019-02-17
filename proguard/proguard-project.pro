@@ -47,6 +47,9 @@
 ################
 # for demo
 
+-dontwarn akha.yakhont.adapter.BaseRecyclerViewAdapter$PagingRecyclerViewAdapter
+-dontwarn akha.yakhont.loader.BaseViewModel$PagingViewModel
+
 -dontwarn akha.yakhont.loader.BaseLiveData$LiveDataDialog
 -dontwarn akha.yakhont.R$id
 

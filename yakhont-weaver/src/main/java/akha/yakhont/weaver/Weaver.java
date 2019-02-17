@@ -42,8 +42,8 @@ import javassist.CtNewMethod;
 import javassist.NotFoundException;
 
 /**
- * The <code>Weaver</code> class weaves the given application's compiled classes according to the
- * configuration file info; supports both explicit method callbacks declarations and
+ * The <code>Weaver</code> class weaves the given application's compiled classes (both Java and Kotlin)
+ * according to the configuration file info; supports both explicit method callbacks declarations and
  * declarations via annotations (which defines callbacks for the annotated methods).
  * <br>For more info please refer to the 'weaver.config' configuration file.
  *

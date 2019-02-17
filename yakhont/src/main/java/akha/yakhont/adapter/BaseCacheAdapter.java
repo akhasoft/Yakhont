@@ -22,7 +22,6 @@ import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
-import akha.yakhont.adapter.BaseRecyclerViewAdapter.DataBindingArrayAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.DataBindingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
@@ -59,11 +58,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.cursoradapter.widget.SimpleCursorAdapter;
+import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.squareup.picasso.Picasso;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -407,7 +408,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     private void customize(final Runnable onLoadFinished) {
-        if (onLoadFinished != null) onLoadFinished.run();
+        if (onLoadFinished != null) Utils.safeRunnableRun(onLoadFinished);
     }
 
     @SuppressLint("ObsoleteSdkInt")
@@ -1153,10 +1154,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             imageView.setImageResource(Integer.parseInt(strValue));
         }
         catch (NumberFormatException exception) {
-            if (context == null)
-                CoreLogger.logError("context for Picasso == null");
-            else
-                Picasso.get().load(strValue).into(imageView);
+            Picasso.get().load(strValue).into(imageView);
         }
     }
 
@@ -1314,7 +1312,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static abstract class DataBinder<T> {
 
-        private   final         Context                         mContext;
+        private   final         WeakReference<Context>          mContext;
         private                 ViewBinder                      mViewBinder;
 
         @SuppressWarnings("WeakerAccess")
@@ -1325,7 +1323,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         public DataBinder(@NonNull final Context context,
                           @NonNull @Size(min = 1) final String[] from,
                           @NonNull @Size(min = 1) final int   [] to) {
-            mContext    = context;
+            mContext    = new WeakReference<>(context);
 
             mFrom       = from;
             mTo         = to;
@@ -1377,7 +1375,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 ((TextView) view).setText(strValue);
 
             else if (view instanceof ImageView)
-                bindImageView(mContext, (ImageView) view, value);
+                bindImageView(mContext.get(), (ImageView) view, value);
 
             else
                 CoreLogger.logError("not supported view type, index = " + index);
@@ -1532,6 +1530,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         protected final BaseCacheAdapter       <T, R, E, D>         mBaseCacheAdapter;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final BaseRecyclerViewAdapter<T, R, E, D>         mBaseRecyclerViewAdapter;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final BaseDataConverter      <T, R, E, D>         mBaseDataConverter;
 
@@ -1671,6 +1670,81 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     /**
+     * Extends {@code ArrayAdapter} to work with Data binding Library.
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data in this adapter
+     */
+    public static class DataBindingArrayAdapter<R, E, D> extends BaseArrayAdapter<Object> {
+
+        @LayoutRes
+        private final int                                           mLayoutId;
+
+        private final int                                           mDataBindingId;
+
+        private       BaseCacheAdapter<Object, R, E, D>             mBaseCacheAdapter;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+        protected DataBindingArrayAdapter(@NonNull   final Context context,
+                                          @LayoutRes final int     layoutId,
+                                                     final int     dataBindingId) {
+            super(context, layoutId);
+            CoreLogger.log("DataBindingArrayAdapter instantiated");
+
+            mLayoutId       = layoutId;
+            mDataBindingId  = dataBindingId;
+        }
+
+        /**
+         * Sets the {@code BaseCacheAdapter} component.
+         *
+         * @param adapter
+         *        The {@code BaseCacheAdapter}
+         */
+        @SuppressWarnings("unused")
+        public void setAdapter(final BaseCacheAdapter<Object, R, E, D> adapter) {
+            mBaseCacheAdapter = adapter;
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+            if (mBaseCacheAdapter == null) {
+                CoreLogger.logWarning("mBaseCacheAdapter == null");
+                return convertView;
+            }
+            return DataBindingCacheAdapterWrapper.onBindViewHolder(mBaseCacheAdapter, convertView,
+                    parent, position, mLayoutId, mDataBindingId);
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public ViewBinder getAdapterViewBinder() {
+            return null;
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public void setAdapterViewBinder(final ViewBinder viewBinder) {
+            if (viewBinder != null)
+                CoreLogger.log(Level.ERROR, "ignored viewBinder: " + viewBinder, true);
+        }
+    }
+
+    /**
      * The wrapper for {@link BaseCacheAdapter} to use with Data Binding Library.
      *
      * @param <R>
@@ -1760,6 +1834,155 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 @NonNull   final BaseCacheAdapter<Object, R, E, D> baseCacheAdapter) {
             super(baseCacheAdapter, new DataBindingRecyclerViewAdapter<>(id, layoutId, baseCacheAdapter),
                     (DataBindingDataConverter<R, E, D>) baseCacheAdapter.getConverter());
+        }
+
+        /**
+         * Performs data binding to the given view.
+         *
+         * @param data
+         *        The data ({@link Collection} or array) to bind
+         *
+         * @param dataBindingId
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param viewDataBinding
+         *        The {@code ViewDataBinding} component
+         */
+        public static void bind(final Object data, final int dataBindingId,
+                                @NonNull final ViewDataBinding viewDataBinding) {
+            if (data == null) {
+                CoreLogger.logError("data for binding is null");
+                return;
+            }
+
+            viewDataBinding.setVariable(dataBindingId, data);
+            viewDataBinding.executePendingBindings();
+        }
+
+        /**
+         * Performs data binding to the given view.
+         *
+         * @param data
+         *        The data ({@link Collection} or array) to bind
+         *
+         * @param position
+         *        The position in given {@link Collection} or array
+         *
+         * @param dataBindingId
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param viewDataBinding
+         *        The {@code ViewDataBinding} component
+         */
+        public static void bind(final Object data, final int position, final int dataBindingId,
+                                @NonNull final ViewDataBinding viewDataBinding) {
+            if (data == null) {
+                CoreLogger.logError("data for binding is null, position " + position);
+                return;
+            }
+            if (CoreReflection.isNotSingle(data)) {
+                final Object tmp = CoreReflection.getObject(data, position);
+                if (tmp == null)
+                    CoreLogger.logError("can't bind data, position " + position);
+                else
+                    bind(tmp, dataBindingId, viewDataBinding);
+            }
+            else {
+                CoreLogger.logWarning("single object " + data.getClass().getName() +
+                        ", position " + position + " ignored");
+                bind(data, dataBindingId, viewDataBinding);
+            }
+        }
+
+        /**
+         * Returns the outermost {@code View} in the layout file associated with the Binding.
+         *
+         * @param viewDataBinding
+         *        The {@code ViewDataBinding}
+         *
+         * @return  The {@code View}
+         *
+         * @see     ViewDataBinding#getRoot() ViewDataBinding.getRoot()
+         */
+        @SuppressWarnings("WeakerAccess")
+        public static View getView(final ViewDataBinding viewDataBinding) {
+            return viewDataBinding == null ? null: viewDataBinding.getRoot();
+        }
+
+        /**
+         * Returns the outermost {@code View} in the layout file associated with the Binding.
+         *
+         * @param parent
+         *        The ViewGroup into which the new View will be added
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @return  The {@code View}
+         *
+         * @see     ViewDataBinding#getRoot() ViewDataBinding.getRoot()
+         */
+        @SuppressWarnings("unused")
+        public static View getView(@NonNull   final ViewGroup parent,
+                                   @LayoutRes final int       layoutId) {
+            return getView(getViewDataBinding(parent, layoutId));
+        }
+
+        /**
+         * Returns the {@code ViewDataBinding} component.
+         *
+         * @param parent
+         *        The ViewGroup into which the new View will be added
+         *
+         * @param layoutId
+         *        The resource identifier of a layout file that defines the views
+         *
+         * @return  The {@code ViewDataBinding} component
+         */
+        @SuppressWarnings("WeakerAccess")
+        public static ViewDataBinding getViewDataBinding(@NonNull   final ViewGroup parent,
+                                                         @LayoutRes final int       layoutId) {
+            return DataBindingUtil.inflate(LayoutInflater.from(parent.getContext()),
+                    layoutId, parent, false);
+        }
+
+        private static <T, R, E, D> View onBindViewHolder(
+                @NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter, final View view,
+                @NonNull ViewGroup parent, final int position, @LayoutRes final int layoutId,
+                final int dataBindingId) {
+
+            final ViewDataBinding viewDataBinding = view == null ? getViewDataBinding(parent, layoutId):
+                                                                   DataBindingUtil.bind(view);
+            if (viewDataBinding == null) {      // should never happen
+                CoreLogger.logError("ViewDataBinding == null");
+
+                return new View(Utils.getApplication().getApplicationContext());
+            }
+
+            bindHelper(getData(baseCacheAdapter, position), position, dataBindingId, viewDataBinding);
+            return getView(viewDataBinding);
+        }
+
+        private static <D> void bindHelper(final          D               data,
+                                           final          Integer         position,
+                                           final          int             dataBindingId,
+                                           @NonNull final ViewDataBinding viewDataBinding) {
+            if (data == null) {
+                CoreLogger.logError("data for binding == null");
+                return;
+            }
+            if (position == null)
+                bind(data,           dataBindingId, viewDataBinding);
+            else
+                bind(data, position, dataBindingId, viewDataBinding);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static <T, R, E, D> T getData(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
+                                             final int position) {
+            return baseCacheAdapter.getArrayAdapter().getItem(position);
         }
     }
 }

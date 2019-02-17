@@ -753,12 +753,7 @@ public class Core implements DefaultLifecycleObserver {
         /** @exclude */
         @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected static void notifyListener(@NonNull final Runnable runnable) {
-            try {
-                runnable.run();
-            }
-            catch (Exception exception) {
-                CoreLogger.log(exception);
-            }
+            Utils.safeRunnableRun(runnable);
         }
     }
 
@@ -840,7 +835,7 @@ public class Core implements DefaultLifecycleObserver {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
                         version = String.valueOf(packageInfo.getLongVersionCode());
                     else
-                        version = String.valueOf(packageInfo.versionCode);
+                        version = String.valueOf(getVersionOld(packageInfo));
                 }
                 catch (/*PackageManager.NameNotFound*/Exception exception) {
                     CoreLogger.log("can not define version code", exception);
@@ -853,6 +848,11 @@ public class Core implements DefaultLifecycleObserver {
             CoreLogger.setFullInfo(fullInfo);
 
             BaseFragment.enableFragmentManagerDebugLogging(fullInfo);
+        }
+
+        @SuppressWarnings("deprecation")
+        private static int getVersionOld(@NonNull final PackageInfo packageInfo) {
+            return packageInfo.versionCode;
         }
 
         @SuppressWarnings("UnusedReturnValue")
@@ -978,6 +978,22 @@ public class Core implements DefaultLifecycleObserver {
         private static final ExecutorHelper             sExecutorHelper                 = new ExecutorHelper();
 
         private Utils() {
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static boolean safeRunnableRun(final Runnable runnable) {
+            if (runnable == null)
+                CoreLogger.logWarning("runnable == null");
+            else {
+                try {
+                    runnable.run();
+                    return true;
+                }
+                catch (Exception exception) {
+                    CoreLogger.log("failed runnable " + runnable, exception);
+                }
+            }
+            return false;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -1755,12 +1771,7 @@ public class Core implements DefaultLifecycleObserver {
                 return new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            runnable.run();
-                        }
-                        catch (Exception exception) {
-                            CoreLogger.log("Runnable failed: " + runnable, exception);
-                        }
+                        safeRunnableRun(runnable);
                     }
 
                     @NonNull

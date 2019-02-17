@@ -450,7 +450,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     protected static void runCallback(final Runnable callback, final boolean denied) {
         CoreLogger.log(!denied && callback == null ? Level.WARNING: CoreLogger.getDefaultLevel(),
                 (denied ? "onDenied": "onGranted") + " == " + callback);
-        if (callback != null) callback.run();
+        if (callback != null) Utils.safeRunnableRun(callback);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -25,7 +25,7 @@ ext {
     publishedName               = 'Yakhont'
     publishedDescription        = 'The high-level Android components for data loading, location, lifecycle callbacks and many more'
 
-    publishedGroupId            = rootProject.ext.projectGroupId
+    publishedGroupId            = projectGroupId
     publishedArtifactId         = 'yakhont'
     publishedPackaging          = 'aar'
     publishedVersion            = verName
@@ -38,45 +38,29 @@ ext {
                                    'http://square.github.io/retrofit/2.x/retrofit/']
 }
 
-ext.libVerDefault               = rootProject.ext.projectLibVerDefault
-
-ext.libVerGms                   = rootProject.ext.projectLibVerGms
-ext.libVerLocation              = rootProject.ext.projectLibVerLocation
-
-ext.libVerRetrofit              = rootProject.ext.projectLibVerRetrofit
-ext.libVerRetrofit2             = rootProject.ext.projectLibVerRetrofit2
-
-ext.libVerOkHttp3               = rootProject.ext.projectLibVerOkHttp3
-ext.libVerOkHttp                = '2.7.5'
-
-ext.libVerRxJava                = rootProject.ext.projectLibVerRxJava
-ext.libVerRxJava2               = rootProject.ext.projectLibVerRxJava2
-
-ext.libVerDagger                = rootProject.ext.projectLibVerDagger
-
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if (details.requested.group == 'com.google.android.gms') {
         if (details.requested.name == 'play-services-location' || 
             details.requested.name == 'play-services-places-placereport')
-            details.useVersion      libVerLocation
+            details.useVersion      projectLibVerLocation
         else
-            details.useVersion      libVerGms
+            details.useVersion      projectLibVerGms
         details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
-        details.useVersion          libVerRetrofit2
+        details.useVersion          projectLibVerRetrofit2
         details.because 'To enforce releasable units for Retrofit 2'
     }
     if (details.requested.group == 'com.squareup.okhttp3') {
-        details.useVersion          libVerOkHttp3
+        details.useVersion          projectLibVerOkHttp3
         details.because 'To enforce releasable units for okhttp3'
     }
     if (details.requested.group == 'com.squareup.okhttp') {
-        details.useVersion          libVerOkHttp
+        details.useVersion          projectLibVerOkHttp
         details.because 'To enforce releasable units for okhttp'
     }
     if (details.requested.group == 'com.google.dagger') {
-        details.useVersion          libVerDagger
+        details.useVersion          projectLibVerDagger
         details.because 'To enforce releasable units for Dagger 2'
     }
 }
@@ -109,7 +93,7 @@ android {
         }
     }
 
-    defaultPublishConfig       'core' + (rootProject.ext.projectDebug == '1' ? 'Debug': 'Release')
+    defaultPublishConfig       'core' + (projectDebug == '1' ? 'Debug': 'Release')
 
     lintOptions {
         abortOnError            false
@@ -121,9 +105,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       rootProject.ext.projectDebug != '1'
+            minifyEnabled       projectDebug != '1'
 
-            rootProject.ext.projectProGuardFiles.each {
+            projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
                 proguardFile            '../proguard/libs/' + it
             }
@@ -157,53 +141,55 @@ android {
 dependencies {
     // v4 Support Libraries
     // fragment has dependencies on compat, core-utils, core-ui, and media-compat
-    api                 "androidx.core:core:1.0.1"
-    api                 "androidx.fragment:fragment:1.0.0"
-    api                 "androidx.legacy:legacy-support-core-ui:1.0.0"
-    api                 "androidx.legacy:legacy-support-core-utils:1.0.0"
-    api                 "androidx.media:media:1.0.1"
+    api                 "androidx.core:core:$projectLibVerCoreCore"
+    api                 "androidx.fragment:fragment:$projectLibVerFragmentFragment"
+    api                 "androidx.legacy:legacy-support-core-ui:$projectLibVerLegacyLegacySupportCoreUi"
+    api                 "androidx.legacy:legacy-support-core-utils:$projectLibVerLegacyLegacySupportCoreUtils"
+    api                 "androidx.media:media:$projectLibVerMediaMedia"
     // v7 Support Libraries
     // appcompat (includes support for material design) depends on the v4 Support Library
-    api                 "androidx.appcompat:appcompat:1.0.2"
-    api                 "androidx.recyclerview:recyclerview:1.0.0"
+    api                 "androidx.appcompat:appcompat:$projectLibVerAppcompatAppcompat"
+    api                 "androidx.recyclerview:recyclerview:$projectLibVerRecyclerViewRecyclerView"
     // v13 Support Library (support for the Fragment with the FragmentCompat)
-    api                 "androidx.legacy:legacy-support-v13:1.0.0"
+    api                 "androidx.legacy:legacy-support-v13:$projectLibVerLegacyLegacySupportV13"
 
-    api                 "androidx.annotation:annotation:1.0.1"
-    api                 "androidx.lifecycle:lifecycle-common-java8:2.0.0"
-    api                 "androidx.lifecycle:lifecycle-extensions:2.0.0"
-    api                 "com.google.android.material:material:1.0.0"
-    api                 "com.google.android.gms:play-services-location:${libVerDefault}"
+    api                 "androidx.annotation:annotation:$projectLibVerAnnotationAnnotation"
+    api                 "androidx.lifecycle:lifecycle-common-java8:$projectLibVerLifecycleLifecycleCommonJava8"
+    api                 "androidx.lifecycle:lifecycle-extensions:$projectLibVerLifecycleLifecycleExtensions"
+    api                 "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
+    api                 "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
     // for debug package only
-    fullApi             "androidx.leanback:leanback:1.0.0"
-    fullApi             "androidx.leanback:leanback-preference:1.0.0"
-    fullApi             "androidx.legacy:legacy-preference-v14:1.0.0"
-    fullApi             "androidx.mediarouter:mediarouter:1.0.0"
+    fullApi             "androidx.leanback:leanback:$projectLibVerLeanbackLeanback"
+    fullApi             "androidx.leanback:leanback-preference:$projectLibVerLeanbackLeanbackPreference"
+    fullApi             "androidx.legacy:legacy-preference-v14:$projectLibVerLegacyLegacyPreferenceV14"
+    fullApi             "androidx.mediarouter:mediarouter:$projectLibVerMediaRouterMediaRouter"
 
-    api                 "com.google.dagger:dagger:${libVerDefault}"             // Dagger 2
-    annotationProcessor "com.google.dagger:dagger-compiler:${libVerDefault}"
+    api                 "androidx.paging:paging-runtime:$projectLibVerPaging"
 
-    api                 "com.squareup.picasso:picasso:2.71828"                  // Picasso
+    api                 "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2
+    annotationProcessor "com.google.dagger:dagger-compiler:$projectLibVerDefault"
 
-    api                ("com.squareup.retrofit2:retrofit:${libVerDefault}") {   // Retrofit
+    api                 "com.squareup.picasso:picasso:$projectLibVerPicasso"        // Picasso
+
+    api                ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {  // Retrofit
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
-    api                 "com.squareup.retrofit2:converter-gson:${libVerDefault}"
+    api                 "com.squareup.retrofit2:converter-gson:$projectLibVerDefault"
 
-    api                 "com.squareup.okhttp3:okhttp:${libVerDefault}"
-    api                 "com.squareup.okhttp3:logging-interceptor:${libVerDefault}"
+    api                 "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
+    api                 "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
-    api                 "com.squareup.retrofit2:adapter-rxjava:${libVerDefault}"
-    api                 "com.squareup.retrofit2:adapter-rxjava2:${libVerDefault}"
+    api                 "com.squareup.retrofit2:adapter-rxjava:$projectLibVerDefault"
+    api                 "com.squareup.retrofit2:adapter-rxjava2:$projectLibVerDefault"
 
-    api                 "com.squareup.retrofit:retrofit:${libVerRetrofit}"
+    api                 "com.squareup.retrofit:retrofit:$projectLibVerRetrofit"
 
-    api                 "com.squareup.okhttp:okhttp:${libVerDefault}"
-    api                 "com.squareup.okhttp:okhttp-urlconnection:${libVerDefault}"
+    api                 "com.squareup.okhttp:okhttp:$projectLibVerDefault"
+    api                 "com.squareup.okhttp:okhttp-urlconnection:$projectLibVerDefault"
 
-    api                 "io.reactivex.rxjava2:rxjava:${libVerRxJava2}"          // Rx
-    api                 "io.reactivex:rxjava:${libVerRxJava}"
+    api                 "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
+    api                 "io.reactivex:rxjava:$projectLibVerRxJava"
 }
 
 apply from: '../publish.gradle'

@@ -127,6 +127,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("deprecation")
     @CallSuper
     @Override
     public void onAttachFragment(android.app.Fragment fragment) {
@@ -375,15 +376,6 @@ public class BaseActivity extends Activity {        // don't modify this line: i
 
         super.onPostResume();
     }
-
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-@Override
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-public boolean onPreferenceStartFragment(android.preference.PreferenceFragment caller,
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-                                         android.preference.Preference pref) {
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-    return super.onPreferenceStartFragment(caller, pref);
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-}
 
     /**
      * Please refer to the base method description.

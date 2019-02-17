@@ -183,7 +183,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             try {
                 CoreLogger.log(level, "about to cancel Retrofit data loading, object " + this);
 
-                cancelHandler.run();
+                Utils.safeRunnableRun(cancelHandler);
                 return true;
             }
             catch (Exception exception) {

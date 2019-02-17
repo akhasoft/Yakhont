@@ -69,7 +69,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         init();
     }
 
-    @SuppressWarnings({"JavaDoc", "deprecation", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "deprecation", "unused"})
     public BaseSimpleCursorSupportAdapter(@NonNull                    final Context  context ,
                                           @LayoutRes                  final    int   layoutId,
                                           @NonNull @Size(min = 1)     final String[] from    ,
@@ -90,8 +90,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         });
     }
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isSupport() {
         final boolean result = true;
         CoreLogger.log("BaseSimpleCursorAdapter.isSupport() == " + result);
@@ -108,8 +107,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         return mViewBinder;
     }
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused", "UnusedReturnValue"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "UnusedReturnValue"})
     @Override
     public void setAdapterViewBinder(final BaseCacheAdapter.ViewBinder viewBinder) {
         mViewBinder = viewBinder;

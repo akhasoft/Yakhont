@@ -18,21 +18,19 @@ package akha.yakhont.adapter;
 
 import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
-import akha.yakhont.CoreLogger.Level;
-import akha.yakhont.CoreReflection;
-import akha.yakhont.adapter.BaseCacheAdapter.BaseArrayAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.DataBinder;
+import akha.yakhont.adapter.BaseCacheAdapter.DataBindingCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseResponse;
 
-import android.content.Context;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
+import androidx.paging.PagedListAdapter;
+import androidx.recyclerview.widget.DiffUtil.ItemCallback;
 import androidx.recyclerview.widget.RecyclerView.Adapter;
 import androidx.recyclerview.widget.RecyclerView.ViewHolder;
 
@@ -59,17 +57,17 @@ import java.util.Collection;
 public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    protected final BaseCacheAdapter<T, R, E, D>    mBaseCacheAdapter;
+    protected final BaseCacheAdapter<T, R, E, D>                mBaseCacheAdapter;
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    protected final DataBinder      <T>             mDataBinder;
+    protected final DataBinder      <T>                         mDataBinder;
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    protected       ViewHolderCreator               mViewHolderCreator;
+    protected       ViewHolderCreator                           mViewHolderCreator;
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @LayoutRes
-    protected final int                             mLayoutId;
+    protected final int                                         mLayoutId;
 
     /**
      * Called when RecyclerView needs a new RecyclerView.ViewHolder of the given type to represent an item.
@@ -181,8 +179,14 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      */
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+        onBindViewHolderItem(holder, position, null, false);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public void onBindViewHolderItem(@NonNull ViewHolder holder, int position,
+                                     final T item, final boolean useItem) {
         if (mDataBinder != null)
-            mDataBinder.bind(position, mBaseCacheAdapter.getItem(position), holder.itemView);
+            mDataBinder.bind(position, useItem ? item: mBaseCacheAdapter.getItem(position), holder.itemView);
         else
             CoreLogger.logError("mDataBinder == null");
     }
@@ -215,6 +219,9 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
     /**
      * The implementation of the {@link BaseRecyclerViewAdapter} to use with Data Binding Library.
      *
+     * @param <T>
+     *        The type of {@code BaseResponse} values
+     *
      * @param <R>
      *        The type of network response
      *
@@ -224,10 +231,10 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      * @param <D>
      *        The type of data in the adapter
      */
-    public static class DataBindingRecyclerViewAdapter<R, E, D>
-            extends BaseRecyclerViewAdapter<Object, R, E, D> {
+    public static class DataBindingRecyclerViewAdapter<T, R, E, D>
+            extends BaseRecyclerViewAdapter<T, R, E, D> {
 
-        private final   int                                     mDataBindingId;
+        private final int                                       mDataBindingId;
 
         /**
          * Initialises a newly created {@code DataBindingRecyclerViewAdapter} object.
@@ -244,11 +251,11 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @SuppressWarnings("WeakerAccess")
         public DataBindingRecyclerViewAdapter(final int id, @LayoutRes final int layoutId,
-                                              @NonNull final BaseCacheAdapter<Object, R, E, D> baseCacheAdapter) {
+                                              @NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter) {
             super(baseCacheAdapter, null, layoutId);
             CoreLogger.log("DataBindingRecyclerViewAdapter instantiated");
 
-            mDataBindingId  = id;
+            mDataBindingId = id;
         }
 
         /**
@@ -269,21 +276,12 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
                     new DataBindingViewHolder(parent, mLayoutId, mDataBindingId);
         }
 
-        /**
-         * Please refer to the base method description.
-         */
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         @Override
-        public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
-            onBindViewHolder(mBaseCacheAdapter, viewHolder, position);
-        }
-
-        @SuppressWarnings("UnusedReturnValue")
-        private static <T, R, E, D> T onBindViewHolder(
-                @NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
-                @NonNull final ViewHolder viewHolder, final int position) {
-            final T data = baseCacheAdapter.getArrayAdapter().getItem(position);
-            DataBindingViewHolder.bind(viewHolder, data, null);
-            return data;
+        public void onBindViewHolderItem(@NonNull ViewHolder holder, int position,
+                                         final T item, final boolean useItem) {
+            DataBindingViewHolder.bind(holder, useItem ? item:
+                    DataBindingCacheAdapterWrapper.getData(mBaseCacheAdapter, position), null);
         }
     }
 
@@ -293,10 +291,10 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
     public static class DataBindingViewHolder extends ViewHolder {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final ViewDataBinding                             mViewDataBinding;
+        protected final ViewDataBinding                         mViewDataBinding;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final int                                         mDataBindingId;
+        protected final int                                     mDataBindingId;
 
         /**
          * Initialises a newly created {@code DataBindingViewHolder} object.
@@ -329,7 +327,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
         @SuppressWarnings("WeakerAccess")
         public DataBindingViewHolder(@NonNull   final ViewGroup parent,
                                      @LayoutRes final int       layoutId, final int id) {
-            this(getViewDataBinding(parent, layoutId), id);
+            this(DataBindingCacheAdapterWrapper.getViewDataBinding(parent, layoutId), id);
         }
 
         /**
@@ -344,7 +342,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @SuppressWarnings("WeakerAccess")
         public DataBindingViewHolder(final ViewDataBinding binding, final int id) {
-            super(getView(binding));
+            super(DataBindingCacheAdapterWrapper.getView(binding));
 
             mViewDataBinding    = binding;
             mDataBindingId      = id;
@@ -358,13 +356,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @SuppressWarnings("WeakerAccess")
         public void bind(final Object data) {
-            if (data == null) {
-                CoreLogger.logError("data for binding is null");
-                return;
-            }
-
-            mViewDataBinding.setVariable(mDataBindingId, data);
-            mViewDataBinding.executePendingBindings();
+            DataBindingCacheAdapterWrapper.bind(data, mDataBindingId, mViewDataBinding);
         }
 
         /**
@@ -378,22 +370,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @SuppressWarnings("WeakerAccess")
         public void bind(final Object data, final int position) {
-            if (data == null) {
-                CoreLogger.logError("data for binding is null, position " + position);
-                return;
-            }
-            if (CoreReflection.isNotSingle(data)) {
-                final Object tmp = CoreReflection.getObject(data, position);
-                if (tmp == null)
-                    CoreLogger.logError("can't bind data, position " + position);
-                else
-                    bind(tmp);
-            }
-            else {
-                CoreLogger.logWarning("single object " + data.getClass().getName() +
-                        ", position " + position + " ignored");
-                bind(data);
-            }
+            DataBindingCacheAdapterWrapper.bind(data, position, mDataBindingId, mViewDataBinding);
         }
 
         /**
@@ -443,9 +420,9 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          *        The type of data
          */
         @SuppressWarnings("WeakerAccess")
-        public static <      D> void bind(final ViewHolder              viewHolder,
-                                          final D                       data,
-                                          final Integer                 position) {
+        public static <D> void bind(final ViewHolder viewHolder,
+                                    final D          data,
+                                    final Integer    position) {
             if (data == null)
                 CoreLogger.logError("data for binding == null");
 
@@ -464,24 +441,6 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
         }
 
         /**
-         * Returns the {@code ViewDataBinding} component.
-         *
-         * @param parent
-         *        The ViewGroup into which the new View will be added
-         *
-         * @param layoutId
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @return  The {@code ViewDataBinding} component
-         */
-        @SuppressWarnings("WeakerAccess")
-        public static ViewDataBinding getViewDataBinding(@NonNull   final ViewGroup parent,
-                                                         @LayoutRes final int       layoutId) {
-            return DataBindingUtil.inflate(LayoutInflater.from(parent.getContext()),
-                    layoutId, parent, false);
-        }
-
-        /**
          * Returns the outermost {@code View} in the layout file associated with the Binding.
          *
          * @return  The {@code View}
@@ -490,121 +449,52 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @SuppressWarnings("WeakerAccess")
         public View getView() {
-            return getView(mViewDataBinding);
-        }
-
-        /**
-         * Returns the outermost {@code View} in the layout file associated with the Binding.
-         *
-         * @param viewDataBinding
-         *        The {@code ViewDataBinding}
-         *
-         * @return  The {@code View}
-         *
-         * @see     ViewDataBinding#getRoot() ViewDataBinding.getRoot()
-         */
-        @SuppressWarnings("WeakerAccess")
-        public static View getView(final ViewDataBinding viewDataBinding) {
-            return viewDataBinding == null ? null: viewDataBinding.getRoot();
-        }
-
-        /**
-         * Returns the outermost {@code View} in the layout file associated with the Binding.
-         *
-         * @param parent
-         *        The ViewGroup into which the new View will be added
-         *
-         * @param layoutId
-         *        The resource identifier of a layout file that defines the views
-         *
-         * @return  The {@code View}
-         *
-         * @see     ViewDataBinding#getRoot() ViewDataBinding.getRoot()
-         */
-        @SuppressWarnings("unused")
-        public static View getView(@NonNull   final ViewGroup parent,
-                                   @LayoutRes final int       layoutId) {
-            return getView(getViewDataBinding(parent, layoutId));
+            return DataBindingCacheAdapterWrapper.getView(mViewDataBinding);
         }
     }
 
-    /**
-     * Extends {@code ArrayAdapter} to work with Data binding Library.
-     *
-     * @param <R>
-     *        The type of network response
-     *
-     * @param <E>
-     *        The type of error (if any)
-     *
-     * @param <D>
-     *        The type of data in this adapter
-     */
-    public static class DataBindingArrayAdapter<R, E, D> extends BaseArrayAdapter<Object> {
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
-        @LayoutRes
-        private final           int                             mLayoutId;
-
-        private final           int                             mDataBindingId;
-
-        private                 BaseCacheAdapter<Object, R, E, D>
-                                                                mBaseCacheAdapter;
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
-        protected DataBindingArrayAdapter(@NonNull   final Context       context,
-                                          @LayoutRes final int           layoutId,
-                                                     final int           dataBindingId) {
-            super(context, layoutId);
-            CoreLogger.log("DataBindingArrayAdapter instantiated");
-
-            mLayoutId       = layoutId;
-            mDataBindingId  = dataBindingId;
+    private final ItemCallback<T>   mDefaultDiffCallback    = new ItemCallback<T>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull final T oldItem, @NonNull final T newItem) {
+            return areContentsTheSame(oldItem, newItem);
         }
 
-        /**
-         * Sets the {@code BaseCacheAdapter} component.
-         *
-         * @param adapter
-         *        The {@code BaseCacheAdapter}
-         */
-        @SuppressWarnings("unused")
-        public void setAdapter(final BaseCacheAdapter<Object, R, E, D> adapter) {
-            mBaseCacheAdapter = adapter;
+        @Override
+        public boolean areContentsTheSame(@NonNull final T oldItem, @NonNull final T newItem) {
+            return oldItem.equals(newItem);
+        }
+    };
+
+    public ItemCallback<T> getDefaultDiffCallback() {
+        return mDefaultDiffCallback;
+    }
+
+    public static class PagingRecyclerViewAdapter<T, R, E> extends PagedListAdapter<T, ViewHolder> {
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected final BaseRecyclerViewAdapter<T, R, E, T>     mRecyclerViewAdapter;
+
+        public PagingRecyclerViewAdapter(@NonNull final ItemCallback<T> callback,
+                                         @NonNull final BaseRecyclerViewAdapter<T, R, E, T> adapter) {
+            super(callback);
+
+            mRecyclerViewAdapter = adapter;
         }
 
-        /**
-         * Please refer to the base method description.
-         */
         @NonNull
         @Override
-        public View getView(int position, View convertView, @NonNull ViewGroup parent) {
-            if (mBaseCacheAdapter == null) {
-                CoreLogger.logWarning("mBaseCacheAdapter == null");
-                return convertView;
-            }
-            final DataBindingViewHolder viewHolder = convertView == null ?
-                    new DataBindingViewHolder(parent, mLayoutId, mDataBindingId):
-                    new DataBindingViewHolder(convertView,       mDataBindingId);
-
-            DataBindingRecyclerViewAdapter.onBindViewHolder(mBaseCacheAdapter, viewHolder, position);
-            return viewHolder.getView();
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            return mRecyclerViewAdapter.onCreateViewHolder(parent, viewType);
         }
 
-        /**
-         * Please refer to the base method description.
-         */
         @Override
-        public ViewBinder getAdapterViewBinder() {
-            return null;
-        }
+        public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
+            final T item = getItem(position);
+            if (item == null) return;
 
-        /**
-         * Please refer to the base method description.
-         */
-        @Override
-        public void setAdapterViewBinder(final ViewBinder viewBinder) {
-            if (viewBinder != null)
-                CoreLogger.log(Level.ERROR, "ignored viewBinder: " + viewBinder, true);
+            mRecyclerViewAdapter.onBindViewHolderItem(viewHolder, position, item, true);
         }
     }
 }

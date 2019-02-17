@@ -749,12 +749,7 @@ public abstract class BaseCallbacks<T> {
                     return lifeCycles == null || lifeCycles.size() == 0 || lifeCycles.contains(lifeCycle);
                 }
             }))
-                try {
-                    runnable.run();
-                }
-                catch (Exception exception) {
-                    CoreLogger.log(exception);
-                }
+                Utils.safeRunnableRun(runnable);
         }
     }
 }

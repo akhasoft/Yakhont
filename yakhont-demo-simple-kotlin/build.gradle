@@ -21,7 +21,7 @@ buildscript {
     }
     dependencies {                                                          // Yakhont weaver
         classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"
-        classpath "org.javassist:javassist:${rootProject.ext.projectLibVerJavassist}"
+        classpath "org.javassist:javassist:$projectLibVerJavassist"
     }
 }
 
@@ -30,40 +30,25 @@ apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
-ext.libVerDemoKotlinDefault     = rootProject.ext.projectLibVerDefault
-
-ext.libVerDemoKotlinGms         = rootProject.ext.projectLibVerGms
-ext.libVerDemoKotlinLocation    = rootProject.ext.projectLibVerLocation
-
-ext.libVerDemoKotlinRetrofit2   = rootProject.ext.projectLibVerRetrofit2
-
-ext.libVerDemoKotlinOkHttp3     = rootProject.ext.projectLibVerOkHttp3
-ext.libVerDemoKotlinGson        = rootProject.ext.projectLibVerGson
-
-ext.libVerDemoKotlinRxJava      = rootProject.ext.projectLibVerRxJava
-ext.libVerDemoKotlinRxJava2     = rootProject.ext.projectLibVerRxJava2
-
-ext.libVerDemoKotlinDagger      = rootProject.ext.projectLibVerDagger
-
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if (details.requested.group == 'com.google.android.gms') {
         if (details.requested.name == 'play-services-location' ||
             details.requested.name == 'play-services-places-placereport')
-            details.useVersion      libVerDemoKotlinLocation
+            details.useVersion      projectLibVerLocation
         else
-            details.useVersion      libVerDemoKotlinGms
+            details.useVersion      projectLibVerGms
         details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
-        details.useVersion          libVerDemoKotlinRetrofit2
+        details.useVersion          projectLibVerRetrofit2
         details.because 'To enforce releasable units for Retrofit 2'
     }
     if (details.requested.group == 'com.squareup.okhttp3') {
-        details.useVersion          libVerDemoKotlinOkHttp3
+        details.useVersion          projectLibVerOkHttp3
         details.because 'To enforce releasable units for okhttp3'
     }
     if (details.requested.group == 'com.google.dagger') {
-        details.useVersion          libVerDemoKotlinDagger
+        details.useVersion          projectLibVerDagger
         details.because 'To enforce releasable units for Dagger 2'
     }
 }
@@ -99,9 +84,9 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       rootProject.ext.projectDebug != '1'
+            minifyEnabled       projectDebug != '1'
 
-            rootProject.ext.projectProGuardFiles.each {
+            projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
                 proguardFile            '../proguard/libs/' + it
             }
@@ -136,45 +121,45 @@ android {
 }
 
 dependencies {
-    implementation      "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation      "androidx.core:core-ktx:1.0.1"
-    kapt                "com.android.databinding:compiler:3.1.4"
+    implementation      "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
+    implementation      "androidx.core:core-ktx:$projectLibVerKotlinCoreCore"
+    kapt                "com.android.databinding:compiler:$projectLibVerKotlinDatabindingCompiler"
 
-    implementation      "androidx.appcompat:appcompat:1.0.2"
-    implementation      "androidx.recyclerview:recyclerview:1.0.0"
+    implementation      "androidx.appcompat:appcompat:$projectLibVerAppcompatAppcompat"
+    implementation      "androidx.recyclerview:recyclerview:$projectLibVerRecyclerViewRecyclerView"
 
-    implementation      "androidx.annotation:annotation:1.0.1"
-    implementation      "androidx.lifecycle:lifecycle-common-java8:2.0.0"
-    implementation      "androidx.lifecycle:lifecycle-extensions:2.0.0"
-    implementation      "androidx.lifecycle:lifecycle-viewmodel-ktx:2.0.0"
-    implementation      "androidx.lifecycle:lifecycle-reactivestreams-ktx:2.0.0"
+    implementation      "androidx.annotation:annotation:$projectLibVerAnnotationAnnotation"
+    implementation      "androidx.lifecycle:lifecycle-common-java8:$projectLibVerLifecycleLifecycleCommonJava8"
+    implementation      "androidx.lifecycle:lifecycle-extensions:$projectLibVerLifecycleLifecycleExtensions"
+    implementation      "androidx.lifecycle:lifecycle-viewmodel-ktx:$projectLibVerKotlinLifecycleLifecycleViewmodel"
+    implementation      "androidx.lifecycle:lifecycle-reactivestreams-ktx:$projectLibVerKotlinLifecycleLifecycleReactiveStreams"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
-    implementation      "com.google.android.gms:play-services-location:${libVerDemoKotlinDefault}"
+    implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
-    implementation      "com.google.dagger:dagger:${libVerDemoKotlinDefault}"           // Dagger 2
-    kapt                "com.google.dagger:dagger-compiler:${libVerDemoKotlinDagger}"
+    implementation      "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2
+    kapt                "com.google.dagger:dagger-compiler:$projectLibVerDagger"
 
-    implementation      "com.google.code.gson:gson:${libVerDemoKotlinGson}"             // Gson
+    implementation      "com.google.code.gson:gson:$projectLibVerGson"              // Gson
 
-    implementation     ("com.squareup.retrofit2:retrofit:${libVerDemoKotlinDefault}") { // Retrofit
+    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {  // Retrofit
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
-    implementation     ("com.squareup.retrofit2:converter-gson:${libVerDemoKotlinDefault}") {
+    implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerDefault") {
         exclude group:  "com.google.code.gson", module: "gson"
     }
-    implementation      "com.squareup.okhttp3:okhttp:${libVerDemoKotlinDefault}"
-    implementation      "com.squareup.okhttp3:logging-interceptor:${libVerDemoKotlinDefault}"
+    implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
+    implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
-    implementation      "io.reactivex.rxjava2:rxjava:${libVerDemoKotlinRxJava2}"        // Rx
-    implementation      "io.reactivex:rxjava:${libVerDemoKotlinRxJava}"
+    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
+    implementation      "io.reactivex:rxjava:$projectLibVerRxJava"
 
     implementation      name:'yakhont', ext:'aar'
 }
 
 // let's build release (or debug) only - just to reduce building time
 android.variantFilter { variant ->
-    if (variant.buildType.name == (rootProject.ext.projectDebug == '1' ? 'release': 'debug')) {
+    if (variant.buildType.name == (projectDebug == '1' ? 'release': 'debug')) {
         variant.setIgnore(true)
     }
 }

@@ -17,18 +17,23 @@
 package akha.yakhont.loader;
 
 import akha.yakhont.Core.BaseDialog;
+import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.Requester;
 
 import android.app.Activity;
+
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ProcessLifecycleOwner;
 import androidx.lifecycle.ViewModel;
@@ -36,6 +41,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProvider.Factory;
 import androidx.lifecycle.ViewModelStore;
 import androidx.lifecycle.ViewModelStoreOwner;
+import androidx.paging.DataSource;
+import androidx.paging.LivePagedListBuilder;
+import androidx.paging.PageKeyedDataSource;
+import androidx.paging.PagedList;
+import androidx.paging.PagedList.Config;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -44,6 +54,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 /**
  * {@link ViewModel} extender, adjusted to work with {@link BaseLiveData}.
@@ -57,381 +68,35 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     private static final String                 DEFAULT_KEY     = "cf2a52ae-6f9f-4800-8f14-bc8a2794de8e";
 
-    private final static ViewModelStore         sStubStore      = new ViewModelStore();
+    private static final ViewModelStore         sStubStore      = new ViewModelStore();
 
-    private        final BaseLiveData<D>        mData;
-    private        final Observer    <D>        mObserver;
-
-    private static <D> BaseLiveData<D> getDefaultLiveData(@NonNull final Requester<D> requester,
-                                                                   final String tableName) {
-        if (tableName == null)
-            CoreLogger.logWarning("cache switched off for requester " + requester);
-
-        return tableName == null ? new BaseLiveData<>(requester):
-                new CacheLiveData<>(requester, tableName, null);
-    }
-
-    private static String getKey(final String key) {
-        return key == null ? DEFAULT_KEY: key;
-    }
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected      final BaseLiveData<D>        mData;
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected      final Observer    <D>        mObserver;
 
     /**
      * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param activity
-     *        The Activity
-     *
-     * @param store
-     *        The ViewModelStore
-     *
-     * @param key
-     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
-     *
-     * @param tableName
-     *        The cache table name, pass {@code null} for disable caching
-     *
-     * @param requester
-     *        The data loading requester
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    public static <D> BaseViewModel<D> getInstance(               Activity         activity,
-                                                   @NonNull final ViewModelStore   store,
-                                                            final String           key,
-                                                            final String           tableName,
-                                                   @NonNull final Requester<D>     requester,
-                                                   @NonNull final Observer <D>     observer) {
-        if (activity == null) activity = Utils.getCurrentActivity();
-
-        return getInstance(activity, store, getLifecycleOwner(activity),
-                getDefaultLiveData(requester, tableName), observer, getKey(key), castBaseViewModelClass());
-    }
-
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param activity
-     *        The Activity
-     *
-     * @param key
-     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
-     *
-     * @param tableName
-     *        The cache table name, pass {@code null} for disable caching
-     *
-     * @param requester
-     *        The data loading requester
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    @SuppressWarnings("unused")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
-                                                            final String           key,
-                                                            final String           tableName,
-                                                   @NonNull final Requester<D>     requester,
-                                                   @NonNull final Observer <D>     observer) {
-        return getInstance(activity, getDefaultLiveData(requester, tableName),
-                observer, getKey(key), castBaseViewModelClass());
-    }
-
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param fragment
-     *        The Fragment
-     *
-     * @param key
-     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
-     *
-     * @param tableName
-     *        The cache table name, pass {@code null} for disable caching
-     *
-     * @param requester
-     *        The data loading requester
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    @SuppressWarnings("unused")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
-                                                            final String           key,
-                                                            final String           tableName,
-                                                   @NonNull final Requester<D>     requester,
-                                                   @NonNull final Observer <D>     observer) {
-        return getInstance(fragment, getDefaultLiveData(requester, tableName),
-                observer, getKey(key), castBaseViewModelClass());
-    }
-
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param activity
-     *        The Activity
-     *
-     * @param key
-     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
-     *
-     * @param cls
-     *        The {@code BaseViewModel} class
-     *
-     * @param baseDialog
-     *        The data loading progress GUI
-     *
-     * @param tableName
-     *        The cache table name, pass {@code null} for disable caching
-     *
-     * @param requester
-     *        The data loading requester
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    @SuppressWarnings("unused")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
-                                                   @NonNull final String           key,
-                                                   @NonNull final Class<? extends BaseViewModel<D>>
-                                                                                   cls,
-                                                            final BaseDialog       baseDialog,
-                                                            final String           tableName,
-                                                   @NonNull final Requester<D>     requester,
-                                                   @NonNull final Observer <D>     observer) {
-        return getInstance(activity, key, cls, tableName == null ?
-                new BaseLiveData <>(requester, baseDialog):
-                new CacheLiveData<>(requester, baseDialog, tableName, null), observer);
-    }
-
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param fragment
-     *        The Fragment
-     *
-     * @param key
-     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
-     *
-     * @param cls
-     *        The {@code BaseViewModel} class
-     *
-     * @param baseDialog
-     *        The data loading progress GUI
-     *
-     * @param tableName
-     *        The cache table name, pass {@code null} for disable caching
-     *
-     * @param requester
-     *        The data loading requester
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    @SuppressWarnings("unused")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
-                                                   @NonNull final String           key,
-                                                   @NonNull final Class<? extends BaseViewModel<D>>
-                                                                                   cls,
-                                                            final BaseDialog       baseDialog,
-                                                            final String           tableName,
-                                                   @NonNull final Requester<D>     requester,
-                                                   @NonNull final Observer <D>     observer) {
-        return getInstance(fragment, key, cls, tableName == null ?
-                new BaseLiveData <>(requester, baseDialog):
-                new CacheLiveData<>(requester, baseDialog, tableName, null), observer);
-    }
-
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param activity
-     *        The Activity
      *
      * @param data
      *        The {@code BaseLiveData}
      *
      * @param observer
      *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    @SuppressWarnings("unused")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
-                                                   @NonNull final BaseLiveData<D>  data,
-                                                   @NonNull final Observer    <D>  observer) {
-        return getInstance(activity, data, observer, DEFAULT_KEY, castBaseViewModelClass());
-    }
-
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param fragment
-     *        The Fragment
-     *
-     * @param data
-     *        The {@code BaseLiveData}
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    @SuppressWarnings("unused")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
-                                                   @NonNull final BaseLiveData<D>  data,
-                                                   @NonNull final Observer    <D>  observer) {
-        return getInstance(fragment, data, observer, DEFAULT_KEY, castBaseViewModelClass());
-    }
-
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param activity
-     *        The Activity
-     *
-     * @param key
-     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
-     *
-     * @param cls
-     *        The {@code BaseViewModel} class
-     *
-     * @param data
-     *        The {@code BaseLiveData}
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
      */
     @SuppressWarnings("WeakerAccess")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Activity         activity,
-                                                   @NonNull final String           key,
-                                                   @NonNull final Class<? extends BaseViewModel<D>>
-                                                                                   cls,
-                                                   @NonNull final BaseLiveData<D>  data,
-                                                   @NonNull final Observer    <D>  observer) {
-        return getInstance(activity, data, observer, key, cls);
+    protected BaseViewModel(@NonNull final BaseLiveData<D>     data,
+                            @NonNull final Observer    <D>     observer) {
+        super(Objects.requireNonNull(Utils.getApplication()));
+
+        mData     = data;
+        mObserver = observer;
     }
 
-    /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param fragment
-     *        The Fragment
-     *
-     * @param key
-     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
-     *
-     * @param cls
-     *        The {@code BaseViewModel} class
-     *
-     * @param data
-     *        The {@code BaseLiveData}
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     *
-     * @param <D>
-     *        The type of data
-     *
-     * @return  The {@code BaseViewModel}
-     */
-    @SuppressWarnings("WeakerAccess")
-    public static <D> BaseViewModel<D> getInstance(@NonNull final Fragment         fragment,
-                                                   @NonNull final String           key,
-                                                   @NonNull final Class<? extends BaseViewModel<D>>
-                                                                                   cls,
-                                                   @NonNull final BaseLiveData<D>  data,
-                                                   @NonNull final Observer    <D>  observer) {
-        return getInstance(fragment, data, observer, key, cls);
-    }
-
-    private static <T extends ViewModel, D> T getInstance(@NonNull final Activity          activity,
-                                                          @NonNull final BaseLiveData<D>   data,
-                                                          @NonNull final Observer    <D>   observer,
-                                                          @NonNull final String            key,
-                                                          @NonNull final Class       <T>   cls) {
-//      return ViewModelProviders.of(activity).get(key, cls);
-
-        return getInstance(activity, getViewModelStore(activity), getLifecycleOwner(activity),
-                data, observer, key, cls);
-    }
-
-    private static <T extends ViewModel, D> T getInstance(@NonNull final Fragment          fragment,
-                                                          @NonNull final BaseLiveData<D>   data,
-                                                          @NonNull final Observer    <D>   observer,
-                                                          @NonNull final String            key,
-                                                          @NonNull final Class       <T>   cls) {
-//      return ViewModelProviders.of(fragment).get(key, cls);
-
-        final Activity activity = fragment.getActivity();
-        if (activity == null) {
-            CoreLogger.log(new IllegalStateException(
-                    "Can't create ViewModelProvider for detached fragment"));
-            return null;
-        }
-
-        return getInstance(activity, getViewModelStore(fragment), fragment, data, observer, key, cls);
-    }
-
-    private static <T extends ViewModel, D> T getInstance(@NonNull final Activity          activity,
-                                                          @NonNull final ViewModelStore    store,
-                                                          @NonNull final LifecycleOwner    lifecycleOwner,
-                                                          @NonNull final BaseLiveData<D>   data,
-                                                          @NonNull final Observer    <D>   observer,
-                                                          @NonNull final String            key,
-                                                          @NonNull final Class       <T>   cls) {
-        if (activity.getApplication() == null) {
-            CoreLogger.log(new IllegalStateException(
-                    "Your activity is not yet attached to "
-                            + "Application. You can't request ViewModel before onCreate call."));
-            return null;
-        }
-        CoreLogger.log("BaseViewModel.getInstance(), Activity " + CoreLogger.getDescription(activity));
-
-        final T result = new BaseViewModelProvider<>(store, data, observer, key).get(key, cls);
-
-        updateUi(lifecycleOwner, data, observer);
-
-        return result;
-    }
-
-    private static <D> void updateUi(@NonNull final LifecycleOwner   lifecycleOwner,
-                                     @NonNull final LiveData<D>      liveData,
-                                     @NonNull final Observer<D>      observer) {
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected static <D> void updateUi(@NonNull final LifecycleOwner   lifecycleOwner,
+                                       @NonNull final LiveData<D>      liveData,
+                                       @NonNull final Observer<D>      observer) {
         try {
             liveData.observe(lifecycleOwner, observer);
         }
@@ -656,24 +321,6 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Initialises a newly created {@code BaseViewModel} object.
-     *
-     * @param data
-     *        The {@code BaseLiveData}
-     *
-     * @param observer
-     *        Please refer to {@link LiveData#observe}
-     */
-    @SuppressWarnings("WeakerAccess")
-    protected BaseViewModel(@NonNull final BaseLiveData<D>     data,
-                            @NonNull final Observer    <D>     observer) {
-        super(Objects.requireNonNull(Utils.getApplication()));
-
-        mData     = data;
-        mObserver = observer;
-    }
-
-    /**
      * Returns loaded data (if any).
      *
      * @param <S>
@@ -690,11 +337,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     private static class BaseViewModelFactory<D> implements Factory {
 
-        private final    WeakReference<ViewModelStore>
+        protected final  WeakReference<ViewModelStore>
                                                 mStore;
-        private final    String                 mKey;
-        private final    BaseLiveData<D>        mData;
-        private final    Observer    <D>        mObserver;
+        protected final  String                 mKey;
+        protected final  BaseLiveData<D>        mData;
+        protected final  Observer    <D>        mObserver;
 
         @SuppressWarnings("unused")
         private BaseViewModelFactory(@NonNull final ViewModelStore     store,
@@ -707,10 +354,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
             mObserver   = observer;
         }
 
+        protected BaseViewModel<D> createViewModel() {
+            return new BaseViewModel<>(mData, mObserver);
+        }
+
         @NonNull
         @Override
         public <T extends ViewModel> T create(@NonNull Class<T> notUsed) {
-            final BaseViewModel<D> baseViewModel = new BaseViewModel<>(mData, mObserver);
+            final BaseViewModel<D> baseViewModel = createViewModel();
 
             final String key = mKey != null ? mKey: DEFAULT_KEY;
             BaseViewModelProvider.put(mStore, key, new WeakReference<>(baseViewModel));
@@ -735,7 +386,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
                                       @NonNull final BaseLiveData<D>    data,
                                       @NonNull final Observer    <D>    observer,
                                                final String             key) {
-            super(store, new BaseViewModelFactory<>(store, data, observer, key));
+            this(store, new BaseViewModelFactory<>(store, data, observer, key));
+        }
+
+        private BaseViewModelProvider(@NonNull final ViewModelStore             store,
+                                      @NonNull final BaseViewModelFactory<D>    factory) {
+            super(store, factory);
         }
 
         private static <D> void put(@NonNull final WeakReference<ViewModelStore>             store,
@@ -863,6 +519,381 @@ public class BaseViewModel<D> extends AndroidViewModel {
             catch (Exception exception) {
                 CoreLogger.log(exception);
             }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public static class PagingViewModel<Key, T, R, E, D> extends BaseViewModel<D> {
+
+        public static final int                                 DEFAULT_PAGE_SISE       = 20;
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected final  LiveData<PagedList       <T>>          mData;
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected final  PagingRecyclerViewAdapter<T, R, E>     mAdapter;
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected final  DataSourceFactory                      mDataSourceFactory;
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected        Runnable                               mRunnable;
+
+        protected PagingViewModel(@NonNull final BaseLiveData             <D>        data,
+                                  @NonNull final Observer                 <D>        observer,
+                                  @NonNull final Callable<DataSource<Key,  T>>       dataSourceProducer,
+                                  @NonNull final Config                              config,
+                                  @NonNull final PagingRecyclerViewAdapter<T, R, E>  adapter) {
+            super(data, observer);
+
+            mDataSourceFactory  = new DataSourceFactory(dataSourceProducer);
+            mData               = new LivePagedListBuilder<>(mDataSourceFactory, config).build();
+            mAdapter            = adapter;
+        }
+
+        public void setOnChangedCallback(Runnable runnable) {
+            if (mRunnable != null) {
+                final Runnable oldRunnable = mRunnable, newRunnable = runnable;
+                runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        Utils.safeRunnableRun(oldRunnable);
+                        Utils.safeRunnableRun(newRunnable);
+                    }
+                };
+            }
+            mRunnable = runnable;
+        }
+
+        @Override
+        public void updateUi(@NonNull final LifecycleOwner lifecycleOwner) {
+            super.updateUi(lifecycleOwner);
+
+            //noinspection Convert2Lambda,Anonymous2MethodRef
+            updateUi(lifecycleOwner, mData, new Observer<PagedList<T>>() {
+                @Override
+                public void onChanged(@Nullable PagedList<T> data) {
+                    mAdapter.submitList(data);
+
+                    if (mRunnable != null) Utils.safeRunnableRun(mRunnable);
+                }
+            });
+        }
+
+        public boolean invalidateDataSource() {
+            return mDataSourceFactory.invalidate();
+        }
+
+        private static class ViewModelFactory<Key, T, R, E, D> extends BaseViewModelFactory<D> {
+
+            private final   Callable<DataSource<Key,  T>>       mDataSourceProducer;
+            private final   Config                              mConfig;
+            private final   PagingRecyclerViewAdapter<T, R, E>  mAdapter;
+
+            private ViewModelFactory(@NonNull final ViewModelStore                      store,
+                                     @NonNull final BaseLiveData             <D>        data,
+                                     @NonNull final Observer                 <D>        observer,
+                                              final String                              key,
+                                     @NonNull final Callable<DataSource<Key,  T>>       dataSourceProducer,
+                                     @NonNull final Config                              config,
+                                     @NonNull final PagingRecyclerViewAdapter<T, R, E>  adapter) {
+                super(store, data, observer, key);
+
+                mDataSourceProducer     = dataSourceProducer;
+                mConfig                 = config;
+                mAdapter                = adapter;
+            }
+
+            @Override
+            protected BaseViewModel<D> createViewModel() {
+                return new PagingViewModel<>(mData, mObserver, mDataSourceProducer, mConfig, mAdapter);
+            }
+        }
+
+        private static class ViewModelProvider<Key, T, R, E, D> extends BaseViewModelProvider<D> {
+
+            private ViewModelProvider(@NonNull final ViewModelStore                      store,
+                                      @NonNull final BaseLiveData             <D>        data,
+                                      @NonNull final Observer                 <D>        observer,
+                                               final String                              key,
+                                      @NonNull final Callable<DataSource<Key,  T>>       dataSourceProducer,
+                                      @NonNull final Config                              config,
+                                      @NonNull final PagingRecyclerViewAdapter<T, R, E>  adapter) {
+                super(store, new ViewModelFactory<>(store, data, observer, key, dataSourceProducer,
+                        config, adapter));
+            }
+        }
+
+        private class DataSourceFactory extends DataSource.Factory<Key, T> {
+
+            private       WeakReference<MutableLiveData<DataSource<Key, T>>>   mDataSource;
+            private final Callable                     <DataSource<Key, T>>    mProducer;
+
+            private DataSourceFactory(@NonNull final Callable<DataSource<Key, T>> producer) {
+                mProducer = producer;
+            }
+
+            @Override
+            @NonNull
+            public DataSource<Key, T> create() {
+                final DataSource<Key, T> dataSource;
+
+                try {
+                    dataSource = mProducer.call();
+                }
+                catch (Exception exception) {   // should never happen
+                    CoreLogger.log(exception);
+
+                    return new PageKeyedDataSource<Key, T>() {
+                        @Override
+                        public void loadAfter  (@NonNull LoadParams         <Key   > params,
+                                                @NonNull LoadCallback       <Key, T> callback) {
+                            handleStubCall();
+                        }
+
+                        @Override
+                        public void loadBefore (@NonNull LoadParams         <Key   > params,
+                                                @NonNull LoadCallback       <Key, T> callback) {
+                            handleStubCall();
+                        }
+
+                        @Override
+                        public void loadInitial(@NonNull LoadInitialParams  <Key   > params,
+                                                @NonNull LoadInitialCallback<Key, T> callback) {
+                            handleStubCall();
+                        }
+                    };
+                }
+
+                mDataSource = new WeakReference<>(new MutableLiveData<>());
+                mDataSource.get().postValue(dataSource);
+
+                return dataSource;
+            }
+
+            private void handleStubCall() {
+                CoreLogger.log(new RuntimeException("invalid paging DataSource"));
+            }
+
+            public boolean invalidate() {
+                final MutableLiveData<DataSource<Key, T>> liveDataSource = mDataSource.get();
+                if (liveDataSource != null) {
+                    final DataSource<Key, T> dataSource = liveDataSource.getValue();
+                    if (dataSource != null) {
+                        dataSource.invalidate();
+                        return true;
+                    }
+                }
+                CoreLogger.logWarning("no DataSource to invalidate");
+                return false;
+            }
+        }
+
+        public static Config getDefaultConfig() {
+            return getDefaultConfig(DEFAULT_PAGE_SISE);
+        }
+
+        public static Config getDefaultConfig(final int pageSize) {
+            final Config.Builder builder = new Config.Builder();
+            builder.setPageSize(pageSize);
+            return builder.build();
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    public static class Builder<S extends BaseViewModel<D>, Key, T, R, E, D> {
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     WeakReference<Activity>               mActivity;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     ViewModelStore                        mStore;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     LifecycleOwner                        mLifecycleOwner;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     BaseLiveData             <D>          mData;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     String                                mKey;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     String                                mTableName;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Requester                <D>          mRequester;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Class                    <S>          mClass;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     BaseDialog                            mBaseDialog;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     UriResolver                           mUriResolver;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Config                                mConfig;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Integer                               mPageSize;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Callable<DataSource<Key,  T>>         mDataSourceProducer;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     PagingRecyclerViewAdapter<T, R, E>    mAdapter;
+
+        private final Observer                 <D>          mObserver;
+
+        public Builder(@NonNull final Observer <D> observer) {
+            mObserver = observer;
+        }
+
+        public Builder<S, Key, T, R, E, D> setViewModelStore(final ViewModelStore viewModelStore) {
+            mStore = viewModelStore;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setBaseLiveData(final BaseLiveData<D> baseLiveData) {
+            mData = baseLiveData;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setKey(final String key) {
+            mKey = key;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setTableName(final String tableName) {
+            mTableName = tableName;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setRequester(final Requester<D> requester) {
+            mRequester = requester;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setClass(final Class<S> cls) {
+            mClass = cls;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setBaseDialog(final BaseDialog baseDialog) {
+            mBaseDialog = baseDialog;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setUriResolver(final UriResolver uriResolver) {
+            mUriResolver = uriResolver;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setConfig(final Config config) {
+            mConfig = config;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setPageSize(final Integer pageSize) {
+            mPageSize = pageSize;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setDataSourceProducer(
+                final Callable<DataSource<Key, T>> dataSourceProducer) {
+            mDataSourceProducer = dataSourceProducer;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setAdapter(final PagingRecyclerViewAdapter<T, R, E> adapter) {
+            mAdapter = adapter;
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setActivity(final Activity activity) {
+            if (activity != null) {
+                mActivity           = new WeakReference<>(activity);
+                mLifecycleOwner     = getLifecycleOwner(activity);;
+                if (mStore ==  null)
+                    mStore          = getViewModelStore(activity);
+                else
+                    CoreLogger.logWarning("ViewModelStore already defined for activity " +
+                            CoreLogger.getDescription(activity));
+            }
+            return this;
+        }
+
+        public Builder<S, Key, T, R, E, D> setFragment(final Fragment fragment) {
+            if (fragment != null) {
+                final Activity activity = fragment.getActivity();
+                if (activity == null)
+                    CoreLogger.log(new IllegalStateException(
+                            "Can't create ViewModelProvider for detached fragment"));
+                else {
+                    mActivity           = new WeakReference<>(activity);
+                    mLifecycleOwner     = fragment;
+                    if (mStore ==  null)
+                        mStore          = getViewModelStore(fragment);
+                    else
+                        CoreLogger.logWarning("ViewModelStore already defined for fragment " +
+                                CoreLogger.getDescription(fragment));
+                }
+            }
+            return this;
+        }
+
+        public S create() {
+            Activity activity = mActivity == null ? null: mActivity.get();
+            if (activity == null) activity = Utils.getCurrentActivity();
+
+            if (activity.getApplication() == null) {
+                CoreLogger.log(new IllegalStateException(
+                        "Your activity is not yet attached to "
+                                + "Application. You can't request ViewModel before onCreate call."));
+                return null;
+            }
+            CoreLogger.log("creating BaseViewModel, Activity " + CoreLogger.getDescription(activity));
+
+            if (mStore == null) mStore = getViewModelStore(activity);
+
+            if (mLifecycleOwner == null) mLifecycleOwner = getLifecycleOwner(activity);
+
+            if (mData == null) {
+                if (mRequester == null) {
+                    CoreLogger.logError("requester == null, please set in BaseViewModelBuilder");
+                    return null;
+                }
+                mData = mTableName == null ?
+                        new BaseLiveData <>(mRequester, mBaseDialog):
+                        new CacheLiveData<>(mRequester, mBaseDialog, mTableName, mUriResolver);
+            }
+
+            if (mKey == null) mKey = DEFAULT_KEY;
+
+            final S result;
+            if (mDataSourceProducer == null) {
+                if (mClass == null) mClass = castBaseViewModelClass();
+
+                result = new BaseViewModelProvider<>(mStore, mData, mObserver, mKey).get(mKey, mClass);
+                updateUi(mLifecycleOwner, mData, mObserver);
+            }
+            else {
+                if (mAdapter == null) {
+                    CoreLogger.logError("paging adapter == null, please set in BaseViewModelBuilder");
+                    return null;
+                }
+                if (mConfig == null)
+                    mConfig = mPageSize == null ? PagingViewModel.getDefaultConfig():
+                            PagingViewModel.getDefaultConfig(mPageSize);
+                else if (mPageSize != null)
+                    CoreLogger.logWarning("for PagedList both Config and page size are defined " +
+                            "in BaseViewModelBuilder, the page size will be ignored");
+
+                if (mClass == null) mClass = castPagingViewModelClass();
+
+                result = new PagingViewModel.ViewModelProvider<>(mStore, mData, mObserver, mKey,
+                        mDataSourceProducer, mConfig, mAdapter).get(mKey, mClass);
+                ((PagingViewModel) result).updateUi(mLifecycleOwner);
+            }
+
+            CoreLogger.log("created BaseViewModel " + CoreLogger.getDescription(result));
+            return result;
+       }
+
+        @SuppressWarnings("unchecked")
+        private static <T extends ViewModel> Class<T> castPagingViewModelClass() {
+            return (Class<T>) PagingViewModel.class;
         }
     }
 }

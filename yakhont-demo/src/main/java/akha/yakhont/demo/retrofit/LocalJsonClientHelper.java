@@ -21,9 +21,11 @@ import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Locale;
+import java.util.Objects;
 
 /**
  * based on implementation of Matt Swanson
@@ -31,14 +33,14 @@ import java.util.Locale;
  */
 public class LocalJsonClientHelper {
 
-    public static final int HTTP_CODE_OK = 200;
+    public static final int                 HTTP_CODE_OK                = 200;
 
-    private final Context   mContext;
-    private String          mScenario;
-    private int             mEmulatedNetworkDelay;
+    private final WeakReference<Context>    mContext;
+    private String                          mScenario;
+    private int                             mEmulatedNetworkDelay;
 
     public LocalJsonClientHelper(Context context) {
-        mContext = context;
+        mContext = new WeakReference<>(context);
     }
 
     public void setScenario(String scenario) {
@@ -58,19 +60,24 @@ public class LocalJsonClientHelper {
         String fileName = (prefix + method + requestedUrl.getPath()).replace('/', '_');
         fileName = fileName.toLowerCase(Locale.getDefault());
 
-        int resourceId = mContext.getResources().getIdentifier(fileName, "raw", mContext.getPackageName());
+        Context context = mContext.get();
+        if (context == null) handleError("context == null");
 
-        if (resourceId == 0) {
-            Log.e("LocalJsonClientHelper", "Could not find res/raw/" + fileName + ".json");
-            throw new IOException("Could not find res/raw/" + fileName + ".json");
-        }
+        int resourceId = Objects.requireNonNull(context).getResources().getIdentifier(fileName,
+                "raw", context.getPackageName());
+        if (resourceId == 0) handleError("Could not find res/raw/" + fileName + ".json");
 
-        InputStream inputStream = mContext.getResources().openRawResource(resourceId);
+        InputStream inputStream = context.getResources().openRawResource(resourceId);
 
         String mimeType = URLConnection.guessContentTypeFromStream(inputStream);
         if (mimeType == null) mimeType = "application/json";
 
         return new Data(mimeType, "Content from res/raw/" + fileName, inputStream);
+    }
+
+    private void handleError(String msg) throws IOException {
+        Log.e("LocalJsonClientHelper", msg);
+        throw new IOException(msg);
     }
 
     public int getDelay() {

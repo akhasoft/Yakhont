@@ -30,8 +30,8 @@ import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
-import akha.yakhont.loader.BaseResponse.LoadParameters;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.Retrofit;
@@ -101,17 +101,19 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             mRetrofit2   = new Retrofit2<>();
             mJsonClient2 = new LocalJsonClient2(context, mRetrofit2);
             mRetrofit2.init(Retrofit2Api.class, url, mJsonClient2);
+
+            mJsonClient2.getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
         }
         else {
             mRetrofit   = new Retrofit<>();
             mJsonClient = new LocalJsonClient(context);
             mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder(url).setClient(mJsonClient));
+
+            mJsonClient .getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
         }
 
         // for normal HTTP requests it's much simpler - just something like this:
 //      mRetrofit2 = new Retrofit2<Retrofit2Api, List<Beer>>().init(Retrofit2Api.class, "http://...");
-
-        setPartToLoad(mPartCounter);
     }
 
     @Override
@@ -140,7 +142,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     private void startLoading(Bundle savedInstanceState, boolean byUserRequest) {
 
-        if (byUserRequest) setBubblesState(true);
+        updateGuiAndSetPartToLoad(byUserRequest);
 
         mCoreLoad.setGoBackOnCancelLoading(!byUserRequest);
 
@@ -274,13 +276,9 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
         setBubblesState(false);
 
-        setNetworkDelay();
+        if (data != null) mGridView.startLayoutAnimation();
 
-        if (data   != null)                 mGridView.startLayoutAnimation();
-        if (source != Source.NETWORK)       return;
-
-        if (++mPartCounter == PARTS_QTY)    mPartCounter = 0;   // set next part to load
-        setPartToLoad(mPartCounter);
+        mLastSource = source;
     }
 
     private void onLoadFinishedDataBinding(List<Beer> data, Source source) {
@@ -320,23 +318,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
         view.setTag(data.substring(pos + 4, pos + 6));
         view.setImageURI(Uri.parse(data));
-    }
-
-    private void setPartToLoad(int counter) {
-
-        String scenario = "part" + counter;
-
-        if (getMainActivity().isRetrofit2())
-            mJsonClient2.getLocalJsonClientHelper().setScenario(scenario);
-        else
-            mJsonClient .getLocalJsonClientHelper().setScenario(scenario);
-    }
-
-    private void setNetworkDelay() {
-        if (getMainActivity().isRetrofit2())
-            mJsonClient2.getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
-        else
-            mJsonClient .getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
     }
 
     private MainActivity getMainActivity() {
@@ -409,6 +390,8 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     private        final SlideShow      mSlideShow                      = new SlideShow();
 
     private              int            mPartCounter;
+    private              Source         mLastSource;
+
     private              Rect           mSlideRect;
 
     private final View.OnClickListener  mListener                       = new View.OnClickListener() {
@@ -458,6 +441,27 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         mSlideShow.init(this);
 
         Bubbles.init(Objects.requireNonNull(getActivity()));
+    }
+
+    private void updateGuiAndSetPartToLoad(boolean byUserRequest) {
+
+        if (byUserRequest)
+            setBubblesState(true);
+        else {
+            mLastSource  = Source.NETWORK;      // even if mCheckBoxForce.isChecked()
+            mPartCounter = PARTS_QTY - 1;
+        }
+
+        if (mLastSource == Source.NETWORK) {
+            if (++mPartCounter == PARTS_QTY) mPartCounter = 0;
+
+            String scenario = "part" + mPartCounter;
+
+            if (getMainActivity().isRetrofit2())
+                mJsonClient2.getLocalJsonClientHelper().setScenario(scenario);
+            else
+                mJsonClient .getLocalJsonClientHelper().setScenario(scenario);
+        }
     }
 
     @Override
