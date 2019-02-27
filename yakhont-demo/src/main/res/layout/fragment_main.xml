@@ -72,6 +72,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <!-- optional, remove here and in MainFragment if not needed -->
         <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
             android:id="@+id/swipeContainer"
             android:layout_width="match_parent"

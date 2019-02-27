@@ -42,7 +42,7 @@ def dependenciesStrategy = { DependencyResolveDetails details ->
     }
     if (details.requested.group == 'com.squareup.okhttp3') {
         details.useVersion          projectLibVerOkHttp3
-        details.because 'To enforce releasable units for okhttp3'
+        details.because 'To enforce releasable units for OkHttp 3'
     }
     if (details.requested.group == 'com.google.dagger') {
         details.useVersion          projectLibVerDagger

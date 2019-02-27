@@ -43,6 +43,7 @@ import okhttp3.WebSocketListener;
 import okio.ByteString;
 import okio.Timeout;
 
+// base OkHttp3 local client (no Yakhont dependencies)
 public abstract class LocalJsonClient2Base extends OkHttpClient {
 
     private static final String         TAG                         = "LocalJsonClient2";

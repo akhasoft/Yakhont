@@ -22,31 +22,12 @@ import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor;
 
 import okhttp3.logging.HttpLoggingInterceptor;
 
-public class LocalJsonClient2 extends LocalJsonClient2Base {
-
-    private static final    String[]        DATA    = new String[] {
-            "Duvel",
-            "Abbaye de Brogne",
-            "Chimay",
-            "Delirium Tremens",
-            "Gouden Carolus",
-            "Green Killer",
-            "Gulden Draak",
-            "Liefmans",
-            "Orval Trappist",
-            "Pauwel Kwak",
-            "Petrus",
-            "Rodenbach Grand Cru",
-            "Val-Dieu",
-            "Waterloo",
-            "Westmalle",
-            "Westvleteren",
-            "Wilderen Goud"
-    };
+// also base OkHttp3 local client, but with Yakhont dependencies
+public abstract class LocalJsonClient2 extends LocalJsonClient2Base {
 
     private final   Retrofit2   mRetrofit2;
 
-    public LocalJsonClient2(Retrofit2 retrofit2) {
+    protected LocalJsonClient2(Retrofit2 retrofit2) {
         mRetrofit2 = retrofit2;
         final HttpLoggingInterceptor logger = new HttpLoggingInterceptor();
         logger.setLevel(HttpLoggingInterceptor.Level.BODY);
@@ -58,13 +39,5 @@ public class LocalJsonClient2 extends LocalJsonClient2Base {
                 mRetrofit2.setData(data);
             }
         });
-    }
-
-    @Override
-    protected String getJson() {
-        StringBuilder builder = new StringBuilder("[");
-        for (String str: DATA)
-            builder.append("{\"title\":\"").append(str).append("\"},");
-        return builder.replace(builder.length() - 1, builder.length(), "]").toString();
     }
 }

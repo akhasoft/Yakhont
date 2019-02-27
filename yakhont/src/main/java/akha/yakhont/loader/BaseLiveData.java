@@ -88,10 +88,14 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     // may interrupt if running
     private static final boolean                    MAY_INTERRUPT           = true;
 
+    // setProgressDelay description should be consistent
+    private static final int                        DEFAULT_PROGRESS_DELAY  = 700;      // ms
+
     private        final Requester<D>               mRequester;
     private        final BaseDialog                 mBaseDialog;
     private        final AtomicBoolean              mLoading                = new AtomicBoolean();
     private        final AtomicBoolean              mSetValue               = new AtomicBoolean();
+    private              int                        mProgressDelay          = DEFAULT_PROGRESS_DELAY;
 
     private              LiveDataLoadParameters     mLoadParameters;
     private        final Object                     mLockLoading            = new Object();
@@ -366,9 +370,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     CoreLogger.logWarning("Yakhont delegates timeout handling to loader; " +
                             "if you're not agree just set 'handleTimeout' in LoadParameters to true");
 
-                //noinspection Convert2Lambda
+                //noinspection Convert2Lambda,ConstantConditions
                 mLoadParameters = new LiveDataLoadParameters(handleTimeout ?
-                        Utils.runInBackground( /* loadParameters == null ? getDefaultTimeout(): */
+                        Utils.runInBackground(loadParameters == null ? getDefaultTimeout():
                                 loadParameters.getTimeout(), new Runnable() {
                             @Override
                             public void run() {
@@ -379,11 +383,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
 
             //noinspection Convert2Lambda
-            postToMainLoop(new Runnable() {
+            Utils.postToMainLoop(mProgressDelay, new Runnable() {
                 @Override
                 public void run() {
-                    if (!mLoadParameters.mParameters.getNoProgress())
-                        mBaseDialog.start(activity, text, data);
+                    synchronized (mLockLoading) {
+                        if (mLoading.get() && !mLoadParameters.mParameters.getNoProgress())
+                            mBaseDialog.start(activity, text, data);
+                    }
                 }
             });
 
@@ -397,6 +403,21 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             CoreLogger.log("makeRequestHelper failed", exception);
             return null;
         }
+    }
+
+    /**
+     * Sets delay (in milliseconds) after which the data loading progress will be shown.
+     * The default value is 700 ms.
+     *
+     * @param progressDelay
+     *        The progress delay
+     */
+    @SuppressWarnings("unused")
+    public void setProgressDelay(final int progressDelay) {
+        if (progressDelay > 0)
+            mProgressDelay = progressDelay;
+        else
+            CoreLogger.logError("wrong progress delay " + progressDelay + ", should be > 0");
     }
 
     @SuppressWarnings("unchecked")
@@ -488,6 +509,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          * @param uriResolver
          *        The URI resolver
          */
+        @SuppressWarnings("unused")
         public CacheLiveData(@NonNull final Requester<D> requester,
                              @NonNull final String tableName, final UriResolver uriResolver) {
             super(requester);

@@ -380,7 +380,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
          * Please refer to the base method description.
          */
         @Override
-        public CoreLoad create() {
+        public CoreLoad<Exception, D> create() {
             final RetrofitLoaderBuilder<D, T> builder = new RetrofitLoaderBuilder<>(mRetrofit);
 
             if (mType != null) builder.setType(mType);

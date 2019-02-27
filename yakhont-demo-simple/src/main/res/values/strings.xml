@@ -15,8 +15,8 @@
 -->
 
 <resources>
-    <string name="app_name"        >Yakhont Simple Demo</string>
-    <string name="list_title_beers">The Best Belgian Beers</string>
+    <string name="app_name"        >Yakhont Paging Demo</string>
+    <string name="list_title_beers">Working with endless adapter</string>
 
     <string name="advertisement_1" >Yakhont</string>
     <string name="advertisement_2" >Load data from server\nand get location -</string>

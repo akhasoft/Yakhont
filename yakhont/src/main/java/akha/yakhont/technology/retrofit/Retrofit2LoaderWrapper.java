@@ -24,6 +24,7 @@ import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
@@ -43,7 +44,9 @@ import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.concurrent.Callable;
 
+import androidx.paging.DataSource;
 import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 
@@ -512,7 +515,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * Please refer to the base method description.
          */
         @Override
-        public CoreLoad create() {
+        public CoreLoad<Throwable, D> create() {
             final Retrofit2LoaderBuilder<D, T> builder = new Retrofit2LoaderBuilder<>(mRetrofit, mRx);
 
             if (mType != null) builder.setType(mType);
@@ -542,7 +545,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
      * </pre>
      */
     @SuppressWarnings({"WeakerAccess", "unused"})
-    public static class Retrofit2Loader extends CoreLoader {
+    public static class Retrofit2Loader<E, D> extends CoreLoader<E, D> {
 
         /**
          * Starts data loading.
@@ -563,13 +566,84 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param <R>
          *        The type of Retrofit API
          *
-         * @see CoreLoad#load
+         * @see CoreLoad#start
          */
-        public static <R> void load(@NonNull final String       url,
-                                    @NonNull final Class    <R> service,
-                                    @NonNull final Requester<R> requester,
-                                             final Integer      dataBinding) {
-            get(url, service, requester, dataBinding, null, null).load();
+        public static <R> void start(@NonNull final String          url,
+                                     @NonNull final Class    <R>    service,
+                                     @NonNull final Requester<R>    requester,
+                                              final Integer         dataBinding) {
+            get(url, service, requester, dataBinding, null, null,
+                    null, null).start();
+        }
+
+        /**
+         * Starts data loading.
+         *
+         * @param url
+         *        The Retrofit 2 API endpoint URL
+         *
+         * @param service
+         *        The Retrofit 2 service interface
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param dataBinding
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param dataSourceProducer
+         *        The {@code DataSource} producer component (for paging)
+         *
+         * @param <R>
+         *        The type of Retrofit API
+         *
+         * @see CoreLoad#start
+         */
+        public static <R> void start(@NonNull final String                               url,
+                                     @NonNull final Class    <R>                         service,
+                                     @NonNull final Requester<R>                         requester,
+                                              final Integer                              dataBinding,
+                                              final Callable<? extends DataSource<?, ?>> dataSourceProducer) {
+            get(url, service, requester, dataBinding, null, null,
+                    null, dataSourceProducer).start();
+        }
+
+        /**
+         * Starts data loading.
+         *
+         * @param url
+         *        The Retrofit 2 API endpoint URL
+         *
+         * @param service
+         *        The Retrofit 2 service interface
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param dataBinding
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param pageSize
+         *        The page size (if any)
+         *
+         * @param dataSourceProducer
+         *        The {@code DataSource} producer component (for paging)
+         *
+         * @param <R>
+         *        The type of Retrofit API
+         *
+         * @see CoreLoad#start
+         */
+        public static <R> void start(@NonNull final String                               url,
+                                     @NonNull final Class    <R>                         service,
+                                     @NonNull final Requester<R>                         requester,
+                                              final Integer                              dataBinding,
+                                              final Integer                              pageSize,
+                                              final Callable<? extends DataSource<?, ?>> dataSourceProducer) {
+            get(url, service, requester, dataBinding, null, null,
+                    pageSize, dataSourceProducer).start();
         }
 
         /**
@@ -594,7 +668,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param retrofit
          *        The {@code Retrofit2} component
          *
-         * @param <T>
+         * @param <D>
          *        The type of data
          *
          * @param <R>
@@ -603,22 +677,83 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @return  The {@code CoreLoad} instance
          */
         @SuppressWarnings("WeakerAccess")
-        public static <T, R> CoreLoad get(@NonNull final String          url,
-                                          @NonNull final Class    <R>    service,
-                                          @NonNull final Requester<R>    requester,
-                                                   final Integer         dataBinding,
-                                                   final OkHttpClient    client,
-                                                         Retrofit2<R, T> retrofit) {
+        public static <R, D> CoreLoad<Throwable, D> get(@NonNull final String                url,
+                                                        @NonNull final Class    <R>          service,
+                                                        @NonNull final Requester<R>          requester,
+                                                                 final Integer               dataBinding,
+                                                                 final OkHttpClient          client,
+                                                                       Retrofit2<R, D>       retrofit) {
+            return get(url, service, requester, dataBinding, client, retrofit,
+                    null, null);
+        }
+
+        /**
+         * Returns the {@code CoreLoad} instance.
+         *
+         * @param url
+         *        The Retrofit 2 API endpoint URL
+         *
+         * @param service
+         *        The Retrofit 2 service interface
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param dataBinding
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param client
+         *        The {@code OkHttpClient} component
+         *
+         * @param retrofit
+         *        The {@code Retrofit2} component
+         *
+         * @param pageSize
+         *        The page size (if any)
+         *
+         * @param dataSourceProducer
+         *        The {@code DataSource} producer component (for paging)
+         *
+         * @param <D>
+         *        The type of data
+         *
+         * @param <R>
+         *        The type of Retrofit API
+         *
+         * @return  The {@code CoreLoad} instance
+         */
+        @SuppressWarnings("WeakerAccess")
+        public static <R, D> CoreLoad<Throwable, D> get(@NonNull final String                url,
+                                                        @NonNull final Class    <R>          service,
+                                                        @NonNull final Requester<R>          requester,
+                                                                 final Integer               dataBinding,
+                                                                 final OkHttpClient          client,
+                                                                       Retrofit2<R, D>       retrofit,
+                                                                 final Integer               pageSize,
+                                                                 final Callable<? extends DataSource<?, ?>>
+                                                                                             dataSourceProducer) {
             if (retrofit == null) retrofit = new Retrofit2<>();
 
-            final Retrofit2CoreLoadBuilder<T, R> builder = (Retrofit2CoreLoadBuilder<T, R>)
+            final Retrofit2CoreLoadBuilder<D, R> builder = (Retrofit2CoreLoadBuilder<D, R>)
                     new Retrofit2CoreLoadBuilder<>(client == null ?
                             retrofit.init(service, url): retrofit.init(service, url, client))
                             .setRequester(requester);
 
-            if (dataBinding != null) builder.setDataBinding(dataBinding);
+            if (dataBinding        != null) builder.setDataBinding(dataBinding);
+            if (dataSourceProducer != null) builder.setPagingDataSourceProducer(dataSourceProducer);
 
-            return builder.create();
+            if (pageSize != null)
+                if (dataSourceProducer != null)
+                    builder.setPageSize(pageSize);
+                else
+                    CoreLogger.logError("page size set without DataSource producer");
+
+            final CoreLoad<Throwable, D> coreLoad = builder.create();
+            if (dataSourceProducer != null)
+                coreLoad.start(null, LoadParameters.NO_LOAD);
+
+            return coreLoad;
         }
     }
 }

@@ -15,8 +15,8 @@
 -->
 
 <resources>
-    <string name="app_name"        >Яхонт: демо (упрощенная версия)</string>
-    <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
+    <string name="app_name"        >Яхонт: paging демо</string>
+    <string name="list_title_beers">Работа с бесконечным адаптером</string>
 
     <string name="advertisement_1" >Яхонт</string>
     <string name="advertisement_2" >Загрузка данных с сайта\nи получение местоположения -</string>

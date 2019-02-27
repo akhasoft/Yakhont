@@ -301,19 +301,22 @@ public class CoreReflection {
     }
 
     /**
-     * Returns contained objects if parameter is array or {@link Collection} (null otherwise).
+     * Returns contained objects if parameter is array or {@link Collection} - or null (but see below).
      *
      * @param object
      *        The object
      *
+     * @param handleSingles
+     *        If {@code true} returns at least single-element-Collection (never null)
+     *
      * @return  The list of objects (or null)
      */
-    public static List<Object> getObjects(final Object object) {
+    public static List<Object> getObjects(final Object object, final boolean handleSingles) {
         if (object == null) {
             CoreLogger.logWarning("getObjects(): parameter is null");
             return null;
         }
-        final Class<?>  cls = object.getClass();    // not getClass(object)
+        final Class<?> cls = object.getClass();    // not getClass(object)
         List<Object> result = null;
 
         // should be consistent with isSingle(Object)
@@ -323,17 +326,33 @@ public class CoreReflection {
                 for (int i = 0; i < Array.getLength(object); i++)
                     result.add(Array.get(object, i));
             }
-            else if (Collection.class.isAssignableFrom(cls))
-                result = new ArrayList<>((Collection<?>) object);
+            else if (Collection.class.isAssignableFrom(cls)) {
+                result = List.class.isAssignableFrom(cls) ? castToList(object):
+                        new ArrayList<>((Collection<?>) object);
+            }
+            else if (handleSingles) {
+                warningSingle(cls);
+
+                result = new ArrayList<>();
+                result.add(object);
+            }
         }
         catch (Exception exception) {
             CoreLogger.log("failed getObjects() for class " + CoreLogger.getDescription(cls), exception);
             return null;
         }
 
-        if (result == null)
-            CoreLogger.logWarning("neither array nor Collection: " + CoreLogger.getDescription(cls));
+        if (result == null) warningSingle(cls);
         return result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Object> castToList(final Object object) {
+        return (List<Object>) object;
+    }
+
+    private static void warningSingle(final Class<?> cls) {
+        CoreLogger.logWarning("neither array nor Collection: " + CoreLogger.getDescription(cls));
     }
 
     /**

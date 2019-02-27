@@ -149,10 +149,8 @@ buildscript {
     }
 }
 ```
-
-    **Note:** the Yakhont components (com.github.akhasoft:yakhont...) are available from both
-[jcenter](http://jcenter.bintray.com/com/github/akhasoft/) and
-[mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/).
+    **Note:** the Yakhont components (com.github.akhasoft:yakhont...) are available from 
+              both [jcenter](http://jcenter.bintray.com/com/github/akhasoft/) and [mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/).
 
 2. Update the **android** block:
 
@@ -172,13 +170,11 @@ android {
 ```groovy
 dependencies {
     implementation    'com.github.akhasoft:yakhont:0.9.19'
-    // or
+//  or
 //  implementation    'com.github.akhasoft:yakhont-full:0.9.19'
 }
 ```
-
-    And if you're about to customize Yakhont using build-in [Dagger 2](http://google.github.io/dagger/),
-the following lines are required:
+    And if you're about to customize Yakhont using build-in [Dagger2](http://google.github.io/dagger/), the following lines are required:
 
 ```groovy
 dependencies {
@@ -186,7 +182,6 @@ dependencies {
     annotationProcessor 'com.google.dagger:dagger-compiler:2.x'
 }
 ```
-
     **Note:** for Kotlin replace 'annotationProcessor' with 'kapt'.
 
 4. The code which runs Yakhont Weaver:
@@ -209,8 +204,7 @@ android.applicationVariants.all { variant ->
     }
 }
 ```
-
-    4.2. For Kotlin (plus - optionally - Java):
+        4.2. For Kotlin (plus - optionally - Java):
 ```groovy
 // use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
@@ -238,7 +232,8 @@ to alternate classes implementation (e.g. add / modify callbacks in Activities a
 without changing their source code.
 ```
 
-    **Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation - but is no longer supported too.
+    **Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation -
+              but is no longer supported too.
 
 5. Finally, don't forget to add to your _AndroidManifest.xml_ something like code snippet below:
 
@@ -333,7 +328,6 @@ $ ./gradlew --configure-on-demand yakhont-demo-simple-kotlin:clean yakhont-demo-
 
 To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code):
 
-- add **yakhont.link,yakhont.see** to File -> Settings -> Editor -> Inspections -> Java -> Javadoc -> Declaration has Javadoc problems -> Additional Javadoc Tags
 - add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling -> Dictionaries
 
 ## Communication

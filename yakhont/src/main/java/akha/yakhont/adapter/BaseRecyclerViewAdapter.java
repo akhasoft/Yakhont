@@ -306,7 +306,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          *        The BR id of the variable to be set (please refer to
          *        {@link ViewDataBinding#setVariable} for more info)
          */
-        @SuppressWarnings("WeakerAccess")
+        @SuppressWarnings({"WeakerAccess", "unused"})
         public DataBindingViewHolder(@NonNull final View view, final int id) {
             this(DataBindingUtil.bind(view), id);
         }
@@ -447,7 +447,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          *
          * @see     ViewDataBinding#getRoot() ViewDataBinding.getRoot()
          */
-        @SuppressWarnings("WeakerAccess")
+        @SuppressWarnings({"unused", "WeakerAccess"})
         public View getView() {
             return DataBindingCacheAdapterWrapper.getView(mViewDataBinding);
         }

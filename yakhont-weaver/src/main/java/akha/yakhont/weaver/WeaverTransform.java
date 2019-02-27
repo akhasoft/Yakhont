@@ -16,6 +16,7 @@
 
 package akha.yakhont.weaver;
 
+/* lint issues
 import com.android.build.api.transform.Context;
 import com.android.build.api.transform.DirectoryInput;
 import com.android.build.api.transform.Format;
@@ -28,7 +29,7 @@ import com.android.build.api.transform.Transform;
 import com.android.build.api.transform.TransformException;
 import com.android.build.api.transform.TransformInput;
 import com.android.build.api.transform.TransformOutputProvider;
-
+*/
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
@@ -50,8 +51,9 @@ import org.apache.commons.io.FileUtils;
  *
  * @author akha
  */
+@SuppressWarnings("ALL")
 @Deprecated
-public class WeaverTransform extends Transform {
+public class WeaverTransform extends com.android.build.api.transform.Transform {
 
     private final        String                         mApplicationId, mBootClassPath;
     private final        String[]                       mConfigFiles;
@@ -98,25 +100,31 @@ public class WeaverTransform extends Transform {
      * Please refer to the base method description.
      */
     @Override
-    public Set<ContentType> getInputTypes() {
-        return Collections.unmodifiableSet(new HashSet<ContentType>(EnumSet.of(DefaultContentType.CLASSES)));
+    public Set<com.android.build.api.transform.QualifiedContent.ContentType> getInputTypes() {
+        return Collections.unmodifiableSet(
+                new HashSet<com.android.build.api.transform.QualifiedContent.ContentType>(
+                        EnumSet.of(com.android.build.api.transform.QualifiedContent.DefaultContentType.CLASSES)));
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public Set<Scope> getScopes() {
-        return Collections.unmodifiableSet(EnumSet.of(Scope.PROJECT));
+    public Set<com.android.build.api.transform.QualifiedContent.Scope> getScopes() {
+        return Collections.unmodifiableSet(EnumSet.of(
+                com.android.build.api.transform.QualifiedContent.Scope.PROJECT));
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public Set<Scope> getReferencedScopes() {
-        return Collections.unmodifiableSet(EnumSet.of(Scope.PROJECT_LOCAL_DEPS, Scope.EXTERNAL_LIBRARIES,
-                Scope.SUB_PROJECTS, Scope.SUB_PROJECTS_LOCAL_DEPS));
+    public Set<com.android.build.api.transform.QualifiedContent.Scope> getReferencedScopes() {
+        return Collections.unmodifiableSet(EnumSet.of(
+                com.android.build.api.transform.QualifiedContent.Scope.PROJECT_LOCAL_DEPS,
+                com.android.build.api.transform.QualifiedContent.Scope.EXTERNAL_LIBRARIES,
+                com.android.build.api.transform.QualifiedContent.Scope.SUB_PROJECTS,
+                com.android.build.api.transform.QualifiedContent.Scope.SUB_PROJECTS_LOCAL_DEPS));
     }
 
     /**
@@ -127,8 +135,10 @@ public class WeaverTransform extends Transform {
         return false;
     }
 
-    private void add(StringBuilder classPath, QualifiedContent content) throws IOException {
-        classPath.append(classPath.length() == 0 ? "": File.pathSeparator).append(content.getFile().getCanonicalPath());
+    private void add(StringBuilder classPath, com.android.build.api.transform.QualifiedContent content)
+            throws IOException {
+        classPath.append(classPath.length() == 0 ? "": File.pathSeparator).append(content.getFile()
+                .getCanonicalPath());
     }
 
     /**
@@ -136,22 +146,26 @@ public class WeaverTransform extends Transform {
      */
     @SuppressWarnings("deprecation")
     @Override
-    public void transform(Context context, Collection<TransformInput> inputs, Collection<TransformInput> referencedInputs,
-                          TransformOutputProvider outputProvider, boolean isIncremental)
-            throws IOException, TransformException {
+    public void transform(com.android.build.api.transform.Context context,
+                          Collection<com.android.build.api.transform.TransformInput> inputs,
+                          Collection<com.android.build.api.transform.TransformInput> referencedInputs,
+                          com.android.build.api.transform.TransformOutputProvider outputProvider,
+                          boolean isIncremental)
+            throws IOException, com.android.build.api.transform.TransformException {
 
         StringBuilder classPath = new StringBuilder();
-        for (TransformInput input: referencedInputs) {
-            for (DirectoryInput dirInput: input.getDirectoryInputs())
+        for (com.android.build.api.transform.TransformInput input: referencedInputs) {
+            for (com.android.build.api.transform.DirectoryInput dirInput: input.getDirectoryInputs())
                 add(classPath, dirInput);
-            for (JarInput jarInput: input.getJarInputs())
+            for (com.android.build.api.transform.JarInput jarInput: input.getJarInputs())
                 add(classPath, jarInput);
         }
 
-        for (TransformInput input: inputs) {
-            for (DirectoryInput dirInput: input.getDirectoryInputs()) {
+        for (com.android.build.api.transform.TransformInput input: inputs) {
+            for (com.android.build.api.transform.DirectoryInput dirInput: input.getDirectoryInputs()) {
                 File dest = outputProvider.getContentLocation(
-                        dirInput.getName(), dirInput.getContentTypes(), dirInput.getScopes(), Format.DIRECTORY);
+                        dirInput.getName(), dirInput.getContentTypes(), dirInput.getScopes(),
+                        com.android.build.api.transform.Format.DIRECTORY);
 
                 FileUtils.copyDirectory(dirInput.getFile(), dest);
 
@@ -160,7 +174,7 @@ public class WeaverTransform extends Transform {
                             mBootClassPath, mConfigFiles, mAddConfig);
                 }
                 catch (CannotCompileException | NotFoundException exception) {
-                    throw new TransformException(exception);
+                    throw new com.android.build.api.transform.TransformException(exception);
                 }
             }
         }

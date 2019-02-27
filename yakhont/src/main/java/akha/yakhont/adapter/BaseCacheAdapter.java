@@ -70,6 +70,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -1148,7 +1149,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static void bindImageView(final Context context, @NonNull final ImageView imageView, final Object value) {
+    public static void bindImageView(@SuppressWarnings("unused") final Context context,
+                                     @NonNull final ImageView imageView, final Object value) {
         final String strValue = getString(value);
         try {
             imageView.setImageResource(Integer.parseInt(strValue));
@@ -1204,6 +1206,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param viewBinder
          *        The ViewBinder
          */
+        @SuppressWarnings("WeakerAccess")
         public abstract void setAdapterViewBinder(final ViewBinder viewBinder);
     }
 
@@ -1494,7 +1497,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         @SuppressWarnings("WeakerAccess")
         @NonNull
         protected List<T> convert(@NonNull final Object data) {
-            final List<Object> objects = CoreReflection.getObjects(data);
+            final List<Object> objects = CoreReflection.getObjects(data, false);
             if (objects == null) return Collections.singletonList(convertSingle(data));
 
             final ArrayList<T> list = new ArrayList<>();
@@ -1656,7 +1659,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             final D data = baseResponse.getResult();
 
             if (CoreReflection.isNotSingle(data))
-                return CoreReflection.getObjects(data);
+                return CoreReflection.getObjects(data, false);
 
             CoreLogger.log("single object " + data.getClass().getName());
             return Collections.singletonList(data);
@@ -1958,7 +1961,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             if (viewDataBinding == null) {      // should never happen
                 CoreLogger.logError("ViewDataBinding == null");
 
-                return new View(Utils.getApplication().getApplicationContext());
+                return new View(Objects.requireNonNull(Utils.getApplication()).getApplicationContext());
             }
 
             bindHelper(getData(baseCacheAdapter, position), position, dataBindingId, viewDataBinding);

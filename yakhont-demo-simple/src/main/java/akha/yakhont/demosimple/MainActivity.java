@@ -23,6 +23,7 @@ import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 import akha.yakhont.Core;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.annotation.CallbacksInherited;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.retrofit.Retrofit2;
@@ -35,16 +36,23 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.paging.PositionalDataSource;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.Callable;
 
-@CallbacksInherited( /* value = */ LocationCallbacks.class /* , parameters = "permissions rationale demo" */ )
+@CallbacksInherited(LocationCallbacks.class)
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
-    private boolean mAdvertisementShown;
+    private CoreLoad<Throwable, List<Beer>>     mLoader;
+
+    private boolean                             mAdvertisementShown;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,72 +64,76 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        boolean debug = BuildConfig.DEBUG;
-        if (debug) {
-            Core.setFullLoggingInfo(true);
-            // optional; on shaking device email with logs will be sent to the address below
-            CoreLogger.registerShakeDataSender(this, "address@company.com");
-        }
-
-        ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(new LinearLayoutManager(this));
+        ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(
+                new LinearLayoutManager(this));
 /*
         ////////
         // normally it should be enough - but here we have the local client; so see below...
 
-        Retrofit2Loader.load("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.beer);
+        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.beer,
+                (Callable<SamplePositionalSource >) SamplePositionalSource::new);
 
         ////////
 */
-        final Retrofit2<Retrofit2Api, Beer[]> retrofit2 = new Retrofit2<>();
-        Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData, BR.beer,
-                new LocalJsonClient2(retrofit2) /* .setEmulatedNetworkDelay(10) */ , retrofit2)
-                /* .setGoBackOnCancelLoading(false) */ .load();
-/*
-        // recommended binding (based on Data Binding Library) - exactly the same as code above
-        new akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder<>
-                    (MainActivity.<Beer>createRetrofit())
-                .setRequester(Retrofit2Api::getData)
-// or           .setRequester(retrofit2Api -> retrofit2Api.getData("some parameter"))
+        setDebugLogging(BuildConfig.DEBUG);         // optional
 
-                // recommended way - but default binding also works (see below)
-                .setDataBinding(BR.beer)
+        Retrofit2<Retrofit2Api, List<Beer>> retrofit2 = new Retrofit2<>();
 
-                .create()
+        mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData,
+                BR.beer, new LocalOkHttpClient(retrofit2), retrofit2, LocalOkHttpClient.PAGE_SIZE,
+                (Callable<SamplePositionalSource>) SamplePositionalSource::new);
 
-                // uncomment to stay in Activity (and application) if user cancelled data loading
-                // which means:
-                // quite often, data loading goes during Activity initialization (and here too)
-                // so, if user pressed Back during data loading, Yakhont shows confirmation dialog,
-                //   and if 'yes' - cancels loading and calls Activity.onBackPressed()
-                // for this simple demo application (only one Activity) it means -
-                //   the application itself will be stopped
-                // so uncomment if you don't want such Activity.onBackPressed() call
-//              .setGoBackOnCancelLoading(false)
-
-                .load();
-// or
-        // default binding (based on reflection)
-        new akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder<>
-                    (MainActivity.<akha.yakhont.demosimple.model.BeerDefault>createRetrofit())
-                .setRequester(Retrofit2Api::getData)
-                .setListItem(R.layout.recycler_item_default)
-                .create().load();
-*/
+        // uncomment if needed (both here and in xml layout -
+        //  but also don't forget to provide real DataSource instead of stub here)
+//      akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper.register(R.id.swipeContainer, mLoader);
     }
-/*
-    // every loader should have unique Retrofit2 object; don't share it with other loaders
-    private static <T> Retrofit2<Retrofit2Api, T[]> createRetrofit() {
-        final Retrofit2<Retrofit2Api, T[]> retrofit2 = new Retrofit2<>();
 
-        // local JSON client, so URL doesn't matter
-        // uncomment network delay emulation for the progress indicator
-        return retrofit2.init(Retrofit2Api.class, "http://localhost/",
-                new LocalJsonClient2(retrofit2));
+    private class SamplePositionalSource extends PositionalDataSource<Beer> {
+        @Override
+        public void loadInitial(@NonNull LoadInitialParams         params,
+                                @NonNull LoadInitialCallback<Beer> callback) {
+            mLoader.setPagingCallback((data, source) -> callback.onResult(data,
+                    0, LocalOkHttpClient.PAGE_SIZE * 1000)).start();
+        }
 
-        // for normal HTTP requests it's much simpler - just something like this:
-//      return new Retrofit2<Retrofit2Api, T[]>().init(Retrofit2Api.class, "http://...");
+        @Override
+        public void loadRange(@NonNull LoadRangeParams         params,
+                              @NonNull LoadRangeCallback<Beer> callback) {
+            mLoader.setPagingCallback((data, source) -> callback.onResult(data)).start();
+        }
     }
-*/
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private static class LocalOkHttpClient extends LocalJsonClient2 {
+
+        private static final int                PAGE_SIZE                       = 20;
+
+        private int                             mItemCounter, mPageCounter;
+
+        private LocalOkHttpClient(Retrofit2 retrofit2) {
+            super(retrofit2);
+        }
+
+        @Override
+        protected String getJson() {
+            StringBuilder builder = new StringBuilder("[");
+            for (int i = mItemCounter; i < mItemCounter + PAGE_SIZE; i++)
+                builder.append("{\"title\":\"").append("loaded page ").append(mPageCounter + 1)
+                        .append(", item ").append(i + 1).append("\"},");
+            mItemCounter += PAGE_SIZE;
+            mPageCounter++;
+            return builder.replace(builder.length() - 1, builder.length(), "]").toString();
+        }
+    }
+
+    private void setDebugLogging(boolean debug) {
+        if (!debug) return;
+        Core.setFullLoggingInfo(true);
+        // optional; on shaking device email with logs will be sent to the address below
+        CoreLogger.registerShakeDataSender(this, "address@company.com");
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @Override

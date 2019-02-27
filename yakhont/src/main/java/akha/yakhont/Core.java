@@ -980,7 +980,15 @@ public class Core implements DefaultLifecycleObserver {
         private Utils() {
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /**
+         * Runs {@link Runnable#run} without throwing exceptions (if any).
+         *
+         * @param runnable
+         *        The Runnable
+         *
+         * @return  Returns {@code true} if the Runnable was successfully ran, {@code false} otherwise.
+         */
+        @SuppressWarnings("UnusedReturnValue")
         public static boolean safeRunnableRun(final Runnable runnable) {
             if (runnable == null)
                 CoreLogger.logWarning("runnable == null");

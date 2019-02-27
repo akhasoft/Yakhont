@@ -20,6 +20,7 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.Requester;
@@ -70,9 +71,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     private static final ViewModelStore         sStubStore      = new ViewModelStore();
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final BaseLiveData<D>        mData;
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final Observer    <D>        mObserver;
 
     /**
@@ -93,7 +94,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         mObserver = observer;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> void updateUi(@NonNull final LifecycleOwner   lifecycleOwner,
                                        @NonNull final LiveData<D>      liveData,
                                        @NonNull final Observer<D>      observer) {
@@ -117,7 +118,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
     public static void updateUiFragmentForWeaver(@NonNull final Fragment fragment) {
         final Collection<BaseViewModel<?>> models = new ArrayList<>();
 
-        BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null, models);
+        BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null,
+                models, CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models)
             model.updateUi(fragment);
@@ -125,7 +127,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void updateUiActivityForWeaver(@NonNull final Activity activity) {
-        final Collection<BaseViewModel<?>> models = getViewModels(activity, false);
+        final Collection<BaseViewModel<?>> models = getViewModels(activity, false,
+                CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models)
             model.updateUi(getLifecycleOwner(activity));
@@ -182,8 +185,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T extends ViewModel> Class<T> castBaseViewModelClass() {
-        return (Class<T>) BaseViewModel.class;
+    private static <T extends ViewModel> Class<T> castBaseViewModelClass(final boolean paging) {
+        return (Class<T>) (paging ? PagingViewModel.class: BaseViewModel.class);
     }
 
     /**
@@ -225,7 +228,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      */
     @SuppressWarnings("WeakerAccess")
     public static boolean isLoading(@NonNull final Fragment fragment, final String key) {
-        return BaseViewModelProvider.isLoading(getViewModelStore(fragment), key);
+        return BaseViewModelProvider.isLoading(getViewModelStore(fragment), key, Level.ERROR);
     }
 
     /**
@@ -245,11 +248,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
     @SuppressWarnings("WeakerAccess")
     public static boolean isLoading(@NonNull final Activity activity, final String key,
                                     final boolean includeFragments) {
-        final boolean result = BaseViewModelProvider.isLoading(getViewModelStore(activity), key);
-        return result || !includeFragments ? result: isLoadingFragment(activity);
+        final Level level = Level.ERROR;
+        final boolean result = BaseViewModelProvider.isLoading(getViewModelStore(activity), key, level);
+        return result || !includeFragments ? result: isLoadingFragment(activity, level);
     }
 
-    private static boolean isLoadingFragment(@NonNull final Activity activity) {
+    private static boolean isLoadingFragment(@NonNull final Activity activity, @NonNull final Level level) {
         if (!(activity instanceof FragmentActivity)) {
             CoreLogger.logError("unexpected activity (should be FragmentActivity): "
                     + CoreLogger.getDescription(activity));
@@ -257,14 +261,15 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
         for (final Fragment fragment: ((FragmentActivity) activity)
                 .getSupportFragmentManager().getFragments())
-            if (BaseViewModelProvider.isLoading(getViewModelStore(fragment), null))
+            if (BaseViewModelProvider.isLoading(getViewModelStore(fragment), null, level))
                 return true;
         return false;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isLoadingForWeaver(@NonNull final Activity activity) {
-        final Collection<BaseViewModel<?>> models = getViewModels(activity, true);
+        final Collection<BaseViewModel<?>> models = getViewModels(activity, true,
+                CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models) {
             final BaseLiveData<?> data = model.getData();
@@ -284,18 +289,25 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The {@code BaseViewModel} collection
      */
-    public static Collection<BaseViewModel<?>> getViewModels(Activity activity, final boolean includeFragments) {
+    public static Collection<BaseViewModel<?>> getViewModels(
+            final Activity activity, final boolean includeFragments) {
+        return getViewModels(activity, includeFragments, Level.ERROR);
+    }
+
+    private static Collection<BaseViewModel<?>> getViewModels(
+            Activity activity, final boolean includeFragments, @NonNull final Level level) {
 
         if (activity == null) activity = Utils.getCurrentActivity();
 
         final Collection<BaseViewModel<?>> list = new ArrayList<>();
-        BaseViewModelProvider.getViewModels(getViewModelStore(activity), null, list);
+        BaseViewModelProvider.getViewModels(getViewModelStore(activity), null, list, level);
 
         if (includeFragments)
             if (activity instanceof FragmentActivity)
                 for (final Fragment fragment: ((FragmentActivity) activity)
                         .getSupportFragmentManager().getFragments())
-                    BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null, list);
+                    BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null,
+                            list, level);
             else
                 CoreLogger.log("unexpected activity (should be FragmentActivity): "
                         + CoreLogger.getDescription(activity));
@@ -337,10 +349,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     private static class BaseViewModelFactory<D> implements Factory {
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  WeakReference<ViewModelStore>
                                                 mStore;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  String                 mKey;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  BaseLiveData<D>        mData;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  Observer    <D>        mObserver;
 
         @SuppressWarnings("unused")
@@ -354,6 +370,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             mObserver   = observer;
         }
 
+        @SuppressWarnings("WeakerAccess")
         protected BaseViewModel<D> createViewModel() {
             return new BaseViewModel<>(mData, mObserver);
         }
@@ -446,13 +463,13 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-        private static boolean checkModels(
+        private static boolean checkModels(@NonNull final Level level,
                 final Map<String, WeakReference<? extends BaseViewModel<?>>> models) {
             boolean result = false;
-            if (models == null)       // should never happen
-                CoreLogger.logError("models == null");
+            if (models == null)       // happens at app starting (called via Weaver)
+                CoreLogger.log(level, "models == null");
             else if (models.isEmpty())
-                CoreLogger.logError("models is empty");
+                CoreLogger.log(level, "models is empty");
             else
                 result = true;
             return result;
@@ -470,9 +487,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return result;
         }
 
-        private static boolean isLoading(@NonNull final ViewModelStore store, final String key) {
+        private static boolean isLoading(@NonNull final ViewModelStore store, final String key,
+                                         @NonNull final Level level) {
             final Map<String, WeakReference<? extends BaseViewModel<?>>> models = sMap.get(store);
-            if (!checkModels(models)) return false;
+            if (!checkModels(level, models)) return false;
 
             if (key != null) return isLoading(Objects.requireNonNull(models).get(key));
 
@@ -496,9 +514,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         private static void getViewModels(@NonNull final ViewModelStore store,
                                           @SuppressWarnings("SameParameterValue") final String key,
-                                          @NonNull final Collection<BaseViewModel<?>> baseViewModels) {
+                                          @NonNull final Collection<BaseViewModel<?>> baseViewModels,
+                                          @NonNull final Level level) {
             final Map<String, WeakReference<? extends BaseViewModel<?>>> models = sMap.get(store);
-            if (!checkModels(models)) return;
+            if (!checkModels(level, models)) return;
 
             if (key != null)
                 getViewModel(Objects.requireNonNull(models).get(key), baseViewModels);
@@ -526,44 +545,44 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     public static class PagingViewModel<Key, T, R, E, D> extends BaseViewModel<D> {
 
-        public static final int                                 DEFAULT_PAGE_SISE       = 20;
+        @SuppressWarnings("WeakerAccess")
+        public static final int                 DEFAULT_PAGE_SIZE           = 20;
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected final  LiveData<PagedList       <T>>          mData;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final  LiveData<PagedList       <T>>                      mData;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final  PagingRecyclerViewAdapter<T, R, E>                 mAdapter;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final  DataSourceFactory<? extends DataSource<Key, T>>    mDataSourceFactory;
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected final  PagingRecyclerViewAdapter<T, R, E>     mAdapter;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected        Runnable                                           mCallback;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected        Runnable                                           mSwipeToRefresh;
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected final  DataSourceFactory                      mDataSourceFactory;
+        @SuppressWarnings("WeakerAccess")
+        protected PagingViewModel(
+                @NonNull final BaseLiveData                      <D>    data,
+                @NonNull final Observer                          <D>    observer,
+                @NonNull final Callable<? extends DataSource<Key, T>>   dataSourceProducer,
+                @NonNull final Config                                   config,
+                @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter) {
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected        Runnable                               mRunnable;
-
-        protected PagingViewModel(@NonNull final BaseLiveData             <D>        data,
-                                  @NonNull final Observer                 <D>        observer,
-                                  @NonNull final Callable<DataSource<Key,  T>>       dataSourceProducer,
-                                  @NonNull final Config                              config,
-                                  @NonNull final PagingRecyclerViewAdapter<T, R, E>  adapter) {
             super(data, observer);
 
-            mDataSourceFactory  = new DataSourceFactory(dataSourceProducer);
+            mDataSourceFactory  = new DataSourceFactory<>(dataSourceProducer);
             mData               = new LivePagedListBuilder<>(mDataSourceFactory, config).build();
             mAdapter            = adapter;
         }
 
-        public void setOnChangedCallback(Runnable runnable) {
-            if (mRunnable != null) {
-                final Runnable oldRunnable = mRunnable, newRunnable = runnable;
-                runnable = new Runnable() {
-                    @Override
-                    public void run() {
-                        Utils.safeRunnableRun(oldRunnable);
-                        Utils.safeRunnableRun(newRunnable);
-                    }
-                };
-            }
-            mRunnable = runnable;
+        @SuppressWarnings("unused")
+        public void setOnChangedCallback(final Runnable callback) {
+            mCallback       = callback;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public void setOnSwipeToRefresh(final Runnable callback) {
+            mSwipeToRefresh = callback;
         }
 
         @Override
@@ -576,7 +595,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 public void onChanged(@Nullable PagedList<T> data) {
                     mAdapter.submitList(data);
 
-                    if (mRunnable != null) Utils.safeRunnableRun(mRunnable);
+                    if (mSwipeToRefresh != null) Utils.safeRunnableRun(mSwipeToRefresh);
+                    if (mCallback       != null) Utils.safeRunnableRun(mCallback);
                 }
             });
         }
@@ -587,17 +607,19 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         private static class ViewModelFactory<Key, T, R, E, D> extends BaseViewModelFactory<D> {
 
-            private final   Callable<DataSource<Key,  T>>       mDataSourceProducer;
-            private final   Config                              mConfig;
-            private final   PagingRecyclerViewAdapter<T, R, E>  mAdapter;
+            private final   Callable<? extends DataSource<Key,  T>>     mDataSourceProducer;
+            private final   Config                                      mConfig;
+            private final   PagingRecyclerViewAdapter<T, R, E>          mAdapter;
 
-            private ViewModelFactory(@NonNull final ViewModelStore                      store,
-                                     @NonNull final BaseLiveData             <D>        data,
-                                     @NonNull final Observer                 <D>        observer,
-                                              final String                              key,
-                                     @NonNull final Callable<DataSource<Key,  T>>       dataSourceProducer,
-                                     @NonNull final Config                              config,
-                                     @NonNull final PagingRecyclerViewAdapter<T, R, E>  adapter) {
+            private ViewModelFactory(
+                    @NonNull final ViewModelStore                           store,
+                    @NonNull final BaseLiveData                      <D>    data,
+                    @NonNull final Observer                          <D>    observer,
+                             final String                                   key,
+                    @NonNull final Callable<? extends DataSource<Key, T>>   dataSourceProducer,
+                    @NonNull final Config                                   config,
+                    @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter) {
+
                 super(store, data, observer, key);
 
                 mDataSourceProducer     = dataSourceProducer;
@@ -613,31 +635,33 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         private static class ViewModelProvider<Key, T, R, E, D> extends BaseViewModelProvider<D> {
 
-            private ViewModelProvider(@NonNull final ViewModelStore                      store,
-                                      @NonNull final BaseLiveData             <D>        data,
-                                      @NonNull final Observer                 <D>        observer,
-                                               final String                              key,
-                                      @NonNull final Callable<DataSource<Key,  T>>       dataSourceProducer,
-                                      @NonNull final Config                              config,
-                                      @NonNull final PagingRecyclerViewAdapter<T, R, E>  adapter) {
+            private ViewModelProvider(
+                    @NonNull final ViewModelStore                           store,
+                    @NonNull final BaseLiveData                      <D>    data,
+                    @NonNull final Observer                          <D>    observer,
+                             final String                                   key,
+                    @NonNull final Callable<? extends DataSource<Key, T>>   dataSourceProducer,
+                    @NonNull final Config                                   config,
+                    @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter) {
+
                 super(store, new ViewModelFactory<>(store, data, observer, key, dataSourceProducer,
                         config, adapter));
             }
         }
 
-        private class DataSourceFactory extends DataSource.Factory<Key, T> {
+        private class DataSourceFactory<S extends DataSource<Key, T>> extends DataSource.Factory<Key, T> {
 
-            private       WeakReference<MutableLiveData<DataSource<Key, T>>>   mDataSource;
-            private final Callable                     <DataSource<Key, T>>    mProducer;
+            private         MutableLiveData<S>                          mDataSource;
+            private final   Callable       <S>                          mProducer;
 
-            private DataSourceFactory(@NonNull final Callable<DataSource<Key, T>> producer) {
+            private DataSourceFactory(@NonNull final Callable<S> producer) {
                 mProducer = producer;
             }
 
-            @Override
             @NonNull
+            @Override
             public DataSource<Key, T> create() {
-                final DataSource<Key, T> dataSource;
+                final S dataSource;
 
                 try {
                     dataSource = mProducer.call();
@@ -666,20 +690,21 @@ public class BaseViewModel<D> extends AndroidViewModel {
                     };
                 }
 
-                mDataSource = new WeakReference<>(new MutableLiveData<>());
-                mDataSource.get().postValue(dataSource);
+                mDataSource = new MutableLiveData<>();
+                mDataSource.postValue(dataSource);
 
                 return dataSource;
             }
 
             private void handleStubCall() {
-                CoreLogger.log(new RuntimeException("invalid paging DataSource"));
+                CoreLogger.logError("invalid paging DataSource");
             }
 
+            @SuppressWarnings("WeakerAccess")
             public boolean invalidate() {
-                final MutableLiveData<DataSource<Key, T>> liveDataSource = mDataSource.get();
-                if (liveDataSource != null) {
-                    final DataSource<Key, T> dataSource = liveDataSource.getValue();
+                CoreLogger.log("about to invalidate DataSource");
+                if (mDataSource != null) {
+                    final DataSource<Key, T> dataSource = mDataSource.getValue();
                     if (dataSource != null) {
                         dataSource.invalidate();
                         return true;
@@ -690,12 +715,19 @@ public class BaseViewModel<D> extends AndroidViewModel {
             }
         }
 
+        @SuppressWarnings("WeakerAccess")
         public static Config getDefaultConfig() {
-            return getDefaultConfig(DEFAULT_PAGE_SISE);
+            return getDefaultConfig(DEFAULT_PAGE_SIZE);
         }
 
-        public static Config getDefaultConfig(final int pageSize) {
+        @SuppressWarnings("WeakerAccess")
+        public static Config getDefaultConfig(int pageSize) {
             final Config.Builder builder = new Config.Builder();
+            if (pageSize < 1) {
+                CoreLogger.logError("wrong page size " + pageSize +
+                        ", default one will be used: " + DEFAULT_PAGE_SIZE);
+                pageSize = DEFAULT_PAGE_SIZE;
+            }
             builder.setPageSize(pageSize);
             return builder.build();
         }
@@ -706,35 +738,35 @@ public class BaseViewModel<D> extends AndroidViewModel {
     public static class Builder<S extends BaseViewModel<D>, Key, T, R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     WeakReference<Activity>               mActivity;
+        protected     WeakReference<Activity>                   mActivity;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     ViewModelStore                        mStore;
+        protected     ViewModelStore                            mStore;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     LifecycleOwner                        mLifecycleOwner;
+        protected     LifecycleOwner                            mLifecycleOwner;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     BaseLiveData             <D>          mData;
+        protected     BaseLiveData             <D>              mData;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     String                                mKey;
+        protected     String                                    mKey;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     String                                mTableName;
+        protected     String                                    mTableName;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     Requester                <D>          mRequester;
+        protected     Requester                <D>              mRequester;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     Class                    <S>          mClass;
+        protected     Class                    <S>              mClass;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     BaseDialog                            mBaseDialog;
+        protected     BaseDialog                                mBaseDialog;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     UriResolver                           mUriResolver;
+        protected     UriResolver                               mUriResolver;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     Config                                mConfig;
+        protected     Config                                    mConfig;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     Integer                               mPageSize;
+        protected     Integer                                   mPageSize;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     Callable<DataSource<Key,  T>>         mDataSourceProducer;
+        protected     Callable<? extends DataSource<Key,  T>>   mDataSourceProducer;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     PagingRecyclerViewAdapter<T, R, E>    mAdapter;
+        protected     PagingRecyclerViewAdapter<T, R, E>        mAdapter;
 
-        private final Observer                 <D>          mObserver;
+        private final Observer                 <D>              mObserver;
 
         public Builder(@NonNull final Observer <D> observer) {
             mObserver = observer;
@@ -745,6 +777,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return this;
         }
 
+        @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setBaseLiveData(final BaseLiveData<D> baseLiveData) {
             mData = baseLiveData;
             return this;
@@ -765,16 +798,19 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return this;
         }
 
+        @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setClass(final Class<S> cls) {
             mClass = cls;
             return this;
         }
 
+        @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setBaseDialog(final BaseDialog baseDialog) {
             mBaseDialog = baseDialog;
             return this;
         }
 
+        @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setUriResolver(final UriResolver uriResolver) {
             mUriResolver = uriResolver;
             return this;
@@ -791,7 +827,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
 
         public Builder<S, Key, T, R, E, D> setDataSourceProducer(
-                final Callable<DataSource<Key, T>> dataSourceProducer) {
+                final Callable<? extends DataSource<Key, T>> dataSourceProducer) {
             mDataSourceProducer = dataSourceProducer;
             return this;
         }
@@ -804,7 +840,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         public Builder<S, Key, T, R, E, D> setActivity(final Activity activity) {
             if (activity != null) {
                 mActivity           = new WeakReference<>(activity);
-                mLifecycleOwner     = getLifecycleOwner(activity);;
+                mLifecycleOwner     = getLifecycleOwner(activity);
                 if (mStore ==  null)
                     mStore          = getViewModelStore(activity);
                 else
@@ -814,6 +850,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return this;
         }
 
+        @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setFragment(final Fragment fragment) {
             if (fragment != null) {
                 final Activity activity = fragment.getActivity();
@@ -863,7 +900,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
             final S result;
             if (mDataSourceProducer == null) {
-                if (mClass == null) mClass = castBaseViewModelClass();
+                if (mClass == null) mClass = castBaseViewModelClass(false);
 
                 result = new BaseViewModelProvider<>(mStore, mData, mObserver, mKey).get(mKey, mClass);
                 updateUi(mLifecycleOwner, mData, mObserver);
@@ -878,22 +915,17 @@ public class BaseViewModel<D> extends AndroidViewModel {
                             PagingViewModel.getDefaultConfig(mPageSize);
                 else if (mPageSize != null)
                     CoreLogger.logWarning("for PagedList both Config and page size are defined " +
-                            "in BaseViewModelBuilder, the page size will be ignored");
+                            "in BaseViewModelBuilder, the page size " + mPageSize + " will be ignored");
 
-                if (mClass == null) mClass = castPagingViewModelClass();
+                if (mClass == null) mClass = castBaseViewModelClass(true);
 
                 result = new PagingViewModel.ViewModelProvider<>(mStore, mData, mObserver, mKey,
                         mDataSourceProducer, mConfig, mAdapter).get(mKey, mClass);
-                ((PagingViewModel) result).updateUi(mLifecycleOwner);
+                result.updateUi(mLifecycleOwner);
             }
 
             CoreLogger.log("created BaseViewModel " + CoreLogger.getDescription(result));
             return result;
        }
-
-        @SuppressWarnings("unchecked")
-        private static <T extends ViewModel> Class<T> castPagingViewModelClass() {
-            return (Class<T>) PagingViewModel.class;
-        }
     }
 }

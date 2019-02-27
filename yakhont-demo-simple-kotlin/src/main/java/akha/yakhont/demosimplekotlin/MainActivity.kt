@@ -56,7 +56,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
 */
         val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
         Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
-                LocalJsonClient2(retrofit2), retrofit2).load()
+                LocalJsonClient2(retrofit2), retrofit2).start()
     }
 
     override fun onLocationChanged(location: Location, date: Date) {

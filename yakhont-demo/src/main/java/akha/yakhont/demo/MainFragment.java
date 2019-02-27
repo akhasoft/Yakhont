@@ -32,7 +32,7 @@ import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
-import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.Retrofit;
 import akha.yakhont.technology.retrofit.Retrofit.RetrofitRx;
@@ -75,16 +75,15 @@ import java.util.Objects;
 
 public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
-    private       CoreLoad                              mCoreLoad;
+    private       CoreLoad<? extends Throwable, ?>              mCoreLoad;
     @SuppressWarnings("unused")
-    private       boolean                               mNotDisplayLoadingErrors;
+    private       boolean                                       mNotDisplayLoadingErrors;
 
-    private       LocalJsonClient                       mJsonClient;
-    private       LocalJsonClient2                      mJsonClient2;
+    private       LocalJsonClient                               mJsonClient;
+    private       LocalJsonClient2                              mJsonClient2;
 
-    private       Retrofit <RetrofitApi,  List<BeerDefault>>
-                                                        mRetrofit;
-    private       Retrofit2<Retrofit2Api, List<Beer>>   mRetrofit2;
+    private       Retrofit <RetrofitApi,  List<BeerDefault>>    mRetrofit;
+    private       Retrofit2<Retrofit2Api, List<Beer>>           mRetrofit2;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -135,7 +134,8 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 //      if (savedInstanceState == null) akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.clearCache(mCoreLoad);
 // or                                   Utils.clearCache("your_table_name");
 
-        registerSwipeRefresh();              // SwipeRefreshLayout handling (optional)
+        // Swipe-To-Refresh handling (optional, remove here and in xml layout if not needed)
+        registerSwipeToRefresh();
 
         startLoading(savedInstanceState, false);
     }
@@ -146,14 +146,14 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
         mCoreLoad.setGoBackOnCancelLoading(!byUserRequest);
 
-        mCoreLoad.load(getActivity(), getLoadParameters(
+        mCoreLoad.start(getActivity(), getLoadParameters(
                 byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
                 !byUserRequest, mCheckBoxMerge.isChecked()));
     }
 
     private LoadParameters getLoadParameters(boolean forceCache, boolean noProgress, boolean merge) {
-        return new LoadParameters(null, null, forceCache, noProgress, merge,
-                mNotDisplayLoadingErrors, false, false);
+        return new LoadParameters.Builder().setForceCache(forceCache).setNoProgress(noProgress)
+                .setMerge(merge).setNoErrors(mNotDisplayLoadingErrors).create();
     }
 
     private void createLoaderForRetrofit2() {
@@ -398,15 +398,15 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         @Override
         public void onClick(View view) {
 
-            registerSwipeRefresh();
+            registerSwipeToRefresh();
 
             mCheckBoxForce.setEnabled(!mCheckBoxMerge.isChecked());
             mCheckBoxMerge.setEnabled(!mCheckBoxForce.isChecked());
         }
     };
 
-    private void registerSwipeRefresh() {
-        SwipeRefreshWrapper.register(getActivity(), R.id.swipeContainer, mCoreLoad.getLoaders(),
+    private void registerSwipeToRefresh() {
+        SwipeToRefreshWrapper.register(getActivity(), R.id.swipeContainer, mCoreLoad.getLoaders(),
                 getLoadParameters(mCheckBoxForce.isChecked(), false, mCheckBoxMerge.isChecked()));
     }
 
