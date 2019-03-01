@@ -36,21 +36,23 @@ import retrofit.mime.TypedInput;
  * based on implementation of Matt Swanson
  * (please refer to https://gist.github.com/swanson/7dee3f3474e30fe8f15c)
  */
-public class LocalJsonClient implements Client {
+public class LocalOkHttpClient implements Client {
 
-    private final LocalJsonClientHelper mLocalJsonClientHelper;
+    private static final String             TAG                         = "LocalOkHttpClient";
 
-    public LocalJsonClient(Context context) {
-        mLocalJsonClientHelper = new LocalJsonClientHelper(context);
+    private final LocalOkHttpClientHelper   mLocalOkHttpClientHelper;
+
+    public LocalOkHttpClient(Context context) {
+        mLocalOkHttpClientHelper = new LocalOkHttpClientHelper(context);
     }
 
-    public LocalJsonClientHelper getLocalJsonClientHelper() {
-        return mLocalJsonClientHelper;
+    public LocalOkHttpClientHelper getLocalOkHttpClientHelper() {
+        return mLocalOkHttpClientHelper;
     }
 
     @Override
     public Response execute(Request request) throws IOException {
-        final int delay = mLocalJsonClientHelper.getDelay();
+        final int delay = mLocalOkHttpClientHelper.getDelay();
         if (delay > 0) {
             final CountDownLatch countDownLatch = new CountDownLatch(1);
             //noinspection Convert2Lambda,Anonymous2MethodRef
@@ -64,20 +66,21 @@ public class LocalJsonClient implements Client {
                 countDownLatch.await();
             }
             catch (InterruptedException exception) {
-                Log.e("LocalJsonClient", "interrupted", exception);
+                Log.e(TAG, "interrupted", exception);
             }
         }
-        LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.getUrl(), request.getMethod());
+        LocalOkHttpClientHelper.Data data = mLocalOkHttpClientHelper.execute(request.getUrl(),
+                request.getMethod());
         //noinspection Convert2Diamond
-        return new Response(request.getUrl(), LocalJsonClientHelper.HTTP_CODE_OK, data.message(),
+        return new Response(request.getUrl(), LocalOkHttpClientHelper.HTTP_CODE_OK, data.message(),
                 new ArrayList<Header>(), new TypedInputStream(data));
     }
 
     private static class TypedInputStream implements TypedInput {
 
-        private final LocalJsonClientHelper.Data mData;
+        private final LocalOkHttpClientHelper.Data mData;
 
-        private TypedInputStream(LocalJsonClientHelper.Data data) {
+        private TypedInputStream(LocalOkHttpClientHelper.Data data) {
             mData = data;
         }
 
@@ -92,7 +95,7 @@ public class LocalJsonClient implements Client {
                 return mData.stream().available();
             }
             catch (IOException exception) {
-                Log.e("LocalJsonClient", "error", exception);
+                Log.e(TAG, "error", exception);
                 return 0;
             }
         }

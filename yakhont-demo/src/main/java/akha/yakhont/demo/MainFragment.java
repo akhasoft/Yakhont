@@ -20,8 +20,8 @@ import akha.yakhont.demo.gui.Bubbles;
 import akha.yakhont.demo.gui.SlideShow;
 import akha.yakhont.demo.model.Beer;
 import akha.yakhont.demo.model.BeerDefault;
-import akha.yakhont.demo.retrofit.LocalJsonClient;
-import akha.yakhont.demo.retrofit.LocalJsonClient2;
+import akha.yakhont.demo.retrofit.LocalOkHttpClient;
+import akha.yakhont.demo.retrofit.LocalOkHttpClient2;
 import akha.yakhont.demo.retrofit.RetrofitApi;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
 
@@ -79,8 +79,8 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     @SuppressWarnings("unused")
     private       boolean                                       mNotDisplayLoadingErrors;
 
-    private       LocalJsonClient                               mJsonClient;
-    private       LocalJsonClient2                              mJsonClient2;
+    private       LocalOkHttpClient                             mOkHttpClient;
+    private       LocalOkHttpClient2                            mOkHttpClient2;
 
     private       Retrofit <RetrofitApi,  List<BeerDefault>>    mRetrofit;
     private       Retrofit2<Retrofit2Api, List<Beer>>           mRetrofit2;
@@ -97,18 +97,18 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         String url = "http://localhost/";
 
         if (getMainActivity().isRetrofit2()) {
-            mRetrofit2   = new Retrofit2<>();
-            mJsonClient2 = new LocalJsonClient2(context, mRetrofit2);
-            mRetrofit2.init(Retrofit2Api.class, url, mJsonClient2);
+            mRetrofit2      = new Retrofit2<>();
+            mOkHttpClient2  = new LocalOkHttpClient2(context, mRetrofit2);
+            mRetrofit2.init(Retrofit2Api.class, url, mOkHttpClient2);
 
-            mJsonClient2.getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
+            mOkHttpClient2.getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
         }
         else {
-            mRetrofit   = new Retrofit<>();
-            mJsonClient = new LocalJsonClient(context);
-            mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder(url).setClient(mJsonClient));
+            mRetrofit       = new Retrofit<>();
+            mOkHttpClient   = new LocalOkHttpClient(context);
+            mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder(url).setClient(mOkHttpClient));
 
-            mJsonClient .getLocalJsonClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
+            mOkHttpClient .getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
         }
 
         // for normal HTTP requests it's much simpler - just something like this:
@@ -458,9 +458,9 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             String scenario = "part" + mPartCounter;
 
             if (getMainActivity().isRetrofit2())
-                mJsonClient2.getLocalJsonClientHelper().setScenario(scenario);
+                mOkHttpClient2.getLocalOkHttpClientHelper().setScenario(scenario);
             else
-                mJsonClient .getLocalJsonClientHelper().setScenario(scenario);
+                mOkHttpClient .getLocalOkHttpClientHelper().setScenario(scenario);
         }
     }
 

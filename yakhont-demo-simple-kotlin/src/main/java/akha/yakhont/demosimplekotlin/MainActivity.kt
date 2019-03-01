@@ -17,7 +17,7 @@
 package akha.yakhont.demosimplekotlin
 
 import akha.yakhont.demosimplekotlin.model.Beer
-import akha.yakhont.demosimplekotlin.retrofit.LocalJsonClient2
+import akha.yakhont.demosimplekotlin.retrofit.LocalOkHttpClient2
 import akha.yakhont.demosimplekotlin.retrofit.Retrofit2Api
 
 import akha.yakhont.callback.annotation.CallbacksInherited
@@ -56,7 +56,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
 */
         val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
         Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
-                LocalJsonClient2(retrofit2), retrofit2).start()
+                LocalOkHttpClient2(retrofit2), retrofit2).start()
     }
 
     override fun onLocationChanged(location: Location, date: Date) {

@@ -22,7 +22,7 @@ import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor
 
 import okhttp3.logging.HttpLoggingInterceptor
 
-class LocalJsonClient2(private val mRetrofit2: Retrofit2<*, *>): LocalJsonClient2Base() {
+class LocalOkHttpClient2(private val mRetrofit2: Retrofit2<*, *>): LocalOkHttpClient2Base() {
 
     private val mData = arrayOf(
             "Duvel",

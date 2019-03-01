@@ -31,7 +31,7 @@ import java.util.Objects;
  * based on implementation of Matt Swanson
  * (please refer to https://gist.github.com/swanson/7dee3f3474e30fe8f15c)
  */
-public class LocalJsonClientHelper {
+public class LocalOkHttpClientHelper {
 
     public static final int                 HTTP_CODE_OK                = 200;
 
@@ -39,7 +39,7 @@ public class LocalJsonClientHelper {
     private String                          mScenario;
     private int                             mEmulatedNetworkDelay;
 
-    public LocalJsonClientHelper(Context context) {
+    public LocalOkHttpClientHelper(Context context) {
         mContext = new WeakReference<>(context);
     }
 
@@ -76,7 +76,7 @@ public class LocalJsonClientHelper {
     }
 
     private void handleError(String msg) throws IOException {
-        Log.e("LocalJsonClientHelper", msg);
+        Log.e("LocalOkHttpClientHelper", msg);
         throw new IOException(msg);
     }
 

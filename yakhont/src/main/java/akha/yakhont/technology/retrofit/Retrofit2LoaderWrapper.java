@@ -246,7 +246,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         if (data == null)
             CoreLogger.logError("no data to cache found; if you're using your own " +
                     "OkHttpClient, please consider to add BodySaverInterceptor "        +
-                    "(for working example please refer to LocalJsonClient2 in demo-simple)");
+                    "(for working example please refer to LocalOkHttpClient2 in demo-simple)");
         return data == null ? null: mConverter.getValues(data.getType(), data.getResponse(), type);
     }
 
@@ -682,7 +682,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                         @NonNull final Requester<R>          requester,
                                                                  final Integer               dataBinding,
                                                                  final OkHttpClient          client,
-                                                                       Retrofit2<R, D>       retrofit) {
+                                                                 final Retrofit2<R, D>       retrofit) {
             return get(url, service, requester, dataBinding, client, retrofit,
                     null, null);
         }

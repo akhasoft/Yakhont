@@ -301,7 +301,8 @@ public class CoreReflection {
     }
 
     /**
-     * Returns contained objects if parameter is array or {@link Collection} - or null (but see below).
+     * Returns contained objects if parameter is array, or {@link Collection}, or null
+     * - but refer to the 'handleSingles' parameter.
      *
      * @param object
      *        The object

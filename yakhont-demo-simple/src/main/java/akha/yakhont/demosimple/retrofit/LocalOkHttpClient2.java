@@ -23,11 +23,11 @@ import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor;
 import okhttp3.logging.HttpLoggingInterceptor;
 
 // also base OkHttp3 local client, but with Yakhont dependencies
-public abstract class LocalJsonClient2 extends LocalJsonClient2Base {
+public abstract class LocalOkHttpClient2 extends LocalOkHttpClient2Base {
 
     private final   Retrofit2   mRetrofit2;
 
-    protected LocalJsonClient2(Retrofit2 retrofit2) {
+    protected LocalOkHttpClient2(Retrofit2 retrofit2) {
         mRetrofit2 = retrofit2;
         final HttpLoggingInterceptor logger = new HttpLoggingInterceptor();
         logger.setLevel(HttpLoggingInterceptor.Level.BODY);

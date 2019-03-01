@@ -51,22 +51,22 @@ import okio.ByteString;
 import okio.Timeout;
 
 // for Retrofit 2
-public class LocalJsonClient2 extends OkHttpClient {
+public class LocalOkHttpClient2 extends OkHttpClient {
 
-    private static final String             TAG                         = "LocalJsonClient2";
+    private static final String             TAG                         = "LocalOkHttpClient2";
 
     private final List<Interceptor>         mInterceptors               = new ArrayList<>();
-    private final LocalJsonClientHelper     mLocalJsonClientHelper;
+    private final LocalOkHttpClientHelper   mLocalOkHttpClientHelper;
 
     private final Retrofit2                 mRetrofit2;
 
-    public LocalJsonClient2(Context context, Retrofit2 retrofit2) {
+    public LocalOkHttpClient2(Context context, Retrofit2 retrofit2) {
         this(context, retrofit2, true);
     }
 
     @SuppressWarnings("WeakerAccess")
-    public LocalJsonClient2(Context context, Retrofit2 retrofit2, boolean addInterceptors) {
-        mLocalJsonClientHelper = new LocalJsonClientHelper(context);
+    public LocalOkHttpClient2(Context context, Retrofit2 retrofit2, boolean addInterceptors) {
+        mLocalOkHttpClientHelper = new LocalOkHttpClientHelper(context);
         mRetrofit2 = retrofit2;
         if (!addInterceptors) return;
 
@@ -83,16 +83,16 @@ public class LocalJsonClient2 extends OkHttpClient {
     }
 
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    public LocalJsonClient2 add(Interceptor interceptor) {
+    public LocalOkHttpClient2 add(Interceptor interceptor) {
         return handle(interceptor, true);
     }
 
     @SuppressWarnings("unused")
-    public LocalJsonClient2 remove(Interceptor interceptor) {
+    public LocalOkHttpClient2 remove(Interceptor interceptor) {
         return handle(interceptor, false);
     }
 
-    private LocalJsonClient2 handle(Interceptor interceptor, boolean add) {
+    private LocalOkHttpClient2 handle(Interceptor interceptor, boolean add) {
         if (interceptor == null)
             Log.w(TAG, "interceptor == null");
         else {
@@ -102,12 +102,12 @@ public class LocalJsonClient2 extends OkHttpClient {
         return this;
     }
 
-    public LocalJsonClientHelper getLocalJsonClientHelper() {
-        return mLocalJsonClientHelper;
+    public LocalOkHttpClientHelper getLocalOkHttpClientHelper() {
+        return mLocalOkHttpClientHelper;
     }
 
     private Response handle(final Request request) throws IOException {
-        LocalJsonClientHelper.Data data = mLocalJsonClientHelper.execute(request.url().toString(),
+        LocalOkHttpClientHelper.Data data = mLocalOkHttpClientHelper.execute(request.url().toString(),
                 request.method());
 
         InputStream stream = data.stream();
@@ -120,7 +120,7 @@ public class LocalJsonClient2 extends OkHttpClient {
         }
 
         return new Response.Builder()
-                .code(LocalJsonClientHelper.HTTP_CODE_OK)
+                .code(LocalOkHttpClientHelper.HTTP_CODE_OK)
                 .protocol(Protocol.HTTP_1_0)
                 .request(request)
                 .message(data.message())
@@ -161,7 +161,7 @@ public class LocalJsonClient2 extends OkHttpClient {
                     enqueueWrapper(callback);
                 }
             };
-            final int delay = mLocalJsonClientHelper.getDelay();
+            final int delay = mLocalOkHttpClientHelper.getDelay();
             if (delay > 0)
                 Utils.runInBackground(delay * 1000, runnable);
             else

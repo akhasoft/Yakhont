@@ -16,7 +16,7 @@
 
 package akha.yakhont.demosimple.retrofit;
 
-import akha.yakhont.demosimple.model.Beer;
+import akha.yakhont.demosimple.model.Data;
 
 import java.util.List;
 
@@ -27,5 +27,5 @@ public interface Retrofit2Api {
 
     @GET("/data")
     @SuppressWarnings("unused")
-    Call<List<Beer>> getData( /* @retrofit2.http.Query("parameter") String parameter */ );
+    Call<List<Data>> getData( /* @retrofit2.http.Query("parameter") String parameter */ );
 }

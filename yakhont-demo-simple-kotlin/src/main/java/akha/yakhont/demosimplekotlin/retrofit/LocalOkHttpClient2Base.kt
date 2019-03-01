@@ -41,29 +41,29 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.Timeout
 
-private const val TAG = "LocalJsonClient2"
+private const val TAG = "LocalOkHttpClient2"
 
-abstract class LocalJsonClient2Base: OkHttpClient() {
+abstract class LocalOkHttpClient2Base: OkHttpClient() {
 
     private val mInterceptors = ArrayList<Interceptor>()
     private var mEmulatedNetworkDelay: Int = 0
 
     protected abstract fun getJson(): String
 /*
-    fun setEmulatedNetworkDelay(delay: Int): LocalJsonClient2Base {
+    fun setEmulatedNetworkDelay(delay: Int): LocalOkHttpClient2Base {
         mEmulatedNetworkDelay = delay
         return this
     }
 */
-    fun add(interceptor: Interceptor): LocalJsonClient2Base {
+    fun add(interceptor: Interceptor): LocalOkHttpClient2Base {
         return handle(interceptor, true)
     }
 /*
-    fun remove(interceptor: Interceptor): LocalJsonClient2Base {
+    fun remove(interceptor: Interceptor): LocalOkHttpClient2Base {
         return handle(interceptor, false)
     }
 */
-    private fun handle(interceptor: Interceptor?, add: Boolean): LocalJsonClient2Base {
+    private fun handle(interceptor: Interceptor?, add: Boolean): LocalOkHttpClient2Base {
         if (interceptor == null)
             Log.w(TAG, "interceptor == null")
         else {

@@ -44,9 +44,9 @@ import okio.ByteString;
 import okio.Timeout;
 
 // base OkHttp3 local client (no Yakhont dependencies)
-public abstract class LocalJsonClient2Base extends OkHttpClient {
+public abstract class LocalOkHttpClient2Base extends OkHttpClient {
 
-    private static final String         TAG                         = "LocalJsonClient2";
+    private static final String         TAG                         = "LocalOkHttpClient2";
 
     private final List<Interceptor>     mInterceptors               = new ArrayList<>();
     private int                         mEmulatedNetworkDelay;
@@ -54,22 +54,22 @@ public abstract class LocalJsonClient2Base extends OkHttpClient {
     protected abstract String getJson();
 
     @SuppressWarnings("unused")
-    public LocalJsonClient2Base setEmulatedNetworkDelay(int delay) {
+    public LocalOkHttpClient2Base setEmulatedNetworkDelay(int delay) {
         mEmulatedNetworkDelay = delay;
         return this;
     }
 
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    public LocalJsonClient2Base add(Interceptor interceptor) {
+    public LocalOkHttpClient2Base add(Interceptor interceptor) {
         return handle(interceptor, true);
     }
 
     @SuppressWarnings("unused")
-    public LocalJsonClient2Base remove(Interceptor interceptor) {
+    public LocalOkHttpClient2Base remove(Interceptor interceptor) {
         return handle(interceptor, false);
     }
 
-    private LocalJsonClient2Base handle(Interceptor interceptor, boolean add) {
+    private LocalOkHttpClient2Base handle(Interceptor interceptor, boolean add) {
         if (interceptor == null)
             Log.w(TAG, "interceptor == null");
         else {

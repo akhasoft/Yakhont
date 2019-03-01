@@ -19,8 +19,8 @@
 
     <data>
         <variable
-            name="beer"
-            type="akha.yakhont.demosimple.model.Beer" />
+            name="data"
+            type="akha.yakhont.demosimple.model.Data" />
     </data>
 
     <LinearLayout
@@ -33,7 +33,7 @@
             android:id="@+id/title"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
-            android:text="@{beer.title}"
+            android:text="@{data.title}"
             android:layout_gravity="center_horizontal"
             android:gravity="center_horizontal"
             android:layout_margin="8dp" />

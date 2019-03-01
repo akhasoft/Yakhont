@@ -16,8 +16,8 @@
 
 package akha.yakhont.demosimple;
 
-import akha.yakhont.demosimple.model.Beer;
-import akha.yakhont.demosimple.retrofit.LocalJsonClient2;
+import akha.yakhont.demosimple.model.Data;
+import akha.yakhont.demosimple.retrofit.LocalOkHttpClient2;
 import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core;
@@ -50,7 +50,7 @@ import java.util.concurrent.Callable;
 @CallbacksInherited(LocationCallbacks.class)
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
-    private CoreLoad<Throwable, List<Beer>>     mLoader;
+    private CoreLoad<Throwable, List<Data>>     mLoader;
 
     private boolean                             mAdvertisementShown;
 
@@ -70,17 +70,17 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         ////////
         // normally it should be enough - but here we have the local client; so see below...
 
-        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.beer,
+        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.data,
                 (Callable<SamplePositionalSource >) SamplePositionalSource::new);
 
         ////////
 */
         setDebugLogging(BuildConfig.DEBUG);         // optional
 
-        Retrofit2<Retrofit2Api, List<Beer>> retrofit2 = new Retrofit2<>();
+        Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
 
         mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData,
-                BR.beer, new LocalOkHttpClient(retrofit2), retrofit2, LocalOkHttpClient.PAGE_SIZE,
+                BR.data, new LocalOkHttpClient(retrofit2), retrofit2, LocalOkHttpClient.PAGE_SIZE,
                 (Callable<SamplePositionalSource>) SamplePositionalSource::new);
 
         // uncomment if needed (both here and in xml layout -
@@ -88,24 +88,24 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 //      akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper.register(R.id.swipeContainer, mLoader);
     }
 
-    private class SamplePositionalSource extends PositionalDataSource<Beer> {
+    private class SamplePositionalSource extends PositionalDataSource<Data> {
         @Override
         public void loadInitial(@NonNull LoadInitialParams         params,
-                                @NonNull LoadInitialCallback<Beer> callback) {
+                                @NonNull LoadInitialCallback<Data> callback) {
             mLoader.setPagingCallback((data, source) -> callback.onResult(data,
                     0, LocalOkHttpClient.PAGE_SIZE * 1000)).start();
         }
 
         @Override
         public void loadRange(@NonNull LoadRangeParams         params,
-                              @NonNull LoadRangeCallback<Beer> callback) {
+                              @NonNull LoadRangeCallback<Data> callback) {
             mLoader.setPagingCallback((data, source) -> callback.onResult(data)).start();
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static class LocalOkHttpClient extends LocalJsonClient2 {
+    private static class LocalOkHttpClient extends LocalOkHttpClient2 {
 
         private static final int                PAGE_SIZE                       = 20;
 
@@ -127,6 +127,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void setDebugLogging(boolean debug) {
         if (!debug) return;
         Core.setFullLoggingInfo(true);
