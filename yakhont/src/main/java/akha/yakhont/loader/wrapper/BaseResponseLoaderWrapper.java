@@ -262,6 +262,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *
      * @param coreLoad
      *        The {@code CoreLoad} component
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data to load
      */
     @SuppressWarnings("unused")
     public static <E, D> void clearCache(final CoreLoad<E, D> coreLoad) {
@@ -1176,7 +1182,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * import com.yourpackage.model.YourData;
      * import com.yourpackage.retrofit.YourRetrofit;
      *
-     * import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeRefreshWrapper;
+     * import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;
      * import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
      * import akha.yakhont.technology.retrofit.Retrofit2;
      * import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
@@ -1191,7 +1197,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *         // optional Rx component
      *         Retrofit2Rx&lt;YourData[]&gt; rx = new Retrofit2Rx&lt;&gt;();
      *
-     *         CoreLoad coreLoad = new Retrofit2CoreLoadBuilder&lt;&gt;(this, getRetrofit()) {
+     *         CoreLoad&lt;?, YourData[]&gt; coreLoad = new Retrofit2CoreLoadBuilder&lt;&gt;(getRetrofit()) {
      *
      *             .setRequester(YourRetrofit::yourMethod)
      *             .setDataBinding(BR.yourDataBindingId)    // use Data Binding Library
@@ -1208,8 +1214,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *
      *             .create();
      *
-     *         // SwipeRefreshLayout handling (optional)
-     *         SwipeRefreshWrapper.register(getActivity(), R.id.swipeContainer, coreLoad.getLoaders());
+     *         // Swipe-To-Refresh handling (optional)
+     *         SwipeToRefreshWrapper.register(R.id.swipeContainer, coreLoad);
      *
      *         coreLoad.load();
      *     }
@@ -1252,6 +1258,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *     ...
      * ]
      * </pre>
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data to load
      *
      * @see BaseLoaderWrapper
      * @see SwipeToRefreshWrapper
@@ -1351,7 +1363,13 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     }
 
     /**
-     * The CoreLoad implementation.
+     * The CoreLoad default implementation.
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data to load
      */
     @SuppressWarnings("unused")
     public static class CoreLoader<E, D> implements CoreLoad<E, D> {
@@ -1494,7 +1512,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Builder class for {@link CoreLoad} objects.
+     * Builder class for {@link CoreLoad} instances.
      *
      * @param <C>
      *        The type of callback
@@ -1921,8 +1939,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Builder class for {@link CoreLoad} instances. For the moment just contains some common code
-     * for {@link BaseResponseLoaderBuilder} customization.
+     * Builder class for {@link CoreLoad} instances.
      *
      * @param <C>
      *        The type of callback

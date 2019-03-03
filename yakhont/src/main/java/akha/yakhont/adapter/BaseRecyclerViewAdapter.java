@@ -467,28 +467,63 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
         }
     };
 
+    /**
+     * Gets the default diff callback to use with {@link PagedListAdapter};
+     * to compare items uses {@link Object#equals(Object)}.
+     *
+     * @return  The {@code ItemCallback}
+     */
     public ItemCallback<T> getDefaultDiffCallback() {
         return mDefaultDiffCallback;
     }
 
+    /**
+     * The implementation of the {@link PagedListAdapter} to use with Paging Library.
+     *
+     * @param <T>
+     *        The type of {@code BaseResponse} values
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     */
     public static class PagingRecyclerViewAdapter<T, R, E> extends PagedListAdapter<T, ViewHolder> {
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         protected final BaseRecyclerViewAdapter<T, R, E, T>     mRecyclerViewAdapter;
 
-        public PagingRecyclerViewAdapter(@NonNull final ItemCallback<T> callback,
+        /**
+         * Initialises a newly created {@code PagingRecyclerViewAdapter} object.
+         *
+         * @param callback
+         *        The {@link ItemCallback}
+         *
+         * @param adapter
+         *        The {@link BaseRecyclerViewAdapter}
+         *
+         * @see     #getDefaultDiffCallback()
+         */
+        public PagingRecyclerViewAdapter(@NonNull final ItemCallback           <T         > callback,
                                          @NonNull final BaseRecyclerViewAdapter<T, R, E, T> adapter) {
             super(callback);
 
             mRecyclerViewAdapter = adapter;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @NonNull
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return mRecyclerViewAdapter.onCreateViewHolder(parent, viewType);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
             final T item = getItem(position);

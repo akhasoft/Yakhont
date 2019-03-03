@@ -24,9 +24,11 @@ import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.Requester;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
 
 import android.app.Activity;
 
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -543,8 +545,27 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * {@link BaseViewModel} extender, adjusted to work with Google paging library.
+     *
+     * @param <Key>
+     *        The {@link DataSource}'s key
+     *
+     * @param <T>
+     *        The type of {@code BaseResponse} values
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data
+     */
     public static class PagingViewModel<Key, T, R, E, D> extends BaseViewModel<D> {
 
+        /** The default page size (the value is {@value}). */
         @SuppressWarnings("WeakerAccess")
         public static final int                 DEFAULT_PAGE_SIZE           = 20;
 
@@ -560,6 +581,24 @@ public class BaseViewModel<D> extends AndroidViewModel {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected        Runnable                                           mSwipeToRefresh;
 
+        /**
+         * Initialises a newly created {@code PagingViewModel} object.
+         *
+         * @param data
+         *        The {@link BaseLiveData}
+         *
+         * @param observer
+         *        Please refer to {@link LiveData#observe}
+         *
+         * @param dataSourceProducer
+         *        The {@link DataSource} producer
+         *
+         * @param config
+         *        The {@link Config} for {@link PagedList}
+         *
+         * @param adapter
+         *        The {@link PagingRecyclerViewAdapter}
+         */
         @SuppressWarnings("WeakerAccess")
         protected PagingViewModel(
                 @NonNull final BaseLiveData                      <D>    data,
@@ -575,6 +614,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
             mAdapter            = adapter;
         }
 
+        /**
+         * Sets the callback to call from {@link Observer#onChanged}.
+         *
+         * @param callback
+         *        The callback
+         */
         @SuppressWarnings("unused")
         public void setOnChangedCallback(final Runnable callback) {
             mCallback       = callback;
@@ -585,6 +630,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
             mSwipeToRefresh = callback;
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void updateUi(@NonNull final LifecycleOwner lifecycleOwner) {
             super.updateUi(lifecycleOwner);
@@ -601,6 +649,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
             });
         }
 
+        /**
+         * Invalidates the current {@link DataSource} (if any).
+         *
+         * @return  {@code true} if the {@link DataSource} was invalidated, {@code false} otherwise
+         */
         public boolean invalidateDataSource() {
             return mDataSourceFactory.invalidate();
         }
@@ -735,6 +788,24 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    /**
+     * Builder class for {@link BaseViewModel} instances.
+     *
+     * @param <Key>
+     *        The {@link DataSource}'s key
+     *
+     * @param <T>
+     *        The type of {@code BaseResponse} values
+     *
+     * @param <R>
+     *        The type of network response
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data
+     */
     public static class Builder<S extends BaseViewModel<D>, Key, T, R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -768,75 +839,188 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         private final Observer                 <D>              mObserver;
 
+        /**
+         * Initialises a newly created {@code Builder} object.
+         *
+         * @param observer
+         *        The {@code Observer}
+         */
         public Builder(@NonNull final Observer <D> observer) {
-            mObserver = observer;
+            mObserver               = observer;
         }
 
+        /**
+         * Sets the {@code ViewModelStore} component.
+         *
+         * @param viewModelStore
+         *        The {@code ViewModelStore}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setViewModelStore(final ViewModelStore viewModelStore) {
-            mStore = viewModelStore;
+            mStore                  = viewModelStore;
             return this;
         }
 
+        /**
+         * Sets the {@code BaseLiveData} component.
+         *
+         * @param baseLiveData
+         *        The {@code BaseLiveData}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setBaseLiveData(final BaseLiveData<D> baseLiveData) {
-            mData = baseLiveData;
+            mData                   = baseLiveData;
             return this;
         }
 
+        /**
+         * Sets the {@code DataSource}'s key component.
+         *
+         * @param key
+         *        The {@code DataSource}'s key
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setKey(final String key) {
-            mKey = key;
+            mKey                    = key;
             return this;
         }
 
+        /**
+         * Sets the database cache table name.
+         *
+         * @param tableName
+         *        The table name
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setTableName(final String tableName) {
-            mTableName = tableName;
+            mTableName              = tableName;
             return this;
         }
 
+        /**
+         * Sets the requester component.
+         *
+         * @param requester
+         *        The {@code BaseResponseLoaderWrapper.Requester}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         *
+         * @see     CoreLoadExtendedBuilder#setRequester(BaseResponseLoaderWrapper.Requester)
+         */
         public Builder<S, Key, T, R, E, D> setRequester(final Requester<D> requester) {
-            mRequester = requester;
+            mRequester              = requester;
             return this;
         }
 
+        /**
+         * Sets the BaseViewModel's class.
+         *
+         * @param cls
+         *        The BaseViewModel's class
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setClass(final Class<S> cls) {
-            mClass = cls;
+            mClass                  = cls;
             return this;
         }
 
+        /**
+         * Sets the BaseDialog component.
+         *
+         * @param baseDialog
+         *        The {@code BaseDialog}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setBaseDialog(final BaseDialog baseDialog) {
-            mBaseDialog = baseDialog;
+            mBaseDialog             = baseDialog;
             return this;
         }
 
+        /**
+         * Sets the UriResolver component.
+         *
+         * @param uriResolver
+         *        The {@code UriResolver}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setUriResolver(final UriResolver uriResolver) {
-            mUriResolver = uriResolver;
+            mUriResolver            = uriResolver;
             return this;
         }
 
+        /**
+         * Sets the Config component (for paging configuration).
+         *
+         * @param config
+         *        The {@code Config}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setConfig(final Config config) {
-            mConfig = config;
+            mConfig                 = config;
             return this;
         }
 
+        /**
+         * Sets the page size (for paging configuration).
+         *
+         * @param pageSize
+         *        The {@code pageSize}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setPageSize(final Integer pageSize) {
-            mPageSize = pageSize;
+            mPageSize               = pageSize;
             return this;
         }
 
+        /**
+         * Sets DataSource producer for paging library.
+         *
+         * @param dataSourceProducer
+         *        The {@code DataSource} producer
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setDataSourceProducer(
                 final Callable<? extends DataSource<Key, T>> dataSourceProducer) {
-            mDataSourceProducer = dataSourceProducer;
+            mDataSourceProducer     = dataSourceProducer;
             return this;
         }
 
+        /**
+         * Sets the {@code PagingRecyclerViewAdapter} component.
+         *
+         * @param adapter
+         *        The {@link PagingRecyclerViewAdapter}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setAdapter(final PagingRecyclerViewAdapter<T, R, E> adapter) {
-            mAdapter = adapter;
+            mAdapter                = adapter;
             return this;
         }
 
+        /**
+         * Sets the {@link Activity} to use as a current Activity, a {@link LifecycleOwner}
+         * (and a {@link ViewModelStore} - if not yet defined).
+         *
+         * @param activity
+         *        The {@link Activity}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         public Builder<S, Key, T, R, E, D> setActivity(final Activity activity) {
             if (activity != null) {
                 mActivity           = new WeakReference<>(activity);
@@ -850,6 +1034,15 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return this;
         }
 
+        /**
+         * Sets the {@link Fragment} to use as a {@link LifecycleOwner}
+         * (and a {@link ViewModelStore} - if not yet defined).
+         *
+         * @param fragment
+         *        The {@link Fragment}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
         @SuppressWarnings("unused")
         public Builder<S, Key, T, R, E, D> setFragment(final Fragment fragment) {
             if (fragment != null) {
@@ -870,6 +1063,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
             return this;
         }
 
+        /**
+         * Returns the {@link BaseViewModel} with the arguments supplied to this builder.
+         *
+         * @return  The {@code BaseViewModel} instance
+         */
         public S create() {
             Activity activity = mActivity == null ? null: mActivity.get();
             if (activity == null) activity = Utils.getCurrentActivity();

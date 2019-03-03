@@ -527,7 +527,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Helper class for Retrofit 2. Usage example (copied from Yakhont demo simple):
+     * Helper class for Retrofit 2. Very simplified usage example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * public class YourActivity extends AppCompatActivity {
@@ -539,7 +539,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
      *         // your code here: setContentView(...), RecyclerView.setLayoutManager(...) etc.
      *
-     *         Retrofit2Loader.load("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id);
+     *         Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id);
      *     }
      * }
      * </pre>

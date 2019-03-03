@@ -47,7 +47,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-@CallbacksInherited(LocationCallbacks.class)
+@CallbacksInherited( /* value = */ LocationCallbacks.class /* , parameters = "permissions rationale demo" */ )
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
     private CoreLoad<Throwable, List<Data>>     mLoader;
@@ -64,8 +64,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(
-                new LinearLayoutManager(this));
+        ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(new LinearLayoutManager(this));
 /*
         ////////
         // normally it should be enough - but here we have the local client; so see below...
@@ -80,11 +79,23 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
 
         mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData,
-                BR.data, new LocalOkHttpClient(retrofit2), retrofit2, LocalOkHttpClient.PAGE_SIZE,
-                (Callable<SamplePositionalSource>) SamplePositionalSource::new);
-
-        // uncomment if needed (both here and in xml layout -
-        //  but also don't forget to provide real DataSource instead of stub here)
+                BR.data, new LocalOkHttpClient(retrofit2) /* .setEmulatedNetworkDelay(10) */ , retrofit2,
+                LocalOkHttpClient.PAGE_SIZE, (Callable<SamplePositionalSource>) SamplePositionalSource::new)
+                /* .setGoBackOnCancelLoading(false); // to stay in Activity if user cancelled data loading */ ;
+/*
+        // exactly the same as code above, but allows more customization (via a lot of setters)
+        retrofit2.init(Retrofit2Api.class, "http://localhost/", new LocalOkHttpClient(retrofit2));
+        mLoader = new akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder<>(retrofit2)
+                .setRequester(Retrofit2Api::getData)
+// or           .setRequester(retrofit2Api -> retrofit2Api.getData("some parameter(s)"))
+                .setDataBinding(BR.data)
+                .setPageSize(LocalOkHttpClient.PAGE_SIZE)
+                .setPagingDataSourceProducer((Callable<SamplePositionalSource>) SamplePositionalSource::new)
+                .create();
+        mLoader.start(this, akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters.NO_LOAD);
+*/
+        // uncomment (both here and in xml layout) to use build-in Swipe-To-Refresh -
+        //  but also don't forget to provide real DataSource instead of stub here
 //      akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper.register(R.id.swipeContainer, mLoader);
     }
 
