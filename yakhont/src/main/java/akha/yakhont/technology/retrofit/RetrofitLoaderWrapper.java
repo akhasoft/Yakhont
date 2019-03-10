@@ -388,27 +388,36 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             return create(builder);
         }
     }
-}
 
-class RetrofitException extends AndroidException {
+    /**
+     * Extends {@link AndroidException} and used to handle Retrofit errors.
+     */
+    public static class RetrofitException extends AndroidException {
 
-    @SuppressWarnings("unused")
-    RetrofitException(final RetrofitError error) {
-        super(error);
-    }
-
-    @NonNull
-    @Override
-    public String toString() {
-        final RetrofitError error = (RetrofitError) getCause();
-        if (error == null) return "null";
-
-        try {
-            return String.format("RetrofitError (%s, %s, %s)", error.getKind().name(), error.getUrl(), error.toString());
+        /**
+         * Please refer to the {@link AndroidException#AndroidException(Exception)}.
+         */
+        @SuppressWarnings("unused")
+        public RetrofitException(final RetrofitError error) {
+            super(error);
         }
-        catch (Exception exception) {
-            CoreLogger.log(exception);
-            return "can not handle RetrofitError";
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        public String toString() {
+            final RetrofitError error = (RetrofitError) getCause();
+            if (error == null) return "null";
+
+            try {
+                return String.format("RetrofitError (%s, %s, %s)", error.getKind().name(), error.getUrl(), error.toString());
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception);
+                return "can not handle RetrofitError";
+            }
         }
     }
 }

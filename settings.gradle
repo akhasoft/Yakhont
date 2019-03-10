@@ -15,3 +15,4 @@
  */
 
 include ':yakhont', ':yakhont-weaver', ':yakhont-demo', ':yakhont-demo-simple', ':yakhont-demo-simple-kotlin'
+enableFeaturePreview('STABLE_PUBLISHING')

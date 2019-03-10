@@ -137,7 +137,9 @@ demo applications can be downloaded from the
 Add the following to your build.gradle (you can use **build.gradle** files from [demo](yakhont-demo/build.gradle)
 and [simplified demo](yakhont-demo-simple-kotlin/build.gradle) as working examples).
 
-1. Update the **buildscript** block:
+1. Update the **buildscript** block (the Yakhont components (com.github.akhasoft:yakhont...) are 
+available from both [jcenter](http://jcenter.bintray.com/com/github/akhasoft/)
+and [mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/)):
 
 ```groovy
 buildscript {
@@ -149,8 +151,6 @@ buildscript {
     }
 }
 ```
-   **Note:** the Yakhont components (com.github.akhasoft:yakhont...) are available from 
-             both [jcenter](http://jcenter.bintray.com/com/github/akhasoft/) and [mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/).
 
 2. Update the **android** block:
 
@@ -172,17 +172,13 @@ dependencies {
     implementation    'com.github.akhasoft:yakhont:0.9.19'
 //  or
 //  implementation    'com.github.akhasoft:yakhont-full:0.9.19'
-}
-```
-   And if you're about to customize Yakhont using build-in [Dagger 2](http://google.github.io/dagger/), the following lines are required:
 
-```groovy
-dependencies {
+//  and if you're going to customize Yakhont using build-in Dagger 2:
     implementation      'com.google.dagger:dagger:2.x'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.x'
+//  for Kotlin replace 'annotationProcessor' with 'kapt'
 }
 ```
-   **Note:** for Kotlin replace 'annotationProcessor' with 'kapt'.
 
 4. The code which runs Yakhont Weaver:
 
@@ -204,7 +200,7 @@ android.applicationVariants.all { variant ->
     }
 }
 ```
-    4.2. For Kotlin (plus - optionally - Java):
+      4.2. For Kotlin (plus - optionally - Java):
 ```groovy
 // use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
@@ -226,14 +222,9 @@ android.applicationVariants.all { variant ->
 }
 ```
 
-```
-Here the Yakhont Weaver manipulates the Java (and Kotlin) bytecode just compiled, which makes possible
-to alternate classes implementation (e.g. add / modify callbacks in Activities and Fragments)
-without changing their source code.
-```
-
-   **Note:** the Google "Jack and Jill" technology is not supporting bytecode manipulation -
-             but is no longer supported too.
+    Here the Yakhont Weaver manipulates the Java (and Kotlin) bytecode just compiled, which makes possible
+    to alternate classes implementation (e.g. add / modify callbacks in Activities and Fragments)
+    without changing their source code.
 
 5. Finally, don't forget to add to your _AndroidManifest.xml_ something like code 
 snippet below (if you're going to use build-in cache):
@@ -251,8 +242,6 @@ snippet below (if you're going to use build-in cache):
         
 </application>        
 ```
-
-   **Note:** "your_package_name" is a placeholder, you should provide real name, e.g. "com.yourpackage". 
 
 ## Weaver: usage and configuration
 

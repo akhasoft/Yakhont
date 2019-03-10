@@ -24,13 +24,14 @@ import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.Requester;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
 
 import android.app.Activity;
 
-import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.Size;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.AndroidViewModel;
@@ -38,7 +39,6 @@ import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.Observer;
-import androidx.lifecycle.ProcessLifecycleOwner;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelProvider.Factory;
@@ -69,14 +69,17 @@ import java.util.concurrent.Callable;
  */
 public class BaseViewModel<D> extends AndroidViewModel {
 
-    private static final String                 DEFAULT_KEY     = "cf2a52ae-6f9f-4800-8f14-bc8a2794de8e";
-
-    private static final ViewModelStore         sStubStore      = new ViewModelStore();
+    private static final String                 DEFAULT_KEY         = "cf2a52ae-6f9f-4800-8f14-bc8a2794de8e";
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final BaseLiveData<D>        mData;
+
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final Observer    <D>        mObserver;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected            boolean                mObserverSetFlag;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected      final Object                 mObserverSetLock    = new Object();
 
     /**
      * Initialises a newly created {@code BaseViewModel} object.
@@ -97,52 +100,104 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static <D> void updateUi(@NonNull final LifecycleOwner   lifecycleOwner,
-                                       @NonNull final LiveData<D>      liveData,
-                                       @NonNull final Observer<D>      observer) {
+    protected static <D> Observer<D> updateUi(@NonNull @Size(min = 1, max = 1) final boolean[] observerSet,
+                                              @NonNull final Level level, final boolean stop,
+                                                       final LifecycleOwner lifecycleOwner,
+                                              @NonNull final LiveData<D> liveData,
+                                              @NonNull final Observer<D> observer) {
+        final boolean force = lifecycleOwner == null;
+
+        if (stop) {
+            if (!observerSet[0] && force) {
+                CoreLogger.logWarning("can't remove observer 'cause it not set");
+                return null;
+            }
+        }
+        else if (observerSet[0]) {
+            //noinspection ConstantConditions
+            if (level != null) {
+                CoreLogger.log(level, "can't set observer 'cause it already set");
+                return null;
+            }
+            else
+                CoreLogger.log("about to set new observer although the previous one not removed yet");
+        }
+
         try {
-            liveData.observe(lifecycleOwner, observer);
+            if (force) {
+                if (stop)
+                    liveData.removeObserver(observer);
+                else
+                    liveData.observeForever(observer);
+
+                observerSet[0] = !stop;
+                return observer;
+            }
+            else if (!stop) {
+                liveData.observe(lifecycleOwner, observer);
+                observerSet[0] = true;
+            }
         }
         catch (Exception exception) {
             CoreLogger.log(exception);
         }
+
+        return null;
     }
 
-    /**
-     * Please refer to {@link LiveData#observe}.
-     */
-    @SuppressWarnings("WeakerAccess")
-    public void updateUi(@NonNull final LifecycleOwner lifecycleOwner) {
-        updateUi(lifecycleOwner, mData, mObserver);
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected boolean[] getObserverSet() {
+        final boolean[] observerSet = new boolean[1];
+        observerSet[0] = mObserverSetFlag;
+        return observerSet;
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Observer<D> updateUi(final Level level, final boolean stop, final LifecycleOwner owner,
+                                   final Runnable callback) {
+        synchronized (mObserverSetLock) {
+            final boolean[] observerSet = getObserverSet();
+
+            final Observer<D> result = updateUi(observerSet, level, stop, owner, mData, mObserver);
+            try {
+                if (callback != null) callback.run();
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception);
+            }
+
+            mObserverSetFlag = observerSet[0];
+            return result;
+        }
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "UnusedReturnValue"})
+    protected Observer<D> updateUi(final Level level, final boolean stop, final LifecycleOwner owner) {
+        return updateUi(level, stop, owner, null);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static void updateUiFragmentForWeaver(@NonNull final Fragment fragment) {
+    public static void updateUiFragmentForWeaver(final boolean stop, @NonNull final Fragment fragment) {
         final Collection<BaseViewModel<?>> models = new ArrayList<>();
 
         BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null,
                 models, CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models)
-            model.updateUi(fragment);
+            model.updateUi(null, stop, fragment);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static void updateUiActivityForWeaver(@NonNull final Activity activity) {
+    public static void updateUiActivityForWeaver(final boolean stop, @NonNull final Activity activity) {
         final Collection<BaseViewModel<?>> models = getViewModels(activity, false,
                 CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models)
-            model.updateUi(getLifecycleOwner(activity));
+            model.updateUi(null, stop, getLifecycleOwner(activity));
     }
 
     private static LifecycleOwner getLifecycleOwner(final Activity activity) {
-        if (activity instanceof LifecycleOwner)
-            return (LifecycleOwner) activity;
-
-        CoreLogger.logWarning("about to use ProcessLifecycleOwner for " +
-                CoreLogger.getDescription(activity));
-        return ProcessLifecycleOwner.get();
+        return activity instanceof LifecycleOwner ? (LifecycleOwner) activity: null;
     }
 
     /**
@@ -152,26 +207,38 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *        The Activity
      *
      * @return  The ViewModelStore
+     *
+     * @throws  ViewModelException
+     *          please refer to the exception description
      */
     public static ViewModelStore getViewModelStore(Activity activity) {
-
         if (activity == null) {
             CoreLogger.logWarning("getViewModelStore: about to use current Activity");
             activity = Utils.getCurrentActivity();
         }
-
         if (activity instanceof FragmentActivity)
             return ((FragmentActivity) activity).getViewModelStore();
         if (activity instanceof ViewModelStoreOwner)
             return ((ViewModelStoreOwner) activity).getViewModelStore();
 
-        logUnexpectedActivity(activity);
-        return sStubStore;
+        throw new ViewModelException("unexpected activity (should be ViewModelStoreOwner or " +
+                "FragmentActivity): " + CoreLogger.getDescription(activity));
     }
 
-    private static void logUnexpectedActivity(final Activity activity) {
-        CoreLogger.logError("unexpected activity (should be ViewModelStoreOwner or FragmentActivity): "
-                + CoreLogger.getDescription(activity));
+    /**
+     * Extends {@link RuntimeException} and will be thrown if given Activity can't provide
+     * {@link ViewModelStore} instance.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static class ViewModelException extends RuntimeException {
+
+        /**
+         * Please refer to the {@link RuntimeException#RuntimeException(String)}.
+         */
+        @SuppressWarnings("WeakerAccess")
+        public ViewModelException(final String message) {
+            super(message);
+        }
     }
 
     /**
@@ -565,19 +632,20 @@ public class BaseViewModel<D> extends AndroidViewModel {
      */
     public static class PagingViewModel<Key, T, R, E, D> extends BaseViewModel<D> {
 
-        /** The default page size (the value is {@value}). */
+        /** The default page size (value is {@value}). */
         @SuppressWarnings("WeakerAccess")
-        public static final int                 DEFAULT_PAGE_SIZE           = 20;
+        public static final int                                             DEFAULT_PAGE_SIZE   = 20;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final  LiveData<PagedList       <T>>                      mData;
+        protected final  LiveData<PagedList<                         T>>    mDataPaged;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final  Observer          <PagedList<               T>>    mObserverPaged;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  PagingRecyclerViewAdapter<T, R, E>                 mAdapter;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  DataSourceFactory<? extends DataSource<Key, T>>    mDataSourceFactory;
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected        Runnable                                           mCallback;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected        Runnable                                           mSwipeToRefresh;
 
@@ -610,19 +678,18 @@ public class BaseViewModel<D> extends AndroidViewModel {
             super(data, observer);
 
             mDataSourceFactory  = new DataSourceFactory<>(dataSourceProducer);
-            mData               = new LivePagedListBuilder<>(mDataSourceFactory, config).build();
+            mDataPaged          = new LivePagedListBuilder<>(mDataSourceFactory, config).build();
             mAdapter            = adapter;
-        }
 
-        /**
-         * Sets the callback to call from {@link Observer#onChanged}.
-         *
-         * @param callback
-         *        The callback
-         */
-        @SuppressWarnings("unused")
-        public void setOnChangedCallback(final Runnable callback) {
-            mCallback       = callback;
+            //noinspection Convert2Lambda
+            mObserverPaged      = new Observer<PagedList<T>>() {
+                @Override
+                public void onChanged(@Nullable PagedList<T> data) {
+                    mAdapter.submitList(data);
+
+                    if (mSwipeToRefresh != null) Utils.safeRunnableRun(mSwipeToRefresh);
+                }
+            };
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -630,21 +697,15 @@ public class BaseViewModel<D> extends AndroidViewModel {
             mSwipeToRefresh = callback;
         }
 
-        /**
-         * Please refer to the base method description.
-         */
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @Override
-        public void updateUi(@NonNull final LifecycleOwner lifecycleOwner) {
-            super.updateUi(lifecycleOwner);
-
-            //noinspection Convert2Lambda,Anonymous2MethodRef
-            updateUi(lifecycleOwner, mData, new Observer<PagedList<T>>() {
+        protected Observer<D> updateUi(final Level level, final boolean stop, final LifecycleOwner owner) {
+            //noinspection Convert2Lambda
+            return super.updateUi(level, stop, owner, new Runnable() {
                 @Override
-                public void onChanged(@Nullable PagedList<T> data) {
-                    mAdapter.submitList(data);
+                public void run() {
+                    updateUi(getObserverSet(), level, stop, owner, mDataPaged, mObserverPaged);
 
-                    if (mSwipeToRefresh != null) Utils.safeRunnableRun(mSwipeToRefresh);
-                    if (mCallback       != null) Utils.safeRunnableRun(mCallback);
                 }
             });
         }
@@ -1101,7 +1162,6 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 if (mClass == null) mClass = castBaseViewModelClass(false);
 
                 result = new BaseViewModelProvider<>(mStore, mData, mObserver, mKey).get(mKey, mClass);
-                updateUi(mLifecycleOwner, mData, mObserver);
             }
             else {
                 if (mAdapter == null) {
@@ -1119,7 +1179,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
                 result = new PagingViewModel.ViewModelProvider<>(mStore, mData, mObserver, mKey,
                         mDataSourceProducer, mConfig, mAdapter).get(mKey, mClass);
-                result.updateUi(mLifecycleOwner);
+            }
+
+            synchronized (result.mObserverSetLock) {
+                if (!result.mObserverSetFlag) result.updateUi(Level.ERROR, false, mLifecycleOwner);
             }
 
             CoreLogger.log("created BaseViewModel " + CoreLogger.getDescription(result));
