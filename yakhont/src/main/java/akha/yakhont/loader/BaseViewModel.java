@@ -25,6 +25,7 @@ import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.Requester;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
 
 import android.app.Activity;
@@ -54,8 +55,9 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
@@ -69,23 +71,22 @@ import java.util.concurrent.Callable;
  */
 public class BaseViewModel<D> extends AndroidViewModel {
 
-    private static final String                 DEFAULT_KEY         = "cf2a52ae-6f9f-4800-8f14-bc8a2794de8e";
+    private static final String                 DEFAULT_KEY         = "yakhont-default-viewmodel-key";
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final BaseLiveData<D>        mData;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final Observer    <D>        mObserver;
+
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected            boolean                mObserverSetFlag;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected      final Object                 mObserverSetLock    = new Object();
+    protected            List<CoreLoad<?, ?>>   mCoreLoads;
 
     /**
-     * Initialises a newly created {@code BaseViewModel} object.
+     * Initialises a newly created {@link BaseViewModel} object.
      *
      * @param data
-     *        The {@code BaseLiveData}
+     *        The {@link BaseLiveData}
      *
      * @param observer
      *        Please refer to {@link LiveData#observe}
@@ -93,87 +94,333 @@ public class BaseViewModel<D> extends AndroidViewModel {
     @SuppressWarnings("WeakerAccess")
     protected BaseViewModel(@NonNull final BaseLiveData<D>     data,
                             @NonNull final Observer    <D>     observer) {
-        super(Objects.requireNonNull(Utils.getApplication()));
+        super(Utils.getApplication());
 
         mData     = data;
         mObserver = observer;
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static <D> Observer<D> updateUi(@NonNull @Size(min = 1, max = 1) final boolean[] observerSet,
-                                              @NonNull final Level level, final boolean stop,
-                                                       final LifecycleOwner lifecycleOwner,
-                                              @NonNull final LiveData<D> liveData,
-                                              @NonNull final Observer<D> observer) {
-        final boolean force = lifecycleOwner == null;
+    /**
+     * Returns the {@link BaseViewModel} for the current {@link Activity}.
+     *
+     * @param <S>
+     *        The type of {@link BaseViewModel}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link BaseViewModel}
+     */
+    public static <S extends BaseViewModel<D>, D> S get() {
+        return get((Activity) null, null);
+    }
 
-        if (stop) {
-            if (!observerSet[0] && force) {
-                CoreLogger.logWarning("can't remove observer 'cause it not set");
-                return null;
-            }
+    /**
+     * Returns the {@link BaseViewModel} for the given {@link Activity} and key (if any).
+     *
+     * @param activity
+     *        The {@link Activity}
+     *
+     * @param key
+     *        The {@link BaseViewModel} key or null for default value
+     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *
+     * @param <S>
+     *        The type of {@link BaseViewModel}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link BaseViewModel}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <S extends BaseViewModel<D>, D> S get(Activity activity, final String key) {
+        if (activity == null) activity = Utils.getCurrentActivity();
+
+        final S result = get(getViewModelStore(activity), key);
+        if (result == null)
+            CoreLogger.logError("can't find ViewModel for Activity " + CoreLogger.getDescription(activity));
+
+        return result;
+    }
+
+    /**
+     * Returns the {@link BaseViewModel} for the given {@link Fragment} and key (if any).
+     *
+     * @param fragment
+     *        The {@link Fragment}
+     *
+     * @param key
+     *        The {@link BaseViewModel} key or null for default value
+     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *
+     * @param <S>
+     *        The type of {@link BaseViewModel}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link BaseViewModel}
+     */
+    @SuppressWarnings({"WeakerAccess", "unused"})
+    public static <S extends BaseViewModel<D>, D> S get(final Fragment fragment, final String key) {
+        if (fragment == null) {
+            CoreLogger.logError("fragment == null");
+            return null;
         }
-        else if (observerSet[0]) {
-            //noinspection ConstantConditions
-            if (level != null) {
-                CoreLogger.log(level, "can't set observer 'cause it already set");
-                return null;
+
+        final S result = get(getViewModelStore(fragment), key);
+        if (result == null)
+            CoreLogger.logError("can't find ViewModel for Fragment " + CoreLogger.getDescription(fragment));
+
+        return result;
+    }
+
+    /**
+     * Returns the {@link BaseViewModel} for the given {@link ViewModelStore} and key (if any).
+     *
+     * @param store
+     *        The {@link ViewModelStore}
+     *
+     * @param key
+     *        The {@link BaseViewModel} key or null for default value
+     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *
+     * @param <S>
+     *        The type of {@link BaseViewModel}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link BaseViewModel}
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <S extends BaseViewModel<D>, D> S get(final ViewModelStore store, final String key) {
+        final WeakReference<S> weak = getWeak(store, key);
+        if (weak != null) {
+            final S result = weak.get();
+            if (result == null)
+                CoreLogger.logWarning("null WeakReference.get() for key " + key + ", ViewModelStore " +
+                        CoreLogger.getDescription(store));
+            return result;
+        }
+        return null;
+    }
+
+    /**
+     * Returns the weak reference to {@link BaseViewModel} for the given {@link ViewModelStore}
+     * and key (if any).
+     *
+     * @param store
+     *        The {@link ViewModelStore}
+     *
+     * @param key
+     *        The {@link BaseViewModel} key or null for default value
+     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *
+     * @param <S>
+     *        The type of {@link BaseViewModel}
+     *
+     * @param <D>
+     *        The type of data
+     *
+     * @return  The {@link BaseViewModel}
+     *
+     * @see     WeakReference
+     */
+    @SuppressWarnings({"unchecked", "WeakerAccess"})
+    public static <S extends BaseViewModel<D>, D> WeakReference<S> getWeak(final ViewModelStore store,
+                                                                           final String         key) {
+        final boolean[] empty = new boolean[] {true};
+        getWeak(store, empty);
+
+        if (!empty[0]) {
+            final Map<String, WeakReference<? extends BaseViewModel<?>>> map =
+                    BaseViewModelProvider.getHelper(store);
+
+            final WeakReference<S> ref;
+            if (key != null)
+                ref = (WeakReference<S>) map.get(key);
+            else {
+                if (map.size() > 1) {
+                    final WeakReference<S> tmp = (WeakReference<S>) map.get(DEFAULT_KEY);
+                    ref = tmp != null ? tmp: (WeakReference<S>) getHelper(map);
+                    CoreLogger.logWarning("expected ViewModel collection size 1, but actually " +
+                            map.size() + ", ViewModelStore " + CoreLogger.getDescription(store));
+                }
+                else
+                    ref = (WeakReference<S>) getHelper(map);
+            }
+            if (ref != null) return ref;
+
+            CoreLogger.logWarning("null WeakReference for key " + key + ", ViewModelStore " +
+                    CoreLogger.getDescription(store));
+        }
+
+        CoreLogger.logWarning("can't find ViewModel for key " + key + ", ViewModelStore " +
+                CoreLogger.getDescription(store));
+        return null;
+    }
+
+    private static Collection<WeakReference<? extends BaseViewModel<?>>> get(
+            final Map<String, WeakReference<? extends BaseViewModel<?>>> map) {
+        final Collection<WeakReference<? extends BaseViewModel<?>>> result =
+                map == null ? null: map.values();
+        if (result == null)
+            CoreLogger.logWarning("null map");
+        return result;
+    }
+
+    private static WeakReference<? extends BaseViewModel<?>> get(
+            final Collection<WeakReference<? extends BaseViewModel<?>>> values) {
+        final Iterator<WeakReference<? extends BaseViewModel<?>>> iterator =
+                values == null ? null: values.iterator();
+        if (iterator == null)
+            CoreLogger.logWarning("null values");
+        return iterator == null ? null: iterator.next();
+    }
+
+    private static WeakReference<? extends BaseViewModel<?>> getHelper(
+            final Map<String, WeakReference<? extends BaseViewModel<?>>> map) {
+        return get(get(map));
+    }
+
+    /**
+     * Returns the {@link BaseViewModel}'s weak references collection kept in this {@link ViewModel}.
+     *
+     * @param store
+     *        The {@link ViewModelStore}
+     *
+     * @return  The {@link BaseViewModel}
+     *
+     * @see     WeakReference
+     */
+    @SuppressWarnings("unused")
+    public static Collection<WeakReference<? extends BaseViewModel<?>>> getWeak(final ViewModelStore store) {
+        return getWeak(store, (boolean[]) null);
+    }
+
+    private static Collection<WeakReference<? extends BaseViewModel<?>>> getWeak(
+            final ViewModelStore store, @Size(min = 1, max = 1) final boolean[] empty) {
+        if (store == null) {
+            CoreLogger.logError("ViewModelStore == null");
+            return null;
+        }
+        final Map<String, WeakReference<? extends BaseViewModel<?>>> map =
+                BaseViewModelProvider.sMap.get(store);
+        if (map != null) {
+            if (empty == null) {
+                final Collection<WeakReference<? extends BaseViewModel<?>>> models = map.values();
+                if (models.size() != 0) return models;
             }
             else
-                CoreLogger.log("about to set new observer although the previous one not removed yet");
-        }
+                empty[0] = map.size() == 0;
 
+            if (map.size() == 0)
+                CoreLogger.logWarning("empty collection of ViewModels for ViewModelStore " +
+                        CoreLogger.getDescription(store));
+        }
+        else
+            CoreLogger.logWarning("no ViewModels found for ViewModelStore " +
+                    CoreLogger.getDescription(store));
+        return null;
+    }
+
+    /**
+     * Returns the {@link CoreLoad}'s collection kept in this {@link ViewModel}
+     * (mostly for screen orientation changes handling).
+     *
+     * @return  The {@link CoreLoad}'s collection
+     */
+    public List<CoreLoad<?, ?>> getCoreLoads() {
+        if (mCoreLoads == null)
+            CoreLogger.logWarning("null collection of CoreLoads");
+        if (mCoreLoads != null && mCoreLoads.size() == 0)
+            CoreLogger.logWarning("empty collection of CoreLoads");
+        return mCoreLoads;
+    }
+
+    /**
+     * Returns the {@link CoreLoad} kept in this {@link ViewModel}
+     * (mostly for screen orientation changes handling).
+     *
+     * @param <E>
+     *        The type of error (if any)
+     *
+     * @param <D>
+     *        The type of data to load
+     *
+     * @return  The {@link CoreLoad}
+     */
+    @SuppressWarnings({"unchecked", "TypeParameterHidesVisibleType", "unused"})
+    public <E, D> CoreLoad<E, D> getCoreLoad() {
+        final List<CoreLoad<?, ?>> list = getCoreLoads();
+        if (list != null && list.size() > 1)
+            CoreLogger.logWarning("expected 1 loader, but actual loaders qty is " + list.size());
+        return list == null || list.size() == 0 ? null: (CoreLoad<E, D>) list.get(0);
+    }
+
+    /**
+     * Sets the {@link CoreLoad}'s collection to keep in this {@link ViewModel}
+     * (mostly for screen orientation changes handling).
+     *
+     * @param coreLoads
+     *        The {@link CoreLoad}'s collection
+     */
+    @SuppressWarnings("WeakerAccess")
+    public void setCoreLoads(final List<CoreLoad<?, ?>> coreLoads) {
+        if (coreLoads != null && coreLoads.size() == 0)
+            CoreLogger.logWarning("about to save zero-size list of CoreLoads");
+        mCoreLoads = coreLoads;
+    }
+
+    /**
+     * Sets the {@link CoreLoad} to keep in this {@link ViewModel}
+     * (mostly for screen orientation changes handling).
+     *
+     * @param coreLoad
+     *        The {@link CoreLoad}
+     */
+    public void setCoreLoad(final CoreLoad<?, ?> coreLoad) {
+        setCoreLoads(coreLoad == null ? null: Collections.singletonList(coreLoad));
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static <D> Observer<D> updateUi(final boolean              stop,
+                                              final LifecycleOwner       lifecycleOwner,
+                                              @NonNull final LiveData<D> liveData,
+                                              @NonNull final Observer<D> observer) {
         try {
-            if (force) {
+            if (lifecycleOwner == null) {
                 if (stop)
                     liveData.removeObserver(observer);
                 else
                     liveData.observeForever(observer);
-
-                observerSet[0] = !stop;
                 return observer;
             }
-            else if (!stop) {
-                liveData.observe(lifecycleOwner, observer);
-                observerSet[0] = true;
-            }
+            else if (!stop) liveData.observe(lifecycleOwner, observer);
         }
         catch (Exception exception) {
             CoreLogger.log(exception);
         }
-
         return null;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected boolean[] getObserverSet() {
-        final boolean[] observerSet = new boolean[1];
-        observerSet[0] = mObserverSetFlag;
-        return observerSet;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Observer<D> updateUi(final Level level, final boolean stop, final LifecycleOwner owner,
-                                   final Runnable callback) {
-        synchronized (mObserverSetLock) {
-            final boolean[] observerSet = getObserverSet();
-
-            final Observer<D> result = updateUi(observerSet, level, stop, owner, mData, mObserver);
-            try {
-                if (callback != null) callback.run();
-            }
-            catch (Exception exception) {
-                CoreLogger.log(exception);
-            }
-
-            mObserverSetFlag = observerSet[0];
-            return result;
+    protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner, final Runnable callback) {
+        final Observer<D> result = updateUi(stop, owner, mData, mObserver);
+        try {
+            if (callback != null) callback.run();
         }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+        }
+        return result;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "UnusedReturnValue"})
-    protected Observer<D> updateUi(final Level level, final boolean stop, final LifecycleOwner owner) {
-        return updateUi(level, stop, owner, null);
+    protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner) {
+        return updateUi(stop, owner, null);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -184,7 +431,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 models, CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models)
-            model.updateUi(null, stop, fragment);
+            model.updateUi(stop, fragment);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -193,7 +440,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models)
-            model.updateUi(null, stop, getLifecycleOwner(activity));
+            model.updateUi(stop, getLifecycleOwner(activity));
     }
 
     private static LifecycleOwner getLifecycleOwner(final Activity activity) {
@@ -342,7 +589,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         for (final BaseViewModel<?> model: models) {
             final BaseLiveData<?> data = model.getData();
-            if (data.isLoading() && data.confirm(activity)) return true;
+            if (data.isLoading() && data.confirm(activity, null)) return true;
         }
         return false;
     }
@@ -358,12 +605,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The {@code BaseViewModel} collection
      */
+    @SuppressWarnings("unused")
     public static Collection<BaseViewModel<?>> getViewModels(
             final Activity activity, final boolean includeFragments) {
         return getViewModels(activity, includeFragments, Level.ERROR);
     }
 
-    private static Collection<BaseViewModel<?>> getViewModels(
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static Collection<BaseViewModel<?>> getViewModels(
             Activity activity, final boolean includeFragments, @NonNull final Level level) {
 
         if (activity == null) activity = Utils.getCurrentActivity();
@@ -558,12 +807,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         private static boolean isLoading(@NonNull final ViewModelStore store, final String key,
                                          @NonNull final Level level) {
-            final Map<String, WeakReference<? extends BaseViewModel<?>>> models = sMap.get(store);
+            final Map<String, WeakReference<? extends BaseViewModel<?>>> models = getHelper(store);
             if (!checkModels(level, models)) return false;
 
-            if (key != null) return isLoading(Objects.requireNonNull(models).get(key));
+            if (key != null) return isLoading(models.get(key));
 
-            for (final WeakReference<? extends BaseViewModel<?>> model: Objects.requireNonNull(models).values())
+            for (final WeakReference<? extends BaseViewModel<?>> model: models.values())
                 if (isLoading(model)) return true;
 
             CoreLogger.log("final no key loading: false");
@@ -585,14 +834,19 @@ public class BaseViewModel<D> extends AndroidViewModel {
                                           @SuppressWarnings("SameParameterValue") final String key,
                                           @NonNull final Collection<BaseViewModel<?>> baseViewModels,
                                           @NonNull final Level level) {
-            final Map<String, WeakReference<? extends BaseViewModel<?>>> models = sMap.get(store);
+            final Map<String, WeakReference<? extends BaseViewModel<?>>> models = getHelper(store);
             if (!checkModels(level, models)) return;
 
             if (key != null)
-                getViewModel(Objects.requireNonNull(models).get(key), baseViewModels);
+                getViewModel(models.get(key), baseViewModels);
             else
-                for (final WeakReference<? extends BaseViewModel<?>> model: Objects.requireNonNull(models).values())
+                for (final WeakReference<? extends BaseViewModel<?>> model: models.values())
                     getViewModel(model, baseViewModels);
+        }
+
+        private static Map<String, WeakReference<? extends BaseViewModel<?>>> getHelper(
+                @NonNull final ViewModelStore store) {
+            return sMap.get(store);
         }
 
         private static void getViewModel(final WeakReference<? extends BaseViewModel<?>> baseViewModel,
@@ -699,13 +953,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @Override
-        protected Observer<D> updateUi(final Level level, final boolean stop, final LifecycleOwner owner) {
+        protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner) {
             //noinspection Convert2Lambda
-            return super.updateUi(level, stop, owner, new Runnable() {
+            return super.updateUi(stop, owner, new Runnable() {
                 @Override
                 public void run() {
-                    updateUi(getObserverSet(), level, stop, owner, mDataPaged, mObserverPaged);
-
+                    updateUi(stop, owner, mDataPaged, mObserverPaged);
                 }
             });
         }
@@ -938,10 +1191,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
 
         /**
-         * Sets the {@code DataSource}'s key component.
+         * Sets the {@code BaseViewModel} key.
          *
          * @param key
-         *        The {@code DataSource}'s key
+         *        The {@code BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)})
          *
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
          */
@@ -1180,10 +1433,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 result = new PagingViewModel.ViewModelProvider<>(mStore, mData, mObserver, mKey,
                         mDataSourceProducer, mConfig, mAdapter).get(mKey, mClass);
             }
-
-            synchronized (result.mObserverSetLock) {
-                if (!result.mObserverSetFlag) result.updateUi(Level.ERROR, false, mLifecycleOwner);
-            }
+            result.updateUi(false, mLifecycleOwner);
 
             CoreLogger.log("created BaseViewModel " + CoreLogger.getDescription(result));
             return result;

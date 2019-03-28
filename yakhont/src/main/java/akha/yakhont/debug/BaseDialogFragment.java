@@ -17,6 +17,7 @@
 package akha.yakhont.debug;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.RetainDialogFragment;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.LogDebug;
@@ -224,6 +225,8 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     @Override
     public void onDestroyView() {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+
+        RetainDialogFragment.onDestroyView(this);
 
         super.onDestroyView();
     }

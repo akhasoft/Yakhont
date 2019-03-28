@@ -51,7 +51,6 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -290,8 +289,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                 if (properties[0] == Core.NOT_VALID_RES_ID)
                     CoreLogger.logWarning("wrong permissions rationale String ID " + properties[0]);
                 else
-                    mPermissionsRationale = Objects.requireNonNull(Utils.getApplication())
-                            .getString(properties[0]);
+                    mPermissionsRationale = Utils.getApplication().getString(properties[0]);
             }
             if (properties.length > 2) {
                 final Integer[] tmp = new Integer[properties.length];
@@ -605,8 +603,11 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         if (!mRx.containsKey(activity)) //noinspection RedundantTypeArguments
             mRx.put(activity, Utils.<LocationRx>newSet());
 
-        final boolean result = Objects.requireNonNull(mRx.get(activity)).add(locationRx);
-        CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR, "register Rx: result == " + result);
+        final Set<LocationRx>  set  = mRx.get(activity);
+        final boolean result = set != null && set.add(locationRx);
+        CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR,
+                String.format("register Rx: set %s, result %s",
+                        set == null ? null: Arrays.deepToString(set.toArray()), result));
         return result;
     }
 

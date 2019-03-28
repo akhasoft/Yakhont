@@ -36,13 +36,22 @@ import androidx.recyclerview.widget.RecyclerView
 
 import java.util.Date
 
+private const val ARG_LOCATION = "arg_location"
+
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
+
+    private var     mLocation: String?      = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        if (savedInstanceState != null) {       // standard handling for screen orientation changing
+            mLocation = savedInstanceState.getString(ARG_LOCATION)
+            setLocation()
+        }
 
         (findViewById<View>(R.id.recycler) as RecyclerView)
                 .layoutManager = LinearLayoutManager(this)
@@ -50,16 +59,30 @@ class MainActivity: AppCompatActivity(), LocationListener {
         ////////
         // normally it should be enough - but here we have the local client; so see below...
 
-        Retrofit2Loader.load<Retrofit2Api>("http://...", Retrofit2Api::class.java, { it.data }, BR.beer)
+        Retrofit2Loader.start<Retrofit2Api>("http://...", Retrofit2Api::class.java, { it.data },
+                BR.beer, savedInstanceState)
 
         ////////
+        val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
 */
         val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
         Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
-                LocalOkHttpClient2(retrofit2), retrofit2).start()
+                LocalOkHttpClient2(retrofit2) /* .setEmulatedNetworkDelay(7) */ ,
+                retrofit2, savedInstanceState).start(savedInstanceState)
     }
 
     override fun onLocationChanged(location: Location, date: Date) {
-        (findViewById<View>(R.id.location) as TextView).text = LocationCallbacks.toDms(location, this)
+        mLocation = LocationCallbacks.toDms(location, this)
+        setLocation()
+    }
+
+    private fun setLocation() {
+        (findViewById<View>(R.id.location) as TextView).text = mLocation
+    }
+
+    override fun onSaveInstanceState(savedInstanceState: Bundle) {
+        super.onSaveInstanceState(savedInstanceState)
+
+        savedInstanceState.putString(ARG_LOCATION, mLocation)
     }
 }

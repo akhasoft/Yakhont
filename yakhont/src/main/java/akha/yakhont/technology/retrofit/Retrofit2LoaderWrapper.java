@@ -35,15 +35,19 @@ import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.databinding.ViewDataBinding;
+import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelStore;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.Collection;
 import java.util.concurrent.Callable;
 
 import androidx.paging.DataSource;
@@ -539,7 +543,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
      *         // your code here: setContentView(...), RecyclerView.setLayoutManager(...) etc.
      *
-     *         Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id);
+     *         Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id, savedInstanceState);
      *     }
      * }
      * </pre>
@@ -563,17 +567,25 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          *        The BR id of the variable to be set (please refer to
          *        {@link ViewDataBinding#setVariable} for more info)
          *
+         * @param savedInstanceState
+         *        Please refer to {@link Activity#onCreate(Bundle)}
+         *
          * @param <R>
          *        The type of Retrofit API
          *
-         * @see CoreLoad#start
+         * @see CoreLoad#start(Bundle)
          */
         public static <R> void start(@NonNull final String          url,
                                      @NonNull final Class    <R>    service,
                                      @NonNull final Requester<R>    requester,
-                                              final Integer         dataBinding) {
-            get(url, service, requester, dataBinding, null, null,
-                    null, null).start();
+                                              final Integer         dataBinding,
+                                              final Bundle          savedInstanceState) {
+            start(get(url, service, requester, dataBinding, null, null, null,
+                    null, savedInstanceState), savedInstanceState);
+        }
+
+        private static <D> void start(final CoreLoad<Throwable, D> coreLoad, final Bundle savedInstanceState) {
+            if (coreLoad != null) coreLoad.start(savedInstanceState);
         }
 
         /**
@@ -595,18 +607,22 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param dataSourceProducer
          *        The {@code DataSource} producer component (for paging)
          *
+         * @param savedInstanceState
+         *        Please refer to {@link Activity#onCreate(Bundle)}
+         *
          * @param <R>
          *        The type of Retrofit API
          *
-         * @see CoreLoad#start
+         * @see CoreLoad#start(Bundle)
          */
         public static <R> void start(@NonNull final String                               url,
                                      @NonNull final Class    <R>                         service,
                                      @NonNull final Requester<R>                         requester,
                                               final Integer                              dataBinding,
-                                              final Callable<? extends DataSource<?, ?>> dataSourceProducer) {
-            get(url, service, requester, dataBinding, null, null,
-                    null, dataSourceProducer).start();
+                                              final Callable<? extends DataSource<?, ?>> dataSourceProducer,
+                                              final Bundle                               savedInstanceState) {
+            start(get(url, service, requester, dataBinding, null, null, null,
+                    dataSourceProducer, savedInstanceState), savedInstanceState);
         }
 
         /**
@@ -631,19 +647,23 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param dataSourceProducer
          *        The {@code DataSource} producer component (for paging)
          *
+         * @param savedInstanceState
+         *        Please refer to {@link Activity#onCreate(Bundle)}
+         *
          * @param <R>
          *        The type of Retrofit API
          *
-         * @see CoreLoad#start
+         * @see CoreLoad#start(Bundle)
          */
         public static <R> void start(@NonNull final String                               url,
                                      @NonNull final Class    <R>                         service,
                                      @NonNull final Requester<R>                         requester,
                                               final Integer                              dataBinding,
                                               final Integer                              pageSize,
-                                              final Callable<? extends DataSource<?, ?>> dataSourceProducer) {
-            get(url, service, requester, dataBinding, null, null,
-                    pageSize, dataSourceProducer).start();
+                                              final Callable<? extends DataSource<?, ?>> dataSourceProducer,
+                                              final Bundle                               savedInstanceState) {
+            start(get(url, service, requester, dataBinding, null, null, pageSize,
+                    dataSourceProducer, savedInstanceState), savedInstanceState);
         }
 
         /**
@@ -667,6 +687,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          *
          * @param retrofit
          *        The {@code Retrofit2} component
+         *
+         * @param savedInstanceState
+         *        Please refer to {@link Activity#onCreate(Bundle)}
          *
          * @param <D>
          *        The type of data
@@ -682,9 +705,10 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                         @NonNull final Requester<R>          requester,
                                                                  final Integer               dataBinding,
                                                                  final OkHttpClient          client,
-                                                                 final Retrofit2<R, D>       retrofit) {
+                                                                 final Retrofit2<R, D>       retrofit,
+                                                                 final Bundle                savedInstanceState) {
             return get(url, service, requester, dataBinding, client, retrofit,
-                    null, null);
+                    null, null, savedInstanceState);
         }
 
         /**
@@ -714,6 +738,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          *
          * @param dataSourceProducer
          *        The {@code DataSource} producer component (for paging)
+         *
+         * @param savedInstanceState
+         *        Please refer to {@link Activity#onCreate(Bundle)}
          *
          * @param <D>
          *        The type of data
@@ -732,7 +759,11 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                                        Retrofit2<R, D>       retrofit,
                                                                  final Integer               pageSize,
                                                                  final Callable<? extends DataSource<?, ?>>
-                                                                                             dataSourceProducer) {
+                                                                                             dataSourceProducer,
+                                                                 final Bundle                savedInstanceState) {
+            // handling screen orientation changes
+            if (savedInstanceState != null) return getExistingLoader();
+
             if (retrofit == null) retrofit = new Retrofit2<>();
 
             final Retrofit2CoreLoadBuilder<D, R> builder = (Retrofit2CoreLoadBuilder<D, R>)
@@ -750,10 +781,45 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                     CoreLogger.logError("page size set without DataSource producer");
 
             final CoreLoad<Throwable, D> coreLoad = builder.create();
-            if (dataSourceProducer != null)
-                coreLoad.start(null, LoadParameters.NO_LOAD);
+            coreLoad.start(null, LoadParameters.NO_LOAD);
+
+            // for handling screen orientation changes
+            final BaseViewModel<D> viewModel = BaseViewModel.get();
+            if (viewModel != null) viewModel.setCoreLoad(coreLoad);
 
             return coreLoad;
+        }
+
+        /**
+         * Returns the {@link CoreLoad} kept in the current {@link ViewModel}
+         * (mostly for screen orientation changes handling).
+         *
+         * @param <E>
+         *        The type of error (if any)
+         *
+         * @param <D>
+         *        The type of data to load
+         *
+         * @return  The {@link CoreLoad}
+         */
+        public static <E, D> CoreLoad<E, D> getExistingLoader() {
+            final BaseViewModel<D> viewModel = BaseViewModel.get();
+            if (viewModel == null) return null;
+
+            final Collection<CoreLoad<?, ?>> loaders = viewModel.getCoreLoads();
+            if (loaders != null && loaders.size() > 0) {
+                @SuppressWarnings("unchecked")
+                final CoreLoad<E, D> loader = (CoreLoad<E, D>) loaders.iterator().next();
+
+                CoreLoadBuilder.setAdapter(CoreLoadBuilder.getList(),
+                        (BaseResponseLoaderWrapper) loader.getLoader());
+
+                if (loaders.size() > 1)
+                    CoreLogger.logError("only 1st loader handled, loaders qty " + loaders.size());
+
+                return loader;
+            }
+            return null;
         }
     }
 }

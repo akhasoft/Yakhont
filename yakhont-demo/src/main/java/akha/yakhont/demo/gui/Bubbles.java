@@ -101,7 +101,7 @@ public class Bubbles {
     private static final Random             sRandom                 = new Random();
     private static final AtomicBoolean      sIsCancel               = new AtomicBoolean();
 
-    private static final String             sNewLine                = System.getProperty("line.separator");
+    private static final String             sNewLine                = Objects.requireNonNull /* should always happen */ (System.getProperty("line.separator"));
 
     private Bubbles() {
     }
@@ -390,8 +390,8 @@ public class Bubbles {
         }        
 
         if (spannable == null) {
-            text = text.replace(target, "<b>" + target + "</b>").replace(
-                    Objects.requireNonNull(sNewLine), "<br>");
+            text = text.replace(target, "<b>" + target + "</b>")
+                    .replace(sNewLine, "<br>");
             //noinspection ConstantConditions
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 @SuppressLint("InlinedApi") int flags = Html.FROM_HTML_MODE_LEGACY;

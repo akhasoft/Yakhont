@@ -37,7 +37,7 @@ Now you can load data in just two lines of code (please refer to the
 for the working example):
 
 ```
-Retrofit2Loader.load("http://...", YourRetrofit.class, YourRetrofit::yourMethod, BR.yourDataBindingID);
+Retrofit2Loader.start("http://...", YourRetrofit.class, YourRetrofit::yourMethod, BR.yourDataBindingID, savedInstanceState);
 ```
 
 And take location in just a couple of lines (the working example is in the
@@ -137,8 +137,8 @@ demo applications can be downloaded from the
 Add the following to your build.gradle (you can use **build.gradle** files from [demo](yakhont-demo/build.gradle)
 and [simplified demo](yakhont-demo-simple-kotlin/build.gradle) as working examples).
 
-1. Update the **buildscript** block (the Yakhont components (com.github.akhasoft:yakhont...) are 
-available from both [jcenter](http://jcenter.bintray.com/com/github/akhasoft/)
+1. Update the **buildscript** block (the Yakhont components are available from 
+both [jcenter](http://jcenter.bintray.com/com/github/akhasoft/)
 and [mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/)):
 
 ```groovy
@@ -282,6 +282,7 @@ buildTypes {
         minifyEnabled true
 
         proguardFile 'proguard-google-play-services.pro'
+        proguardFile 'proguard-support-design.pro'
         proguardFile 'proguard-gson.pro'
         proguardFile 'proguard-rx-java.pro'
         proguardFile 'proguard-square-okhttp.pro'

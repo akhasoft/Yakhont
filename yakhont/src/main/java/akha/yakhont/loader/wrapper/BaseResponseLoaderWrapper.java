@@ -37,6 +37,8 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseConverter;
+// for javadoc
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;
 import akha.yakhont.technology.retrofit.BaseRetrofit;
 import akha.yakhont.technology.retrofit.Retrofit2;
@@ -48,6 +50,7 @@ import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 import android.app.Activity;
 import android.content.res.Resources;
 import android.content.Context;
+import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.GridView;
@@ -61,6 +64,7 @@ import androidx.annotation.StringRes;
 import androidx.databinding.ViewDataBinding;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStore;
 import androidx.paging.DataSource;
 import androidx.paging.PagedList.Config;
@@ -71,7 +75,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Objects;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -253,10 +257,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         mUriResolver            = uriResolver;
     }
 
-    private static String generateLoaderId(@NonNull final String tableName) {
-        return tableName;
-    }
-
     /**
      * Clears all database cache associated with given {@code CoreLoad} component.
      *
@@ -415,9 +415,44 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     }
 
     /**
-     * Returns the database cache table name.
-     *
-     * @return  The table name
+     * Please refer to the base method description.
+     */
+    @Override
+    public BaseCacheAdapter<?, R, E, D> getListAdapter() {
+        if (mAdapter instanceof BaseCacheAdapterWrapper)
+            return ((BaseCacheAdapterWrapper<?, R, E, D>) mAdapter).getAdapter();
+
+        handleAdapterError();
+        return null;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public BaseRecyclerViewAdapter<?, R, E, D> getRecyclerViewAdapter() {
+        if (mAdapter instanceof BaseCacheAdapterWrapper)
+            return ((BaseCacheAdapterWrapper<?, R, E, D>) mAdapter).getRecyclerViewAdapter();
+
+        handleAdapterError();
+        return null;
+    }
+
+    private void handleAdapterError() {
+        CoreLogger.logError("expected BaseCacheAdapterWrapper, but actually " +
+                CoreLogger.getDescription(mAdapter));
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public PagingRecyclerViewAdapter<?, R, E> getPagingAdapter() {
+        return mPagingAdapter;
+    }
+
+    /**
+     * Please refer to the base method description.
      */
     @Override
     public String getTableName() {
@@ -425,9 +460,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     }
 
     /**
-     * Returns the loading data description.
-     *
-     * @return  The data description
+     * Please refer to the base method description.
      */
     @Override
     protected String getTableDescription() {
@@ -458,8 +491,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      */
     @CallSuper
     @Override
-    protected void onLoadFinished(final BaseResponse<R, E, D> data, final LoadParameters parameters) {
-        super.onLoadFinished(data, parameters);
+    protected void onLoadFinished(final BaseResponse<R, E, D> data) {
+        super.onLoadFinished(data);
 
         if (mLoaderCallbacks != null || mPagingCallbacks != null) {
             if (data == null) {
@@ -483,7 +516,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             if (mPagingCallbacks != null) mPagingCallbacks = null;
         }
 
-        updateAdapter(data, parameters != null && parameters.getMerge());
+        updateAdapter(data, mParameters != null && mParameters.getMerge());
 
         if (mRx != null) mRx.onResult(data);
     }
@@ -570,9 +603,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       Callable<Progress>                      mProgress;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       Callable<? extends BaseViewModel<BaseResponse<R, E, D>>>
                                                                 mBaseViewModel;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       String                                  mBaseViewModelKey;
 
         /**
          * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
@@ -820,6 +856,21 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
+         * Sets the {@code BaseViewModel} key.
+         *
+         * @param key
+         *        The {@code BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)})
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
+        @NonNull
+        public BaseResponseLoaderBuilder<C, R, E, D> setBaseViewModelKey(final String key) {
+            mBaseViewModelKey   = key;
+            return this;
+        }
+
+        /**
          * Please refer to the base method description.
          */
         @Override
@@ -833,6 +884,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             // in such order
             loaderWrapper.setProgress(mProgress);
             loaderWrapper.setBaseViewModel(mBaseViewModel);
+            loaderWrapper.setBaseViewModelKey(mBaseViewModelKey);
 
             return loaderWrapper;
         }
@@ -895,6 +947,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public Callable<? extends BaseViewModel<BaseResponse<R, E, D>>> getBaseViewModelRaw() {
             return mBaseViewModel;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public String getBaseViewModelKeyRaw() {
+            return mBaseViewModelKey;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1273,12 +1330,22 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     public interface CoreLoad<E, D> {
 
         /**
-         * Returns the collection of {@link BaseLoaderWrapper loaders} associated with
+         * Returns the {@link BaseLoaderWrapper loaders} associated with
          * the given {@code CoreLoad} component.
          *
          * @return  The loaders
          */
-        Collection<BaseLoaderWrapper<?>> getLoaders();
+        List<BaseLoaderWrapper<?>> getLoaders();
+
+        /**
+         * Returns the {@link BaseLoaderWrapper loader} associated with
+         * the given {@code CoreLoad} component (most of the time it's one and only).
+         *
+         * @return  The loader
+         *
+         * @see     #getLoaders()
+         */
+        BaseLoaderWrapper<?> getLoader();
 
         /**
          * Adds loader to the collection of {@link BaseLoaderWrapper loaders} associated with
@@ -1296,11 +1363,19 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         /**
          * Starts all loaders associated with the given {@code CoreLoad} component.
+         * <p>
+         * If {@code savedInstanceState} is not null, loaders will be fully prepared
+         * but real data loading will not start.
+         *
+         * @param savedInstanceState
+         *        Please refer to {@link Activity#onCreate(Bundle)}
          *
          * @return  {@code true} if data loading was successfully started, {@code false} otherwise
+         *
+         * @see     LoadParameters#NO_LOAD
          */
         @SuppressWarnings("unused")
-        boolean start();
+        boolean start(final Bundle savedInstanceState);
 
         /**
          * Starts all loaders associated with the given {@code CoreLoad} component.
@@ -1374,16 +1449,25 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     @SuppressWarnings("unused")
     public static class CoreLoader<E, D> implements CoreLoad<E, D> {
 
-        private final   Collection<BaseLoaderWrapper<?>>        mLoaders                = Utils.newSet();
-
+        private final   List<BaseLoaderWrapper<?>>              mLoaders                = Utils.newList();
         private final   AtomicBoolean                           mGoBackOnCancelLoading  = new AtomicBoolean(true);
 
         /**
          * Please refer to the base method description.
          */
         @Override
-        public Collection<BaseLoaderWrapper<?>> getLoaders() {
+        public List<BaseLoaderWrapper<?>> getLoaders() {
             return mLoaders;
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public BaseLoaderWrapper<?> getLoader() {
+            if (mLoaders.size() != 1)
+                CoreLogger.logWarning("expected one and only loader but actually " + mLoaders.size());
+            return mLoaders.size() == 0 ? null: mLoaders.get(0);
         }
 
         /**
@@ -1469,8 +1553,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * Please refer to the base method description.
          */
         @Override
-        public boolean start() {
-            return start(null, new LoadParameters());
+        public boolean start(final Bundle savedInstanceState) {
+            return start(null, BaseLoaderWrapper.getLoadParameters(savedInstanceState));
         }
 
         /**
@@ -1478,7 +1562,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @Override
         public boolean start(final Activity activity, final LoadParameters parameters) {
-            return BaseLoaderWrapper.start(activity, getLoaders(), parameters);
+            return BaseLoaderWrapper.start(activity, mLoaders, parameters);
         }
 
         /**
@@ -1783,8 +1867,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "WeakerAccess"})
-        protected void customizeAdapterWrapper(@NonNull final Activity activity,
-                                               @NonNull final CoreLoad coreLoad, @NonNull final View root,
+        protected void customizeAdapterWrapper(@NonNull final Activity activity, @NonNull final CoreLoad coreLoad,
                                                @NonNull final View list, @LayoutRes final int item) {
         }
 
@@ -1863,13 +1946,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 loader.mPagingConfig       = mPagingConfig;
                 loader.mPageSize           = mPageSize;
 
-                if (list instanceof RecyclerView)
-                    ((RecyclerView) list).setAdapter(loader.mPagingAdapter);
-                else if (list == null)
-                    CoreLogger.logError("list for paging == null");
-                else
-                    CoreLogger.logError("can't use paging with " +
-                            CoreLogger.getDescription(list) + ", should be RecyclerView");
+                setAdapter(list, loader);
             }
 
             if (mRx             != null) loader.setRx(mRx);
@@ -1878,25 +1955,37 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return loader;
         }
 
-        private View create(@NonNull final Activity activity, final Fragment fragment,
-                            @NonNull final CoreLoad coreLoad) {
-            View list = null;
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static View getList() {
+            return getList(null, null, Core.NOT_VALID_VIEW_ID);
+        }
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public static View getList(final Activity activity, final Fragment fragment,
+                                   @IdRes final int listViewId) {
             View root = fragment == null ? null: fragment.getView();
             if (root == null) root = Utils.getDefaultView(activity);
 
-            if (root == null)
-                CoreLogger.logWarning("The fragment's root view is null");
-            else
-                list = mListViewId == Core.NOT_VALID_VIEW_ID ?
-                        BaseCacheAdapter.findListView(root): root.findViewById(mListViewId);
+            if (root == null) {
+                CoreLogger.logWarning("The root view is null");
+                return null;
+            }
 
+            final View list = listViewId == Core.NOT_VALID_VIEW_ID ?
+                    BaseCacheAdapter.findListView(root): root.findViewById(listViewId);
             if (list == null)
-                if (mListViewId != Core.NOT_VALID_VIEW_ID)
+                if (listViewId != Core.NOT_VALID_VIEW_ID)
                     CoreLogger.logError("view with id " +
-                            CoreLogger.getResourceDescription(mListViewId) + " was not found");
+                            CoreLogger.getResourceDescription(listViewId) + " was not found");
                 else
                     CoreLogger.logWarning("no ListView, GridView or RecyclerView found for default binding");
+
+            return list;
+        }
+
+        private View create(@NonNull final Activity activity, final Fragment fragment,
+                            @NonNull final CoreLoad coreLoad) {
+            final View list = getList(activity, fragment, mListViewId);
 
             @LayoutRes int itemId = mLayoutItemId;
             if (itemId == Core.NOT_VALID_RES_ID && list != null)
@@ -1908,7 +1997,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 CoreLogger.log("list item layout ID: " + CoreLogger.getResourceDescription(itemId));
 
             if (list != null && itemId != Core.NOT_VALID_RES_ID)
-                customizeAdapterWrapper(activity, coreLoad, root, list, itemId);
+                customizeAdapterWrapper(activity, coreLoad, list, itemId);
 
             if (mAdapterWrapper == null)
                 CoreLogger.logWarning("The adapter wrapper is null, so no data binding will be done");
@@ -1918,21 +2007,56 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 if (mViewHolderCreator != null)
                     mAdapterWrapper.getRecyclerViewAdapter().setViewHolderCreator(mViewHolderCreator);
 
-                if      (list instanceof ListView)
-                    ((ListView) list).setAdapter(mAdapterWrapper.getAdapter());
-                else if (list instanceof GridView)
-                    ((GridView) list).setAdapter(mAdapterWrapper.getAdapter());
-                else if (list instanceof RecyclerView) {
-                    if (mDataSourceProducer == null)
-                        ((RecyclerView) list).setAdapter(mAdapterWrapper.getRecyclerViewAdapter());
-                }
-                else {
-                    CoreLogger.logError("view with id " + CoreLogger.getResourceDescription(mListViewId) +
-                            " should be instance of ListView, GridView or RecyclerView");
+                if (!setAdapter(list, mAdapterWrapper, mDataSourceProducer != null, mListViewId))
                     return null;
-                }
             }
             return list;
+        }
+
+        private static boolean setAdapter(final View list, @NonNull final BaseCacheAdapterWrapper adapter,
+                                          final boolean paging, @IdRes final int listViewId) {
+            if      (list instanceof ListView)
+                ((ListView) list).setAdapter(adapter.getAdapter());
+            else if (list instanceof GridView)
+                ((GridView) list).setAdapter(adapter.getAdapter());
+            else if (list instanceof RecyclerView) {
+                if (!paging)
+                    ((RecyclerView) list).setAdapter(adapter.getRecyclerViewAdapter());
+            }
+            else {
+                CoreLogger.logError("view with id " + CoreLogger.getResourceDescription(listViewId) +
+                        " should be instance of ListView, GridView or RecyclerView but actually " +
+                        CoreLogger.getDescription(list));
+                return false;
+            }
+            return true;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
+        public static boolean setAdapter(final View list, final BaseResponseLoaderWrapper loader) {
+            if (loader == null) {
+                CoreLogger.logError("loader == null");
+                return false;
+            }
+            if (list == null) {
+                CoreLogger.logError("list == null");
+                return false;
+            }
+            if (loader.mPagingAdapter == null) {
+                if (loader.mAdapter instanceof BaseCacheAdapterWrapper)
+                    return setAdapter(list, (BaseCacheAdapterWrapper) loader.mAdapter,
+                            false, list.getId());
+                CoreLogger.logError("expected BaseCacheAdapterWrapper but actually " +
+                        CoreLogger.getDescription(loader.mAdapter));
+                return false;
+            }
+            if (list instanceof RecyclerView) {
+                ((RecyclerView) list).setAdapter(loader.mPagingAdapter);
+                return true;
+            }
+            CoreLogger.logError("expected RecyclerView but actually " +
+                    CoreLogger.getDescription(list));
+            return false;
         }
     }
 
@@ -1967,9 +2091,12 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Callable<Progress>                    mProgress;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Callable<? extends BaseViewModel<BaseResponse<R, E, D>>>
                                                         mBaseViewModel;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected String                                mBaseViewModelKey;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Integer                               mDataBindingId;
@@ -2031,7 +2158,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setNoCache(final boolean noCache) {
-            mNoCache         = noCache;
+            mNoCache            = noCache;
             return this;
         }
 
@@ -2047,7 +2174,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Progress progress) {
             //noinspection Convert2Lambda
-            mProgress        = progress == null ? null: new Callable<Progress>() {
+            mProgress           = progress == null ? null: new Callable<Progress>() {
                 @Override
                 public Progress call() {
                     return progress;
@@ -2067,7 +2194,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Callable<Progress> progress) {
-            mProgress        = progress;
+            mProgress           = progress;
             return this;
         }
 
@@ -2083,7 +2210,22 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModel(
                 final Callable<? extends BaseViewModel<BaseResponse<R, E, D>>> baseViewModel) {
-            mBaseViewModel   = baseViewModel;
+            mBaseViewModel      = baseViewModel;
+            return this;
+        }
+
+        /**
+         * Sets the {@code BaseViewModel} key.
+         *
+         * @param key
+         *        The {@code BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)})
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings("unused")
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModelKey(final String key) {
+            mBaseViewModelKey   = key;
             return this;
         }
 
@@ -2098,7 +2240,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("WeakerAccess")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
-            mLoaderCallbacks = loaderCallbacks;
+            mLoaderCallbacks    = loaderCallbacks;
             return this;
         }
 
@@ -2594,8 +2736,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters"})
         @Override
-        protected void customizeAdapterWrapper(@NonNull final Activity activity,
-                                               @NonNull final CoreLoad coreLoad, @NonNull final View root,
+        protected void customizeAdapterWrapper(@NonNull final Activity activity, @NonNull final CoreLoad coreLoad,
                                                @NonNull final View list, @LayoutRes final int item) {
             if (mFrom != null || mTo != null)
                 if (mDataBindingId != null)
@@ -2718,34 +2859,36 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 CoreLogger.logWarning("The loader builder requester is already set, " +
                         "so overridden method (if any) 'makeRequest(callback)' will be ignored");
 
-            if (check(mType           , builder.getTypeRaw()           , "Type"          ))
-                builder.setType           (mType           );
-            if (check(mNoCache        , builder.getNoCacheRaw()        , "NoCache"       ))
-                builder.setNoCache        (mNoCache        );
-            if (check(mLoaderCallbacks, builder.getLoaderCallbacksRaw(), "LoaderCallback"))
-                builder.setLoaderCallbacks(mLoaderCallbacks);
-            if (check(mProgress       , builder.getProgressRaw()       , "Progress"      ))
-                builder.setProgress       (mProgress       );
-            if (check(mBaseViewModel  , builder.getBaseViewModelRaw()  , "BaseViewModel" ))
-                builder.setBaseViewModel  (mBaseViewModel  );
-            if (check(mConverter      , builder.getConverterRaw()      , "Converter"     ))
-                builder.setConverter      (mConverter      );
-            if (check(mTableName      , builder.getTableNameRaw()      , "TableName"     ))
-                builder.setTableName      (mTableName      );
-            if (check(mLoaderId       , builder.getLoaderIdRaw()       , "LoaderId"      ))
-                builder.setLoaderId       (mLoaderId       );
-            if (check(mUriResolver    , builder.getUriResolverRaw()    , "UriResolver"   ))
-                builder.setUriResolver    (mUriResolver    );
+            if (check(mType            , builder.getTypeRaw()            , "Type"            ))
+                builder.setType            (mType            );
+            if (check(mNoCache         , builder.getNoCacheRaw()         , "NoCache"         ))
+                builder.setNoCache         (mNoCache         );
+            if (check(mLoaderCallbacks , builder.getLoaderCallbacksRaw() , "LoaderCallback"  ))
+                builder.setLoaderCallbacks (mLoaderCallbacks );
+            if (check(mProgress        , builder.getProgressRaw()        , "Progress"        ))
+                builder.setProgress        (mProgress        );
+            if (check(mBaseViewModel   , builder.getBaseViewModelRaw()   , "BaseViewModel"   ))
+                builder.setBaseViewModel   (mBaseViewModel   );
+            if (check(mBaseViewModelKey, builder.getBaseViewModelKeyRaw(), "BaseViewModelKey"))
+                builder.setBaseViewModelKey(mBaseViewModelKey);
+            if (check(mConverter       , builder.getConverterRaw()       , "Converter"       ))
+                builder.setConverter       (mConverter       );
+            if (check(mTableName       , builder.getTableNameRaw()       , "TableName"       ))
+                builder.setTableName       (mTableName       );
+            if (check(mLoaderId        , builder.getLoaderIdRaw()        , "LoaderId"        ))
+                builder.setLoaderId        (mLoaderId        );
+            if (check(mUriResolver     , builder.getUriResolverRaw()     , "UriResolver"     ))
+                builder.setUriResolver     (mUriResolver     );
 
             if (mDescription != null) {
-                if (check(mDescription, builder.getDescriptionRaw()    , "Description"   ))
-                    builder.setDescription(mDescription    );
+                if (check(mDescription, builder.getDescriptionRaw()      , "Description"     ))
+                    builder.setDescription (mDescription     );
             }
             else if (mDescriptionId != Core.NOT_VALID_RES_ID) {
-                final String description = Objects.requireNonNull(Utils.getApplication())
+                final String description = Utils.getApplication()
                         .getString(mDescriptionId);
-                if (check(description,  builder.getDescriptionRaw()    , "Description"   ))
-                    builder.setDescription(description     );
+                if (check(description,  builder.getDescriptionRaw()      , "Description"     ))
+                    builder.setDescription (description      );
             }
 
             final CoreLoad<E, D> coreLoad = super.create(activity, fragment);

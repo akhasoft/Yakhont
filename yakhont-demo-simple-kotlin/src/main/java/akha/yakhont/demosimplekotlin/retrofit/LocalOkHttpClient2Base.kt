@@ -68,7 +68,8 @@ abstract class LocalOkHttpClient2Base: OkHttpClient() {
             Log.w(TAG, "interceptor == null")
         else {
             val result = if (add) mInterceptors.add(interceptor) else mInterceptors.remove(interceptor)
-            if (!result) Log.e(TAG, "can't " + (if (add) "add" else "remove") + " interceptor " + interceptor)
+            if (!result) Log.e(TAG, "can't " + (if (add) "add" else "remove") +
+                    " interceptor " + interceptor)
         }
         return this
     }
@@ -112,7 +113,8 @@ abstract class LocalOkHttpClient2Base: OkHttpClient() {
             if (mEmulatedNetworkDelay <= 0)
                 runnable.run()
             else
-                Handler(Looper.getMainLooper()).postDelayed(runnable, (mEmulatedNetworkDelay * 1000).toLong())
+                Handler(Looper.getMainLooper()).postDelayed(runnable,
+                        mEmulatedNetworkDelay * 1000L)
         }
 
         private fun enqueueWrapper(responseCallback: Callback) {

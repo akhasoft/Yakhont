@@ -17,6 +17,8 @@
 package akha.yakhont;
 
 import akha.yakhont.CoreLogger.Level;
+// ProGuard issue
+ import akha.yakhont.R;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycleProceed;
@@ -41,6 +43,7 @@ import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
+import android.app.Dialog;
 import android.content.ComponentCallbacks;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
@@ -69,11 +72,13 @@ import android.view.ViewTreeObserver;
 import android.view.Window;
 import android.widget.Toast;
 import androidx.annotation.AnyRes;
+import androidx.annotation.CallSuper;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.StringRes;
+import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.Lifecycle.Event;
 import androidx.lifecycle.LifecycleOwner;
@@ -206,7 +211,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     private static       Core                           sInstance;
-    private static       boolean                        sSupport, sbyUser;
+    private static       boolean                        sbyUser, sSupport, sSetOrientation, sHideKeyboard;
     private static       WeakReference<Application>     sApplication;
     private static       Dagger2                        sDagger;
 
@@ -222,7 +227,7 @@ public class Core implements DefaultLifecycleObserver {
          * Starts data load dialog.
          *
          * @param context
-         *        The Activity
+         *        The {@link Activity}
          *
          * @param text
          *        The text to display
@@ -246,11 +251,14 @@ public class Core implements DefaultLifecycleObserver {
          * Confirms data load canceling.
          *
          * @param context
-         *        The Activity
+         *        The {@link Activity}
+         *
+         * @param view
+         *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
          *
          * @return  {@code true} if confirmation supported, {@code false} otherwise
          */
-        boolean confirm(Activity context);
+        boolean confirm(Activity context, View view);
 
         /**
          * Sets data load canceling handler.
@@ -323,22 +331,32 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Forces working in support mode (use weaving mechanism for calling the application callbacks
-     * instead of registering via
-     * {@link Application#registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks)}
-     * and {@link Application#registerComponentCallbacks(ComponentCallbacks)}).
-     * <p>Mostly for debug purposes.
-     * <p>Don't forget to call some {@code init(...)} method after this call.
+     * Sets configuration for the Yakhont library.
+     *
+     * @param supportMode
+     *        Forces working in support mode (use weaving mechanism for calling the application
+     *        callbacks instead of registering via
+     *        {@link Application#registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks)}
+     *        and {@link Application#registerComponentCallbacks(ComponentCallbacks)}).
+     *        Mostly for debug purposes.
+     *
+     * @param setOrientation
+     *        Switches ON / OFF the screen orientation callback (please refer to {@link OrientationCallbacks})
+     *
+     * @param hideKeyboard
+     *        Switches ON / OFF the virtual keyboard callback (please refer to {@link HideKeyboardCallbacks})
      */
     @SuppressWarnings("unused")
-    public static void forceSupportMode() {
-        sSupport = true;
+    public static void config(final boolean supportMode, final boolean setOrientation, final boolean hideKeyboard) {
+        sSupport            = supportMode;
+        sSetOrientation     = setOrientation;
+        sHideKeyboard       = hideKeyboard;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Initializes the library.
+     * Initializes the Yakhont library.
      *
      * @param application
      *        The Application
@@ -360,7 +378,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Initializes the library. Usage example:
+     * Initializes the Yakhont library. Usage example:
      *
      * <pre style="background-color: silver; border: thin solid black;">
      * import akha.yakhont.callback.BaseCallbacks.Validator;
@@ -497,7 +515,6 @@ public class Core implements DefaultLifecycleObserver {
                 Utils.isDebugMode(application.getPackageName()));
         Init.allRemaining(application);
 
-        CoreLogger.log("orientation " + Utils.getOrientation(application));
         CoreLogger.log("uri "         + Utils.getBaseUri());
         CoreLogger.log("support "     + sSupport);
 
@@ -770,19 +787,44 @@ public class Core implements DefaultLifecycleObserver {
         private static ApplicationCallbacks.ApplicationCallbacks2
                                                         sApplicationCallbacks2;
 
+        private static HideKeyboardCallbacks            sHideKeyboardCallbacks;
+        private static OrientationCallbacks             sOrientationCallbacks;
+
         public static void registerCallbacks(@NonNull final Application application, boolean firstInit) {
             if (firstInit) registerCallbacks(application);
+
+            if (sHideKeyboard) {
+                if (sHideKeyboardCallbacks == null) {
+                    sHideKeyboardCallbacks  = new HideKeyboardCallbacks();
+                    register((BaseActivityCallbacks) sHideKeyboardCallbacks.setForceProceed(true));
+                }
+            }
+            else {
+                if (sHideKeyboardCallbacks != null) {
+                    BaseActivityLifecycleProceed.unregister(sHideKeyboardCallbacks);
+                    sHideKeyboardCallbacks  = null;
+                }
+            }
+            if (sSetOrientation) {
+                if (sOrientationCallbacks == null) {
+                    sOrientationCallbacks  = new OrientationCallbacks();
+                    register((BaseActivityCallbacks) sOrientationCallbacks.setForceProceed(true));
+                }
+            }
+            else {
+                if (sOrientationCallbacks != null) {
+                    BaseActivityLifecycleProceed.unregister(sOrientationCallbacks);
+                    sOrientationCallbacks  = null;
+                }
+            }
+
             registerCallbacksSupport(application);
         }
 
         private static void registerCallbacks(@NonNull final Application application) {
-            // don't remove
+            // don't remove validation
             BaseFragmentLifecycleProceed.register(new ValidateFragmentCallbacks(), true);
-            // don't remove
             BaseActivityLifecycleProceed.register(new ValidateActivityCallbacks(), true);
-
-            register((BaseActivityCallbacks) new HideKeyboardCallbacks().setForceProceed(true));
-            register((BaseActivityCallbacks) new OrientationCallbacks() .setForceProceed(true));
 
             register(new LocationCallbacks());
 
@@ -1018,9 +1060,9 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Returns the current {@code Application}.
+         * Returns the current {@link Application}.
          *
-         * @return  The current {@code Application}
+         * @return  The current {@link Application}
          */
         @SuppressWarnings("unused")
         public static Application getApplication() {
@@ -1028,13 +1070,14 @@ public class Core implements DefaultLifecycleObserver {
             if      (sApplication       == null) CoreLogger.logError("sApplication == null");
             else if (sApplication.get() == null) CoreLogger.logError("sApplication.get() == null");
 
-            return sApplication == null ? null: sApplication.get();
+            return Objects.requireNonNull(sApplication == null /* should never happen */ ?
+                    null: sApplication.get());
         }
 
         /**
-         * Returns the current {@code Activity} (if any).
+         * Returns the current {@link Activity} (if any).
          *
-         * @return  The current {@code Activity} (or null)
+         * @return  The current {@link Activity} (or null)
          */
         @SuppressWarnings("unused")
         public static Activity getCurrentActivity() {
@@ -1042,14 +1085,14 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Returns the default {@code View} of the given {@code Activity}.
-         * The default View Id is stored in the resources ({@code yakhont_default_view_id})
+         * Returns the default {@link View} of the given {@link Activity}.
+         * The default View Id is stored in the resources ({@link akha.yakhont.R.id#yakhont_default_view_id})
          * and for the moment is {@link android.R.id#content android.R.id.content}.
          *
          * @param activity
-         *        The Activity
+         *        The {@link Activity}
          *
-         * @return  The default View (or null)
+         * @return  The default {@link View} (or null)
          */
         @SuppressWarnings("unused")
         public static View getDefaultView(final Activity activity) {
@@ -1087,7 +1130,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Shows {@link Snackbar} using default {@code View} of the current {@code Activity}.
+         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
          *
          * @param text
          *        The text to show
@@ -1112,7 +1155,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Shows {@link Snackbar} using default {@code View} of the current {@code Activity}.
+         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
          *
          * @param resId
          *        The resource ID of the string resource to show
@@ -1127,10 +1170,10 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Sets the default View ID (e.g. to show {@link Snackbar}).
+         * Sets the default {@link View} ID (e.g. to show the default {@link Snackbar}).
          *
          * @param resId
-         *        The resource ID of the View (should be common for all Activities)
+         *        The resource ID of the {@link View} (should be common for all used Activities)
          */
         @SuppressWarnings("unused")
         public static void setDefaultViewId(@IdRes final int resId) {
@@ -1336,7 +1379,7 @@ public class Core implements DefaultLifecycleObserver {
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @NonNull
-        public static Orientation getOrientation(@NonNull final Context context) {
+        public static Orientation getOrientationToSet(@NonNull final Context context) {
             // landscape allowed on tablets, so use resources, no constants
             final Resources resources = context.getResources();
 
@@ -1485,16 +1528,16 @@ public class Core implements DefaultLifecycleObserver {
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static File getTmpDir(@NonNull final Context context) {
             File dir;
-            if (checkDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)))                    return dir;
-            if (checkDir(dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)))  return dir;
-            if (checkDir(dir = Environment.getExternalStorageDirectory()))                                      return dir;
-            if (checkDir(dir = context.getExternalCacheDir()))                                                  return dir;
+            if (checkTmpDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)))                    return dir;
+            if (checkTmpDir(dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)))  return dir;
+            if (checkTmpDir(dir = Environment.getExternalStorageDirectory()))                                      return dir;
+            if (checkTmpDir(dir = context.getExternalCacheDir()))                                                  return dir;
 
             CoreLogger.logError("can not find tmp directory");
             return null;
         }
 
-        private static boolean checkDir(final File dir) {
+        private static boolean checkTmpDir(final File dir) {
             CoreLogger.log("check directory: " + dir);
             return dir != null && dir.isDirectory() && dir.canWrite();
         }
@@ -1543,20 +1586,20 @@ public class Core implements DefaultLifecycleObserver {
                         inputStream.close();
                     }
                     catch (Exception exception) {
-                        handleError("failed creating ZIP entry " + srcFile, exception, errors);
+                        handleZipError("failed creating ZIP entry " + srcFile, exception, errors);
                     }
 
                 outputStream.close();
                 return true;
             }
             catch (Exception exception) {
-                handleError("failed creating ZIP " + zipFile, exception, errors);
+                handleZipError("failed creating ZIP " + zipFile, exception, errors);
                 return false;
             }
         }
 
-        private static void handleError(final String text, final Exception exception,
-                                        final Map<String, Exception> map) {
+        private static void handleZipError(final String text, final Exception exception,
+                                           final Map<String, Exception> map) {
             CoreLogger.log(text, exception);
             if (map != null) //noinspection ThrowableResultOfMethodCallIgnored
                 map.put(text, exception);
@@ -2261,9 +2304,9 @@ public class Core implements DefaultLifecycleObserver {
                 if (typeResponse instanceof Class) {
                     final Class classResponse = (Class) typeResponse;
                     final boolean result = typeResponse.equals(typeMethod) ||
-                            (classResponse.isArray() && typeMethod instanceof GenericArrayType
-                                    && Objects.requireNonNull(classResponse.getComponentType())
-                                    .equals(getGenericComponentType(typeMethod)));
+                            (classResponse.isArray() && typeMethod instanceof GenericArrayType &&
+                                    getGenericComponentType(typeMethod).equals(
+                                            classResponse.getComponentType()));
                     if (result) return true;
                 }
 
@@ -2349,6 +2392,47 @@ public class Core implements DefaultLifecycleObserver {
                 if (close) cursor.close();
             }
             return false;
+        }
+
+        /**
+         * Implements {@code DialogFragment} which not destroyed after screen orientation
+         * changed (actually it's a Google API bug workaround).
+         */
+        public static abstract class RetainDialogFragment extends DialogFragment {
+
+            /**
+             * Initialises a newly created {@code RetainDialogFragment} object.
+             */
+            public RetainDialogFragment() {
+                setRetainInstance(true);
+            }
+
+            /**
+             * Please refer to the base method description.
+             */
+            @CallSuper
+            @Override
+            public void onDestroyView() {
+                onDestroyView(this);
+                super.onDestroyView();
+            }
+
+            /**
+             * Should be called from overridden {@link DialogFragment#onDestroyView} before call
+             * to the super method (to prevent retained {@code DialogFragment} dismissing on
+             * screen orientation changing).
+             *
+             * @param dialogFragment
+             *        The retained {@code DialogFragment}
+             */
+            public static void onDestroyView(final DialogFragment dialogFragment) {
+                if (dialogFragment == null) return;
+                final Dialog dialog = dialogFragment.getDialog();
+
+                // handles https://code.google.com/p/android/issues/detail?id=17423
+                if (dialog != null && dialogFragment.getRetainInstance())
+                    dialog.setDismissMessage(null);
+            }
         }
     }
 }

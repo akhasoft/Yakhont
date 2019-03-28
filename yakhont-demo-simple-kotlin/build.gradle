@@ -84,7 +84,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       projectDebug != '1'
+            minifyEnabled       projectDebug != '2'
 
             projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
@@ -135,6 +135,7 @@ dependencies {
     implementation      "androidx.lifecycle:lifecycle-reactivestreams-ktx:$projectLibVerKotlinLifecycleLifecycleReactiveStreams"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
+    implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
     implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
     implementation      "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2

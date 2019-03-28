@@ -71,12 +71,16 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
         Core.setRxUncaughtExceptionBehavior(false /* not terminate */);
 
+        // overrides the default configuration from weaver.config (enables screen orientation setting)
+        Core.config(false, true, true);
+
         boolean debug = BuildConfig.DEBUG;
 
-        Core.init(getApplication(), debug, DaggerMainActivity_DemoDagger // deep customization (see below)
-                .builder()
-                .parameters(Parameters.create(USE_GOOGLE_LOCATION_OLD_API, USE_SNACKBAR_ISO_TOAST))
-                .build());
+        if (savedInstanceState == null)
+            Core.init(getApplication(), debug, DaggerMainActivity_DemoDagger    // deep customization
+                    .builder()
+                    .parameters(Parameters.create(USE_GOOGLE_LOCATION_OLD_API, USE_SNACKBAR_ISO_TOAST))
+                    .build());
 
         // optional; on shaking device email with logs will be sent to the address below
         if (debug) CoreLogger.registerShakeDataSender(this, "address@company.com");
@@ -131,6 +135,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         mLocationCallbacks = LocationCallbacks.getLocationCallbacks(this);
         if (mLocationCallbacks == null) return;
 
+        // unsubscribe handled by Yakhont
         mRx = new LocationRx(isRxJava2(), this).subscribe(new SubscriberRx<Location>() {
             @Override
             public void onNext(Location location) {
@@ -143,7 +148,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             }
         });
 
-        // unsubscribe and unregister goes automatically
+        // unregister handled by Yakhont
         mLocationCallbacks.register(this, mRx);
     }
 

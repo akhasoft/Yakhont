@@ -159,6 +159,22 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
     }
 
     /**
+     * Unregisters the callbacks handler.
+     *
+     * @param callbacks
+     *        The callbacks handler to unregister
+     *
+     * @param <C>
+     *        The type of callbacks handler
+     *
+     * @return  {@code true} if the callbacks handler was successfully unregistered, {@code false} otherwise
+     */
+    @SuppressWarnings("unused")
+    public static <C extends BaseFragmentCallbacks> boolean unregister(@NonNull final C callbacks) {
+        return unregister(sCallbacks, callbacks);
+    }
+
+    /**
      * Applies registered callbacks to the given fragment.
      *
      * @param lifeCycle

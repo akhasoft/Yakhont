@@ -207,6 +207,22 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     }
 
     /**
+     * Unregisters the callbacks handler.
+     *
+     * @param callbacks
+     *        The callbacks handler to unregister
+     *
+     * @param <C>
+     *        The type of callbacks handler
+     *
+     * @return  {@code true} if the callbacks handler was successfully unregistered, {@code false} otherwise
+     */
+    @SuppressWarnings("UnusedReturnValue")
+    public static <C extends BaseActivityCallbacks> boolean unregister(@NonNull final C callbacks) {
+        return unregister(sCallbacks, callbacks);
+    }
+
+    /**
      * Applies registered callbacks to the given activity.
      *
      * @param lifeCycle
@@ -586,7 +602,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     }
 
     /**
-     * Hides the keyboard when activity paused.
+     * Hides the virtual keyboard (if shown) when activity paused.
      */
     public static class HideKeyboardCallbacks extends BaseActivityCallbacks {
 
@@ -625,7 +641,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     }
 
     /**
-     * Sets the screen orientation.
+     * Forces screen orientation to portrait only (but not for tablets).
      */
     public static class OrientationCallbacks extends BaseActivityCallbacks {
 
@@ -646,7 +662,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         /** @exclude */
         @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static void setOrientation(@NonNull final Activity activity) {
-            final Core.Orientation orientation = Utils.getOrientation(activity);
+            final Core.Orientation orientation = Utils.getOrientationToSet(activity);
             switch (orientation) {
 
                 case LANDSCAPE:

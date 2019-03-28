@@ -81,7 +81,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       projectDebug != '1'
+            minifyEnabled       projectDebug != '2'
 
             // normally it added from aar automatically - but this demo is not dependent on yakhont.aar
             // proguardFile                '../yakhont/proguard/proguard-consumer.pro'
@@ -91,7 +91,6 @@ android {
                 proguardFile            '../proguard/libs/' + it
             }
             proguardFile                '../proguard/libs/proguard-gson.pro'
-            proguardFile                './proguard/libs/proguard-support-design.pro'
 
             proguardFile                './proguard/proguard-project-app.pro'
             proguardFile                '../proguard/proguard-project.pro'

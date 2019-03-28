@@ -81,7 +81,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       projectDebug != '1'
+            minifyEnabled       projectDebug != '2'
 
             projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
@@ -137,6 +137,7 @@ dependencies {
     implementation      "androidx.lifecycle:lifecycle-extensions:$projectLibVerLifecycleLifecycleExtensions"
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
+    implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
     implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
     implementation      "androidx.paging:paging-runtime:$projectLibVerPaging"

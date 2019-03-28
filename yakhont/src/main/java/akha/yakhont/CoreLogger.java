@@ -120,7 +120,7 @@ public class CoreLogger {
 
     private static final AtomicReference<String>        sTag                     = new AtomicReference<>();
 
-    private static final String                         sNewLine                 = System.getProperty("line.separator");
+    private static final String                         sNewLine                 = Objects.requireNonNull( /* should always happen */ System.getProperty("line.separator"));
 
     private static final AtomicReference<Level>         sLogLevelThreshold       = new AtomicReference<>(Level.ERROR);
     private static final AtomicReference<Level>         sLogLevelDefault         = new AtomicReference<>(Level.INFO);
@@ -613,7 +613,7 @@ public class CoreLogger {
             String       tmp = text;
             StringBuilder sb = null;
             for (;;) {
-                final int idx = tmp.indexOf(Objects.requireNonNull(sNewLine));
+                final int idx = tmp.indexOf(sNewLine);
                 if (idx < 0 || idx > maxLength) break;
 
                 if (sb == null) sb = new StringBuilder();
@@ -834,7 +834,7 @@ public class CoreLogger {
     @SuppressWarnings("WeakerAccess")
     public static String getResourceName(@AnyRes final int id) {
         try {
-            return Objects.requireNonNull(Utils.getApplication()).getResources().getResourceName(id);
+            return Utils.getApplication().getResources().getResourceName(id);
         }
         catch (Exception exception) {
             CoreLogger.log(exception);
@@ -871,9 +871,9 @@ public class CoreLogger {
 
         //noinspection ConditionalBreakInInfiniteLoop
         for (;;) {
-            data.append("<-").append(Objects.requireNonNull(cls).getSimpleName());
+            data.append("<-").append(cls.getSimpleName());
             cls = cls.getSuperclass();
-            if (Object.class.equals(cls)) break;
+            if (cls  == null || Object.class.equals(cls)) break;
         }
 
         return data.toString().substring(2);
@@ -979,8 +979,7 @@ public class CoreLogger {
     public static void sendLogCat(@NonNull final Activity activity,
                                   @NonNull final String address, @NonNull final String subject,
                                   final boolean clearList, final String cmd) {
-        Utils.sendEmail(activity, new String[] {address}, subject,
-                TextUtils.join(Objects.requireNonNull(sNewLine),
+        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(sNewLine,
                 getLogCat(null, clearList, cmd)), null);
     }
 

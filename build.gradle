@@ -71,6 +71,7 @@ ext {
             'limitations under the License.</font>'
 
     projectProGuardFiles    = ['proguard-google-play-services.pro'                      ,
+                               'proguard-support-design.pro'                            ,
                                'proguard-rx-java.pro'                                   ,
                                'proguard-square-okhttp.pro'                             ,
                                'proguard-square-okhttp3.pro'                            ,

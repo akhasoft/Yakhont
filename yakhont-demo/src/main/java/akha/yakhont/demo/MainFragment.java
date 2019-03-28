@@ -27,10 +27,12 @@ import akha.yakhont.demo.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
+import akha.yakhont.Core.Utils.RetainDialogFragment;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
@@ -46,8 +48,8 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.res.Resources;
+import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
@@ -64,7 +66,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.databinding.BindingAdapter;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 
 import com.google.gson.reflect.TypeToken;
@@ -85,42 +86,48 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     private       Retrofit <RetrofitApi,  List<BeerDefault>>    mRetrofit;
     private       Retrofit2<Retrofit2Api, List<Beer>>           mRetrofit2;
 
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return initGui(inflater, container);
-    }
-
     // every loader should have unique Retrofit object; don't share it with other loaders
     private void createRetrofit(Context context) {
-
-        // local JSON client, so URL doesn't matter
-        String url = "http://localhost/";
+        String url = "http://localhost/";   // local JSON client, so URL doesn't matter
 
         if (getMainActivity().isRetrofit2()) {
             mRetrofit2      = new Retrofit2<>();
             mOkHttpClient2  = new LocalOkHttpClient2(context, mRetrofit2);
             mRetrofit2.init(Retrofit2Api.class, url, mOkHttpClient2);
-
-            mOkHttpClient2.getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
         }
         else {
             mRetrofit       = new Retrofit<>();
             mOkHttpClient   = new LocalOkHttpClient(context);
             mRetrofit.init(RetrofitApi.class, mRetrofit.getDefaultBuilder(url).setClient(mOkHttpClient));
-
-            mOkHttpClient .getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
         }
 
         // for normal HTTP requests it's much simpler - just something like this:
 //      mRetrofit2 = new Retrofit2<Retrofit2Api, List<Beer>>().init(Retrofit2Api.class, "http://...");
     }
 
+    private void setEmulatedNetworkDelay() {
+        if (getMainActivity().isRetrofit2())
+            mOkHttpClient2.getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
+        else
+            mOkHttpClient .getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        initGui(savedInstanceState);
+        initGui();
 
+        if (mCoreLoad != null)               // handling screen orientation changes
+            mGridView.setAdapter(mCoreLoad.getLoader().getListAdapter());
+        else
+            init();
+
+        // Swipe-To-Refresh handling (optional, remove here and in xml layout if not needed)
+        registerSwipeToRefresh();
+    }
+
+    private void init() {
         createRetrofit(getActivity());
 
         initRx();                            // optional
@@ -134,26 +141,24 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 //      if (savedInstanceState == null) akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.clearCache(mCoreLoad);
 // or                                   Utils.clearCache("your_table_name");
 
-        // Swipe-To-Refresh handling (optional, remove here and in xml layout if not needed)
-        registerSwipeToRefresh();
+        startLoading(false);
 
-        startLoading(savedInstanceState, false);
+        // emulates network delay to demonstrate progress customization
+        mGridView.postDelayed(this::setEmulatedNetworkDelay, 300);
     }
 
-    private void startLoading(Bundle savedInstanceState, boolean byUserRequest) {
-
+    private void startLoading(boolean byUserRequest) {
         updateGuiAndSetPartToLoad(byUserRequest);
 
         mCoreLoad.setGoBackOnCancelLoading(!byUserRequest);
 
         mCoreLoad.start(getActivity(), getLoadParameters(
-                byUserRequest ? mCheckBoxForce.isChecked(): savedInstanceState != null,
-                !byUserRequest, mCheckBoxMerge.isChecked()));
+                mCheckBoxForce.isChecked(), !byUserRequest, mCheckBoxMerge.isChecked()));
     }
 
     private LoadParameters getLoadParameters(boolean forceCache, boolean noProgress, boolean merge) {
-        return new LoadParameters.Builder().setForceCache(forceCache).setNoProgress(noProgress)
-                .setMerge(merge).setNoErrors(mNotDisplayLoadingErrors).create();
+        return new LoadParameters.Builder(null).setForceCache(forceCache)
+                .setNoProgress(noProgress).setMerge(merge).setNoErrors(mNotDisplayLoadingErrors).create();
     }
 
     private void createLoaderForRetrofit2() {
@@ -273,7 +278,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     private void onLoadFinished(List<?> data, Source source) {
-
         setBubblesState(false);
 
         if (data != null) mGridView.startLayoutAnimation();
@@ -282,7 +286,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     private void onLoadFinishedDataBinding(List<Beer> data, Source source) {
-
         for (Beer beer: data)
             beer.setCacheInfo(getVisibility());
 
@@ -291,7 +294,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     @SuppressWarnings("UnusedParameters")
     private boolean setViewValue(View view, Object data, String textRepresentation) {
-
         switch (view.getId()) {
 
             case R.id._id:
@@ -313,15 +315,18 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     @SuppressWarnings("WeakerAccess")
     @BindingAdapter("android:src")
     public static void setImageUrl(ImageView view, String data) {
-
         int pos = data.indexOf("img_");
 
         view.setTag(data.substring(pos + 4, pos + 6));
         view.setImageURI(Uri.parse(data));
     }
 
+    private static MainActivity getMainActivity(final Fragment fragment) {
+        return Objects.requireNonNull /* should always happen */ ((MainActivity) fragment.getActivity());
+    }
+
     private MainActivity getMainActivity() {
-        return (MainActivity) getActivity();
+        return getMainActivity(this);
     }
 
     /////////// Rx handling (optional)
@@ -332,7 +337,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     // unsubscribe goes automatically
     @SuppressWarnings("ConstantConditions")
     private void initRx() {
-
         boolean singleRx = false;     // don't change
 
         if (getMainActivity().isRetrofit2()) {
@@ -379,10 +383,8 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // below is GUI stuff only
 
-    private static final int            EMULATED_NETWORK_DELAY          = 3;     // seconds
+    private static final int            EMULATED_NETWORK_DELAY          = 7;    // seconds
     private static final int            PARTS_QTY                       = 3;
-
-    private static final String         ARG_PART_COUNTER                = "part_counter";
 
     private              AbsListView    mGridView;
     private              CheckBox       mCheckBoxForce, mCheckBoxMerge;
@@ -394,10 +396,18 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     private              Rect           mSlideRect;
 
+    public MainFragment() {
+        setRetainInstance(true);
+    }
+
+    @Override
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+        return initGui(inflater, container);
+    }
+
     private final View.OnClickListener  mListener                       = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-
             registerSwipeToRefresh();
 
             mCheckBoxForce.setEnabled(!mCheckBoxMerge.isChecked());
@@ -407,12 +417,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     private void registerSwipeToRefresh() {
         SwipeToRefreshWrapper.register(getActivity(), R.id.swipeContainer, mCoreLoad.getLoaders(),
-                getLoadParameters(mCheckBoxForce.isChecked(), false, mCheckBoxMerge.isChecked()));
+                getLoadParameters(
+                        mCheckBoxForce.isChecked(), false, mCheckBoxMerge.isChecked()));
     }
 
     // just a boilerplate code
     private View initGui(LayoutInflater inflater, ViewGroup container) {
-
         View mainView       = inflater.inflate(R.layout.fragment_main, container, false);
 
         mGridView           = mainView.findViewById(R.id.grid);
@@ -421,7 +431,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
 
         mainView.findViewById(R.id.btn_load).setOnClickListener(
-                view -> startLoading(null, true));
+                view -> startLoading(true));
 
         mCheckBoxForce.setOnClickListener(mListener);
         mCheckBoxMerge.setOnClickListener(mListener);
@@ -433,18 +443,17 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         return mainView;
     }
 
-    private void initGui(Bundle savedInstanceState) {
-
-        if (savedInstanceState != null && savedInstanceState.keySet().contains(ARG_PART_COUNTER))
-            mPartCounter = savedInstanceState.getInt(ARG_PART_COUNTER);
-
+    private void initGui() {
         mSlideShow.init(this);
 
-        Bubbles.init(Objects.requireNonNull(getActivity()));
+        Bubbles.init(getMainActivity());
+
+        // sets text color for default data loading progress indicator
+        // (needed only if you will comment out the '.setProgress(new ProgressDemo())' above
+        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setProgressTextColor(Color.BLACK);
     }
 
     private void updateGuiAndSetPartToLoad(boolean byUserRequest) {
-
         if (byUserRequest)
             setBubblesState(true);
         else {
@@ -465,16 +474,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     @Override
-    public void onSaveInstanceState(@NonNull Bundle savedInstanceState) {
-
-        savedInstanceState.putInt(ARG_PART_COUNTER, mPartCounter);
-
-        super.onSaveInstanceState(savedInstanceState);
-    }
-
-    @Override
     public void onDestroyView() {
-
         mSlideShow.cleanUp();
         Bubbles.cleanUp();
 
@@ -511,7 +511,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         @Override
         public void show() {
             mProgress = new ProgressDialogFragment();
-            mProgress.show(Objects.requireNonNull(getActivity()).getSupportFragmentManager(), "ProgressDialogFragment");
+            mProgress.show(getMainActivity().getSupportFragmentManager(), "ProgressDialogFragment");
         }
 
         @Override
@@ -525,23 +525,24 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         }
 
         @Override
-        public void confirm(Activity activity) {
-            if (mProgress != null && mProgress.isConfirm()) super.confirm(activity);
+        public void confirm(Activity activity, View view) {
+            if (mProgress != null && mProgress.isConfirm()) super.confirm(activity, view);
         }
     }
 
+    // RetainDialogFragment prevents DialogFragment to be destroyed after screen orientation changed
+    // (actually it's a Google API bug workaround)
     @SuppressWarnings("WeakerAccess")
-    public static class ProgressDialogFragment extends DialogFragment {
+    public static class ProgressDialogFragment extends RetainDialogFragment {
 
         private static BitmapDrawable   sBackground;
-
         private        CheckBox         mConfirm;
 
         @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
-            Activity activity = getActivity();
-            AlertDialog.Builder builder = new AlertDialog.Builder(Objects.requireNonNull(activity));
+            Activity activity = getMainActivity(this);
+            AlertDialog.Builder builder = new AlertDialog.Builder(activity);
 
             @SuppressLint("InflateParams")
             View view = LayoutInflater.from(activity).inflate(R.layout.progress, null);
@@ -561,20 +562,22 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
             mConfirm = view.findViewById(R.id.progress_confirm);
 
-            return builder.setView(view).create();
+//          most of the time it's enough to do this way
+//          return ProgressDefault.handle(builder.setView(view).create(), view);
+
+            return ProgressDefault.handle(builder.setView(view).create(), () -> {
+                if (isConfirm()) {
+                    BaseViewModel.get().getData().confirm(getActivity(), view);
+                    return true;
+                }
+                Utils.showToast(R.string.yakhont_loader_cancelled, !Utils.SHOW_DURATION_LONG);
+                LiveDataDialog.cancel(getActivity());
+                return false;
+            });
         }
 
         private boolean isConfirm() {
             return mConfirm.isChecked();
-        }
-
-        @Override
-        public void onCancel(DialogInterface dialog) {
-            super.onCancel(dialog);
-            if (isConfirm()) return;
-
-            Utils.showToast(R.string.yakhont_loader_cancelled, !Utils.SHOW_DURATION_LONG);
-            LiveDataDialog.cancel(getActivity());
         }
     }
 }

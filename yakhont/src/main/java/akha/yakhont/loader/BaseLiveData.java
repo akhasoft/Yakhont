@@ -32,13 +32,18 @@ import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBu
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.DialogInterface.OnKeyListener;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.CountDownTimer;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
@@ -53,7 +58,6 @@ import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Collection;
-import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -175,13 +179,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             @NonNull
             @Override
             public String toString() {
-                return "BaseDialog.setOnCancel()";
+                return "BaseDialog.onCancel()";
             }
         });
     }
 
     private static Context getContext() {
-        return Objects.requireNonNull(Utils.getApplication()).getApplicationContext();
+        return Utils.getApplication().getApplicationContext();
     }
 
     private Boolean onCompleteAsync(final boolean cancel) {
@@ -320,8 +324,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected String makeErrorMessage(@SuppressWarnings("unused") final BaseResponse baseResponse) {
-        return Objects.requireNonNull(Utils.getApplication())
-                .getString(akha.yakhont.R.string.yakhont_loader_error);
+        return Utils.getApplication().getString(akha.yakhont.R.string.yakhont_loader_error);
     }
 
     /**
@@ -453,12 +456,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      */
     public boolean isLoading() {
         final boolean loading = isLoadingSync();
+
         if (mBaseDialog instanceof LiveDataDialog) {
             final boolean liveDataLoading = ((LiveDataDialog) mBaseDialog).isLoading();
+
             if (loading != liveDataLoading)     // should never happen
                 CoreLogger.logWarning("isLoading() problem: mLoading.get() == " + loading +
                         ", LiveDataDialog.isLoading() == " + liveDataLoading);
         }
+
         return loading;
     }
 
@@ -466,14 +472,17 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      * Confirms data load canceling.
      *
      * @param activity
-     *        The Activity
+     *        The @link Activity}
+     *
+     * @param view
+     *        The View for {@link Snackbar}
      *
      * @return  {@code true} if confirmation supported, {@code false} otherwise
      *
      * @see BaseDialog#confirm
      */
-    public boolean confirm(final Activity activity) {
-        return mBaseDialog.confirm(activity);
+    public boolean confirm(final Activity activity, final View view) {
+        return mBaseDialog.confirm(activity, view);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -697,21 +706,28 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * Confirms data load canceling.
              *
              * @param activity
-             *        The Activity
+             *        The {@link Activity}
+             *
+             * @param view
+             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
              *
              * @see BaseDialog#confirm
              */
-            void confirm(Activity activity);
+            void confirm(Activity activity, View view);
         }
 
         /**
-         * The base (not completed) {@code Progress} implementation.
+         * The base (with {@link Snackbar} for confirmation) {@link Progress} implementation.
          */
         @SuppressWarnings("unused")
         public static abstract class ProgressDefault implements Progress {
 
             private              Snackbar           mSnackbar;
-            private       static Integer            sSnackbarDuration;
+            private       static Integer            sSnackbarDuration, sSnackbarColor;
+            private       static ColorStateList     sSnackbarColors;
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            protected     static Integer            sProgressColor;
 
             /**
              * Please refer to the base method description.
@@ -729,13 +745,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * Please refer to the base method description.
              */
             @Override
-            public void confirm(final Activity activity) {
+            public void confirm(final Activity activity, final View view) {
                 //noinspection Convert2Lambda
-                mSnackbar = Snackbar.make(ViewHelper.getViewForSnackbar(activity, null),
+                mSnackbar = Snackbar.make(view != null ? view: ViewHelper.getViewForSnackbar(activity, null),
 
                         akha.yakhont.R.string.yakhont_loader_alert,
 
-                        sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_SHORT)
+                        sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_LONG)
 
                         .setAction(akha.yakhont.R.string.yakhont_alert_yes, new View.OnClickListener() {
                             @Override
@@ -752,7 +768,94 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                             }
                         });
 
+                if (sSnackbarColors != null) {
+                    if (sSnackbarColor != null)
+                        CoreLogger.logWarning("ColorStateList != null so Snackbar color " +
+                                "will be ignored: " + sSnackbarColor);
+                    mSnackbar.setActionTextColor(sSnackbarColors);
+                }
+                else if (sSnackbarColor != null) mSnackbar.setActionTextColor(sSnackbarColor);
+
                 mSnackbar.show();
+            }
+
+            /**
+             * Please refer to {@link Snackbar#setDuration}.
+             */
+            public static void setConfirmDuration(final Integer duration) {
+                sSnackbarDuration = duration;
+            }
+
+            /**
+             * Please refer to {@link Snackbar#setActionTextColor}.
+             */
+            public static void setConfirmTextColor(final Integer color) {
+                sSnackbarColor = color;
+            }
+
+            /**
+             * Please refer to {@link Snackbar#setActionTextColor(ColorStateList)}.
+             */
+            public static void setConfirmTextColor(final ColorStateList colors) {
+                sSnackbarColors = colors;
+            }
+
+            /**
+             * Sets progress text color (please refer to {@link TextView#setTextColor}).
+             */
+            public static void setProgressTextColor(final Integer color) {
+                sProgressColor = color;
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar} (the {@link Callable#call}
+             * should return value for the {@link OnKeyListener#onKey} - normally {@code true}).
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param callback
+             *        The callback (if  null - the {@link Callable#call} will return {@code false})
+             *
+             * @return  The handled {@link Dialog}
+             */
+            public static Dialog handle(@NonNull final Dialog dialog, final Callable<Boolean> callback) {
+                //noinspection Convert2Lambda
+                dialog.setOnKeyListener(new OnKeyListener() {
+                    @Override
+                    public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+                        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP)
+                            try {
+                                if (callback != null) return callback.call();
+                            }
+                            catch (Exception exception) {
+                                CoreLogger.log(exception);
+                            }
+                        return false;
+                    }
+                });
+                return dialog;
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param view
+             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
+             *
+             * @return  The handled {@link Dialog}
+             */
+            public static Dialog handle(@NonNull final Dialog dialog, final View view) {
+                //noinspection Convert2Lambda
+                return handle(dialog, new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() {
+                        return BaseViewModel.get().getData().confirm(null, view);
+                    }
+                });
             }
         }
 
@@ -783,7 +886,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 mToast = new Toast(context);
 
                 mToast.setView(LayoutInflater.from(context)
-                        .inflate(akha.yakhont.R.layout.progress, null, false));
+                        .inflate(akha.yakhont.R.layout.yakhont_progress, null, false));
 
                 mToast.setGravity(Gravity.CENTER, 0, 0);
                 mToast.setDuration(Toast.LENGTH_SHORT);
@@ -791,8 +894,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             @Override
             public void setText(@NonNull final String text) {
-                ((TextView) mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text))
-                        .setText(text);
+                final TextView view = mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text);
+                if (sProgressColor != null) view.setTextColor(sProgressColor);
+                view.setText(text);
             }
 
             @Override
@@ -869,7 +973,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             if (!result)
                 //noinspection ConstantConditions
                 CoreLogger.logWarning(String.format("unexpected progress: %s (mProgress: %s)" +
-                         progress == null ? "null": Objects.requireNonNull(progress).toString(),
+                         progress == null ? "null":  progress.toString(),
                         mProgress == null ? "null": mProgress.toString()));
 
             mProgress = progress;
@@ -1000,15 +1104,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
 
             if (force) {
-                final Collection<BaseViewModel<?>> models =
-                        BaseViewModel.getViewModels(activity, true);
+                final Collection<BaseViewModel<?>> models = BaseViewModel.getViewModels(
+                        activity, true, CoreLogger.getDefaultLevel());
                 if (models == null) {
                     CoreLogger.logWarning("only current BaseLiveData loading will be " +
                             "stopped 'cause of unsupported Activity " + CoreLogger.getDescription(activity));
                     cancel();
                 }
                 else
-                    for (final BaseViewModel<?> model: models)
+                    for (final BaseViewModel<?> model : models)
                         model.getData().mBaseDialog.cancel();
             }
 
@@ -1054,26 +1158,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return true;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        public static void setConfirmDuration(final int duration) {
-            if (sInstance.mProgress instanceof ProgressDefault)
-                //noinspection AccessStaticViaInstance
-                ((ProgressDefault) sInstance.mProgress).sSnackbarDuration = duration;
-            else
-                CoreLogger.logWarning("confirmation duration " + duration + " ignored for " +
-                        sInstance.mProgress.getClass());
-        }
-
         /**
          * Please refer to the base method description.
          */
         @Override
-        public boolean confirm(final Activity activity) {
+        public boolean confirm(final Activity activity, final View view) {
             //noinspection Convert2Lambda
             postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
-                    mProgress.confirm(activity);
+                    mProgress.confirm(activity, view);
                 }
             });
             return true;

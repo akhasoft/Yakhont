@@ -36,3 +36,6 @@
 -keep public class * {
     public protected *;
 }
+
+# added by akha (for lib only)
+-dontnote com.google.android.material.snackbar.ContentViewCallback

@@ -726,7 +726,7 @@ class BaseSnackbar implements BaseDialog {
     }
 
     @Override
-    public boolean confirm(Activity context) {
+    public boolean confirm(Activity context, View view) {
         return false;
     }
 
@@ -806,7 +806,7 @@ class BaseToast implements BaseDialog {
     }
 
     @Override
-    public boolean confirm(Activity context) {
+    public boolean confirm(Activity context, View view) {
         return false;
     }
 

@@ -564,17 +564,48 @@ public abstract class BaseCallbacks<T> {
          * @return  {@code true} if the callbacks handler was successfully unregistered, {@code false} otherwise
          */
         @SuppressWarnings("SameParameterValue")
-        public static <T, D> boolean unregister(@NonNull final Map<? extends BaseCacheCallbacks<T>, D> callbacksMap,
+        public static <T, D> boolean unregister(@NonNull final Map  <? extends BaseCacheCallbacks<T>, D> callbacksMap,
                                                 @NonNull final Class<? extends BaseCacheCallbacks<T>> callbacksClass) {
-            for (final BaseCacheCallbacks<T> callbacks: callbacksMap.keySet())
-                if (callbacks.getClass().equals(callbacksClass)) {
-                    callbacks.onUnregister();
+            return unregister(callbacksMap, null, callbacksClass);
+        }
 
-                    callbacksMap.remove(callbacks);
+        /**
+         * Unregisters the callbacks handler.
+         *
+         * @param callbacksMap
+         *        The registered callbacks handlers collection
+         *
+         * @param callbacks
+         *        The callbacks handler to unregister
+         *
+         * @param <C>
+         *        The type of callbacks handler
+         *
+         * @param <T>
+         *        The type of object for which callbacks should be proceeded
+         *
+         * @param <D>
+         *        The type of data associated with the callbacks handler
+         *
+         * @return  {@code true} if the callbacks handler was successfully unregistered, {@code false} otherwise
+         */
+        public static <C extends BaseCacheCallbacks<T>, T, D> boolean unregister(
+                @NonNull final Map<C, D> callbacksMap, @NonNull final C callbacks) {
+            return unregister(callbacksMap, callbacks, null);
+        }
+
+        private static <C extends BaseCacheCallbacks<T>, T, D> boolean unregister(
+                @NonNull final Map<C, D> callbacksMap, final C callbacks,
+                final Class<? extends BaseCacheCallbacks<T>> callbacksClass) {
+            for (final C tmp: callbacksMap.keySet())
+                if (callbacks != null ? tmp.equals(callbacks): tmp.getClass().equals(callbacksClass)) {
+                    tmp.onUnregister();
+
+                    callbacksMap.remove(tmp);
                     return true;
                 }
 
-            CoreLogger.logError("can not unregister " + callbacksClass.getName());
+            CoreLogger.logWarning("can not unregister " + callbacksClass.getName());
             return false;
         }
 

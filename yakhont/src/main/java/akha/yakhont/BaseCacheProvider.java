@@ -51,7 +51,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -257,7 +256,7 @@ public class BaseCacheProvider extends ContentProvider {
         for (final String columnName: columns.keySet())
             if (!isColumnExist(tableName, columnName))
                 columnsAdded = execSQL(db, String.format(ALTER_TABLE, tableName, columnName,
-                        Objects.requireNonNull(columns.get(columnName)).name()));
+                        getDataType(columns, columnName).name()));
         return columnsAdded;
     }
 
@@ -291,15 +290,16 @@ public class BaseCacheProvider extends ContentProvider {
             for (final String key: getKeySet(values))
                 if (!columns.containsKey(key) && values.get(key) != null) columns.put(key,
                         values.getAsByteArray(key) == null ?
-                                CreateTableScriptBuilder.DataType.TEXT:
+                                CreateTableScriptBuilder.DEFAULT_DATA_TYPE:
                                 CreateTableScriptBuilder.DataType.BLOB);
             if (values.size() == columns.size()) return columns;
         }
 
-        // set columns with nulls to TEXT
+        // set columns with nulls to default value (normally TEXT)
         for (final String key: getKeySet(bulkValues[0]))
             if (!columns.containsKey(key)) {
-                final CreateTableScriptBuilder.DataType type = CreateTableScriptBuilder.DataType.TEXT;
+                final CreateTableScriptBuilder.DataType type =
+                        CreateTableScriptBuilder.DEFAULT_DATA_TYPE;
                 CoreLogger.logError(String.format(
                         "table %s, column %s: no data found, column type forced to %s",
                         tableName, key, type.name()));
@@ -611,9 +611,21 @@ public class BaseCacheProvider extends ContentProvider {
 
         final CreateTableScriptBuilder builder = new CreateTableScriptBuilder(table);
         for (final String columnName: columns.keySet())
-            builder.addColumn(columnName, Objects.requireNonNull(columns.get(columnName)));
+            builder.addColumn(columnName, getDataType(columns, columnName));
 
         return execSQL(db, builder.create());
+    }
+
+    private CreateTableScriptBuilder.DataType getDataType(
+            @NonNull @Size(min = 1) final Map<String, CreateTableScriptBuilder.DataType> columns,
+            @NonNull final String columnName) {
+        CreateTableScriptBuilder.DataType dataType = columns.get(columnName);
+        if (dataType == null) {
+            dataType = CreateTableScriptBuilder.DEFAULT_DATA_TYPE;
+            CoreLogger.logError(String.format("can't find data type for column %s, " +
+                    "default value %s will be used", columnName, dataType.name()));
+        }
+        return dataType;
     }
 
     /**
@@ -621,6 +633,9 @@ public class BaseCacheProvider extends ContentProvider {
      * The {@link BaseColumns#_ID _ID} column is added by default.
      */
     public static class CreateTableScriptBuilder {
+
+        /** The default data type (value is {@link DataType#TEXT}). */
+        public static final DataType    DEFAULT_DATA_TYPE   = DataType.TEXT;
 
         /**
          * The SQL data types.
@@ -636,8 +651,8 @@ public class BaseCacheProvider extends ContentProvider {
             BLOB
         }
 
-        private final String      mTable;
-        private final Set<String> mColumns = Utils.newSet();
+        private final String            mTable;
+        private final Set<String>       mColumns            = Utils.newSet();
 
         /**
          * Initialises a newly created {@code CreateTableScriptBuilder} object.

@@ -25,7 +25,6 @@ import java.lang.ref.WeakReference;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.Locale;
-import java.util.Objects;
 
 /**
  * based on implementation of Matt Swanson
@@ -63,7 +62,8 @@ public class LocalOkHttpClientHelper {
         Context context = mContext.get();
         if (context == null) handleError("context == null");
 
-        int resourceId = Objects.requireNonNull(context).getResources().getIdentifier(fileName,
+        //noinspection ConstantConditions
+        int resourceId = context.getResources().getIdentifier(fileName,
                 "raw", context.getPackageName());
         if (resourceId == 0) handleError("Could not find res/raw/" + fileName + ".json");
 

@@ -20,6 +20,7 @@ import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.RetainDialogFragment;
 import akha.yakhont.CoreLogger;
 // ProGuard issue
 // import akha.yakhont.R;
@@ -31,7 +32,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
-import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
@@ -43,7 +43,6 @@ import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListe
 import com.google.android.gms.location.LocationServices;
 
 import java.lang.ref.WeakReference;
-import java.util.Objects;
 
 import javax.inject.Provider;
 
@@ -321,7 +320,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public static class LocationErrorDialogFragment extends DialogFragment {
+    public static class LocationErrorDialogFragment extends RetainDialogFragment {
 
         @SuppressWarnings("WeakerAccess")
         public  static final String            TAG                      = "LocationErrorDialogFragment";
@@ -347,8 +346,11 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         @NonNull
         @Override
         public Dialog onCreateDialog(Bundle savedInstanceState) {
-            final int errorCode = Objects.requireNonNull(getArguments()).getInt(ARG_DIALOG_ERROR);
-            CoreLogger.log("error code: " + errorCode);
+            final Bundle arguments = getArguments();
+            final int errorCode = arguments != null ? arguments.getInt(ARG_DIALOG_ERROR):
+                    ConnectionResult.INTERNAL_ERROR;    // should never happen
+            CoreLogger.log(arguments != null ? CoreLogger.getDefaultLevel(): CoreLogger.Level.ERROR,
+                    "error code: " + errorCode);
 
             final Activity activity = getCurrentActivity();
             return GoogleLocationClient.getErrorDialog(activity != null ? activity:

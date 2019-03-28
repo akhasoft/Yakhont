@@ -105,7 +105,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       projectDebug != '1'
+            minifyEnabled       projectDebug != '2'
 
             projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
