@@ -42,6 +42,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.paging.PagedList;
 import androidx.paging.PositionalDataSource;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -53,7 +54,7 @@ import java.util.concurrent.Callable;
 @CallbacksInherited( /* value = */ LocationCallbacks.class /* , parameters = "permissions rationale demo" */ )
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
-    private        CoreLoad<Throwable, List<Data>>  mLoader;
+    private        CoreLoad<Throwable, List<Data>>      mLoader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,55 +64,45 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 //      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false);
 /*
         // customize default progress here
-        BaseLiveData.LiveDataDialog.ProgressDefault.setProgressTextColor(...);
-        BaseLiveData.LiveDataDialog.ProgressDefault.setConfirmTextColor(...);
-        BaseLiveData.LiveDataDialog.ProgressDefault.setConfirmDuration(...);
+        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setProgressTextColor(...);
+        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setConfirmTextColor(...);
+        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setConfirmDuration(...);
 */
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (savedInstanceState != null) {       // standard handling for screen orientation changing
-            mAdvertisementShown = savedInstanceState.getBoolean(ARG_SHOWN);
-            mLocation           = savedInstanceState.getString (ARG_LOCATION);
-            setLocation();
-        }
+        setLocation();
 
         ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(new LinearLayoutManager(this));
 /*
         ////////
-        // normally it should be enough - but here we have the local client; so see below...
+        // normally it should be enough - but here we have the local client, so see below...
 
         Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.data,
-                (Callable<SamplePositionalSource>) () -> new SamplePositionalSource(savedInstanceState),
-                savedInstanceState);
+                (Callable<SamplePositionalSource>) SamplePositionalSource::new, savedInstanceState);
 
         ////////
 */
         setDebugLogging(BuildConfig.DEBUG);         // optional
 
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
-
         mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData,
-                BR.data, new LocalOkHttpClient(retrofit2) /* .setEmulatedNetworkDelay(7) */ , retrofit2,
-                LocalOkHttpClient.PAGE_SIZE,
+                BR.data, new LocalOkHttpClient(retrofit2), retrofit2, new PagedList.Config.Builder()
+                        .setPageSize(LocalOkHttpClient.PAGE_SIZE)
+                        .setEnablePlaceholders(false)
+                        .build(),
                 (Callable<SamplePositionalSource>) SamplePositionalSource::new, savedInstanceState)
-// or           (Callable<SamplePositionalSource>) () -> new SamplePositionalSource(some parameter(s)),
                 /* .setGoBackOnCancelLoading(false); // to stay in Activity if user cancelled data loading */ ;
 
-        // exactly the same as code above, but allows more customization (via a lot of setters)
+        // exactly the same as the call above, but allows much more customization
 //      mLoader = getLoaderCustomized(retrofit2, savedInstanceState);
-
-        // uncomment (both here and in xml layout) to use build-in Swipe-To-Refresh -
-        //  but also don't forget to provide real DataSource instead of stub here
-//      akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper.register(R.id.swipeContainer, mLoader);
     }
 
     private class SamplePositionalSource extends PositionalDataSource<Data> {
         @Override
         public void loadInitial(@NonNull LoadInitialParams         params,
                                 @NonNull LoadInitialCallback<Data> callback) {
-            mLoader.setPagingCallback((data, source) -> callback.onResult(data,
-                    0, LocalOkHttpClient.PAGE_SIZE * 1000)).start(null);
+            mLoader.setPagingCallback((data, source) -> callback.onResult(data, 0)).start(null);
         }
 
         @Override
@@ -123,6 +114,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // provides demo data for paged adapter
     private static class LocalOkHttpClient extends LocalOkHttpClient2 {
 
         private static final int                PAGE_SIZE                       = 20;
@@ -131,16 +123,21 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         private LocalOkHttpClient(Retrofit2 retrofit2) {
             super(retrofit2);
+            // just to demo the progress GUI - uncomment it if needed
+//          setEmulatedNetworkDelay(7);
         }
 
         @Override
         protected String getJson() {
             StringBuilder builder = new StringBuilder("[");
+
             for (int i = mItemCounter; i < mItemCounter + PAGE_SIZE; i++)
                 builder.append("{\"title\":\"").append("loaded page ").append(mPageCounter + 1)
                         .append(", item ").append(i + 1).append("\"},");
+
             mItemCounter += PAGE_SIZE;
             mPageCounter++;
+
             return builder.replace(builder.length() - 1, builder.length(), "]").toString();
         }
     }
@@ -153,7 +150,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         CoreLogger.registerShakeDataSender(this, "address@company.com");
     }
 
-    // calling this method is commented out 'cause it's exactly the same as
+    // this method's call is commented out 'cause it's exactly the same as
     // Retrofit2Loader.get(...) above - so this code provided just as a customization example
     @SuppressWarnings("unused")
     private CoreLoad<Throwable, List<Data>> getLoaderCustomized(
@@ -168,7 +165,10 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                 .setRequester(Retrofit2Api::getData)
 // or           .setRequester(retrofit2Api -> retrofit2Api.getData(some parameter(s)))
                 .setDataBinding(BR.data)
-                .setPageSize(LocalOkHttpClient.PAGE_SIZE)
+                .setPagingConfig(new PagedList.Config.Builder()
+                        .setPageSize(LocalOkHttpClient.PAGE_SIZE)
+                        .setEnablePlaceholders(false)
+                        .build())
                 .setPagingDataSourceProducer((Callable<SamplePositionalSource>) SamplePositionalSource::new)
                 .create();
         loader.start(this, LoadParameters.NO_LOAD);
@@ -180,36 +180,25 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static final String                     ARG_LOCATION        = "arg_location";
-    private static final String                     ARG_SHOWN           = "arg_shown";
-
-    private        boolean                          mAdvertisementShown;
-    private        String                           mLocation;
+    private static boolean                          sAdvertisementShown;
+    private static String                           sLocation;
 
     @Override
     public void onLocationChanged(Location location, Date date) {
-        mLocation = LocationCallbacks.toDms(location, this);
+        sLocation = LocationCallbacks.toDms(location, this);
         setLocation();
 
-        showAdvertisement();
+        showAdvertisement();    // optional, not related to defining location
     }
 
     private void setLocation() {
-        ((TextView) findViewById(R.id.location)).setText(mLocation);
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-
-        savedInstanceState.putString (ARG_LOCATION, mLocation);
-        savedInstanceState.putBoolean(ARG_SHOWN,    mAdvertisementShown);
+        if (sLocation != null) ((TextView) findViewById(R.id.location)).setText(sLocation);
     }
 
     @SuppressLint("InflateParams")
     private void showAdvertisement() {
-        if (mAdvertisementShown) return;
-        mAdvertisementShown = true;
+        if (sAdvertisementShown) return;
+        sAdvertisementShown = true;
 
         Toast toast = new Toast(this);
         toast.setDuration(Toast.LENGTH_SHORT);

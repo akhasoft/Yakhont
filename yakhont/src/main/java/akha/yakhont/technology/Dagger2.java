@@ -25,6 +25,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 // ProGuard issue
 // import akha.yakhont.R;
+import akha.yakhont.R;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.BaseCallbacks.Validator;
 import akha.yakhont.location.GoogleLocationClient;
@@ -359,25 +360,26 @@ public interface Dagger2 {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION)
         public BaseDialog providePermissionAlert(Parameters parameters) {
-            return getAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT));
+            return getPermissionAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT));
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION_DENIED)
         public BaseDialog providePermissionDeniedAlert(Parameters parameters) {
-            return getAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT));
+            return getPermissionAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT));
         }
 
         /**
-         * Creates new instance of the alert component.
+         * Creates new instance of the permissions alert component.
          *
          * @param requestCode
          *        The integer request code to pass to the {@link Activity#onActivityResult}
          *
          * @return  The alert component
          */
-        protected BaseDialog getAlert(final int requestCode) {
-            return new BaseToast(true, requestCode);
+        protected BaseDialog getPermissionAlert(final int requestCode) {
+            return new BaseSnackbar(false, requestCode)
+                    .setActionString(R.string.yakhont_alert_ok);
         }
 
         private static boolean getFlagToast(final Parameters parameters) {
@@ -698,8 +700,8 @@ class BaseSnackbar implements BaseDialog {
             final View viewChild = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
                 @SuppressWarnings("unused")
                 @Override
-                public boolean handle(final View view) {
-                    return !(view instanceof ViewGroup || view instanceof ViewStub);
+                public boolean handle(final View viewTmp) {
+                    return !(viewTmp instanceof ViewGroup || viewTmp instanceof ViewStub);
                 }
             });
             if (viewChild != null) view = viewChild;
@@ -752,6 +754,7 @@ class BaseToast implements BaseDialog {
         this(durationLong, null);
     }
 
+    @SuppressWarnings("WeakerAccess")
     public BaseToast(final boolean durationLong, final Integer requestCode) {
         mDurationLong   = durationLong;
         mRequestCode    = requestCode;

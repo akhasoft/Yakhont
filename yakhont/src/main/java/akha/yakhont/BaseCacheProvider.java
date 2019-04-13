@@ -295,7 +295,7 @@ public class BaseCacheProvider extends ContentProvider {
             if (values.size() == columns.size()) return columns;
         }
 
-        // set columns with nulls to default value (normally TEXT)
+        // set unknown columns to default type (TEXT)
         for (final String key: getKeySet(bulkValues[0]))
             if (!columns.containsKey(key)) {
                 final CreateTableScriptBuilder.DataType type =
@@ -493,8 +493,7 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     private SQLiteDatabase getDbForIsExist() {
-        // writable to trigger onCreate
-        return mDbHelper.getWritableDatabase();
+        return mDbHelper.getWritableDatabase();     // writable to trigger onCreate
     }
 
     /**

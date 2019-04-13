@@ -36,53 +36,44 @@ import androidx.recyclerview.widget.RecyclerView
 
 import java.util.Date
 
-private const val ARG_LOCATION = "arg_location"
-
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
 
-    private var     mLocation: String?      = null
+    companion object {
+        private var      sLocation: String? = null
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (savedInstanceState != null) {       // standard handling for screen orientation changing
-            mLocation = savedInstanceState.getString(ARG_LOCATION)
-            setLocation()
-        }
+        setLocation()
 
         (findViewById<View>(R.id.recycler) as RecyclerView)
                 .layoutManager = LinearLayoutManager(this)
 /*
         ////////
-        // normally it should be enough - but here we have the local client; so see below...
+        // normally it should be enough - but here we have the local client, so see below...
 
         Retrofit2Loader.start<Retrofit2Api>("http://...", Retrofit2Api::class.java, { it.data },
                 BR.beer, savedInstanceState)
 
         ////////
-        val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
 */
         val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
         Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
-                LocalOkHttpClient2(retrofit2) /* .setEmulatedNetworkDelay(7) */ ,
+                LocalOkHttpClient2(retrofit2)
+                // just to demo the progress GUI - comment it out if not needed
+                .setEmulatedNetworkDelay(7),
                 retrofit2, savedInstanceState).start(savedInstanceState)
     }
 
     override fun onLocationChanged(location: Location, date: Date) {
-        mLocation = LocationCallbacks.toDms(location, this)
+        sLocation = LocationCallbacks.toDms(location, this)
         setLocation()
     }
 
     private fun setLocation() {
-        (findViewById<View>(R.id.location) as TextView).text = mLocation
-    }
-
-    override fun onSaveInstanceState(savedInstanceState: Bundle) {
-        super.onSaveInstanceState(savedInstanceState)
-
-        savedInstanceState.putString(ARG_LOCATION, mLocation)
+        if (sLocation != null) (findViewById<View>(R.id.location) as TextView).text = sLocation
     }
 }

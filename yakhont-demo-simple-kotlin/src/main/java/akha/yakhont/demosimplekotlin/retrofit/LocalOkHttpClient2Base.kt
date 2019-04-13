@@ -41,7 +41,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import okio.Timeout
 
-private const val TAG = "LocalOkHttpClient2"
+private const val TAG = "LocalOkHttpClient2Base"
 
 abstract class LocalOkHttpClient2Base: OkHttpClient() {
 
@@ -49,12 +49,12 @@ abstract class LocalOkHttpClient2Base: OkHttpClient() {
     private var mEmulatedNetworkDelay: Int = 0
 
     protected abstract fun getJson(): String
-/*
+
     fun setEmulatedNetworkDelay(delay: Int): LocalOkHttpClient2Base {
         mEmulatedNetworkDelay = delay
         return this
     }
-*/
+
     fun add(interceptor: Interceptor): LocalOkHttpClient2Base {
         return handle(interceptor, true)
     }

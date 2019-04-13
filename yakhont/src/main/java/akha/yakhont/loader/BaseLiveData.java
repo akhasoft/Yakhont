@@ -25,6 +25,7 @@ import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 // ProGuard issue
 // import akha.yakhont.R;
+import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
@@ -40,6 +41,7 @@ import android.content.DialogInterface.OnKeyListener;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.CountDownTimer;
 import android.view.Gravity;
@@ -51,13 +53,19 @@ import android.widget.Toast;
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
+import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 import java.util.Collection;
+import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -732,6 +740,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             /**
              * Please refer to the base method description.
              */
+            @Override
+            public void setText(String text) {
+            }
+
+            /**
+             * Please refer to the base method description.
+             */
             @CallSuper
             @Override
             public void hide() {
@@ -849,13 +864,145 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * @return  The handled {@link Dialog}
              */
             public static Dialog handle(@NonNull final Dialog dialog, final View view) {
+                return handle(dialog, createCallable(BaseViewModel.get(), null, view));
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param view
+             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
+             *
+             * @param activity
+             *        The {@link Activity}
+             *
+             * @param key
+             *        The {@link BaseViewModel} key or null for default value
+             *        (please refer to {@link ViewModelProvider#get(String, Class)})
+             *
+             * @return  The handled {@link Dialog}
+             */
+            public static Dialog handle(@NonNull final Dialog dialog, final View view,
+                                        final Activity activity, final String key) {
+                return handle(dialog, createCallable(BaseViewModel.get(activity, key), activity, view));
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param view
+             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
+             *
+             * @param fragment
+             *        The {@link Fragment}
+             *
+             * @param key
+             *        The {@link BaseViewModel} key or null for default value
+             *        (please refer to {@link ViewModelProvider#get(String, Class)})
+             *
+             * @return  The handled {@link Dialog}
+             */
+            public static Dialog handle(@NonNull final Dialog dialog, final View view,
+                                        final Fragment fragment, final String key) {
+                return handle(dialog, createCallable(BaseViewModel.get(fragment, key),
+                        fragment.getActivity(), view));
+            }
+
+            private static Callable<Boolean> createCallable(final BaseViewModel baseViewModel,
+                                                            final Activity activity, final View view) {
+                if (baseViewModel == null)
+                    CoreLogger.logWarning("can't create Callable dor Dialog handling");
+
                 //noinspection Convert2Lambda
-                return handle(dialog, new Callable<Boolean>() {
+                return baseViewModel == null ? null: new Callable<Boolean>() {
                     @Override
                     public Boolean call() {
-                        return BaseViewModel.get().getData().confirm(null, view);
+                        return baseViewModel.getData().confirm(activity, view);
                     }
-                });
+                };
+            }
+        }
+
+        /**
+         * The helper class for showing custom confirmation dialogs.
+         */
+        public static class ProgressDefaultDialog extends ProgressDefault {
+
+            private static final Random             RANDOM                  = new Random();
+
+            private final        Class              mClass;
+            private              DialogFragment     mProgress;
+            private              String             mTag;
+
+            /**
+             * Initialises a newly created {@code ProgressDefaultDialog} object.
+             *
+             * @param cls
+             *        The {@link DialogFragment} class
+             */
+            @SuppressWarnings("unused")
+            public ProgressDefaultDialog(@NonNull final Class cls) {
+                mClass = cls;
+            }
+
+            /**
+             * Please refer to the base method description.
+             */
+            @SuppressWarnings("unused")
+            @Override
+            public void show() {
+                mProgress = CoreReflection.createSafe(mClass);
+                if (mProgress == null) return;
+
+                final Activity activity = Utils.getCurrentActivity();
+                if (activity instanceof FragmentActivity) {
+                    mTag = "yakhont_progress_" + String.valueOf(RANDOM.nextInt(Integer.MAX_VALUE));
+                    mProgress.show(((FragmentActivity) activity).getSupportFragmentManager(), mTag);
+                }
+                else
+                    CoreLogger.logError("unexpected Activity (should be FragmentActivity) " +
+                            CoreLogger.getDescription(activity));
+            }
+
+            /**
+             * Please refer to the base method description.
+             */
+            @SuppressWarnings("unused")
+            @Override
+            public void hide() {
+                super.hide();
+                if (mProgress == null) return;
+
+                mProgress.dismiss();
+                mProgress = null;
+            }
+
+            /**
+             * Returns custom {@link DialogFragment}.
+             *
+             * @return  The {@link DialogFragment}
+             */
+            @SuppressWarnings("unused")
+            public DialogFragment getDialog() {
+                return mProgress;
+            }
+
+            /**
+             * Returns tag which was used to show the {@link DialogFragment}.
+             *
+             * @return  The tag
+             *
+             * @see     DialogFragment#show(FragmentManager, String)
+             */
+            @SuppressWarnings("unused")
+            public String getTag() {
+                return mTag;
             }
         }
 
@@ -895,7 +1042,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             @Override
             public void setText(@NonNull final String text) {
                 final TextView view = mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text);
-                if (sProgressColor != null) view.setTextColor(sProgressColor);
+                view.setTextColor(sProgressColor != null ? sProgressColor: Color.BLACK);
                 view.setText(text);
             }
 
@@ -1112,7 +1259,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     cancel();
                 }
                 else
-                    for (final BaseViewModel<?> model : models)
+                    for (final BaseViewModel<?> model: models)
                         model.getData().mBaseDialog.cancel();
             }
 

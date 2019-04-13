@@ -228,8 +228,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     static class DemoUiModule extends UiModule {
         @SuppressWarnings("EmptyMethod")
         @Override
-        protected BaseDialog getAlert(int requestCode) {
-            return super.getAlert(requestCode);
+        protected BaseDialog getPermissionAlert(int requestCode) {
+            return super.getPermissionAlert(requestCode);
         }
 
         @SuppressWarnings("EmptyMethod")

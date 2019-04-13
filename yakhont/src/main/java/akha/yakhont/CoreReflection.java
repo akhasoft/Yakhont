@@ -81,6 +81,25 @@ public class CoreReflection {
     }
 
     /**
+     * Same as {@link Class#newInstance()} but never throws exceptions.
+     *
+     * @param <T>
+     *        The type of data to return
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T createSafe(@NonNull final Class cls) {
+        CoreLogger.log(String.format("about to create instance of class %s",
+                CoreLogger.getDescription(cls)));
+        try {
+            return (T) cls.newInstance();
+        }
+        catch (Throwable throwable) {
+            CoreLogger.log(throwable);
+            return null;
+        }
+    }
+
+    /**
      * Same as {@link #invoke(Object, String, Object...)} but never throws exceptions.
      */
     @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
@@ -88,8 +107,8 @@ public class CoreReflection {
         try {
             return invoke(object, methodName, args);
         }
-        catch (Exception exception) {
-            CoreLogger.log(exception);
+        catch (Throwable throwable) {
+            CoreLogger.log(throwable);
             return null;
         }
     }
@@ -174,9 +193,9 @@ public class CoreReflection {
                 final T result = (T) method.invoke(object, args);
                 return result;
             }
-            catch (IllegalAccessException exception) {
-                CoreLogger.log("failed invoke " + method.getName(), exception);
-                throw exception;
+            catch (Throwable throwable) {
+                CoreLogger.log(CoreLogger.getDefaultLevel(), "failed invoke " + method.getName(), throwable);
+                throw throwable;
             }
             finally {
                 if (!accessible) method.setAccessible(false);
@@ -196,8 +215,8 @@ public class CoreReflection {
         try {
             return invoke(object, method, args);
         }
-        catch (Exception exception) {
-            CoreLogger.log(exception);
+        catch (Throwable throwable) {
+            CoreLogger.log(throwable);
             return null;
         }
     }

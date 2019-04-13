@@ -599,6 +599,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         private         UriResolver                             mUriResolver;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Runnable                                mSwipeToRefreshCallback;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       LoaderCallbacks<E, D>                   mLoaderCallbacks;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -871,6 +874,22 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
+         * Sets the "swipe-to-refresh" callback which will be called just before data loading process if
+         * it was triggered this way.
+         *
+         * @param callback
+         *        The {@code Runnable} callback
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
+        @NonNull
+        public BaseResponseLoaderBuilder<C, R, E, D> setSwipeToRefreshCallback(final Runnable callback) {
+            mSwipeToRefreshCallback = callback;
+            return this;
+        }
+
+        /**
          * Please refer to the base method description.
          */
         @Override
@@ -880,6 +899,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
             loaderWrapper.setLoaderCallbacks(mLoaderCallbacks);
             loaderWrapper.setNoCache(mNoCache != null ? mNoCache: false);
+            loaderWrapper.setSwipeToRefreshCallback(mSwipeToRefreshCallback);
 
             // in such order
             loaderWrapper.setProgress(mProgress);
@@ -952,6 +972,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public String getBaseViewModelKeyRaw() {
             return mBaseViewModelKey;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public Runnable getSwipeToRefreshCallbackRaw() {
+            return mSwipeToRefreshCallback;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1643,11 +1668,29 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ItemCallback<?>                       mPagingItemCallback;
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Runnable                              mSwipeToRefreshCallback;
+
         /**
          * Initialises a newly created {@code CoreLoadBuilder} object.
          */
         @SuppressWarnings("WeakerAccess")
         public CoreLoadBuilder() {
+        }
+
+        /**
+         * Sets the "swipe-to-refresh" callback which will be called just before data loading process if
+         * it was triggered this way.
+         *
+         * @param callback
+         *        The {@code Runnable} callback
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings("unused")
+        public CoreLoadBuilder<C, R, E, D> setSwipeToRefreshCallback(final Runnable callback) {
+            mSwipeToRefreshCallback = callback;
+            return this;
         }
 
         /**
@@ -1689,7 +1732,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused"})
         public CoreLoadBuilder<C, R, E, D> setPageSize(final Integer pageSize) {
             checkData(mPageSize, pageSize, "PageSize");
             mPageSize = pageSize;
@@ -2509,6 +2552,22 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
+         * Sets the "swipe-to-refresh" callback which will be called just before data loading process if
+         * it was triggered this way.
+         *
+         * @param callback
+         *        The {@code Runnable} callback
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setSwipeToRefreshCallback(final Runnable callback) {
+            super.setSwipeToRefreshCallback(callback);
+            return this;
+        }
+
+        /**
          * Sets paging configuration.
          *
          * @param config
@@ -2885,11 +2944,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                     builder.setDescription (mDescription     );
             }
             else if (mDescriptionId != Core.NOT_VALID_RES_ID) {
-                final String description = Utils.getApplication()
-                        .getString(mDescriptionId);
+                final String description = Utils.getApplication().getString(mDescriptionId);
                 if (check(description,  builder.getDescriptionRaw()      , "Description"     ))
                     builder.setDescription (description      );
             }
+
+            if (check(mSwipeToRefreshCallback, builder.getSwipeToRefreshCallbackRaw(),
+                    "SwipeToRefreshCallback"))
+                builder.setSwipeToRefreshCallback(mSwipeToRefreshCallback);
 
             final CoreLoad<E, D> coreLoad = super.create(activity, fragment);
             if (mAdapterWrapper != null) mAdapterWrapper.setConverter(builder.getConverterRaw());

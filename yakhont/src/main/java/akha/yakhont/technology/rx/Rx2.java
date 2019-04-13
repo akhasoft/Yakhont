@@ -229,22 +229,22 @@ public class Rx2<D> extends CommonRx<D> {
         final Class<?> returnType = method.getReturnType();
 
         if (Flowable.class.isAssignableFrom(returnType)) {
-            final Flowable<D> result = CoreReflection.invoke(handler, method, args);
+            final Flowable<D> result = CoreReflection.invokeSafe(handler, method, args);
             checkNull(result, "Flowable == null");
             return handle(result, callback);
         }
         if (Observable.class.isAssignableFrom(returnType)) {
-            final Observable<D> result = CoreReflection.invoke(handler, method, args);
+            final Observable<D> result = CoreReflection.invokeSafe(handler, method, args);
             checkNull(result, "Observable == null");
             return handle(result, callback);
         }
         if (Single.class.isAssignableFrom(returnType)) {
-            final Single<D> result = CoreReflection.invoke(handler, method, args);
+            final Single<D> result = CoreReflection.invokeSafe(handler, method, args);
             checkNull(result, "Single == null");
             return handle(result, callback);
         }
         if (Maybe.class.isAssignableFrom(returnType)) {
-            final Maybe<D> result = CoreReflection.invoke(handler, method, args);
+            final Maybe<D> result = CoreReflection.invokeSafe(handler, method, args);
             checkNull(result, "Maybe == null");
             return handle(result, callback);
         }

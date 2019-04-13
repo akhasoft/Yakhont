@@ -31,6 +31,7 @@ import akha.yakhont.Core.Utils.RetainDialogFragment;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
+import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefaultDialog;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
@@ -49,7 +50,6 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.res.Resources;
-import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
@@ -383,7 +383,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // below is GUI stuff only
 
-    private static final int            EMULATED_NETWORK_DELAY          = 7;    // seconds
+    private static final int            EMULATED_NETWORK_DELAY          = 7;
     private static final int            PARTS_QTY                       = 3;
 
     private              AbsListView    mGridView;
@@ -447,10 +447,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         mSlideShow.init(this);
 
         Bubbles.init(getMainActivity());
-
-        // sets text color for default data loading progress indicator
-        // (needed only if you will comment out the '.setProgress(new ProgressDemo())' above
-        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setProgressTextColor(Color.BLACK);
     }
 
     private void updateGuiAndSetPartToLoad(boolean byUserRequest) {
@@ -500,33 +496,17 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         return mSlideRect;
     }
 
-    private class ProgressDemo extends ProgressDefault {
+    // we need such class only to handle the 'confirm' flag - otherwise use 'ProgressDefaultDialog'
+    private class ProgressDemo extends ProgressDefaultDialog {
 
-        private ProgressDialogFragment  mProgress;
-
-        @Override
-        public void setText(String text) {
-        }
-
-        @Override
-        public void show() {
-            mProgress = new ProgressDialogFragment();
-            mProgress.show(getMainActivity().getSupportFragmentManager(), "ProgressDialogFragment");
-        }
-
-        @Override
-        public void hide() {
-            super.hide();
-
-            if (mProgress == null) return;
-
-            mProgress.dismiss();
-            mProgress = null;
+        private ProgressDemo() {
+            super(ProgressDialogFragment.class);
         }
 
         @Override
         public void confirm(Activity activity, View view) {
-            if (mProgress != null && mProgress.isConfirm()) super.confirm(activity, view);
+            ProgressDialogFragment progress = (ProgressDialogFragment) getDialog();
+            if (progress != null && progress.mConfirm.isChecked()) super.confirm(activity, view);
         }
     }
 
@@ -549,7 +529,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             ((TextView) view.findViewById(R.id.progress_message)).setText(
                     LiveDataDialog.getInfoText(R.string.table_desc_beers));
 
-            if (sBackground == null) {
+            if (sBackground == null) {          // cache the background image
                 DisplayMetrics dm       = new DisplayMetrics();
                 activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
 
@@ -562,11 +542,11 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
             mConfirm = view.findViewById(R.id.progress_confirm);
 
-//          most of the time it's enough to do this way
+//          normally such call should be enough - but here we handle the 'confirm' flag, so see below...
 //          return ProgressDefault.handle(builder.setView(view).create(), view);
 
             return ProgressDefault.handle(builder.setView(view).create(), () -> {
-                if (isConfirm()) {
+                if (mConfirm.isChecked()) {
                     BaseViewModel.get().getData().confirm(getActivity(), view);
                     return true;
                 }
@@ -574,10 +554,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                 LiveDataDialog.cancel(getActivity());
                 return false;
             });
-        }
-
-        private boolean isConfirm() {
-            return mConfirm.isChecked();
         }
     }
 }

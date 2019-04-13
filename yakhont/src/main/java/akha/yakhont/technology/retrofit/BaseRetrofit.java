@@ -159,8 +159,8 @@ public abstract class BaseRetrofit<T, B, C, D> {
                     return request(method, args, null);
                 }
             }
-            catch (Exception exception) {
-                CoreLogger.log(exception);
+            catch (Throwable throwable) {
+                CoreLogger.log(throwable);
                 return null;
             }
         }

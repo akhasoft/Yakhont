@@ -232,7 +232,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         final Class<?> returnType = method.getReturnType();
         try {
             if (Call.class.isAssignableFrom(returnType)) {
-                final Call<D> call = CoreReflection.invoke(proxy, method, args);
+                final Call<D> call = CoreReflection.invokeSafe(proxy, method, args);
                 if (call == null) throw new Exception("Call == null");
 
                 //noinspection Anonymous2MethodRef,Convert2Lambda,Anonymous2MethodRef

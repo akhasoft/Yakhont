@@ -334,8 +334,8 @@ public class Core implements DefaultLifecycleObserver {
      * Sets configuration for the Yakhont library.
      *
      * @param supportMode
-     *        Forces working in support mode (use weaving mechanism for calling the application
-     *        callbacks instead of registering via
+     *        Forces working in support mode (by using weaving for calling application callbacks
+     *        instead of registering via
      *        {@link Application#registerActivityLifecycleCallbacks(Application.ActivityLifecycleCallbacks)}
      *        and {@link Application#registerComponentCallbacks(ComponentCallbacks)}).
      *        Mostly for debug purposes.
@@ -1170,7 +1170,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Sets the default {@link View} ID (e.g. to show the default {@link Snackbar}).
+         * Sets the default {@link View} ID (e.g. to show {@link Snackbar}).
          *
          * @param resId
          *        The resource ID of the {@link View} (should be common for all used Activities)
@@ -1730,15 +1730,16 @@ public class Core implements DefaultLifecycleObserver {
                 return requestCode.ordinal() + offset;
             }
 
-            private static Exception checkRequestCode(final int requestCode, final Activity activity,
-                                                      final Method method) {
+            private static Throwable checkRequestCode(final int requestCode, final Activity activity,
+                                                      final Method method, final Level level) {
                 try {
                     CoreReflection.invoke(activity, method, requestCode);
                     return null;
                 }
-                catch (Exception exception) {
-                    CoreLogger.log(CoreLogger.getDefaultLevel(), "checkRequestCode failed", exception);
-                    return exception;
+                catch (Throwable throwable) {
+                    CoreLogger.log(level != null ? level: CoreLogger.getDefaultLevel(),
+                            "checkRequestCode failed", throwable);
+                    return throwable;
                 }
             }
 
@@ -1749,15 +1750,15 @@ public class Core implements DefaultLifecycleObserver {
 
                 final Method method = CoreReflection.findMethod(activity,
                         "validateRequestPermissionsRequestCode", int.class);
-                if (method                                     == null) return result;
+                if (method                                           == null) return result;
                 //noinspection ThrowableResultOfMethodCallIgnored
-                if (checkRequestCode(result, activity, method) == null) return result;
+                if (checkRequestCode(result, activity, method, null) == null) return result;
 
-                result = getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
-                final Exception exception = checkRequestCode(result, activity, method);
-                if (exception                                  == null) return result;
+                result     = getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
+                final Throwable throwable = checkRequestCode(result, activity, method, Level.ERROR);
+                if (throwable                                        == null) return result;
 
-                CoreLogger.log("getRequestCode failed", exception);
+                CoreLogger.log("getRequestCode failed", throwable);
                 return result;
             }
 
@@ -2121,6 +2122,12 @@ public class Core implements DefaultLifecycleObserver {
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public static View findView(final View parentView, @NonNull final ViewVisitor visitor) {
+                return findView(parentView, visitor, Level.ERROR);
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            public static View findView(final View parentView, @NonNull final ViewVisitor visitor,
+                                        @NonNull final Level level) {
                 if (parentView == null) {
                     CoreLogger.logError("parentView == null");
                     return null;
@@ -2138,7 +2145,7 @@ public class Core implements DefaultLifecycleObserver {
                     }
                 });
 
-                CoreLogger.log(viewHelper[0] == null ? Level.ERROR: CoreLogger.getDefaultLevel(),
+                CoreLogger.log(viewHelper[0] == null ? level: CoreLogger.getDefaultLevel(),
                         "result of find view: " + CoreLogger.getViewDescription(viewHelper[0]));
 
                 return viewHelper[0];
@@ -2237,8 +2244,8 @@ public class Core implements DefaultLifecycleObserver {
                     //noinspection Convert2Lambda
                     final View viewChild = ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
                         @Override
-                        public boolean handle(final View view) {
-                            return !(view instanceof ViewGroup || view instanceof ViewStub);
+                        public boolean handle(final View viewTmp) {
+                            return !(viewTmp instanceof ViewGroup || viewTmp instanceof ViewStub);
                         }
                     });
                     if (viewChild != null) view = viewChild;
@@ -2395,8 +2402,8 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Implements {@code DialogFragment} which not destroyed after screen orientation
-         * changed (actually it's a Google API bug workaround).
+         * Implements the {@code DialogFragment} which is not destroyed after screen orientation
+         * changing (actually it's a Google API bug workaround).
          */
         public static abstract class RetainDialogFragment extends DialogFragment {
 

@@ -21,6 +21,7 @@ jcenter
 kapt
 Kharitonov
 landroid
+lateinit
 mediarouter
 mergeable
 nand

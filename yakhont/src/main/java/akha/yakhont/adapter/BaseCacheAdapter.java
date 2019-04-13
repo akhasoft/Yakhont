@@ -371,11 +371,10 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The loaded data adjustment
      */
     @SuppressWarnings("WeakerAccess")
-    public void update(@NonNull final BaseResponse<R, E, D> data, boolean isMerge,
+    public void update(final BaseResponse<R, E, D> data, boolean isMerge,
                        final Runnable onLoadFinished) {
-        final Source source = data.getSource();
+        final Source source = data != null ? data.getSource(): Source.NETWORK;
         switch (source) {
-
             case CACHE:
                 final Cursor cursor = data.getCursor();
                 D            result = data.getResult();
@@ -393,7 +392,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
             case NETWORK:
                 customize(onLoadFinished);
-                updateArray(mConverter.convert(data), isMerge);
+                updateArray(data != null ? mConverter.convert(data): Collections.emptySet(), isMerge);
                 break;
 
             case TIMEOUT:
@@ -509,8 +508,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         return ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
             @SuppressWarnings("unused")
             @Override
-            public boolean handle(final View listView) {
-                return listView instanceof AbsListView || listView instanceof RecyclerView;
+            public boolean handle(final View viewTmp) {
+                return viewTmp instanceof AbsListView || viewTmp instanceof RecyclerView;
             }
         });
     }
@@ -1607,7 +1606,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Please refer to the base method description.
          */
         @Override
-        public void update(@NonNull final BaseResponse<R, E, D> data, final boolean isMerge,
+        public void update(final BaseResponse<R, E, D> data, final boolean isMerge,
                            final Runnable onLoadFinished) {
             mBaseCacheAdapter.update(data, isMerge, onLoadFinished);
             mBaseRecyclerViewAdapter.notifyDataSetChanged();

@@ -41,20 +41,11 @@
             android:layout_gravity="center"
             android:text="@string/list_title_beers" />
 
-<!-- uncomment if needed (both here and in MainActivity)
-
-        <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-            android:id="@+id/swipeContainer"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recycler"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
--->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"/>
-<!--
-        </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
--->
+            android:layout_height="match_parent"/>
+
     </LinearLayout>
 
 </RelativeLayout >

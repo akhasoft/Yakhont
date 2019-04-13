@@ -261,12 +261,12 @@ public class Rx<D> extends CommonRx<D> {
         final Class<?> returnType = method.getReturnType();
 
         if (Observable.class.isAssignableFrom(returnType)) {
-            final Observable<D> result = CoreReflection.invoke(handler, method, args);
+            final Observable<D> result = CoreReflection.invokeSafe(handler, method, args);
             checkNull(result, "Observable == null");
             return handle(result, callback);
         }
         if (Single.class.isAssignableFrom(returnType)) {
-            final Single<D> result = CoreReflection.invoke(handler, method, args);
+            final Single<D> result = CoreReflection.invokeSafe(handler, method, args);
             checkNull(result, "Single == null");
             return handle(result, callback);
         }

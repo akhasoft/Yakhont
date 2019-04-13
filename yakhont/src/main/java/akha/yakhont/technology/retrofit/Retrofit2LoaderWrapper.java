@@ -19,6 +19,7 @@ package akha.yakhont.technology.retrofit;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.TypeHelper;
+import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
@@ -36,6 +37,7 @@ import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.os.Bundle;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -51,6 +53,8 @@ import java.util.Collection;
 import java.util.concurrent.Callable;
 
 import androidx.paging.DataSource;
+import androidx.paging.PagedList.Config;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 
@@ -531,7 +535,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Helper class for Retrofit 2. Very simplified usage example:
+     * Helper class for Retrofit 2. Creates data loader, handles screen orientation changing and
+     * enables swipe-to-refresh (if available). Very simplified usage example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * public class YourActivity extends AppCompatActivity {
@@ -662,7 +667,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                               final Integer                              pageSize,
                                               final Callable<? extends DataSource<?, ?>> dataSourceProducer,
                                               final Bundle                               savedInstanceState) {
-            start(get(url, service, requester, dataBinding, null, null, pageSize,
+            start(get(url, service, requester, dataBinding, null, null,
+                    pageSize == null ? null: new Config.Builder().setPageSize(pageSize).build(),
                     dataSourceProducer, savedInstanceState), savedInstanceState);
         }
 
@@ -733,8 +739,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param retrofit
          *        The {@code Retrofit2} component
          *
-         * @param pageSize
-         *        The page size (if any)
+         * @param pagingConfig
+         *        The {@code PagedList} configuration (if any)
          *
          * @param dataSourceProducer
          *        The {@code DataSource} producer component (for paging)
@@ -757,7 +763,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                                  final Integer               dataBinding,
                                                                  final OkHttpClient          client,
                                                                        Retrofit2<R, D>       retrofit,
-                                                                 final Integer               pageSize,
+                                                                 final Config                pagingConfig,
                                                                  final Callable<? extends DataSource<?, ?>>
                                                                                              dataSourceProducer,
                                                                  final Bundle                savedInstanceState) {
@@ -774,14 +780,16 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             if (dataBinding        != null) builder.setDataBinding(dataBinding);
             if (dataSourceProducer != null) builder.setPagingDataSourceProducer(dataSourceProducer);
 
-            if (pageSize != null)
+            if (pagingConfig != null)
                 if (dataSourceProducer != null)
-                    builder.setPageSize(pageSize);
+                    builder.setPagingConfig(pagingConfig);
                 else
-                    CoreLogger.logError("page size set without DataSource producer");
+                    CoreLogger.logError("paging config set without DataSource producer");
 
             final CoreLoad<Throwable, D> coreLoad = builder.create();
             coreLoad.start(null, LoadParameters.NO_LOAD);
+
+            handleSwipeToRefresh(coreLoad);
 
             // for handling screen orientation changes
             final BaseViewModel<D> viewModel = BaseViewModel.get();
@@ -790,9 +798,30 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             return coreLoad;
         }
 
+        private static <E, D> void handleSwipeToRefresh(final CoreLoad<E, D> coreLoad) {
+            final View root = Utils.getDefaultView(null);
+            if (root == null) return;
+
+            //noinspection Convert2Lambda
+            final View swipeView = ViewHelper.findView(root, new ViewHelper.ViewVisitor() {
+                @SuppressWarnings("unused")
+                @Override
+                public boolean handle(final View view) {
+                    return view instanceof SwipeRefreshLayout;
+                }
+            }, CoreLogger.getDefaultLevel());
+            if (swipeView == null) return;
+
+            final int id = swipeView.getId();
+            if (id == View.NO_ID)
+                CoreLogger.logError("please define ID for SwipeRefreshLayout");
+            else
+                SwipeToRefreshWrapper.register(id, coreLoad);
+        }
+
         /**
-         * Returns the {@link CoreLoad} kept in the current {@link ViewModel}
-         * (mostly for screen orientation changes handling).
+         * Returns the {@link CoreLoad} kept in the current {@link ViewModel} (mostly for screen
+         * orientation changes handling). Also handles swipe-to-refresh (if available).
          *
          * @param <E>
          *        The type of error (if any)
@@ -816,6 +845,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
                 if (loaders.size() > 1)
                     CoreLogger.logError("only 1st loader handled, loaders qty " + loaders.size());
+
+                handleSwipeToRefresh(loader);
 
                 return loader;
             }
