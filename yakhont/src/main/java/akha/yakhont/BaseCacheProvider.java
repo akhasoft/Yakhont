@@ -1118,16 +1118,14 @@ public class BaseCacheProvider extends ContentProvider {
         catch (Exception exception) {
             final String text = "copying failed: " + srcFile;
             CoreLogger.log(text, exception);
-            if (errors != null) //noinspection ThrowableResultOfMethodCallIgnored
-                errors.put(text, exception);
+            if (errors != null) errors.put(text, exception);
             return null;
         }
     }
 
     private static void handleError(final String text, final Map<String, Exception> map) {
         CoreLogger.logError(text);
-        if (map != null) //noinspection ThrowableResultOfMethodCallIgnored
-            map.put(text, new RuntimeException("copy file stack trace"));
+        if (map != null) map.put(text, new RuntimeException("copy file stack trace"));
     }
 
     private static String getDstFileName(@NonNull final String name) {

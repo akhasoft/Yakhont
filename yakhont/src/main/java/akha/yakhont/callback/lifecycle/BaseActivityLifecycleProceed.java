@@ -170,7 +170,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
      */
-    @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "SameReturnValue"})
+    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue"})
     public static boolean register(@NonNull final BaseActivityCallbacks callbacks) {
         return register(callbacks, false);
     }
@@ -186,7 +186,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
      */
-    @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "SameReturnValue"})
+    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue"})
     public static boolean register(@NonNull final BaseActivityCallbacks callbacks,
                                    final boolean silent) {
         return register(sCallbacks, callbacks, ActivityLifecycle.class, CALLBACKS,
@@ -572,6 +572,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      *
      * @see ActivityLifecycle
      */
+    @SuppressWarnings("JavadocReference")
     public static abstract class BaseActivityCallbacks extends BaseCacheCallbacks<Activity> {
 
         /**

@@ -317,7 +317,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
                 @SuppressWarnings("unused")
                 @Override
-                public void request(@NonNull final Callback<D> callback) throws Exception {
+                public void request(@NonNull final Callback<D> callback) throws Throwable {
                     if (mRetrofit.checkForDefaultRequesterOnly(mMethod, callback))
                         mRetrofit.request(mMethod, null, null);
                 }
@@ -392,6 +392,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
     /**
      * Extends {@link AndroidException} and used to handle Retrofit errors.
      */
+    @SuppressWarnings("JavadocReference")
     public static class RetrofitException extends AndroidException {
 
         /**

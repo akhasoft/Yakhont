@@ -21,6 +21,7 @@ import akha.yakhont.demosimple.retrofit.LocalOkHttpClient2;
 import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core;
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.loader.BaseViewModel;
@@ -86,6 +87,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         setDebugLogging(BuildConfig.DEBUG);         // optional
 
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
+
         mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData,
                 BR.data, new LocalOkHttpClient(retrofit2), retrofit2, new PagedList.Config.Builder()
                         .setPageSize(LocalOkHttpClient.PAGE_SIZE)
@@ -102,13 +104,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         @Override
         public void loadInitial(@NonNull LoadInitialParams         params,
                                 @NonNull LoadInitialCallback<Data> callback) {
-            mLoader.setPagingCallback((data, source) -> callback.onResult(data, 0)).start(null);
+            Utils.setPagingCallback(mLoader, (data, source) -> callback.onResult(data, 0))
+                    .start(null);
         }
 
         @Override
         public void loadRange(@NonNull LoadRangeParams         params,
                               @NonNull LoadRangeCallback<Data> callback) {
-            mLoader.setPagingCallback((data, source) -> callback.onResult(data)).start(null);
+            Utils.setPagingCallback(mLoader, (data, source) -> callback.onResult(data))
+                    .start(null);
         }
     }
 

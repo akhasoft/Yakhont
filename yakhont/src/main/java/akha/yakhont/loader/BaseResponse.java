@@ -48,6 +48,7 @@ import java.util.Locale;
 
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public class BaseResponse<R, E, D> {
 
     /**

@@ -51,6 +51,7 @@ import java.util.Set;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public abstract class BaseRx<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -166,7 +167,7 @@ public abstract class BaseRx<D> {
      * @param throwable
      *        The error
      */
-    @SuppressWarnings({"WeakerAccess", "ThrowableResultOfMethodCallIgnored"})
+    @SuppressWarnings({"WeakerAccess"})
     public void onError(final Throwable throwable) {
         CoreLogger.log(throwable == null ? Level.ERROR: CoreLogger.getDefaultLevel(), "Rx failed", throwable);
         onResult(null, throwable == null ? getDefaultException(null): throwable);

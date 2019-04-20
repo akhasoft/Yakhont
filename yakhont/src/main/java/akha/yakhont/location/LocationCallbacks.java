@@ -83,6 +83,7 @@ import javax.inject.Provider;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public class LocationCallbacks extends BaseActivityCallbacks implements CallbacksCustomizer {
 
     private   static final int                                      DELAY               = 750;    // ms
@@ -142,6 +143,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     /**
      * The location API.
      */
+    @SuppressWarnings("JavadocReference")
     public interface LocationClient {
 
         /**
@@ -360,7 +362,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
             return;
         }
 
-        //noinspection Convert2Lambda
         mFutures.put(lifecycle, mExecutor.runInBackground(new Runnable() {
             @Override
             public void run() {

@@ -41,7 +41,6 @@ import android.content.DialogInterface.OnKeyListener;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.CountDownTimer;
 import android.view.Gravity;
@@ -80,6 +79,7 @@ import javax.inject.Provider;
  *
  * @see BaseViewModel
  */
+@SuppressWarnings("JavadocReference")
 public class BaseLiveData<D> extends MutableLiveData<D> {
 
     private static class LiveDataLoadParameters {
@@ -263,7 +263,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         if (result == null)
             CoreLogger.logWarning("result == null");
 
-        //noinspection Convert2Lambda
         postToMainLoop(new Runnable() {
             @Override
             public void run() {
@@ -512,13 +511,17 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         private        final Uri                    mUri;
 
-        private        final AtomicBoolean          mMerge                  = new AtomicBoolean();
+        private        final Boolean                mMerge;
+        private              boolean                mMergeFromParameters;
 
         /**
          * Initialises a newly created {@code CacheLiveData} object.
          *
          * @param requester
          *        The data loading requester
+         *
+         * @param merge
+         *        The "merge data" flag
          *
          * @param tableName
          *        The name of the table in the database (to cache the loaded data)
@@ -527,10 +530,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          *        The URI resolver
          */
         @SuppressWarnings("unused")
-        public CacheLiveData(@NonNull final Requester<D> requester,
+        public CacheLiveData(@NonNull final Requester<D> requester, final Boolean merge,
                              @NonNull final String tableName, final UriResolver uriResolver) {
             super(requester);
-            mUri = init(tableName, uriResolver);
+
+            mUri   = init(tableName, uriResolver);
+            mMerge = merge;
         }
 
         /**
@@ -538,6 +543,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          *
          * @param requester
          *        The data loading requester
+         *
+         * @param merge
+         *        The "merge data" flag
          *
          * @param dialog
          *        The data loading progress GUI
@@ -548,10 +556,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          * @param uriResolver
          *        The URI resolver
          */
-        public CacheLiveData(@NonNull final Requester<D> requester, final BaseDialog dialog,
+        public CacheLiveData(@NonNull final Requester<D> requester, final Boolean merge, final BaseDialog dialog,
                              @NonNull final String tableName, final UriResolver uriResolver) {
             super(requester, dialog);
-            mUri = init(tableName, uriResolver);
+
+            mUri   = init(tableName, uriResolver);
+            mMerge = merge;
         }
 
         private Uri init(@NonNull final String tableName, UriResolver uriResolver) {
@@ -565,7 +575,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @Override
         public void makeRequest(final Activity activity, final String text, final Intent data,
                                 final LoadParameters loadParameters) {
-            mMerge.set(loadParameters != null && loadParameters.getMerge());
+            if (mMerge == null) mMergeFromParameters = loadParameters != null && loadParameters.getMerge();
 
             final boolean forceCache = loadParameters != null && loadParameters.getForceCache();
             if (forceCache || !Utils.isConnected()) {
@@ -583,7 +593,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @Override
         public void onComplete(final boolean success, D result) {
             if (success && result != null)
-                storeResult(getContentValues(result), result, mMerge.get());
+                storeResult(getContentValues(result), result, mMerge != null ? mMerge: mMergeFromParameters);
             else {
                 CoreLogger.log("about to load data from cache, previous success flag: " + success);
                 final Cursor cursor = query();
@@ -657,7 +667,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
             CoreLogger.log("about to store in cache, merge " + merge);
 
-            //noinspection Convert2Lambda
             Utils.runInBackground(new Runnable() {
                 @Override
                 public void run() {
@@ -962,7 +971,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
                 final Activity activity = Utils.getCurrentActivity();
                 if (activity instanceof FragmentActivity) {
-                    mTag = "yakhont_progress_" + String.valueOf(RANDOM.nextInt(Integer.MAX_VALUE));
+                    mTag = "yakhont_progress_" + RANDOM.nextInt(Integer.MAX_VALUE);
                     mProgress.show(((FragmentActivity) activity).getSupportFragmentManager(), mTag);
                 }
                 else
@@ -1042,7 +1051,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             @Override
             public void setText(@NonNull final String text) {
                 final TextView view = mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text);
-                view.setTextColor(sProgressColor != null ? sProgressColor: Color.BLACK);
+                if (sProgressColor != null) view.setTextColor(sProgressColor);
                 view.setText(text);
             }
 

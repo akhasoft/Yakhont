@@ -16,6 +16,8 @@
 
 package akha.yakhont.technology.rx;
 
+import android.annotation.SuppressLint;
+
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
@@ -73,6 +75,7 @@ public class Rx2<D> extends CommonRx<D> {
      * @param disposable
      *        The optional {@link Disposable}
      */
+    @SuppressLint("RestrictedApi")
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public Rx2(final Disposable disposable) {
         super("Rx2", !isErrorHandlerDefined());

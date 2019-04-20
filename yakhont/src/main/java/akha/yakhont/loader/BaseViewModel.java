@@ -69,6 +69,7 @@ import java.util.concurrent.Callable;
  *
  * @see BaseLiveData
  */
+@SuppressWarnings("JavadocReference")
 public class BaseViewModel<D> extends AndroidViewModel {
 
     private static final String                 DEFAULT_KEY         = "yakhont-default-viewmodel-key";
@@ -81,6 +82,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected            List<CoreLoad<?, ?>>   mCoreLoads;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected      final Map<String, Object>    mStore              = Utils.newMap();
 
     /**
      * Initialises a newly created {@link BaseViewModel} object.
@@ -383,6 +386,49 @@ public class BaseViewModel<D> extends AndroidViewModel {
      */
     public void setCoreLoad(final CoreLoad<?, ?> coreLoad) {
         setCoreLoads(coreLoad == null ? null: Collections.singletonList(coreLoad));
+    }
+
+    /**
+     * Sets some data to keep in this {@link ViewModel}.
+     *
+     * @param key
+     *        The key
+     *
+     * @param value
+     *        The data
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The previous data for the given key (or null)
+     */
+    @SuppressWarnings({"unchecked", "unused"})
+    public <V> V setData(final String key, final Object value) {
+        if (key == null) {
+            CoreLogger.logError("setData: key == null");
+            return null;
+        }
+        return (V) mStore.put(key, value);
+    }
+
+    /**
+     * Returns the data (associated with the given key) kept in this {@link ViewModel}.
+     *
+     * @param key
+     *        The key
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The data for the given key (or null)
+     */
+    @SuppressWarnings({"unchecked", "unused"})
+    public <V> V getData(final String key) {
+        if (key == null) {
+            CoreLogger.logError("getData: key == null");
+            return null;
+        }
+        return (V) mStore.get(key);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1405,7 +1451,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 }
                 mData = mTableName == null ?
                         new BaseLiveData <>(mRequester, mBaseDialog):
-                        new CacheLiveData<>(mRequester, mBaseDialog, mTableName, mUriResolver);
+                        new CacheLiveData<>(mRequester, mDataSourceProducer == null ? null: true,
+                                mBaseDialog, mTableName, mUriResolver);
             }
 
             if (mKey == null) mKey = DEFAULT_KEY;

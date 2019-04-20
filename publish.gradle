@@ -373,9 +373,9 @@ if (isAndroidApp || isAndroidLib) {
 
                 if (variant.getBuildType().isMinifyEnabled()) { from variant.mappingFile }
 
-                baseName                = getPropertyExt('publishedArtifactId')
-                appendix                = appendixValue
-                classifier              = classifierSources + (isDebugVariant ? '-debug': '')
+                archiveBaseName         = getPropertyExt('publishedArtifactId')
+                archiveAppendix         = appendixValue
+                archiveClassifier       = classifierSources + (isDebugVariant ? '-debug': '')
 
                 duplicatesStrategy      = DuplicatesStrategy.WARN
             }
@@ -448,12 +448,12 @@ if (project.plugins.hasPlugin('java')) {
 
     task sourceJar(type: Jar) {
         from sourceSets.main.allSource
-        classifier = classifierSources
+        archiveClassifier = classifierSources
     }
 
     task javadocJar(type: Jar, dependsOn: javadoc) {
         from javadoc.destinationDir
-        classifier = classifierJavadoc
+        archiveClassifier = classifierJavadoc
     }
 
     artifacts.archives sourceJar, javadocJar

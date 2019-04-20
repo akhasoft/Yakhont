@@ -170,7 +170,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * Please refer to the base method description.
      */
     @SuppressLint("MissingPermission")
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    @SuppressWarnings({"WeakerAccess"})
     @Override
     protected void buildClient(@NonNull final Activity activity) {
         super.buildClient(activity);
@@ -274,33 +274,29 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      */
     @Override
     public boolean onActivityResult(Activity activity, RequestCodes requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
+        if (requestCode != RequestCodes.LOCATION_CHECK_SETTINGS) return false;
 
-            case LOCATION_CHECK_SETTINGS:
-                switch (resultCode) {
+        switch (resultCode) {
+            case Activity.RESULT_OK:
+                // nothing to do, startSettingsUpdates() will be called in onResume again
+                CoreLogger.log("User agreed to make required location settings changes");
+                break;
 
-                    case Activity.RESULT_OK:
-                        // nothing to do, startSettingsUpdates() will be called in onResume again
-                        CoreLogger.log("User agreed to make required location settings changes");
-                        break;
+            case Activity.RESULT_FIRST_USER:    // fall through
+                CoreLogger.logWarning("unexpected result code: Activity.RESULT_FIRST_USER");
 
-                    case Activity.RESULT_FIRST_USER:    // fall through
-                        CoreLogger.logWarning("unexpected result code: Activity.RESULT_FIRST_USER");
+            case Activity.RESULT_CANCELED:
+                final String info = "User choose not to make required location settings changes";
+                CoreLogger.logWarning(info);
 
-                    case Activity.RESULT_CANCELED:
-                        final String info = "User choose not to make required location settings changes";
-                        CoreLogger.logWarning(info);
+                onLocationError(null, info);
+                break;
 
-                        onLocationError(null, info);
-                        break;
-
-                    default:
-                        CoreLogger.logWarning("unknown result code " + resultCode);
-                        break;
-                }
-                return true;
+            default:
+                CoreLogger.logWarning("unknown result code " + resultCode);
+                break;
         }
-        return false;
+        return true;
     }
 
     /**

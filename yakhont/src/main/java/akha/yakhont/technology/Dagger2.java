@@ -23,8 +23,6 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
-// ProGuard issue
-// import akha.yakhont.R;
 import akha.yakhont.R;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.BaseCallbacks.Validator;
@@ -133,8 +131,8 @@ import javax.inject.Provider;
  *     static class YourUiModule extends UiModule {
  *
  *         &#064;Override
- *         protected BaseDialog getAlert(int requestCode) {
- *             return super.getAlert(requestCode);
+ *         protected BaseDialog getPermissionAlert(int requestCode) {
+ *             return super.getPermissionAlert(requestCode);
  *         }
  *
  *         &#064;Override
@@ -348,7 +346,7 @@ public interface Dagger2 {
      * The user interface component.
      */
     @Module
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"JavadocReference", "unused"})
     class UiModule {
 
         /**
@@ -443,8 +441,7 @@ public interface Dagger2 {
                                  @StringRes final int resId, final boolean durationLong) {
             if (text == null && !validate(resId)) return;
 
-            if (text == null) //noinspection ConstantConditions
-                text = Utils.getApplication().getString(resId);
+            if (text == null) text = Utils.getApplication().getString(resId);
 
             if (useSnackbarIsoToast)
                 new BaseSnackbar(durationLong, null)
@@ -456,7 +453,6 @@ public interface Dagger2 {
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private static boolean validate(@StringRes final int resId) {
             try {
-                //noinspection ConstantConditions
                 return validate(Utils.getApplication().getString(resId));
             }
             catch (Exception exception) {

@@ -23,7 +23,9 @@ import akha.yakhont.adapter.BaseCacheAdapter.DataBindingCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseResponse;
 
+import android.annotation.SuppressLint;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
@@ -31,6 +33,7 @@ import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
 import androidx.paging.PagedListAdapter;
 import androidx.recyclerview.widget.DiffUtil.ItemCallback;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.recyclerview.widget.RecyclerView.Adapter;
 import androidx.recyclerview.widget.RecyclerView.ViewHolder;
 
@@ -53,7 +56,7 @@ import java.util.Collection;
  *
  * @author akha
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"JavadocReference", "WeakerAccess"})
 public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -66,8 +69,28 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
     protected       ViewHolderCreator                           mViewHolderCreator;
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected       OnItemClickListener                         mOnItemClickListener;
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     @LayoutRes
     protected final int                                         mLayoutId;
+
+    /**
+     * Attaches click handlers to RecyclerView items.
+     */
+    public interface OnItemClickListener {
+
+        /**
+         * Called when user clicks on RecyclerView item.
+         *
+         * @param item
+         *        The item
+         *
+         * @param position
+         *        The item's position
+         */
+        void onClick(View item, int position);
+    }
 
     /**
      * Called when RecyclerView needs a new RecyclerView.ViewHolder of the given type to represent an item.
@@ -92,6 +115,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          *
          * @return  A new ViewHolder that holds a View of the given view type
          */
+        @NonNull
         ViewHolder onCreateViewHolder(ViewGroup parent, int viewType, @LayoutRes int layoutId);
     }
 
@@ -131,9 +155,33 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
     }
 
     /**
+     * Gets the registered {@code OnItemClickListener} (if any).
+     *
+     * @return  The {@code ViewBinder} (or null)
+     *
+     * @see #setOnItemClickListener
+     */
+    @SuppressWarnings("unused")
+    public OnItemClickListener getOnItemClickListener() {
+        return mOnItemClickListener;
+    }
+
+    /**
+     * Registers the click handler for the given RecyclerView items.
+     *
+     * @param onItemClickListener
+     *        The OnItemClickListener
+     */
+    public void setOnItemClickListener(final OnItemClickListener onItemClickListener) {
+        mOnItemClickListener = onItemClickListener;
+    }
+
+    /**
      * Gets the registered {@code ViewBinder} (if any).
      *
-     * @return  Thee {@code ViewBinder} or null
+     * @return  The {@code ViewBinder} (or null)
+     *
+     * @see #setAdapterViewBinder
      */
     @SuppressWarnings("unused")
     public ViewBinder getAdapterViewBinder() {
@@ -157,7 +205,9 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
     /**
      * Gets the registered {@code ViewHolderCreator} (if any).
      *
-     * @return  Thee {@code ViewHolderCreator} or null
+     * @return  The {@code ViewHolderCreator} (or null)
+     *
+     * @see #setViewHolderCreator
      */
     @SuppressWarnings("unused")
     public ViewHolderCreator getViewHolderCreator() {
@@ -203,7 +253,25 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
         if (mLayoutId == Core.NOT_VALID_RES_ID)
             CoreLogger.logWarning("item layout ID is not defined");
 
-        return mViewHolderCreator.onCreateViewHolder(parent, viewType, mLayoutId);
+        return setOnClickListener(mViewHolderCreator.onCreateViewHolder(parent, viewType, mLayoutId));
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected ViewHolder setOnClickListener(@NonNull final ViewHolder viewHolder) {
+        //noinspection Convert2Lambda
+        viewHolder.itemView.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (mOnItemClickListener == null) return;
+
+                final int position = viewHolder.getAdapterPosition();
+                if (position != RecyclerView.NO_POSITION)
+                    mOnItemClickListener.onClick(view, position);
+                else
+                    CoreLogger.logWarning("RecyclerView.NO_POSITION for ViewHolder " + viewHolder);
+            }
+        });
+        return viewHolder;
     }
 
     /**
@@ -273,7 +341,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
         @Override
         public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             return mViewHolderCreator != null ? super.onCreateViewHolder(parent, viewType):
-                    new DataBindingViewHolder(parent, mLayoutId, mDataBindingId);
+                    setOnClickListener(new DataBindingViewHolder(parent, mLayoutId, mDataBindingId));
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -461,6 +529,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
             return areContentsTheSame(oldItem, newItem);
         }
 
+        @SuppressLint("DiffUtilEquals")
         @Override
         public boolean areContentsTheSame(@NonNull final T oldItem, @NonNull final T newItem) {
             return oldItem.equals(newItem);
@@ -530,6 +599,16 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
             if (item == null) return;
 
             mRecyclerViewAdapter.onBindViewHolderItem(viewHolder, position, item, true);
+        }
+
+        /**
+         * Returns the {@code BaseRecyclerViewAdapter} component associated with the given adapter.
+         *
+         * @return  The {@code BaseRecyclerViewAdapter}
+         */
+        @SuppressWarnings("unused")
+        public BaseRecyclerViewAdapter<T, R, E, T> getAdapter() {
+            return mRecyclerViewAdapter;
         }
     }
 }

@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -252,7 +253,7 @@ public class Weaver {
         log(sNewLine + sNewLine + "config file: default");
         String line;
         try (BufferedReader in = new BufferedReader(new InputStreamReader(
-                getClass().getClassLoader().getResourceAsStream(DEF_CONFIG)))) {
+                Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream(DEF_CONFIG))))) {
             while ((line = in.readLine()) != null)
                 parseConfig(mMethodsToWeave, mAnnotations, line);
         }

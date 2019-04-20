@@ -16,13 +16,29 @@
  
 // Yakhont preprocessor (generates the "full" flavor's sources "on the fly")
 
+import groovy.transform.Field
+
+@Field final boolean addDebugActivities               = true  // auto generate additional debug Activities
+@Field final boolean addDebugFragments                = true  // auto generate additional debug Fragments
+
+@Field final String  corePath                         = 'src/main/java/akha/yakhont'
+@Field final String  corePathDebug                    = corePath + '/debug'
+
+@Field final String  fullPath                         = 'src/full/java/akha/yakhont'
+@Field final String  fullPathDebug                    = fullPath + '/debug'
+
+@Field final String  preprocessorAddToGenerated       = '//YakhontPreprocessor:addToGenerated'
+@Field final String  preprocessorRemoveInFlavor       = '//YakhontPreprocessor:removeInFlavor'
+@Field final String  preprocessorRemoveInGenerated    = '//YakhontPreprocessor:removeInGenerated'
+
+@Field final String  preprocessorDocRemoveInGenerated = '@yakhont.preprocessor.remove.in.generated'
+
+@Field final String  fragmentActivity                 = 'androidx.fragment.app.FragmentActivity'
+
 task preprocessor {
     doLast {
         // based on search and replace
         // but if something will go wrong - it'll just not compile (or throw GradleException)
-
-        boolean addDebugActivities = true       // auto generate additional debug Activities
-        boolean addDebugFragments  = true       // auto generate additional debug Fragments
 
         println('Yakhont: preprocess sources (for the "full" flavor)...')
 
@@ -31,21 +47,13 @@ task preprocessor {
         if (addDebugActivities) { generateActivities() }
         if (addDebugFragments ) { generateFragments () }
 
-        completePreprocessor(addDebugActivities, addDebugFragments)
+        completePreprocessor()
     }
 }
 
 preBuild.dependsOn preprocessor
 
 gradle.buildFinished { buildResult -> clearTmpSources() }
-
-import groovy.transform.Field
-
-@Field String corePath                         = 'src/main/java/akha/yakhont'
-@Field String corePathDebug                    = corePath + '/debug'
-
-@Field String fullPath                         = 'src/full/java/akha/yakhont'
-@Field String fullPathDebug                    = fullPath + '/debug'
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -111,14 +119,6 @@ def generateFragments() {
     addFragments(fullPathDebug, false, debugFragmentClasses      )
     addFragments(fullPathDebug,  true, debugDialogFragmentClasses)
 }
-
-@Field String preprocessorAddToGenerated       = '//YakhontPreprocessor:addToGenerated'
-@Field String preprocessorRemoveInFlavor       = '//YakhontPreprocessor:removeInFlavor'
-@Field String preprocessorRemoveInGenerated    = '//YakhontPreprocessor:removeInGenerated'
-
-@Field String preprocessorDocRemoveInGenerated = '@yakhont.preprocessor.remove.in.generated'
-
-@Field String fragmentActivity                 = 'androidx.fragment.app.FragmentActivity'
 
 def addActivities(String componentDir, boolean isSupport, String[] data) {
     data.each { addActivity(componentDir, getShortClassName(it), it, isSupport, false) }
@@ -253,7 +253,7 @@ static def replaceExtends(String line, String oldString, String newString, Strin
     return newLine
 }
 
-def completePreprocessor(boolean addDebugActivities, boolean addDebugFragments) {
+def completePreprocessor() {
     if (addDebugActivities) {
         addActivity(fullPathDebug, 'FragmentActivity', null, true, true)
         delete fullPathDebug + '/BaseActivity.java'

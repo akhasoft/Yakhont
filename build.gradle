@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:3.3.2"
+        classpath "com.android.tools.build:gradle:3.4.0"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
         classpath "com.github.dcendents:android-maven-gradle-plugin:2.0"
@@ -99,13 +99,13 @@ ext {
     projectLibVerOkHttp                                         =  '2.7.5'
 
     projectLibVerRxJava                                         =  '1.3.8'
-    projectLibVerRxJava2                                        =  '2.2.6'
+    projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.0'
 
-    projectLibVerDagger                                         =  '2.21'
+    projectLibVerDagger                                         =  '2.22.1'
 
-    projectLibVerJavassist                                      =  '3.24.1-GA'
+    projectLibVerJavassist                                      =  '3.25.0-GA'
 
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.0.2'

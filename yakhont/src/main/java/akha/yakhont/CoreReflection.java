@@ -43,6 +43,7 @@ import java.util.Set;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public class CoreReflection {
 
     private static final Map<Class, Class>                  UNBOXING;
@@ -130,19 +131,21 @@ public class CoreReflection {
      *
      * @return  The result of method invoking
      *
+     * @throws  IllegalAccessException
+     *          please refer to the exception description
+     *
      * @throws  InvocationTargetException
      *          please refer to the exception description
      *
-     * @throws  IllegalAccessException
-     *          please refer to the exception description
+     * @throws  ExceptionInInitializerError
+     *          please refer to the error description
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "JavaDoc"})
     public static <T> T invoke(@NonNull final Object object, @NonNull final String methodName, final Object... args)
-            throws InvocationTargetException, IllegalAccessException {
+            throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
 
         final Class[] classes = new Class[args == null ? 0: args.length];
         for (int i = 0; i < classes.length; i++)
-            //noinspection ConstantConditions
             classes[i] = args[i] == null ? null: args[i].getClass();
 
         final Method method = findMethod(Level.ERROR, object, methodName, classes);
@@ -167,15 +170,18 @@ public class CoreReflection {
      *
      * @return  The result of method invoking
      *
+     * @throws  IllegalAccessException
+     *          please refer to the exception description
+     *
      * @throws  InvocationTargetException
      *          please refer to the exception description
      *
-     * @throws  IllegalAccessException
-     *          please refer to the exception description
+     * @throws  ExceptionInInitializerError
+     *          please refer to the error description
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "JavaDoc"})
     public static <T> T invoke(final Object object, final Method method, final Object... args)
-            throws InvocationTargetException, IllegalAccessException {
+            throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
         checkForNull(method, "method == null");
 
         CoreLogger.log(String.format("about to invoke method %s on object %s",
@@ -680,7 +686,7 @@ public class CoreReflection {
      *
      * @return  The list of selected methods of the class
      */
-    @SuppressWarnings({"ConstantConditions" /* lint complains: method too complex to analyze :-) */, "WeakerAccess", "SameParameterValue"})
+    @SuppressWarnings({ /* lint complains: method too complex to analyze :-) */ "WeakerAccess", "SameParameterValue"})
     @NonNull
     public static List<Method> findMethods(final Class<?> methodsClass,     final Class<?> stopClass,
                                            final boolean  includePublic,    final boolean  includeProtected,

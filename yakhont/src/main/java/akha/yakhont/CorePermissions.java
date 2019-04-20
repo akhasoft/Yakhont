@@ -60,6 +60,7 @@ import javax.inject.Provider;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public class CorePermissions implements ConfigurationChangedListener {
 
     private static final String                     TAG             = Utils.getTag(CorePermissions.class);
@@ -660,7 +661,6 @@ public class CorePermissions implements ConfigurationChangedListener {
             CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR,
                     "CorePermissions add view ID: " + result);
 
-            //noinspection ConstantConditions
             ViewHelper.setTag(view, ID_OBJECTS, corePermissions);
             return true;
         }

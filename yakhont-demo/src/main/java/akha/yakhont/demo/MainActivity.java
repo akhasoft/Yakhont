@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         // optional; on shaking device email with logs will be sent to the address below
         if (debug) CoreLogger.registerShakeDataSender(this, "address@company.com");
 
-        //noinspection ConstantConditions
         setTheme(R.style.AppThemeCompat);
 
         super.onCreate(savedInstanceState);
@@ -97,7 +96,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         ((akha.yakhont.location.BaseGoogleLocationClient) mLocationCallbacks.getLocationClient())
                 .setLocationUpdatesParameters(...);
 */
-        //noinspection ConstantConditions,Convert2Lambda
+        // noinspection Convert2Lambda
         findViewById(R.id.fab_location).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -106,7 +105,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             }
         });
 
-        //noinspection ConstantConditions,Convert2Lambda
+        // noinspection Convert2Lambda
         findViewById(R.id.fab_info).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

@@ -60,6 +60,7 @@ import java.util.Set;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<ContentValues, R, E, D> {
 
     /**
@@ -194,7 +195,6 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
             @NonNull @Size(min = 1) final String[]                                        from,
             @NonNull @Size(min = 1) final    int[]                                        to) {
 
-        @SuppressWarnings("Convert2Lambda")
         final BaseCacheAdapter<ContentValues, R, E, D> adapter =
                 factory.getAdapter(context, layout, from, to,
                     new DefaultArrayAdapter<>(context, layout, getDataBinder(context, from, to)),

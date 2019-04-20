@@ -112,14 +112,14 @@ public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     protected void checkForDefaultRequesterOnlyHandler(@NonNull final Method method)
-            throws InvocationTargetException, IllegalAccessException {
+            throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
         CoreReflection.invoke(mWrappedApi, method, getEmptyCallback());
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     public <R, E> Object request(@NonNull final Method method, final Object[] args,
-                                 final LoaderRx<R, E, D> rx) throws Exception {
+                                 final LoaderRx<R, E, D> rx) throws Throwable {
         final Callback<D> callback = getCallback();
         if (callback == null) {
             CoreLogger.logError("callback == null for method " + method);

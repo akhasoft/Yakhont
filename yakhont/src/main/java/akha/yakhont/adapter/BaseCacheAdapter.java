@@ -1617,7 +1617,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @Override
         public void resetArray() {
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {

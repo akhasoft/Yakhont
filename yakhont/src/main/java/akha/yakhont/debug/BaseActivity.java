@@ -63,7 +63,6 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      *
       * @return  The logging message (for debugging)
      */
-    @SuppressWarnings("JavaDoc")
     protected String getDebugMessage() {
         return "activity " + CoreLogger.getDescription(this);
     }
@@ -127,7 +126,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
     public void onAttachFragment(android.app.Fragment fragment) {
@@ -204,9 +203,9 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    @SuppressWarnings("deprecation")
     protected Dialog onCreateDialog(int id) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id, false);
 
@@ -216,9 +215,9 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    @SuppressWarnings("deprecation")
     protected Dialog onCreateDialog(int id, Bundle args) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id + ", args " + args, false);
 
@@ -380,9 +379,9 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    @SuppressWarnings("deprecation")
     protected void onPrepareDialog(int id, Dialog dialog) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id, false);
 
@@ -392,9 +391,9 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    @SuppressWarnings("deprecation")
     protected void onPrepareDialog(int id, Dialog dialog, Bundle args) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id + ", args " + args, false);
 

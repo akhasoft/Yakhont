@@ -27,6 +27,7 @@ import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.DataBindingCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter;
+import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
@@ -293,7 +294,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         tableName = Utils.replaceSpecialChars(tableName);
 
-        //noinspection ConstantConditions,ConstantConditions
+        // noinspection ConstantConditions
         tableName = tableName.length() > MAX_TABLE_NAME_LENGTH ?
                 tableName.substring(MAX_TABLE_NAME_LENGTH - tableName.length()): tableName;
 
@@ -516,7 +517,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             if (mPagingCallbacks != null) mPagingCallbacks = null;
         }
 
-        updateAdapter(data, mParameters != null && mParameters.getMerge());
+        if (mPagingAdapter == null)
+            updateAdapter(data, mParameters != null && mParameters.getMerge());
 
         if (mRx != null) mRx.onResult(data);
     }
@@ -576,6 +578,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param <D>
      *        The type of data
      */
+    @SuppressWarnings("JavadocReference")
     public static abstract class BaseResponseLoaderBuilder<C, R, E, D> implements LoaderBuilder<C, R, E, D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1174,9 +1177,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
             protected abstract void init();
 
-            protected abstract void request(C callback) throws Exception;
+            protected abstract void request(C callback) throws Throwable;
 
-            private void requestWrapper(C callback) throws Exception {
+            private void requestWrapper(C callback) throws Throwable {
                 logMethod();
                 if (mMethod == null) throw new RuntimeException("method == null");
                 request(callback);
@@ -1352,6 +1355,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @see Retrofit2
      * @see Retrofit2Rx
      */
+    @SuppressWarnings("JavadocReference")
     public interface CoreLoad<E, D> {
 
         /**
@@ -1361,16 +1365,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  The loaders
          */
         List<BaseLoaderWrapper<?>> getLoaders();
-
-        /**
-         * Returns the {@link BaseLoaderWrapper loader} associated with
-         * the given {@code CoreLoad} component (most of the time it's one and only).
-         *
-         * @return  The loader
-         *
-         * @see     #getLoaders()
-         */
-        BaseLoaderWrapper<?> getLoader();
 
         /**
          * Adds loader to the collection of {@link BaseLoaderWrapper loaders} associated with
@@ -1457,9 +1451,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @SuppressWarnings("unused")
         CoreLoad<E, D> setPagingCallbacks(final LoaderCallbacks<E, D> callbacks);
-
-        @SuppressWarnings("unused")
-        CoreLoad<E, D> setPagingCallback(final LoaderCallback<D> callback);
     }
 
     /**
@@ -1483,16 +1474,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @Override
         public List<BaseLoaderWrapper<?>> getLoaders() {
             return mLoaders;
-        }
-
-        /**
-         * Please refer to the base method description.
-         */
-        @Override
-        public BaseLoaderWrapper<?> getLoader() {
-            if (mLoaders.size() != 1)
-                CoreLogger.logWarning("expected one and only loader but actually " + mLoaders.size());
-            return mLoaders.size() == 0 ? null: mLoaders.get(0);
         }
 
         /**
@@ -1534,7 +1515,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             if (!isGoBackOnCancelLoading()) return this;
             CoreLogger.logWarning("isGoBackOnLoadingCanceled: about to call Activity.onBackPressed()");
 
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(new Runnable() {
                     @Override
                     public void run() {
@@ -1608,14 +1588,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             }
             return this;
         }
-
-        /**
-         * Please refer to the base method description.
-         */
-        @Override
-        public CoreLoad<E, D> setPagingCallback(final LoaderCallback<D> callback) {
-            return setPagingCallbacks(CoreLoadExtendedBuilder.getLoaderCallbacks(callback));
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1671,11 +1643,29 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Runnable                              mSwipeToRefreshCallback;
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected OnItemClickListener                   mOnItemClickListener;
+
         /**
          * Initialises a newly created {@code CoreLoadBuilder} object.
          */
         @SuppressWarnings("WeakerAccess")
         public CoreLoadBuilder() {
+        }
+
+        /**
+         * Sets the click handler for {@code RecyclerView} items.
+         *
+         * @param listener
+         *        The {@code OnItemClickListener}
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        public CoreLoadBuilder<C, R, E, D> setOnItemClickListener(final OnItemClickListener listener) {
+            checkData(mOnItemClickListener, listener, "OnItemClickListener");
+            mOnItemClickListener = listener;
+            return this;
         }
 
         /**
@@ -1689,6 +1679,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @SuppressWarnings("unused")
         public CoreLoadBuilder<C, R, E, D> setSwipeToRefreshCallback(final Runnable callback) {
+            checkData(mSwipeToRefreshCallback, callback, "SwipeToRefreshCallback");
             mSwipeToRefreshCallback = callback;
             return this;
         }
@@ -2123,6 +2114,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param <T>
      *        The type of API
      */
+    @SuppressWarnings("JavadocReference")
     public static abstract class CoreLoadExtendedBuilder<C, R, E, D, T>
             extends CoreLoadBuilder<C, R, E, D> implements Requester<C> {
 
@@ -2301,7 +2293,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return setLoaderCallbacks(getLoaderCallbacks(loaderCallback));
         }
 
-        private static <E, D> LoaderCallbacks<E, D> getLoaderCallbacks(final LoaderCallback<D> loaderCallback) {
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static <E, D> LoaderCallbacks<E, D> getLoaderCallbacks(final LoaderCallback<D> loaderCallback) {
             return loaderCallback == null ? null: new LoaderCallbacks<E, D>() {
                 @Override
                 public void onLoadFinished(final D data, final Source source) {
@@ -2548,6 +2541,19 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingDataSourceProducer(
                 final Callable<? extends DataSource<?, ?>> dataSourceProducer) {
             super.setPagingDataSourceProducer(dataSourceProducer);
+            return this;
+        }
+
+        /**
+         * Sets the click handler for {@code RecyclerView} items.
+         *
+         * @param listener
+         *        The {@code OnItemClickListener}
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setOnItemClickListener(final OnItemClickListener listener) {
+            super.setOnItemClickListener(listener);
             return this;
         }
 
@@ -2812,16 +2818,17 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             final boolean supportCursorAdapter = mSupportCursorAdapter == null ?  true: mSupportCursorAdapter;
 
             setAdapterWrapperHelper(mDataBindingId != null ?
-                    new DataBindingCacheAdapterWrapper(mDataBindingId, activity, item, support):
+                    new DataBindingCacheAdapterWrapper<>(mDataBindingId, activity, item, support):
                                     mFrom          == null ?
                     new ValuesCacheAdapterWrapper<>(activity, item,                    support, supportCursorAdapter) :
                     new ValuesCacheAdapterWrapper<>(activity, item, mFrom, mTo,        support, supportCursorAdapter));
         }
 
-        // looks like compiler issue
         private void setAdapterWrapperHelper(
                 @NonNull final BaseCacheAdapterWrapper<?, R, E, D> adapterWrapper) {
             super.setAdapterWrapper(adapterWrapper);
+
+            adapterWrapper.getRecyclerViewAdapter().setOnItemClickListener(mOnItemClickListener);
         }
 
         /**

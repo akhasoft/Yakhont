@@ -212,7 +212,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     protected void checkForDefaultRequesterOnlyHandler(@NonNull final Method method)
-            throws InvocationTargetException, IllegalAccessException {
+            throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
         CoreReflection.invoke(mWrappedApi, method);
     }
 
@@ -235,7 +235,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 final Call<D> call = CoreReflection.invokeSafe(proxy, method, args);
                 if (call == null) throw new Exception("Call == null");
 
-                //noinspection Anonymous2MethodRef,Convert2Lambda,Anonymous2MethodRef
+                // noinspection Convert2Lambda,Anonymous2MethodRef
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {

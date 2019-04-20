@@ -115,13 +115,13 @@ import java.util.Map;
  *
  * @author akha
  */
-@SuppressWarnings("WeakerAccess")
+@SuppressWarnings({"JavadocReference", "WeakerAccess"})
 public abstract class BaseRetrofit<T, B, C, D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected int                                   mConnectionTimeout;
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "RedundantSuppression"})
     protected T                                     mOriginalApi, mWrappedApi;
 
     private final BaseHandler                       mBaseHandler    = new BaseHandler();
@@ -168,7 +168,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public abstract <R, E> Object request(@NonNull Method method, Object[] args,
-                                          LoaderRx<R, E, D> rx) throws Exception;
+                                          LoaderRx<R, E, D> rx) throws Throwable;
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     protected C getCallback() {
@@ -248,7 +248,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public boolean checkForDefaultRequesterOnly(@NonNull final Method method, @NonNull final C callback)
-            throws InvocationTargetException, IllegalAccessException {
+            throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
         final boolean findMethod = isFindMethod();
         if (findMethod)
             checkForDefaultRequesterOnlyHandler(method);
@@ -259,7 +259,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     protected abstract void checkForDefaultRequesterOnlyHandler(@NonNull final Method method)
-            throws InvocationTargetException, IllegalAccessException;
+            throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError;
 
     /**
      * Returns the connection timeout (in seconds).

@@ -17,8 +17,6 @@
 package akha.yakhont;
 
 import akha.yakhont.CoreLogger.Level;
-// ProGuard issue
- import akha.yakhont.R;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycleProceed;
@@ -30,6 +28,10 @@ import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.ValidateFragmentCallbacks;
 import akha.yakhont.debug.BaseFragment;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallback;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.Dagger2.Parameters;
@@ -153,6 +155,7 @@ import java.util.zip.ZipOutputStream;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public class Core implements DefaultLifecycleObserver {
 
     /** Not valid resource ID (the value is {@value}). */
@@ -449,8 +452,8 @@ public class Core implements DefaultLifecycleObserver {
      *     static class YourUiModule extends UiModule {
      *
      *         &#064;Override
-     *         protected BaseDialog getAlert(int requestCode) {
-     *             return super.getAlert(requestCode);
+     *         protected BaseDialog getPermissionAlert(int requestCode) {
+     *             return super.getPermissionAlert(requestCode);
      *         }
      *
      *         &#064;Override
@@ -831,7 +834,7 @@ public class Core implements DefaultLifecycleObserver {
             ProcessLifecycleOwner.get().getLifecycle().addObserver(sInstance);
         }
 
-        @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "unused"})
+        @SuppressWarnings({"UnusedReturnValue", "unused"})
         private static boolean register(@NonNull final BaseActivityCallbacks callbacks) {
             return BaseActivityLifecycleProceed.register(callbacks);
         }
@@ -892,7 +895,7 @@ public class Core implements DefaultLifecycleObserver {
             BaseFragment.enableFragmentManagerDebugLogging(fullInfo);
         }
 
-        @SuppressWarnings("deprecation")
+        @SuppressWarnings({"deprecation", "RedundantSuppression"})
         private static int getVersionOld(@NonNull final PackageInfo packageInfo) {
             return packageInfo.versionCode;
         }
@@ -1324,7 +1327,6 @@ public class Core implements DefaultLifecycleObserver {
                 return;
             }
             CoreLogger.logWarning("about to clear cache table " + table);
-            //noinspection ConstantConditions
             Utils.getApplication().getContentResolver().delete(uri, null, null);
         }
 
@@ -1601,8 +1603,7 @@ public class Core implements DefaultLifecycleObserver {
         private static void handleZipError(final String text, final Exception exception,
                                            final Map<String, Exception> map) {
             CoreLogger.log(text, exception);
-            if (map != null) //noinspection ThrowableResultOfMethodCallIgnored
-                map.put(text, exception);
+            if (map != null) map.put(text, exception);
         }
 
         /**
@@ -1751,7 +1752,6 @@ public class Core implements DefaultLifecycleObserver {
                 final Method method = CoreReflection.findMethod(activity,
                         "validateRequestPermissionsRequestCode", int.class);
                 if (method                                           == null) return result;
-                //noinspection ThrowableResultOfMethodCallIgnored
                 if (checkRequestCode(result, activity, method, null) == null) return result;
 
                 result     = getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
@@ -1819,7 +1819,6 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             private static Runnable prepareRunnable(@NonNull final Runnable runnable) {
-                //noinspection Convert2Lambda
                 return new Runnable() {
                     @Override
                     public void run() {
@@ -2099,7 +2098,7 @@ public class Core implements DefaultLifecycleObserver {
                                 }
                             }
 
-                            @SuppressWarnings("deprecation")
+                            @SuppressWarnings({"deprecation", "RedundantSuppression"})
                             private void removeListener() {
                                 view.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                             }
@@ -2203,7 +2202,6 @@ public class Core implements DefaultLifecycleObserver {
                     return view;
                 }
 
-                @SuppressWarnings("ConstantConditions")
                 final Resources resources = getApplication().getResources();
                 @IdRes final int defaultViewId = getDefaultViewId(resources);
 
@@ -2341,7 +2339,7 @@ public class Core implements DefaultLifecycleObserver {
             boolean handle(Cursor cursor);  // return true to move to next row
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "ConstantConditions"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc"})
         public static boolean cursorHelper(final Cursor cursor, final CursorHandler cursorHandler,
                                            final boolean moveToFirst, final boolean onlyOne,
                                            final Boolean closeOrRestorePos) {
@@ -2440,6 +2438,57 @@ public class Core implements DefaultLifecycleObserver {
                 if (dialog != null && dialogFragment.getRetainInstance())
                     dialog.setDismissMessage(null);
             }
+        }
+
+        /**
+         * Returns the {@link BaseLoaderWrapper loader} associated with
+         * the given {@code CoreLoad} component (most of the time it's one and only).
+         *
+         * @param coreLoad
+         *        The {@code CoreLoad}
+         *
+         * @param <T>
+         *        The type of data associated with the {@code BaseLoaderWrapper}
+         *
+         * @return  The {@code BaseLoaderWrapper}
+         *
+         * @see CoreLoad#getLoaders
+         */
+        @SuppressWarnings("unchecked")
+        public static <T> BaseLoaderWrapper<T> getLoader(final CoreLoad coreLoad) {
+            if (coreLoad == null) return null;
+
+            final List<BaseLoaderWrapper<?>> list = coreLoad.getLoaders();
+            if (list != null && list.size() > 1)
+                CoreLogger.logWarning("expected one and only loader but actually " + list.size());
+
+            return list == null || list.size() == 0 ? null: (BaseLoaderWrapper<T>) list.get(0);
+        }
+
+        /**
+         * Sets callback for paged loading.
+         *
+         * @param coreLoad
+         *        The {@code CoreLoad}
+         *
+         * @param callback
+         *        The {@code LoaderCallback}
+         *
+         * @param <E>
+         *        The type of error (if any)
+         *
+         * @param <D>
+         *        The type of data to load
+         *
+         * @return  The {@code CoreLoad}
+         *
+         * @see CoreLoad#setPagingCallbacks
+         */
+        @SuppressWarnings({"unused"})
+        public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad   <E, D> coreLoad,
+                                                              final LoaderCallback<D> callback) {
+            return coreLoad == null ? null:
+                    coreLoad.setPagingCallbacks(CoreLoadExtendedBuilder.getLoaderCallbacks(callback));
         }
     }
 }

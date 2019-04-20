@@ -16,6 +16,8 @@
 
 package akha.yakhont.technology.rx;
 
+import android.annotation.SuppressLint;
+
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
@@ -73,6 +75,7 @@ public class Rx<D> extends CommonRx<D> {
      * @param hasProducer
      *        {@code true} if given {@code Rx} object has {@link Producer}, {@code false} otherwise
      */
+    @SuppressLint("RestrictedApi")
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public Rx(final boolean nullable, final boolean hasProducer) {
         super("Rx", !isErrorHandlerDefined());

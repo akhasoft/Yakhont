@@ -206,7 +206,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
     private void onError(@SuppressWarnings("UnusedParameters") final Call<D> call,
                          final Response<D> response, final Throwable error,
                          @NonNull final BaseViewModel<BaseResponse<Response<D>, Throwable, D>> baseViewModel) {
-        //noinspection Convert2Diamond
         baseViewModel.getData().onComplete(false, new BaseResponse<>(
                 null, response, null, error, Source.NETWORK, null));
     }
@@ -419,7 +418,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
                 @SuppressWarnings("unused")
                 @Override
-                public void request(Callback<D> callback) throws Exception {
+                public void request(Callback<D> callback) throws Throwable {
                     if (mRetrofit.checkForDefaultRequesterOnly(mMethod, callback))
                         mRetrofit.request(mMethod, null, mRx);
                 }
@@ -466,6 +465,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
      * @param <T>
      *        The type of Retrofit 2 API
      */
+    @SuppressWarnings("JavadocReference")
     public static class Retrofit2CoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
 
         private final Retrofit2<T, D>                        mRetrofit;
@@ -553,7 +553,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
      * }
      * </pre>
      */
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings({"JavadocReference", "WeakerAccess", "unused"})
     public static class Retrofit2Loader<E, D> extends CoreLoader<E, D> {
 
         /**
@@ -810,13 +810,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                     return view instanceof SwipeRefreshLayout;
                 }
             }, CoreLogger.getDefaultLevel());
-            if (swipeView == null) return;
 
-            final int id = swipeView.getId();
-            if (id == View.NO_ID)
-                CoreLogger.logError("please define ID for SwipeRefreshLayout");
-            else
-                SwipeToRefreshWrapper.register(id, coreLoad);
+            if (swipeView != null) SwipeToRefreshWrapper.register((SwipeRefreshLayout) swipeView, coreLoad);
         }
 
         /**
@@ -835,20 +830,20 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             final BaseViewModel<D> viewModel = BaseViewModel.get();
             if (viewModel == null) return null;
 
-            final Collection<CoreLoad<?, ?>> loaders = viewModel.getCoreLoads();
-            if (loaders != null && loaders.size() > 0) {
+            final Collection<CoreLoad<?, ?>> coreLoads = viewModel.getCoreLoads();
+            if (coreLoads != null && coreLoads.size() > 0) {
                 @SuppressWarnings("unchecked")
-                final CoreLoad<E, D> loader = (CoreLoad<E, D>) loaders.iterator().next();
+                final CoreLoad<E, D> coreLoad = (CoreLoad<E, D>) coreLoads.iterator().next();
 
                 CoreLoadBuilder.setAdapter(CoreLoadBuilder.getList(),
-                        (BaseResponseLoaderWrapper) loader.getLoader());
+                        (BaseResponseLoaderWrapper) Utils.getLoader(coreLoad));
 
-                if (loaders.size() > 1)
-                    CoreLogger.logError("only 1st loader handled, loaders qty " + loaders.size());
+                if (coreLoads.size() > 1)
+                    CoreLogger.logError("only 1st CoreLoads handled, CoreLoads qty " + coreLoads.size());
 
-                handleSwipeToRefresh(loader);
+                handleSwipeToRefresh(coreLoad);
 
-                return loader;
+                return coreLoad;
             }
             return null;
         }

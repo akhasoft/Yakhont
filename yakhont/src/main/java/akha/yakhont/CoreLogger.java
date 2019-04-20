@@ -68,6 +68,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 public class CoreLogger {
 
     /**
@@ -106,6 +107,7 @@ public class CoreLogger {
     @SuppressWarnings("WeakerAccess")
     public  static final int                            MAX_TAG_LENGTH           =   23;
     /** The maximum log record length; the value is {@value}. */
+    @SuppressWarnings("WeakerAccess")
     public  static final int                            MAX_LOG_LENGTH           = 4000;
     private static final int                            MAX_LOG_LINE_LENGTH      =  128;
 
@@ -929,7 +931,6 @@ public class CoreLogger {
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     @NonNull
     public static List<String> getLogCat(List<String> list, final boolean clearList, final String cmd) {
-        @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
         final List<String> listActual = (list == null) ? new ArrayList<>(): list;
         if (clearList) listActual.clear();
 
@@ -1320,7 +1321,7 @@ public class CoreLogger {
             }
         }
 
-        @SuppressWarnings("deprecation")
+        @SuppressWarnings({"deprecation", "RedundantSuppression"})
         private static void getScreenShotOld(final Activity activity, final File tmpDir,
                                              final String suffix,     final Map<String, Exception> errors,
                                              final List<String> list, final Runnable runnable) {

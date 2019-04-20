@@ -116,7 +116,7 @@ public abstract class LocalOkHttpClient2Base extends OkHttpClient {
 
         @Override
         public void enqueue(final Callback responseCallback) {
-            @SuppressWarnings({"Anonymous2MethodRef", "Convert2Lambda"})
+            @SuppressWarnings({"Convert2Lambda"})
             final Runnable runnable = new Runnable() {
                 @Override
                 public void run() {

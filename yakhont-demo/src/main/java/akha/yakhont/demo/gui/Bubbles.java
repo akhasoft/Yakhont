@@ -275,7 +275,7 @@ public class Bubbles {
         }, textView);
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
     private static void setBackgroundDrawable(View view, Drawable background) {
         view.setBackgroundDrawable(background);
     }
@@ -402,7 +402,7 @@ public class Bubbles {
         }
     }
 
-    @SuppressWarnings("deprecation")
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
     private static void viewSetText(TextView view, String text) {
         view.setText(Html.fromHtml(text));
     }

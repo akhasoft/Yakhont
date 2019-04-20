@@ -50,6 +50,7 @@ import java.util.Set;
  *
  * @author akha
  */
+@SuppressWarnings("JavadocReference")
 @TargetApi  (      Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 @RequiresApi(api = Build.VERSION_CODES.HONEYCOMB)               //YakhontPreprocessor:removeInFlavor
 public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed {
@@ -122,7 +123,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
      */
-    @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "SameReturnValue", "unused"})
+    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue", "unused"})
     public static boolean register(@NonNull final BaseFragmentCallbacks callbacks) {
         return register(callbacks, false);
     }
@@ -138,7 +139,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
      */
-    @SuppressWarnings({"UnusedReturnValue", "ConstantConditions", "SameReturnValue", "unused"})
+    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue", "unused"})
     public static boolean register(@NonNull final BaseFragmentCallbacks callbacks,
                                    final boolean silent) {
         return register(sCallbacks, callbacks, FragmentLifecycle.class, CALLBACKS,

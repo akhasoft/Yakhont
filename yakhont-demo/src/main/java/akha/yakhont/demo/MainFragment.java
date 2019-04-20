@@ -62,6 +62,7 @@ import android.view.ViewGroup;
 import android.widget.AbsListView;
 import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.ListAdapter;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -119,7 +120,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         initGui();
 
         if (mCoreLoad != null)               // handling screen orientation changes
-            mGridView.setAdapter(mCoreLoad.getLoader().getListAdapter());
+            mGridView.setAdapter(Utils.getLoader(mCoreLoad).getListAdapter());
         else
             init();
 
@@ -384,14 +385,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     // below is GUI stuff only
 
     private static final int            EMULATED_NETWORK_DELAY          = 7;
-    private static final int            PARTS_QTY                       = 3;
 
     private              AbsListView    mGridView;
     private              CheckBox       mCheckBoxForce, mCheckBoxMerge;
 
     private        final SlideShow      mSlideShow                      = new SlideShow();
 
-    private              int            mPartCounter;
     private              Source         mLastSource;
 
     private              Rect           mSlideRect;
@@ -452,15 +451,27 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     private void updateGuiAndSetPartToLoad(boolean byUserRequest) {
         if (byUserRequest)
             setBubblesState(true);
-        else {
+        else
             mLastSource  = Source.NETWORK;      // even if mCheckBoxForce.isChecked()
-            mPartCounter = PARTS_QTY - 1;
-        }
 
         if (mLastSource == Source.NETWORK) {
-            if (++mPartCounter == PARTS_QTY) mPartCounter = 0;
+            ListAdapter adapter = mGridView.getAdapter();
+            int size = adapter.getCount();
 
-            String scenario = "part" + mPartCounter;
+            int partCounter = 0;
+            if (size > 0) {
+                String img = ((Beer) adapter.getItem(size - 1)).getImage();
+                int pos = img.indexOf("img_");
+                switch (img.substring(pos + 4, pos + 6)) {
+                    case "05":
+                        partCounter = 1;
+                        break;
+                    case "11":
+                        partCounter = 2;
+                        break;
+                }
+            }
+            String scenario = "part" + partCounter;
 
             if (getMainActivity().isRetrofit2())
                 mOkHttpClient2.getLocalOkHttpClientHelper().setScenario(scenario);
