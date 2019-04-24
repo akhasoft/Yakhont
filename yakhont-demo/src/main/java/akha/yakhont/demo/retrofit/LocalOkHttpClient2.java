@@ -50,7 +50,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import okio.ByteString;
 import okio.Timeout;
 
-// for Retrofit 2
+// OkHttp3 local client for Retrofit 2
 public class LocalOkHttpClient2 extends OkHttpClient {
 
     private static final String             TAG                         = "LocalOkHttpClient2";

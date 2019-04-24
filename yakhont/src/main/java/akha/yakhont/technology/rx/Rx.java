@@ -16,14 +16,13 @@
 
 package akha.yakhont.technology.rx;
 
-import android.annotation.SuppressLint;
-
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
+import android.annotation.SuppressLint;
 import androidx.annotation.NonNull;
 
 import java.lang.reflect.Method;

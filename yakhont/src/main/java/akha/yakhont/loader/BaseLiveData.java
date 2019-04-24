@@ -510,32 +510,21 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         private static final BaseResponse           FORCE_STUB              = new BaseResponse(Source.CACHE);
 
         private        final Uri                    mUri;
-
-        private        final Boolean                mMerge;
-        private              boolean                mMergeFromParameters;
+        private              Boolean                mMerge, mMergeFromParameters;
 
         /**
-         * Initialises a newly created {@code CacheLiveData} object.
-         *
-         * @param requester
-         *        The data loading requester
+         * Sets the "merge data" flag.
          *
          * @param merge
          *        The "merge data" flag
          *
-         * @param tableName
-         *        The name of the table in the database (to cache the loaded data)
-         *
-         * @param uriResolver
-         *        The URI resolver
+         * @return  The previous value of the "merge data" flag
          */
-        @SuppressWarnings("unused")
-        public CacheLiveData(@NonNull final Requester<D> requester, final Boolean merge,
-                             @NonNull final String tableName, final UriResolver uriResolver) {
-            super(requester);
-
-            mUri   = init(tableName, uriResolver);
+        @SuppressWarnings("UnusedReturnValue")
+        public Boolean setMerge(final Boolean merge) {
+            final Boolean previous = mMerge;
             mMerge = merge;
+            return previous;
         }
 
         /**
@@ -544,8 +533,25 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          * @param requester
          *        The data loading requester
          *
-         * @param merge
-         *        The "merge data" flag
+         * @param tableName
+         *        The name of the table in the database (to cache the loaded data)
+         *
+         * @param uriResolver
+         *        The URI resolver
+         */
+        @SuppressWarnings("unused")
+        public CacheLiveData(@NonNull final Requester<D> requester,
+                             @NonNull final String tableName, final UriResolver uriResolver) {
+            super(requester);
+
+            mUri   = init(tableName, uriResolver);
+        }
+
+        /**
+         * Initialises a newly created {@code CacheLiveData} object.
+         *
+         * @param requester
+         *        The data loading requester
          *
          * @param dialog
          *        The data loading progress GUI
@@ -556,12 +562,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          * @param uriResolver
          *        The URI resolver
          */
-        public CacheLiveData(@NonNull final Requester<D> requester, final Boolean merge, final BaseDialog dialog,
+        public CacheLiveData(@NonNull final Requester<D> requester, final BaseDialog dialog,
                              @NonNull final String tableName, final UriResolver uriResolver) {
             super(requester, dialog);
 
             mUri   = init(tableName, uriResolver);
-            mMerge = merge;
         }
 
         private Uri init(@NonNull final String tableName, UriResolver uriResolver) {
@@ -575,7 +580,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @Override
         public void makeRequest(final Activity activity, final String text, final Intent data,
                                 final LoadParameters loadParameters) {
-            if (mMerge == null) mMergeFromParameters = loadParameters != null && loadParameters.getMerge();
+            mMergeFromParameters = loadParameters != null && loadParameters.getMerge();
 
             final boolean forceCache = loadParameters != null && loadParameters.getForceCache();
             if (forceCache || !Utils.isConnected()) {
@@ -593,7 +598,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @Override
         public void onComplete(final boolean success, D result) {
             if (success && result != null)
-                storeResult(getContentValues(result), result, mMerge != null ? mMerge: mMergeFromParameters);
+                storeResult(getContentValues(result), result, mMerge != null ? mMerge:
+                        mMergeFromParameters != null ? mMergeFromParameters: false);
             else {
                 CoreLogger.log("about to load data from cache, previous success flag: " + success);
                 final Cursor cursor = query();
@@ -1268,7 +1274,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     cancel();
                 }
                 else
-                    for (final BaseViewModel<?> model: models)
+                    for (final BaseViewModel<?> model : models)
                         model.getData().mBaseDialog.cancel();
             }
 

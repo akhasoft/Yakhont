@@ -43,6 +43,7 @@ import okio.Timeout
 
 private const val TAG = "LocalOkHttpClient2Base"
 
+// base OkHttp3 local client (with network delay emulation - if needed)
 abstract class LocalOkHttpClient2Base: OkHttpClient() {
 
     private val mInterceptors = ArrayList<Interceptor>()

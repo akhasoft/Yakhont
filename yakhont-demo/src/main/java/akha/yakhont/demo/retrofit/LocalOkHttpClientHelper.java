@@ -27,7 +27,7 @@ import java.net.URLConnection;
 import java.util.Locale;
 
 /**
- * based on implementation of Matt Swanson
+ * OkHttp3 local client helper, based on implementation of Matt Swanson
  * (please refer to https://gist.github.com/swanson/7dee3f3474e30fe8f15c)
  */
 public class LocalOkHttpClientHelper {

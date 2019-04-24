@@ -26,6 +26,7 @@ import akha.yakhont.demo.retrofit.RetrofitApi;
 import akha.yakhont.demo.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.Core.Utils.RetainDialogFragment;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
@@ -120,7 +121,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         initGui();
 
         if (mCoreLoad != null)               // handling screen orientation changes
-            mGridView.setAdapter(Utils.getLoader(mCoreLoad).getListAdapter());
+            mGridView.setAdapter(CoreLoadHelper.getLoader(mCoreLoad).getListAdapter());
         else
             init();
 
@@ -150,8 +151,6 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     private void startLoading(boolean byUserRequest) {
         updateGuiAndSetPartToLoad(byUserRequest);
-
-        mCoreLoad.setGoBackOnCancelLoading(!byUserRequest);
 
         mCoreLoad.start(getActivity(), getLoadParameters(
                 mCheckBoxForce.isChecked(), !byUserRequest, mCheckBoxMerge.isChecked()));

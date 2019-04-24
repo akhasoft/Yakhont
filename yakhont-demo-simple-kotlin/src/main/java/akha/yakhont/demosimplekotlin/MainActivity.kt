@@ -61,6 +61,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         ////////
 */
         val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
+
         Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
                 LocalOkHttpClient2(retrofit2)
                 // just to demo the progress GUI - comment it out if not needed

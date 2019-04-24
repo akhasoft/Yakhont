@@ -104,7 +104,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 400 KB (except the _full_ version, which is about 480 KB).
+The Yakhont AAR is about 430 KB (except the _full_ version, which is about 510 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above.
 
@@ -122,10 +122,14 @@ The detailed feature list is available [here](https://github.com/akhasoft/Yakhon
 
 Releases are available [here](https://github.com/akhasoft/Yakhont/releases),
 demo applications can be downloaded from the
-[latest release](https://github.com/akhasoft/Yakhont/releases/latest) (
-[demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk) and
-[simplified demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk)
-).
+[latest release](https://github.com/akhasoft/Yakhont/releases/latest).
+
+1. [demo simple kotlin](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+The simplest demo, just loads and displays some list (with "pull-to refresh" support).
+2. [demo simple](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk):
+The endless adapter demo (based on [Google paging library](https://developer.android.com/topic/libraries/architecture/paging)).
+3. [demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+The most complex demo with tons of customization.
 
 ## Versions
 

@@ -29,9 +29,11 @@ import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.ValidateFrag
 import akha.yakhont.debug.BaseFragment;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallback;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.Dagger2.Parameters;
@@ -85,6 +87,7 @@ import androidx.lifecycle.DefaultLifecycleObserver;
 import androidx.lifecycle.Lifecycle.Event;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ProcessLifecycleOwner;
+import androidx.paging.DataSource;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -2441,54 +2444,144 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /**
-         * Returns the {@link BaseLoaderWrapper loader} associated with
-         * the given {@code CoreLoad} component (most of the time it's one and only).
+         * Helper class for {@code CoreLoad} interface.
          *
-         * @param coreLoad
-         *        The {@code CoreLoad}
-         *
-         * @param <T>
-         *        The type of data associated with the {@code BaseLoaderWrapper}
-         *
-         * @return  The {@code BaseLoaderWrapper}
-         *
-         * @see CoreLoad#getLoaders
+         * @see CoreLoad
          */
-        @SuppressWarnings("unchecked")
-        public static <T> BaseLoaderWrapper<T> getLoader(final CoreLoad coreLoad) {
-            if (coreLoad == null) return null;
+        public static class CoreLoadHelper {
 
-            final List<BaseLoaderWrapper<?>> list = coreLoad.getLoaders();
-            if (list != null && list.size() > 1)
-                CoreLogger.logWarning("expected one and only loader but actually " + list.size());
+            /**
+             * Returns the {@link BaseLoaderWrapper loader} associated with
+             * the given {@code CoreLoad} component (most of the time it's one and only).
+             *
+             * @param coreLoad
+             *        The {@code CoreLoad}
+             *
+             * @param <T>
+             *        The type of data associated with the {@code BaseLoaderWrapper}
+             *
+             * @param <E>
+             *        The type of error (if any)
+             *
+             * @param <D>
+             *        The type of data to load
+             *
+             * @return  The {@code BaseLoaderWrapper}
+             *
+             * @see CoreLoad#getLoaders
+             */
+            @SuppressWarnings("unchecked")
+            public static <T, E, D> BaseLoaderWrapper<T> getLoader(final CoreLoad<E, D> coreLoad) {
+                if (coreLoad == null) return null;
 
-            return list == null || list.size() == 0 ? null: (BaseLoaderWrapper<T>) list.get(0);
-        }
+                final List<BaseLoaderWrapper<?>> list = coreLoad.getLoaders();
+                if (list != null && list.size() > 1)
+                    CoreLogger.logWarning("expected one and only loader but actually " + list.size());
 
-        /**
-         * Sets callback for paged loading.
-         *
-         * @param coreLoad
-         *        The {@code CoreLoad}
-         *
-         * @param callback
-         *        The {@code LoaderCallback}
-         *
-         * @param <E>
-         *        The type of error (if any)
-         *
-         * @param <D>
-         *        The type of data to load
-         *
-         * @return  The {@code CoreLoad}
-         *
-         * @see CoreLoad#setPagingCallbacks
-         */
-        @SuppressWarnings({"unused"})
-        public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad   <E, D> coreLoad,
-                                                              final LoaderCallback<D> callback) {
-            return coreLoad == null ? null:
-                    coreLoad.setPagingCallbacks(CoreLoadExtendedBuilder.getLoaderCallbacks(callback));
+                return list == null || list.size() == 0 ? null : (BaseLoaderWrapper<T>) list.get(0);
+            }
+
+            /**
+             * Sets callback for paged loading.
+             *
+             * @param coreLoad
+             *        The {@code CoreLoad}
+             *
+             * @param callback
+             *        The {@code LoaderCallback}
+             *
+             * @param <E>
+             *        The type of error (if any)
+             *
+             * @param <D>
+             *        The type of data to load
+             *
+             * @return  The {@code CoreLoad} passed as parameter
+
+             * @see #setPagingCallbacks
+             */
+            @SuppressWarnings({"unused"})
+            public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad<E,    D> coreLoad,
+                                                                  final LoaderCallback<D> callback) {
+                return setPagingCallbacks(coreLoad, CoreLoadExtendedBuilder.getLoaderCallbacks(callback));
+            }
+
+            /**
+             * Sets callbacks for paged loading.
+             *
+             * @param coreLoad
+             *        The {@code CoreLoad}
+             *
+             * @param callbacks
+             *        The {@code LoaderCallbacks}
+             *
+             * @param <E>
+             *        The type of error (if any)
+             *
+             * @param <D>
+             *        The type of data to load
+             *
+             * @return  The {@code CoreLoad} passed as parameter
+             */
+            @SuppressWarnings("WeakerAccess")
+            public static <E, D> CoreLoad<E, D> setPagingCallbacks(final CoreLoad       <E, D> coreLoad,
+                                                                   final LoaderCallbacks<E, D> callbacks) {
+                if (coreLoad == null) {
+                    if (callbacks != null)
+                        CoreLogger.logWarning("CoreLoad == null, can't set paging callbacks");
+                    return null;
+                }
+                final List<BaseLoaderWrapper<?>> loaders = coreLoad.getLoaders();
+                if (loaders == null || loaders.size() == 0) return coreLoad;
+
+                if (loaders.size() != 1)
+                    CoreLogger.logError("one and only loader should be defined");
+                else {
+                    final BaseLoaderWrapper<?> loader = loaders.iterator().next();
+                    if (loader instanceof BaseResponseLoaderWrapper) {
+                        @SuppressWarnings("unchecked")
+                        final BaseResponseLoaderWrapper<?, ?, E, D> tmpLoader =
+                                (BaseResponseLoaderWrapper<?, ?, E, D>) loader;
+                        tmpLoader.setPagingCallbacks(callbacks);
+                    }
+                    else
+                        CoreLogger.logError("can't set paging callbacks for " +
+                                CoreLogger.getDescription(loader) + ", expected BaseResponseLoaderWrapper");
+                }
+                return coreLoad;
+            }
+
+            /**
+             * Invalidates all {@link DataSource DataSource} associated with the given {@code CoreLoad} component.
+             *
+             * @param coreLoad
+             *        The {@code CoreLoad}
+             *
+             * @param activity
+             *        The {@code Activity}
+             *
+             * @param <E>
+             *        The type of error (if any)
+             *
+             * @param <D>
+             *        The type of data to load
+             *
+             * @return  The {@code CoreLoad} passed as parameter
+             */
+            @SuppressWarnings({"unused"})
+            public static <E, D> CoreLoad<E, D> invalidateDataSources(final CoreLoad<E, D> coreLoad,
+                                                                      final Activity       activity) {
+                if (coreLoad == null) return null;
+                final List<BaseLoaderWrapper<?>> loaders = coreLoad.getLoaders();
+                if (loaders == null || loaders.size() == 0) return coreLoad;
+
+                CoreLogger.log("about to invalidate DataSources");
+
+                for (final BaseLoaderWrapper baseLoaderWrapper: loaders)
+                    baseLoaderWrapper.invalidateDataSource(activity);
+
+                return coreLoad;
+            }
         }
     }
 }

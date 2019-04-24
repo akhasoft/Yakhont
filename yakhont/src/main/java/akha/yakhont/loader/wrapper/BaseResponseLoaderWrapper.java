@@ -39,6 +39,7 @@ import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseConverter;
 // for javadoc
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;
 import akha.yakhont.technology.retrofit.BaseRetrofit;
@@ -366,21 +367,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     }
 
     /**
-     * Sets adapter.
-     *
-     * @param adapter
-     *        The adapter
-     *
-     * @return  This {@code BaseResponseLoaderWrapper} object
-     */
-    @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    @NonNull
-    public BaseResponseLoaderWrapper<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
-        mAdapter            = adapter;
-        return this;
-    }
-
-    /**
      * Sets Rx component.
      *
      * @param rx
@@ -403,6 +389,21 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     @SuppressWarnings("unused")
     public LoaderRx<R, E, D> getRx() {
         return mRx;
+    }
+
+    /**
+     * Sets adapter.
+     *
+     * @param adapter
+     *        The adapter
+     *
+     * @return  This {@code BaseResponseLoaderWrapper} object
+     */
+    @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
+    @NonNull
+    public BaseResponseLoaderWrapper<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
+        mAdapter            = adapter;
+        return this;
     }
 
     /**
@@ -440,7 +441,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     }
 
     private void handleAdapterError() {
-        CoreLogger.logError("expected BaseCacheAdapterWrapper, but actually " +
+        CoreLogger.logWarning("expected BaseCacheAdapterWrapper, but actually " +
                 CoreLogger.getDescription(mAdapter));
     }
 
@@ -1418,17 +1419,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoad} object to allow for chaining of calls
          */
-        @SuppressWarnings({"UnusedReturnValue", "unused"})
+        @SuppressWarnings("UnusedReturnValue")
         CoreLoad<E, D> cancelLoading(Activity activity);
-
-        /**
-         * Invalidates all {@link DataSource DataSource} associated with the given {@code CoreLoad} component.
-         *
-         * @param activity
-         *        The Activity
-         */
-        @SuppressWarnings("unused")
-        void invalidateDataSources(Activity activity);
 
         /**
          * Indicates whether the back key press should be emulated if data loading was cancelled or not
@@ -1440,17 +1432,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @SuppressWarnings({"UnusedReturnValue", "unused"})
         CoreLoad<E, D> setGoBackOnCancelLoading(final boolean isGoBackOnCancelLoading);
-
-        /**
-         * Sets callbacks for paged loading.
-         *
-         * @param callbacks
-         *        The callbacks
-         *
-         * @return  This {@code CoreLoad} object to allow for chaining of calls
-         */
-        @SuppressWarnings("unused")
-        CoreLoad<E, D> setPagingCallbacks(final LoaderCallbacks<E, D> callbacks);
     }
 
     /**
@@ -1466,7 +1447,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     public static class CoreLoader<E, D> implements CoreLoad<E, D> {
 
         private final   List<BaseLoaderWrapper<?>>              mLoaders                = Utils.newList();
-        private final   AtomicBoolean                           mGoBackOnCancelLoading  = new AtomicBoolean(true);
+        private final   AtomicBoolean                           mGoBackOnCancelLoading  = new AtomicBoolean(false);
 
         /**
          * Please refer to the base method description.
@@ -1506,7 +1487,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * Please refer to the base method description.
          */
         @Override
-        public CoreLoad<E, D> cancelLoading(final Activity activity) {
+        public CoreLoad<E, D> cancelLoading(final Activity paramActivity) {
+            final Activity activity = paramActivity != null ? paramActivity: Utils.getCurrentActivity();
+
             CoreLogger.logWarning("about to cancel loading");
 
             for (final BaseLoaderWrapper baseLoaderWrapper: mLoaders)
@@ -1528,17 +1511,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                     }
                 });
             return this;
-        }
-
-        /**
-         * Please refer to the base method description.
-         */
-        @Override
-        public void invalidateDataSources(final Activity activity) {
-            CoreLogger.log("about to invalidate DataSources");
-
-            for (final BaseLoaderWrapper baseLoaderWrapper: mLoaders)
-                baseLoaderWrapper.invalidateDataSource(activity);
         }
 
         private boolean isGoBackOnCancelLoading() {
@@ -1569,25 +1541,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         public boolean start(final Activity activity, final LoadParameters parameters) {
             return BaseLoaderWrapper.start(activity, mLoaders, parameters);
         }
-
-        /**
-         * Please refer to the base method description.
-         */
-        @SuppressWarnings("unchecked")
-        @Override
-        public CoreLoad<E, D> setPagingCallbacks(final LoaderCallbacks<E, D> callbacks) {
-            if (mLoaders.size() != 1)
-                CoreLogger.logError("one and only loader should be defined");
-            else {
-                final BaseLoaderWrapper<?> loader = mLoaders.iterator().next();
-                if (loader instanceof BaseResponseLoaderWrapper)
-                    ((BaseResponseLoaderWrapper) loader).setPagingCallbacks(callbacks);
-                else
-                    CoreLogger.logError("can't set paging callbacks to " +
-                            CoreLogger.getDescription(loader) + ", expected BaseResponseLoaderWrapper");
-            }
-            return this;
-        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1614,8 +1567,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected LoaderBuilder<C, R, E, D>             mLoaderBuilder;
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected BaseCacheAdapterWrapper<?, R, E, D>   mAdapterWrapper;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected CacheAdapter<R, E, D>                 mAdapter;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ViewBinder                            mViewBinder;
@@ -1788,9 +1744,25 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @NonNull
         @SuppressWarnings({"UnusedReturnValue", "unused"})
         public <S> CoreLoadBuilder<C, R, E, D> setAdapterWrapper(
-                final BaseCacheAdapter.BaseCacheAdapterWrapper<S, R, E, D> adapterWrapper) {
+                final BaseCacheAdapterWrapper<S, R, E, D> adapterWrapper) {
             checkData(mAdapterWrapper, adapterWrapper, "adapter wrapper");
             mAdapterWrapper = adapterWrapper;
+            return this;
+        }
+
+        /**
+         * Sets the custom adapter.
+         *
+         * @param adapter
+         *        The custom adapter
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @SuppressWarnings({"UnusedReturnValue", "unused"})
+        public CoreLoadBuilder<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
+            checkData(mAdapter, adapter, "adapter");
+            mAdapter = adapter;
             return this;
         }
 
@@ -1804,7 +1776,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<C, R, E, D> setViewBinder(final BaseCacheAdapter.ViewBinder viewBinder) {
+        public CoreLoadBuilder<C, R, E, D> setViewBinder(final ViewBinder viewBinder) {
             checkData(mViewBinder, viewBinder, "ViewBinder");
             mViewBinder = viewBinder;
             return this;
@@ -1820,7 +1792,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @NonNull
         @SuppressWarnings({"unused", "UnusedReturnValue"})
-        public CoreLoadBuilder<C, R, E, D> setViewHolderCreator(final BaseRecyclerViewAdapter.ViewHolderCreator viewHolderCreator) {
+        public CoreLoadBuilder<C, R, E, D> setViewHolderCreator(final ViewHolderCreator viewHolderCreator) {
             checkData(mViewHolderCreator, viewHolderCreator, "ViewHolder creator");
             mViewHolderCreator = viewHolderCreator;
             return this;
@@ -1948,8 +1920,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 if (mAdapterWrapper != null) {
                     CoreLogger.logWarning(String.format(errText, "adapter wrapper " +
                             mAdapterWrapper.getClass().getName()));
-
-                    mAdapterWrapper = null;
+                    mAdapterWrapper  = null;
+                }
+                if (mAdapter != null) {
+                    CoreLogger.logWarning(String.format(errText, "adapter " + mAdapter.getClass().getName()));
+                    mAdapter  = null;
                 }
             }
             else {
@@ -1967,24 +1942,33 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             final BaseResponseLoaderWrapper<C, R, E, D> loader = mLoaderBuilder.createBaseResponseLoader();
             if (loader == null) return mLoaderBuilder.createBaseLoader();
 
-            if (mDataSourceProducer != null) {
-                @SuppressWarnings("unchecked")
-                final BaseRecyclerViewAdapter<Object, R, E, Object> tmpAdapter =
-                        (BaseRecyclerViewAdapter<Object, R, E, Object>) mAdapterWrapper.getRecyclerViewAdapter();
-                @SuppressWarnings("unchecked")
-                final ItemCallback<Object> tmpCallback = mPagingItemCallback != null ?
-                        (ItemCallback<Object>) mPagingItemCallback: tmpAdapter.getDefaultDiffCallback();
-                loader.mPagingAdapter      = new PagingRecyclerViewAdapter<>(tmpCallback, tmpAdapter);
+            if (mDataSourceProducer != null)
+                if (mAdapter == null) {
+                    @SuppressWarnings("unchecked")
+                    final BaseRecyclerViewAdapter<Object, R, E, Object> tmpAdapter =
+                            (BaseRecyclerViewAdapter<Object, R, E, Object>) mAdapterWrapper.getRecyclerViewAdapter();
+                    @SuppressWarnings("unchecked")
+                    final ItemCallback<Object> tmpCallback = mPagingItemCallback != null ?
+                            (ItemCallback<Object>) mPagingItemCallback: tmpAdapter.getDefaultDiffCallback();
+                    if (mAdapter == null)
+                        loader.mPagingAdapter  = new PagingRecyclerViewAdapter<>(tmpCallback, tmpAdapter);
 
-                loader.mDataSourceProducer = mDataSourceProducer;
-                loader.mPagingConfig       = mPagingConfig;
-                loader.mPageSize           = mPageSize;
+                    loader.mDataSourceProducer = mDataSourceProducer;
+                    loader.mPagingConfig       = mPagingConfig;
+                    loader.mPageSize           = mPageSize;
 
-                setAdapter(list, loader);
-            }
+                    setAdapter(list, loader);
+                }
+                else
+                    CoreLogger.logError("paged adapter will be ignored 'cause custom adapter was set");
 
-            if (mRx             != null) loader.setRx(mRx);
-            if (mAdapterWrapper != null) loader.setAdapter(mAdapterWrapper);
+            if (mRx != null) loader.setRx(mRx);
+
+            if      (mAdapter        != null) loader.setAdapter(mAdapter);
+            else if (mAdapterWrapper != null) loader.setAdapter(mAdapterWrapper);
+
+            if (mAdapter != null && mAdapterWrapper != null)
+                CoreLogger.logError("AdapterWrapper will be ignored 'cause custom adapter was set");
 
             return loader;
         }
@@ -2033,8 +2017,10 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             if (list != null && itemId != Core.NOT_VALID_RES_ID)
                 customizeAdapterWrapper(activity, coreLoad, list, itemId);
 
-            if (mAdapterWrapper == null)
-                CoreLogger.logWarning("The adapter wrapper is null, so no data binding will be done");
+            if (mAdapterWrapper == null) {
+                if (mAdapter == null)
+                    CoreLogger.logWarning("The adapter wrapper is null, so no data binding will be done");
+            }
             else {
                 if (mViewBinder != null) mAdapterWrapper.setAdapterViewBinder(mViewBinder);
 
@@ -2080,7 +2066,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 if (loader.mAdapter instanceof BaseCacheAdapterWrapper)
                     return setAdapter(list, (BaseCacheAdapterWrapper) loader.mAdapter,
                             false, list.getId());
-                CoreLogger.logError("expected BaseCacheAdapterWrapper but actually " +
+                CoreLogger.logWarning("expected BaseCacheAdapterWrapper but actually " +
                         CoreLogger.getDescription(loader.mAdapter));
                 return false;
             }
@@ -2529,6 +2515,21 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
+         * Sets the custom adapter.
+         *
+         * @param adapter
+         *        The custom adapter
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setAdapter(final CacheAdapter<R, E, D> adapter) {
+            super.setAdapter(adapter);
+            return this;
+        }
+
+        /**
          * Sets DataSource producer for paging.
          *
          * @param dataSourceProducer
@@ -2814,14 +2815,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                     CoreLogger.logError("both 'from' " + toString(mFrom) +
                             " and 'to' " + toString(mTo) + " binding data should has same size");
 
+            if (mAdapter != null) return;
+
             final boolean support              = mSupport              == null ? false: mSupport;
             final boolean supportCursorAdapter = mSupportCursorAdapter == null ?  true: mSupportCursorAdapter;
 
             setAdapterWrapperHelper(mDataBindingId != null ?
                     new DataBindingCacheAdapterWrapper<>(mDataBindingId, activity, item, support):
                                     mFrom          == null ?
-                    new ValuesCacheAdapterWrapper<>(activity, item,                    support, supportCursorAdapter) :
-                    new ValuesCacheAdapterWrapper<>(activity, item, mFrom, mTo,        support, supportCursorAdapter));
+                    new ValuesCacheAdapterWrapper<>(activity, item,             support, supportCursorAdapter) :
+                    new ValuesCacheAdapterWrapper<>(activity, item, mFrom, mTo, support, supportCursorAdapter));
         }
 
         private void setAdapterWrapperHelper(

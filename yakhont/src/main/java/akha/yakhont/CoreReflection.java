@@ -686,7 +686,7 @@ public class CoreReflection {
      *
      * @return  The list of selected methods of the class
      */
-    @SuppressWarnings({ /* lint complains: method too complex to analyze :-) */ "WeakerAccess", "SameParameterValue"})
+    @SuppressWarnings({ /* from time to time lint complains: method too complex to analyze :-) */ "WeakerAccess", "SameParameterValue"})
     @NonNull
     public static List<Method> findMethods(final Class<?> methodsClass,     final Class<?> stopClass,
                                            final boolean  includePublic,    final boolean  includeProtected,

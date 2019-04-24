@@ -66,6 +66,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -442,13 +443,11 @@ public abstract class BaseLoaderWrapper<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public BaseLoaderWrapper findLoader(final Collection<BaseLoaderWrapper<?>> loaders) {
-
         for (final BaseLoaderWrapper baseLoaderWrapper: loaders)
             if (baseLoaderWrapper.mLoaderId.equals(mLoaderId)) {
                 CoreLogger.log("found loader with id " + mLoaderId);
                 return baseLoaderWrapper;
             }
-
         CoreLogger.log("can't find loader with id " + mLoaderId);
         return null;
     }
@@ -707,6 +706,16 @@ public abstract class BaseLoaderWrapper<D> {
 
         @Override
         public void cancel() {
+            final BaseViewModel<D> model = getBaseViewModel(true);
+            if (model != null) {
+                final List<CoreLoad<?, ?>> coreLoads = model.getCoreLoads();
+                if (coreLoads != null && coreLoads.size() > 0) {
+                    for (final CoreLoad<?, ?> coreLoad: coreLoads)
+                        coreLoad.cancelLoading(null);
+                    return;
+                }
+            }
+            CoreLogger.logWarning("cancel request without CoreLoad, loader ID: " + mLoaderId);
             cancelRequest(CoreLogger.getDefaultLevel());
         }
 

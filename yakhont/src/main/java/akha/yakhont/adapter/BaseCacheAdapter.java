@@ -212,20 +212,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *        The loaded data adjustment
          */
         void update(BaseResponse<R, E, D> data, boolean isMerge, final Runnable onLoadFinished);
-
-        /**
-         * Resets the array adapter.
-         */
-        @SuppressWarnings("unused")
-        void resetArray();
-
-        /**
-         * Returns the cursor adapter component.
-         *
-         * @return  The BaseCursorAdapter
-         */
-        @SuppressWarnings("unused")
-        BaseCursorAdapter getCursorAdapter();
     }
 
     /**
@@ -439,7 +425,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /**
      * Resets the array adapter.
-     *  Most implementations should use {@link ValuesCacheAdapterWrapper#resetArray} instead.
+     *  Most implementations should use {@link BaseCacheAdapterWrapper#resetArray} instead.
      */
     @SuppressWarnings("WeakerAccess")
     public void resetArray() {
@@ -1613,9 +1599,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         }
 
         /**
-         * Please refer to the base method description.
+         * Resets the array adapter.
          */
-        @Override
+        @SuppressWarnings("unused")
         public void resetArray() {
             Utils.postToMainLoop(new Runnable() {
                 @Override
@@ -1633,10 +1619,12 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         }
 
         /**
-         * Please refer to the base method description.
+         * Returns the cursor adapter.
+         *
+         * @return  The BaseCursorAdapter
          */
+        @SuppressWarnings("unused")
         @NonNull
-        @Override
         public BaseCursorAdapter getCursorAdapter() {
             return mBaseCacheAdapter.getCursorAdapter();
         }

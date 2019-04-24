@@ -1451,8 +1451,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 }
                 mData = mTableName == null ?
                         new BaseLiveData <>(mRequester, mBaseDialog):
-                        new CacheLiveData<>(mRequester, mDataSourceProducer == null ? null: true,
-                                mBaseDialog, mTableName, mUriResolver);
+                        new CacheLiveData<>(mRequester, mBaseDialog, mTableName, mUriResolver);
+                if (mData instanceof CacheLiveData && mDataSourceProducer != null)
+                    ((CacheLiveData) mData).setMerge(true);
             }
 
             if (mKey == null) mKey = DEFAULT_KEY;

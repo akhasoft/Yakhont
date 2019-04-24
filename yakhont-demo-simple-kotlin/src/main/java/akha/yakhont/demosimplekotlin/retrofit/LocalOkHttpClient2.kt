@@ -22,6 +22,7 @@ import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor
 
 import okhttp3.logging.HttpLoggingInterceptor
 
+// OkHttp3 local client to load data from array
 class LocalOkHttpClient2(private val mRetrofit2: Retrofit2<*, *>): LocalOkHttpClient2Base() {
 
     private val mData = arrayOf(

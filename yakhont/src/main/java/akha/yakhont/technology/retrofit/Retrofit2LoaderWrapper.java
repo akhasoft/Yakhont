@@ -18,6 +18,7 @@ package akha.yakhont.technology.retrofit;
 
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
@@ -25,8 +26,11 @@ import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
+// for javadoc
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
+// for javadoc
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
@@ -762,16 +766,52 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                         @NonNull final Requester<R>          requester,
                                                                  final Integer               dataBinding,
                                                                  final OkHttpClient          client,
-                                                                       Retrofit2<R, D>       retrofit,
+                                                                 final Retrofit2<R, D>       retrofit,
                                                                  final Config                pagingConfig,
                                                                  final Callable<? extends DataSource<?, ?>>
                                                                                              dataSourceProducer,
                                                                  final Bundle                savedInstanceState) {
-            // handling screen orientation changes
-            if (savedInstanceState != null) return getExistingLoader();
+            return savedInstanceState != null ? getExistingLoader(): adjust(get(url, service, requester,
+                    dataBinding, client, retrofit != null ? retrofit: new Retrofit2<>(), pagingConfig,
+                    dataSourceProducer));
+        }
 
-            if (retrofit == null) retrofit = new Retrofit2<>();
+        /**
+         * Returns the adjusted {@code CoreLoad} instance.
+         *
+         * @param coreLoad
+         *        The {@code CoreLoad} instance to adjust
+         *
+         * @param <D>
+         *        The type of data
+         *
+         * @return  The {@code CoreLoad} instance
+         */
+        public static <D> CoreLoad<Throwable, D> adjust(final CoreLoad<Throwable, D> coreLoad) {
+            if (coreLoad == null) {
+                CoreLogger.logError("CoreLoad == null");
+                return null;
+            }
+            coreLoad.start(null, LoadParameters.NO_LOAD);
 
+            handleSwipeToRefresh(coreLoad);
+
+            // for handling screen orientation changes
+            final BaseViewModel<D> viewModel = BaseViewModel.get();
+            if (viewModel != null) viewModel.setCoreLoad(coreLoad);
+
+            return coreLoad;
+        }
+
+        private static <R, D> CoreLoad<Throwable, D> get(@NonNull final String                url,
+                                                         @NonNull final Class    <R>          service,
+                                                         @NonNull final Requester<R>          requester,
+                                                                  final Integer               dataBinding,
+                                                                  final OkHttpClient          client,
+                                                         @NonNull final Retrofit2<R, D>       retrofit,
+                                                                  final Config                pagingConfig,
+                                                                  final Callable<? extends DataSource<?, ?>>
+                                                                                              dataSourceProducer) {
             final Retrofit2CoreLoadBuilder<D, R> builder = (Retrofit2CoreLoadBuilder<D, R>)
                     new Retrofit2CoreLoadBuilder<>(client == null ?
                             retrofit.init(service, url): retrofit.init(service, url, client))
@@ -786,19 +826,24 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                 else
                     CoreLogger.logError("paging config set without DataSource producer");
 
-            final CoreLoad<Throwable, D> coreLoad = builder.create();
-            coreLoad.start(null, LoadParameters.NO_LOAD);
-
-            handleSwipeToRefresh(coreLoad);
-
-            // for handling screen orientation changes
-            final BaseViewModel<D> viewModel = BaseViewModel.get();
-            if (viewModel != null) viewModel.setCoreLoad(coreLoad);
-
-            return coreLoad;
+            return builder.create();
         }
 
-        private static <E, D> void handleSwipeToRefresh(final CoreLoad<E, D> coreLoad) {
+        /**
+         * Enables "swipe-to-refresh" feature (if exists) for the current activity.
+         *
+         * @param coreLoad
+         *        The {@code CoreLoad} component
+         *
+         * @param <E>
+         *        The type of error (if any)
+         *
+         * @param <D>
+         *        The type of data to load
+         *
+         * @see SwipeToRefreshWrapper
+         */
+        public static <E, D> void handleSwipeToRefresh(final CoreLoad<E, D> coreLoad) {
             final View root = Utils.getDefaultView(null);
             if (root == null) return;
 
@@ -836,7 +881,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                 final CoreLoad<E, D> coreLoad = (CoreLoad<E, D>) coreLoads.iterator().next();
 
                 CoreLoadBuilder.setAdapter(CoreLoadBuilder.getList(),
-                        (BaseResponseLoaderWrapper) Utils.getLoader(coreLoad));
+                        (BaseResponseLoaderWrapper) CoreLoadHelper.getLoader(coreLoad));
 
                 if (coreLoads.size() > 1)
                     CoreLogger.logError("only 1st CoreLoads handled, CoreLoads qty " + coreLoads.size());

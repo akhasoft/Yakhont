@@ -33,7 +33,7 @@ import retrofit.client.Response;
 import retrofit.mime.TypedInput;
 
 /**
- * based on implementation of Matt Swanson
+ * OkHttp3 local client, based on implementation of Matt Swanson
  * (please refer to https://gist.github.com/swanson/7dee3f3474e30fe8f15c)
  */
 public class LocalOkHttpClient implements Client {
