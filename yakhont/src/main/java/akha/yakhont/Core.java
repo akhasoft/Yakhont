@@ -39,7 +39,6 @@ import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.Dagger2.Parameters;
 import akha.yakhont.technology.Dagger2.UiModule;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
-import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx2;
 
 import android.Manifest;
@@ -550,12 +549,12 @@ public class Core implements DefaultLifecycleObserver {
     @SuppressWarnings("unused")
     public static void setRxUncaughtExceptionBehavior(final boolean terminate) {
         if (terminate) {
-            Rx .setErrorHandlerDefault();
-            Rx2.setErrorHandlerDefault();
+            FlavorHelper.setRxErrorHandlerDefault();    // Rx 1 support in full version
+            Rx2         .setErrorHandlerDefault();
         }
         else {
-            Rx .setErrorHandlerJustLog();
-            Rx2.setErrorHandlerJustLog();
+            FlavorHelper.setRxErrorHandlerJustLog();    // Rx 1 support in full version
+            Rx2         .setErrorHandlerJustLog();
         }
         CommonRx.setSafeFlag(!terminate);
     }
@@ -2472,7 +2471,10 @@ public class Core implements DefaultLifecycleObserver {
              */
             @SuppressWarnings("unchecked")
             public static <T, E, D> BaseLoaderWrapper<T> getLoader(final CoreLoad<E, D> coreLoad) {
-                if (coreLoad == null) return null;
+                if (coreLoad == null) {
+                    CoreLogger.logWarning("CoreLoad == null, can't get loader");
+                    return null;
+                }
 
                 final List<BaseLoaderWrapper<?>> list = coreLoad.getLoaders();
                 if (list != null && list.size() > 1)
@@ -2531,8 +2533,12 @@ public class Core implements DefaultLifecycleObserver {
                         CoreLogger.logWarning("CoreLoad == null, can't set paging callbacks");
                     return null;
                 }
+
                 final List<BaseLoaderWrapper<?>> loaders = coreLoad.getLoaders();
-                if (loaders == null || loaders.size() == 0) return coreLoad;
+                if (loaders == null || loaders.size() == 0) {
+                    CoreLogger.log("setPagingCallbacks, empty loaders list");
+                    return coreLoad;
+                }
 
                 if (loaders.size() != 1)
                     CoreLogger.logError("one and only loader should be defined");
@@ -2571,9 +2577,16 @@ public class Core implements DefaultLifecycleObserver {
             @SuppressWarnings({"unused"})
             public static <E, D> CoreLoad<E, D> invalidateDataSources(final CoreLoad<E, D> coreLoad,
                                                                       final Activity       activity) {
-                if (coreLoad == null) return null;
+                if (coreLoad == null) {
+                    CoreLogger.log("invalidateDataSources, CoreLoad == null");
+                    return null;
+                }
+
                 final List<BaseLoaderWrapper<?>> loaders = coreLoad.getLoaders();
-                if (loaders == null || loaders.size() == 0) return coreLoad;
+                if (loaders == null || loaders.size() == 0) {
+                    CoreLogger.log("invalidateDataSources, empty loaders list");
+                    return coreLoad;
+                }
 
                 CoreLogger.log("about to invalidate DataSources");
 

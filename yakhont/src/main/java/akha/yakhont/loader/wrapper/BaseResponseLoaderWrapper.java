@@ -2017,10 +2017,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             if (list != null && itemId != Core.NOT_VALID_RES_ID)
                 customizeAdapterWrapper(activity, coreLoad, list, itemId);
 
-            if (mAdapterWrapper == null) {
-                if (mAdapter == null)
-                    CoreLogger.logWarning("The adapter wrapper is null, so no data binding will be done");
-            }
+            if (mAdapterWrapper == null)
+                CoreLogger.logWarning("The adapter wrapper is null, so no data binding will be done");
             else {
                 if (mViewBinder != null) mAdapterWrapper.setAdapterViewBinder(mViewBinder);
 

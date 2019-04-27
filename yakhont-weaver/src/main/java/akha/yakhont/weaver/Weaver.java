@@ -68,7 +68,7 @@ public class Weaver {
 
     private static final String sNewLine            = System.getProperty("line.separator");
 
-    private        final Map<String, Map<String, List<String>>>
+    private        final Map<String, Map<String,    List<String>>>
                                 mMethodsToWeave     = new LinkedHashMap<>();
     private        final Map<String, Map<Condition, List<String>>>
                                 mAnnotations        = new LinkedHashMap<>();
@@ -80,9 +80,15 @@ public class Weaver {
         CATCH
     }
 
-    private enum Condition {
+    /**
+     * For the moment the build types only.
+     */
+    protected enum Condition {
+        /** Build type not defined. */
         NOT_DEFINED,
+        /** The debug build. */
         DEBUG,
+        /** The release build. */
         RELEASE
     }
 

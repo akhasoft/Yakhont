@@ -265,7 +265,5 @@ def completePreprocessor() {
 }
 
 def clearTmpSources() {
-    ant.delete(includeEmptyDirs: 'true') {
-        fileset(dir: file('src/full'), includes: '**/*', excludes: '**/AndroidManifest.xml')
-    }
+    delete fullPathDebug
 }

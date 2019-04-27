@@ -161,7 +161,6 @@ dependencies {
 
     api                 "androidx.paging:paging-runtime:$projectLibVerPaging"
 
-    // for debug package only
     fullApi             "androidx.leanback:leanback:$projectLibVerLeanbackLeanback"
     fullApi             "androidx.leanback:leanback-preference:$projectLibVerLeanbackLeanbackPreference"
     fullApi             "androidx.legacy:legacy-preference-v14:$projectLibVerLegacyLegacyPreferenceV14"
@@ -177,19 +176,18 @@ dependencies {
     }
     api                 "com.squareup.retrofit2:converter-gson:$projectLibVerDefault"
 
-    api                 "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
-    api                 "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
-
     api                 "com.squareup.retrofit2:adapter-rxjava:$projectLibVerDefault"
     api                 "com.squareup.retrofit2:adapter-rxjava2:$projectLibVerDefault"
 
-    api                 "com.squareup.retrofit:retrofit:$projectLibVerRetrofit"
+    api                 "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
+    api                 "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
-    api                 "com.squareup.okhttp:okhttp:$projectLibVerDefault"
-    api                 "com.squareup.okhttp:okhttp-urlconnection:$projectLibVerDefault"
+    fullApi             "com.squareup.retrofit:retrofit:$projectLibVerRetrofit"
+    fullApi             "com.squareup.okhttp:okhttp:$projectLibVerDefault"
+    fullApi             "com.squareup.okhttp:okhttp-urlconnection:$projectLibVerDefault"
 
     api                 "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
-    api                 "io.reactivex:rxjava:$projectLibVerRxJava"
+    fullApi             "io.reactivex:rxjava:$projectLibVerRxJava"
 }
 
 apply from: '../publish.gradle'

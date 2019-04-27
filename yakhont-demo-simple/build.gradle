@@ -157,9 +157,8 @@ dependencies {
     implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
     implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
-    implementation      "io.reactivex:rxjava:$projectLibVerRxJava"
 
-    implementation      name:'yakhont-full', ext:'aar'
+    implementation      name:'yakhont', ext:'aar'
 }
 
 // for demo simple let's build both release and debug - just to be sure the weaver is working fine

@@ -153,7 +153,6 @@ dependencies {
     implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
     implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
-    implementation      "io.reactivex:rxjava:$projectLibVerRxJava"
 
     implementation      name:'yakhont', ext:'aar'
 }

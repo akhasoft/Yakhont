@@ -19,11 +19,12 @@ package akha.yakhont.technology.rx;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.FlavorHelper;
+import akha.yakhont.FlavorHelper.FlavorCommonRx;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
-import akha.yakhont.technology.rx.Rx.RxSubscription;
 import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
@@ -319,17 +320,15 @@ public abstract class BaseRx<D> {
     public static abstract class CommonRx<D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final FlavorCommonRx          mFlavorCommonRx     = new FlavorCommonRx();
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected BaseRx<D>                     mBaseRx;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final RxSubscription          mRxSubscription     = new RxSubscription();
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final Rx2Disposable           mRx2Disposable      = new Rx2Disposable();
 
-        // statics for anonymous Rx (e.g. in Retrofit API only)
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected static final RxSubscription   sRxSubscription     = new RxSubscription();
+        // for anonymous Rx
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected static final Rx2Disposable    sRx2Disposable      = new Rx2Disposable();
 
@@ -354,26 +353,9 @@ public abstract class BaseRx<D> {
                     " methods); ignore this information only if you know what you're doing", errMgsParam));
         }
 
-        /**
-         * Returns the {@link RxSubscription} component.
-         *
-         * @return  The {@link RxSubscription}
-         *
-         * @see #unsubscribe()
-         */
-        public RxSubscription getRxSubscriptionHandler() {
-            return mRxSubscription;
-        }
-
-        /**
-         * Returns the anonymous {@link RxSubscription} component.
-         *
-         * @return  The {@link RxSubscription}
-         *
-         * @see #unsubscribeAnonymous()
-         */
-        public static RxSubscription getRxSubscriptionHandlerAnonymous() {
-            return sRxSubscription;
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public FlavorCommonRx getFlavorCommonRx() {
+            return mFlavorCommonRx;
         }
 
         /**
@@ -404,7 +386,7 @@ public abstract class BaseRx<D> {
         @SuppressWarnings("WeakerAccess")
         public void unsubscribe() {
             mRx2Disposable .unsubscribe();
-            mRxSubscription.unsubscribe();
+            mFlavorCommonRx.unsubscribe();          // Rx 1 support in full version
         }
 
         /**
@@ -419,10 +401,8 @@ public abstract class BaseRx<D> {
                 CoreLogger.logWarning(String.format(msg, "disposables"));
                 sRx2Disposable.unsubscribe();
             }
-            if (sRxSubscription.notEmpty()) {
-                CoreLogger.logWarning(String.format(msg, "subscribers"));
-                sRxSubscription.unsubscribe();
-            }
+
+            FlavorCommonRx.unsubscribeAnonymous();
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -590,7 +570,7 @@ public abstract class BaseRx<D> {
          */
         @SuppressWarnings({"SameParameterValue", "Convert2Diamond", "WeakerAccess"})
         public LocationRx(final boolean isRx2, final Activity activity) {
-            this(isRx2 ? new Rx2<Location>(): new Rx<Location>(), activity);
+            this(FlavorHelper.getCommonRx(isRx2), activity);
         }
 
         /**
@@ -749,7 +729,7 @@ public abstract class BaseRx<D> {
          */
         @SuppressWarnings({"Convert2Diamond", "WeakerAccess"})
         public LoaderRx(final boolean isRx2, final boolean isSingle) {
-            this(isRx2 ? new Rx2<BaseResponse<R, E, D>>(): new Rx<BaseResponse<R, E, D>>(), isSingle);
+            this(FlavorHelper.getCommonRx(isRx2), isSingle);
         }
 
         /**

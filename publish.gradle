@@ -35,7 +35,7 @@ def getPropertyExt = { String key ->
 }
 
 def getPropertyExtArray = { String key ->
-    return project.ext.has(key) ? project.ext.get(key): rootProject.ext.get(key)
+    return project.ext.has(key) ? project.ext.get(key): rootProject.ext.has(key) ? rootProject.ext.get(key): null
 }
 
 boolean projectPublish = getProperty('publish', null, 'false') == 'true'
@@ -53,7 +53,9 @@ if (projectPublish) {
 
     projectPublish = projectBintrayUser != null
 }
-println ' projectPublish == ' + projectPublish
+if (projectPublish) {
+    println ' projectPublish mode'
+}
 
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
@@ -138,13 +140,25 @@ def pomConfig = {
     }
 }
 
+boolean isAndroidApp = project.plugins.hasPlugin('com.android.application')
+boolean isAndroidLib = project.plugins.hasPlugin('com.android.library')
+
 String classifierJavadoc = 'javadoc', classifierSources = 'sources'
 
 //noinspection GroovyAssignabilityCheck
-List<String> flavorList = new ArrayList<String>(), linkList = new ArrayList<String>(getPropertyExtArray('projectJavaDocLinks'))
+List<String> flavorList = new ArrayList<String>(),
+        linkList = new ArrayList<String>(getPropertyExtArray('projectJavaDocLinks'))
 List<JavadocOfflineLink> linkOfflineList = new ArrayList<JavadocOfflineLink>()
 
-println(' Assigned new flavorList')
+getPropertyExtArray('projectJavaDocLinksOffline').each {
+    linkOfflineList.add(new JavadocOfflineLink(it[0], it[1]))
+}
+if (isAndroidApp || isAndroidLib) {
+    linkOfflineList.add(new JavadocOfflineLink('http://developer.android.com/reference/',
+            android.sdkDirectory.path + '/docs/reference/'))
+}
+linkOfflineList.add(new JavadocOfflineLink('http://docs.oracle.com/javase/8/docs/api/',
+        project.rootDir.getAbsolutePath()))
 
 def getLocProperty = { String key, String addKey ->
     if (localProperties == null) {
@@ -172,7 +186,8 @@ def javadocConfig = { options, addKey ->
 
     options.bottom              getPropertyExt('projectCopyright')
 
-    options.setLinks            linkList + 'http://docs.oracle.com/javase/8/docs/api/'
+    options.setLinks            linkList
+    options.setLinksOffline     linkOfflineList
 
     options.docTitle            javadocTitle      (getPropertyExt('publishedArtifactId'))
     options.windowTitle         javadocWindowTitle(getPropertyExt('publishedArtifactId'))
@@ -252,9 +267,6 @@ if (JavaVersion.current().isJava8Compatible()) {
     }
 }
 
-boolean isAndroidApp = project.plugins.hasPlugin('com.android.application')
-boolean isAndroidLib = project.plugins.hasPlugin('com.android.library')
-
 if (isAndroidApp || isAndroidLib) {
 
     boolean makeReleaseBuilds = !android.defaultPublishConfig.endsWith('Debug')
@@ -269,10 +281,6 @@ if (isAndroidApp || isAndroidLib) {
     }
 
     project.ext.archivesBaseName = getPropertyExt('publishedArtifactId')
-
-    //noinspection GroovyAssignabilityCheck
-    linkOfflineList.add(new JavadocOfflineLink('http://developer.android.com/reference/',
-            android.sdkDirectory.path + '/docs/reference/'))
 
     def makeArtifactsAndroid = { variant ->
         variant.outputs.all { output ->
@@ -310,8 +318,6 @@ if (isAndroidApp || isAndroidLib) {
                     javadocConfig(options, flavorName)
                 }
                 options {
-                    setLinksOffline     linkOfflineList
-
                     docTitle            javadocTitle      (flavorArtifactId)
                     windowTitle         javadocWindowTitle(flavorArtifactId)
                 }

@@ -35,7 +35,6 @@ import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
-import akha.yakhont.technology.rx.Rx.RxSubscription;
 import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
@@ -503,16 +502,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         @SuppressWarnings("unused")
         public Rx2Disposable getRx2DisposableHandler() {
             return Retrofit2.getRx2DisposableHandler(mRx);
-        }
-
-        /**
-         * Returns the {@link RxSubscription} component.
-         *
-         * @return  The {@link RxSubscription}
-         */
-        @SuppressWarnings("unused")
-        public RxSubscription getRxSubscriptionHandler() {
-            return Retrofit2.getRxSubscriptionHandler(mRx);
         }
 
         /**

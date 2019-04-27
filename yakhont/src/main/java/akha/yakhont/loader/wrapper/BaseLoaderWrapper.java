@@ -707,15 +707,19 @@ public abstract class BaseLoaderWrapper<D> {
         @Override
         public void cancel() {
             final BaseViewModel<D> model = getBaseViewModel(true);
-            if (model != null) {
+            if (model == null)
+                CoreLogger.logWarning("cancel request: model == null, loader ID: " + mLoaderId);
+            else {
                 final List<CoreLoad<?, ?>> coreLoads = model.getCoreLoads();
                 if (coreLoads != null && coreLoads.size() > 0) {
                     for (final CoreLoad<?, ?> coreLoad: coreLoads)
                         coreLoad.cancelLoading(null);
                     return;
                 }
+                else
+                    CoreLogger.logWarning("cancel request: empty loaders list, loader ID: " + mLoaderId);
             }
-            CoreLogger.logWarning("cancel request without CoreLoad, loader ID: " + mLoaderId);
+            CoreLogger.logWarning("call cancel request without CoreLoad, loader ID: " + mLoaderId);
             cancelRequest(CoreLogger.getDefaultLevel());
         }
 

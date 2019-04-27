@@ -21,12 +21,13 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
+import akha.yakhont.FlavorHelper;
+import akha.yakhont.FlavorHelper.FlavorCommonRx;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
-import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx2;
 
 import androidx.annotation.IntRange;
@@ -264,18 +265,18 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 return resultRx2;
             }
 
-            final Object resultRx = Rx.handle(proxy, method, args, callbackRx);
+            final Object resultRx = FlavorHelper.handleRx(proxy, method, args, callbackRx);
             if (resultRx != null) {
 
                 //noinspection Convert2Lambda
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
-                        Rx.cancel(resultRx);
+                        FlavorHelper.cancelRx(resultRx);
                     }
                 });
 
-                getRxSubscriptionHandler(rx).add(resultRx);
+                FlavorCommonRx.add(rx, resultRx);
                 return resultRx;
             }
 
@@ -296,16 +297,10 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 rx.getRx().getRx2DisposableHandler();
     }
 
-    private static void checkRxComponent(final LoaderRx rx) {
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static void checkRxComponent(final LoaderRx rx) {
         if (rx == null) CoreLogger.logWarning(
                 "Rx component was not defined, so anonymous handler will be used");
-    }
-
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static <R, E, D> Rx.RxSubscription getRxSubscriptionHandler(final LoaderRx<R, E, D> rx) {
-        checkRxComponent(rx);
-        return rx == null ? CommonRx.getRxSubscriptionHandlerAnonymous():
-                rx.getRx().getRxSubscriptionHandler();
     }
 
     /**
