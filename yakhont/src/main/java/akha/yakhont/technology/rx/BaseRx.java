@@ -45,7 +45,6 @@ import java.util.Set;
  * @param <D>
  *        The data type
  *
- * @see Rx
  * @see Rx2
  * @see LoaderRx
  * @see LocationRx
@@ -211,7 +210,7 @@ public abstract class BaseRx<D> {
      *
      * @return  This {@code BaseRx} object to allow for chaining of calls to methods
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"unused", "WeakerAccess"})
     public BaseRx<D> subscribe(final SubscriberRx<D> subscriber) {
         if (subscriber == null)
             CoreLogger.logError("subscriber is null");
@@ -273,6 +272,7 @@ public abstract class BaseRx<D> {
          * @param n
          *        The maximum number of items you want the {@code Observable} to emit to the {@code SubscriberRx} at this time
          */
+        @SuppressWarnings("WeakerAccess")
         public void request(final long n) {
             CoreLogger.log("Rx: request; n == " + n);
         }
@@ -314,7 +314,6 @@ public abstract class BaseRx<D> {
      * @param <D>
      *        The data type
      *
-     * @see Rx
      * @see Rx2
      */
     public static abstract class CommonRx<D> {
@@ -346,14 +345,15 @@ public abstract class BaseRx<D> {
          */
         @SuppressWarnings("WeakerAccess")
         @RestrictTo(Scope.LIBRARY)
-        protected CommonRx(@NonNull final String errMgsParam, final boolean nOk) {
+        protected CommonRx(@SuppressWarnings("SameParameterValue") @NonNull final String errMgsParam,
+                           final boolean nOk) {
             if (nOk) CoreLogger.logError(String.format(
                     "in your application initialization code please call "                   +
                     "'Core.setRxUncaughtExceptionBehavior()' (or any of '%s.setErrorHandler*()'" +
                     " methods); ignore this information only if you know what you're doing", errMgsParam));
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public FlavorCommonRx getFlavorCommonRx() {
             return mFlavorCommonRx;
         }
@@ -402,7 +402,7 @@ public abstract class BaseRx<D> {
                 sRx2Disposable.unsubscribe();
             }
 
-            FlavorCommonRx.unsubscribeAnonymous();
+            FlavorCommonRx.unsubscribeAnonymous(msg);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -413,6 +413,7 @@ public abstract class BaseRx<D> {
          *
          * @return  {@code true} if given Rx component supports nulls, {@code false} otherwise
          */
+        @SuppressWarnings("SameReturnValue")
         protected abstract boolean isNullable();
 
         /**
@@ -568,7 +569,7 @@ public abstract class BaseRx<D> {
          * @param activity
          *        The Activity
          */
-        @SuppressWarnings({"SameParameterValue", "Convert2Diamond", "WeakerAccess"})
+        @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
         public LocationRx(final boolean isRx2, final Activity activity) {
             this(FlavorHelper.getCommonRx(isRx2), activity);
         }
@@ -727,7 +728,7 @@ public abstract class BaseRx<D> {
          * @param isSingle
          *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
          */
-        @SuppressWarnings({"Convert2Diamond", "WeakerAccess"})
+        @SuppressWarnings({"WeakerAccess"})
         public LoaderRx(final boolean isRx2, final boolean isSingle) {
             this(FlavorHelper.getCommonRx(isRx2), isSingle);
         }
@@ -775,6 +776,7 @@ public abstract class BaseRx<D> {
          *
          * @return  This {@code LoaderRx} object to allow for chaining of calls to methods
          */
+        @SuppressWarnings("unused")
         public LoaderRx<R, E, D> subscribeSimple(final SubscriberRx<D> subscriber) {
             if (subscriber == null) {
                 CoreLogger.logError("subscriber is null");
@@ -786,16 +788,19 @@ public abstract class BaseRx<D> {
                     subscriber.request(n);
                 }
 
+                @SuppressWarnings("unused")
                 @Override
                 public void onNext(final BaseResponse<R, E, D> result) {
                     subscriber.onNext(result == null ? null: result.getResult());
                 }
 
+                @SuppressWarnings("unused")
                 @Override
                 public void onError(final Throwable throwable) {
                     subscriber.onError(throwable);
                 }
 
+                @SuppressWarnings("unused")
                 @Override
                 public void onCompleted() {
                     subscriber.onCompleted();

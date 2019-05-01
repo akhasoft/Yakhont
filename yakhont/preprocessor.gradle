@@ -40,7 +40,7 @@ task preprocessor {
         // based on search and replace
         // but if something will go wrong - it'll just not compile (or throw GradleException)
 
-        println('Yakhont: preprocess sources (for the "full" flavor)...')
+        println('Yakhont: preprocessing sources (for the "full" flavor)...')
 
         clearTmpSources()
 

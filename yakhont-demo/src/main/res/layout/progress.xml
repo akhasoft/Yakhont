@@ -35,27 +35,26 @@
         android:paddingRight="8dp"
         android:paddingBottom="10dp"
 
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_gravity="center"
+        android:gravity="center"
         android:baselineAligned="false">
-
-        <ProgressBar
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-
-            android:layout_marginEnd="12dp"
-            android:layout_marginRight="12dp"
-
-            android:layout_gravity="center_vertical" />
 
         <TextView
             android:id="@+id/progress_message"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
 
-            android:layout_gravity="center_vertical"
             android:gravity="center"
             android:textColor="@color/colorWindowTitle" />
+
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="12dp"
+            android:layout_marginRight="12dp" />
 
     </LinearLayout>
 

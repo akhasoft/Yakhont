@@ -110,12 +110,11 @@ import java.util.Map;
  * @param <D>
  *        The type of the Retrofit callback data
  *
- * @see Retrofit
  * @see Retrofit2
  *
  * @author akha
  */
-@SuppressWarnings({"JavadocReference", "WeakerAccess"})
+@SuppressWarnings({"WeakerAccess"})
 public abstract class BaseRetrofit<T, B, C, D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -202,7 +201,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
             makeBogusRequest(requester);
         }
         catch (RawCallException exception) {
-            CoreLogger.logError("can not find method 'cause of raw Retrofit call");
+            CoreLogger.log("can not find method 'cause of raw Retrofit call");
             return null;
         }
         finally {

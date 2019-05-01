@@ -468,7 +468,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
      * @param <T>
      *        The type of Retrofit 2 API
      */
-    @SuppressWarnings("JavadocReference")
     public static class Retrofit2CoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response<D>, Throwable, D, T> {
 
         private final Retrofit2<T, D>                        mRetrofit;

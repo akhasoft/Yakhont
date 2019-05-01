@@ -93,10 +93,7 @@ import java.util.Set;
  * @author akha
  */
 public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter, Filterable {
-                                                                                                  /*
-                             For Madmen Only
-                               - Hermann Hesse, Steppenwolf
-                                                                                                  */
+
     private             BaseAdapter                         mBaseAdapter;
     private final       BaseArrayAdapter<T>                 mArrayAdapter;
     private final       BaseCursorAdapter                   mCursorAdapter;

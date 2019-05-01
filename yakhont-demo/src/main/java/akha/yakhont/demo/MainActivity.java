@@ -75,15 +75,17 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         Core.config(false, true, true);
 
         boolean debug = BuildConfig.DEBUG;
+        if (debug) {
+            Core.setFullLoggingInfo(true);
+            // optional; on shaking device email with logs will be sent to the address below
+            CoreLogger.registerShakeDataSender(this, "address@company.com");
+        }
 
         if (savedInstanceState == null)
             Core.init(getApplication(), debug, DaggerMainActivity_DemoDagger    // deep customization
                     .builder()
                     .parameters(Parameters.create(USE_GOOGLE_LOCATION_OLD_API, USE_SNACKBAR_ISO_TOAST))
                     .build());
-
-        // optional; on shaking device email with logs will be sent to the address below
-        if (debug) CoreLogger.registerShakeDataSender(this, "address@company.com");
 
         setTheme(R.style.AppThemeCompat);
 

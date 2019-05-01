@@ -701,7 +701,10 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      * The GUI which shows data loading progress.
      */
     public static class LiveDataDialog implements BaseDialog {
-
+                                                                                                  /*
+                             For Madmen Only
+                               - Hermann Hesse, Steppenwolf
+                                                                                                  */
         /**
          * The API to show the data loading progress.
          */

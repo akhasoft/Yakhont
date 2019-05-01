@@ -25,6 +25,7 @@ import akha.yakhont.FlavorHelper;
 import akha.yakhont.FlavorHelper.FlavorCommonRx;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+import akha.yakhont.technology.rx.BaseRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
@@ -297,10 +298,10 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 rx.getRx().getRx2DisposableHandler();
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static void checkRxComponent(final LoaderRx rx) {
-        if (rx == null) CoreLogger.logWarning(
-                "Rx component was not defined, so anonymous handler will be used");
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static <D> void checkRxComponent(final BaseRx<D> rx) {
+        if (rx == null)
+            CoreLogger.logWarning("Rx component was not defined, so anonymous handler will be used");
     }
 
     /**

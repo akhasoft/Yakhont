@@ -1610,6 +1610,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
+         * Returns the Rx component (if any).
+         *
+         * @return  The Rx component
+         */
+        @SuppressWarnings("unused")
+        public LoaderRx<R, E, D> getRx() {
+            return mRx;
+        }
+
+        /**
          * Sets the click handler for {@code RecyclerView} items.
          *
          * @param listener
@@ -2142,6 +2152,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Requester<T>                          mRequester;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Requester<C>                          mRequesterRaw;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Requester<C>                          mDefaultRequester;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final Object                          mLockRequester  = new Object();
@@ -2655,21 +2668,13 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * <p><pre style="background-color: silver; border: thin solid black;">
          * import com.yourpackage.retrofit.YourRetrofit;
          *
-         * import akha.yakhont.Core;
+         * // define your Activity or Fragment, create your builder (e.g. Retrofit2CoreLoadBuilder)
          *
          * // for methods without parameters
-         * setRequester(YourRetrofit::yourMethod);
+         * builder.setRequester(YourRetrofit::yourMethod);
          *
          * // for methods with parameters
-         * setRequester(yourRetrofit -&gt; yourRetrofit.yourMethod("your parameter"));
-         *
-         * // for methods with parameters (Java 7 style)
-         * setRequester(new Core.Requester&lt;YourRetrofit&gt;() {
-         *     &#064;Override
-         *     public void makeRequest(YourRetrofit yourRetrofit) {
-         *         yourRetrofit.yourMethod("your parameter");
-         *     }
-         * });
+         * builder.setRequester(yourRetrofit -&gt; yourRetrofit.yourMethod("your parameter"));
          * </pre>
          *
          * @param requester
@@ -2677,6 +2682,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          *
+         * @see     #setRequesterRaw
          * @see     #makeRequest(Object)
          */
         @SuppressWarnings("unused")
@@ -2687,41 +2693,40 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Starts an asynchronous data loading. Usage examples below are copied from the Yakhont demo
-         * (and 'raw calls' means - without default Yakhont pre- and postprocessing).
+         * Sets the raw requester (normally for deep data loading customization).
+         * Usage examples below are copied from the Yakhont demo
+         * ('raw calls' means - without default Yakhont pre- and postprocessing).
          *
          * <p><pre style="background-color: silver; border: thin solid black;">
-         * import com.yourpackage.model.YourData;
          * import com.yourpackage.retrofit.YourRetrofit;
          *
+         * import akha.yakhont.technology.retrofit.Retrofit2;
          * import akha.yakhont.technology.rx.Rx;
          * import akha.yakhont.technology.rx.Rx2;
          *
+         * // define your Activity or Fragment, create your builder (e.g. Retrofit2CoreLoadBuilder)
+         *
          * // for typical Retrofit2 (Rx2 / Rx / Call) - but for such simple Retrofit2 calls
          * //   it's better to use 'setRequester(YourRetrofit::getDataRx)'
-         * &#064;Override
-         * public void makeRequest(&#064;NonNull Callback&lt;YourData[]&gt; callback) {
-         *     getApi(callback).getDataRx();
+         * builder.setRequesterRaw(callback -&gt; {
+         *     builder.getApi(callback).getDataRx();
          * }
          *
          * // for raw Retrofit2 Call ('getApi()' takes null)
-         * &#064;Override
-         * public void makeRequest(&#064;NonNull Callback&lt;YourData[]&gt; callback) {
-         *     getApi(null).getData("your parameter").enqueue(callback);
+         * builder.setRequesterRaw(callback -&gt; {
+         *     builder.getApi(null).getData("your parameter").enqueue(callback);
          * }
          *
-         * // for raw Retrofit2 Rx2  ('getApi()' takes null)
-         * &#064;Override
-         * public void makeRequest(&#064;NonNull Callback&lt;YourData[]&gt; callback) {
-         *     getRx2DisposableHandler().add(Rx2.handle(
-         *         getApi(null).getDataRx(), getRxWrapper(callback)));
+         * // for raw Retrofit2 Rx2 ('getApi()' takes null)
+         * builder.setRequesterRaw(callback -&gt; {
+         *     builder.getRx2DisposableHandler().add(Rx2.handle(
+         *         builder.getApi(null).getDataRx(), Retrofit2.getRxWrapper(callback)));
          * }
          *
-         * // for raw Retrofit2 Rx   ('getApi()' takes null)
-         * &#064;Override
-         * public void makeRequest(&#064;NonNull Callback&lt;YourData[]&gt; callback) {
-         *     getRxSubscriptionHandler().add(Rx.handle(
-         *         getApi(null).getDataOldRx(), getRxWrapper(callback)));
+         * // for raw Retrofit2 Rx ('getApi()' takes null)
+         * builder.setRequesterRaw(callback -&gt; {
+         *     Rx.getRxSubscriptionHandler(builder.getRx()).add(Rx.handle(
+         *         builder.getApi(null).getDataOldRx(), Retrofit2.getRxWrapper(callback)));
          * }
          * </pre>
          *
@@ -2754,25 +2759,56 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * Note: for raw calls you should set cache table name and data type
          * (see {@link #setTableName} and {@link #setType}).
          *
+         * @param requester
+         *        The data loading requester
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         *
+         * @see     #setRequester
+         * @see     #makeRequest(Object)
+         */
+        @SuppressWarnings("unused")
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setRequesterRaw(final Requester<C> requester) {
+            checkData(mRequesterRaw, requester, "raw requester");
+            mRequesterRaw = requester;
+            return this;
+        }
+
+        /**
+         * Starts an asynchronous data loading.
+         *
          * @param callback
          *        The callback
          *
          * @see     #setRequester
+         * @see     #setRequesterRaw
          * @see     Requester#makeRequest(Object)
          */
         @Override
         public void makeRequest(@NonNull final C callback) {
-            if (mRequester != null) {
-                mRequester.makeRequest(getApi(callback));
+            if (mRequesterRaw != null) {
+                if (mRequester != null)
+                    CoreLogger.logError("The custom requester will be ignored 'cause " +
+                            "the custom raw requester is already defined: " + mRequesterRaw);
+                mRequesterRaw.makeRequest(callback);
+                CoreLogger.log("The custom raw requester was used: " + mRequesterRaw);
                 return;
             }
+            if (mRequester != null) {
+                mRequester.makeRequest(getApi(callback));
+                CoreLogger.log("The custom requester was used: " + mRequester);
+                return;
+            }
+
             synchronized (mLockRequester) {
                 if (mDefaultRequester == null) mDefaultRequester = mLoaderBuilder.getDefaultRequester();
             }
             if (mDefaultRequester == null)
-                CoreLogger.logError("The default requester is null, callback " + callback);
-            else
+                CoreLogger.logError("The default requester is null, callback: " + callback);
+            else {
+                CoreLogger.log("The default requester will work, callback: " + callback);
                 mDefaultRequester.makeRequest(callback);
+            }
         }
 
         /**
@@ -2920,11 +2956,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             if (mDescriptionId != Core.NOT_VALID_RES_ID && mDescription != null)
                 CoreLogger.logWarning("Both description and description ID were set; description ID will be ignored");
 
-            if (builder.getRequesterRaw() == null)
-                builder.setRequester(this);
-            else
-                CoreLogger.logWarning("The loader builder requester is already set, " +
-                        "so overridden method (if any) 'makeRequest(callback)' will be ignored");
+            if (builder.getRequesterRaw() == null) builder.setRequester(this);
 
             if (check(mType            , builder.getTypeRaw()            , "Type"            ))
                 builder.setType            (mType            );

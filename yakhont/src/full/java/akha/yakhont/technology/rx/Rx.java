@@ -18,6 +18,7 @@ package akha.yakhont.technology.rx;
 
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
+import akha.yakhont.FlavorHelper.FlavorCommonRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
@@ -83,6 +84,10 @@ public class Rx<D> extends CommonRx<D> {
         mHasProducer            = hasProducer;
 
         CoreLogger.logWarning("please consider using RxJava 2");
+    }
+
+    public static <D> RxSubscription getRxSubscriptionHandler(final BaseRx<D> rx) {
+        return FlavorCommonRx.getRxSubscriptionHandler(rx);
     }
 
     /**
@@ -239,7 +244,7 @@ public class Rx<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public void add(final Subscription subscription) {
-        mRxSubscription.add(subscription);
+        mFlavorCommonRx.getRxSubscription().add(subscription);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

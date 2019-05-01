@@ -49,6 +49,7 @@ import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Rect;
@@ -90,7 +91,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     // every loader should have unique Retrofit object; don't share it with other loaders
     private void createRetrofit(Context context) {
-        String url = "http://localhost/";   // local JSON client, so URL doesn't matter
+        String url = "http://localhost/";       // local JSON client, so URL doesn't matter
 
         if (getMainActivity().isRetrofit2()) {
             mRetrofit2      = new Retrofit2<>();
@@ -162,119 +163,111 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     private void createLoaderForRetrofit2() {
-        //noinspection Convert2Diamond
-        mCoreLoad = new Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(mRetrofit2) /* {
+        Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api> builder = new Retrofit2CoreLoadBuilder<>(mRetrofit2);
 
-                // usage examples ('raw calls' means - without default Yakhont pre- and postprocessing)
-                @Override
-                public void makeRequest(@NonNull retrofit2.Callback<List<Beer>> callback) {
-                    // typical call for Retrofit2 API (Rx2 / Rx / Call) - but for such simple calls
+        mCoreLoad = builder
+                .setRequester(Retrofit2Api::getDataRx)
+// or           .setRequester(retrofit2Api -> retrofit2Api.getData("some parameter"))
+/* or
+                // usage examples ('raw' means: without default Yakhont pre- and postprocessing)
+                .setRequesterRaw(callback -> {
+                    // typical call for Retrofit2 (Rx2 / Rx / Call) - but for such simple calls
                     //   it's better to use 'setRequester(Retrofit2Api::getDataRx)'
-//                  getApi(callback).getDataRx();
+//                  builder.getApi(callback).getDataRx();
 
-                    // raw call for Retrofit2 API with Rx2   ('getApi()' takes null)
+                    // raw call for Retrofit2 with Rx2 ('getApi()' takes null)
                     //   it's exactly the same as 'setRequester(Retrofit2Api::getDataRx)' below
                     //   and 'getApi(callback).getDataRx()' above
-                    getRx2DisposableHandler().add(akha.yakhont.technology.rx.Rx2.handle(
-                            getApi(null).getDataRx(), getRxWrapper(callback)));
+                    builder.getRx2DisposableHandler().add(
+                            akha.yakhont.technology.rx.Rx2.handle(builder.getApi(null).getDataRx(),
+                                    Retrofit2.getRxWrapper(callback)));
 
-                    // raw call for Retrofit2 API without Rx ('getApi()' takes null)
-//                  getApi(null).getData("some parameter").enqueue(callback);
-                }
-            } */
+                    // raw call for Retrofit2 with Rx ('getApi()' takes null)
+                    //   don't forget to set MainActivity.USE_RX_JAVA_2 = false
+//                  akha.yakhont.technology.rx.Rx.getRxSubscriptionHandler(builder.getRx()).add(
+//                          akha.yakhont.technology.rx.Rx.handle(builder.getApi(null).getDataOldRx(),
+//                                  Retrofit2.getRxWrapper(callback)));
 
-            // for raw calls you should set cache table name and data type
-//          .setTableName("your_cache_table_name")
-//          .setType(new TypeToken<List<Beer>>() {}.getType())
-
-            .setRequester(Retrofit2Api::getDataRx)
-// or       .setRequester(retrofit2Api -> retrofit2Api.getData("some parameter"))
-
-            // recommended way - but default binding also works (see below in Retrofit 1 example)
-            .setDataBinding(BR.beer)
-
-            // it's optional - but sometimes you need to provide some customization here
-            .setLoaderCallback(MainFragment.this::onLoadFinishedDataBinding)
-/*
-            // just an example: it does exactly the same as call above, but provides more options to customize
-            .setLoaderCallbacks(
-                    new akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks<Throwable, List<Beer>>() {
-                @Override
-                public void onLoadFinished(List<Beer> data, Source source) {
-                    MainFragment.this.onLoadFinished(data, source);
-                }
-
-                @Override
-                public void onLoadError(Throwable error, Source source) {
-                    // customize your error reporting here (e.g. set 'mNotDisplayLoadingErrors = true'
-                    //   to suppress Toast-based default error reporting)
-                    // also, you can do such customization in 'Rx.onError()' below
-                }
-            })
+                    // raw call for Retrofit2 without Rx ('getApi()' takes null)
+//                  builder.getApi(null).getData("some parameter").enqueue(callback);
+                })
 */
-            .setRx(mRxRetrofit2)                                    // optional
+                // for raw calls you should set cache table name and data type
+//              .setTableName("your_cache_table_name")
+//              .setType(new TypeToken<List<Beer>>() {}.getType())
 
-            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
+                // recommended way - but default binding also works (see below in non-Retrofit2 example)
+                .setDataBinding(BR.beer)
 
-            .setProgress(new ProgressDemo())                        // custom data loading progress screen
+                // it's optional - but sometimes you need to provide some customization here
+                .setLoaderCallback(MainFragment.this::onLoadFinishedDataBinding)
+/* or
+                // just an example: it does exactly the same as call above, but provides more options to customize
+                .setLoaderCallbacks(new akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper
+                        .LoaderCallbacks<Throwable, List<Beer>>() {
+                            @Override
+                            public void onLoadFinished(List<Beer> data, Source source) {
+                                MainFragment.this.onLoadFinished(data, source);
+                            }
+
+                            @Override
+                            public void onLoadError(Throwable error, Source source) {
+                                // customize your error reporting here (e.g. set 'mNotDisplayLoadingErrors = true'
+                                //   to suppress Toast-based default error reporting)
+                                // also, you can do such customization in 'Rx.onError()' below
+                            }
+                })
+*/
+                .setRx(mRxRetrofit2)                            // optional
+
+                .setProgress(new ProgressDemo())                // custom data loading progress screen (optional)
 /* or something like this:
-            .setProgress(new java.util.concurrent.Callable<akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress>() {
-                @Override
-                public akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress call() {
-                    // if you're implementing your own cancel confirmation logic, you should to call
-                    //   'LiveDataDialog.cancel(Activity)' to cancel data loading
-                    return new akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress() {
-                        @Override public void setText(String text)       {...}
-                        @Override public void show()                     {...}
-                        @Override public void hide()                     {...}
-                        @Override public void confirm(Activity activity) {...}
-                    };
-                }
-            })
+                // if you're implementing your own cancel confirmation logic, you should to call
+                //   'LiveDataDialog.cancel(Activity)' to cancel data loading
+                .setProgress(() -> new LiveDataDialog.Progress() {
+                    @Override public void setText(String text)                  {...}
+                    @Override public void show()                                {...}
+                    @Override public void hide()                                {...}
+                    @Override public void confirm(Activity activity, View view) {...}
+                })
 */
-            // switch default cache off
-//          .setNoCache(true)
+                // switch default cache off
+//              .setNoCache(true)
 
-            .create();
+                .setDescriptionId(R.string.table_desc_beers)    // data description for GUI (optional)
+
+                .create();
     }
 
     private void createLoaderForRetrofit() {
-        //noinspection Anonymous2MethodRef,Convert2Lambda,Convert2Diamond
-        mCoreLoad = new RetrofitCoreLoadBuilder<List<BeerDefault>, RetrofitApi>(mRetrofit) /* {
+        RetrofitCoreLoadBuilder<List<BeerDefault>, RetrofitApi> builder = new RetrofitCoreLoadBuilder<>(mRetrofit);
 
-                // 'setRequester(...)' doesn't work for Retrofit 1
-                @Override
-                public void makeRequest(@NonNull retrofit.Callback<List<BeerDefault>> callback) {
-                    getApi(callback).getData(callback);
-                }
-            } */
+        mCoreLoad = builder
+/*              .setRequesterRaw(callback -> {    // 'setRequester(...)' doesn't work for old Retrofit
+                    builder.getApi(callback).getData(callback);
+                })
+*/
+                // this is not related to Retrofit - just demo without 'setRequesterRaw()' call:
+                //   Retrofit method to call will be selected based on the method return type
+                //
+                // Note: default requester for old Retrofit doesn't support Rx -
+                //   please consider to switch to Retrofit2 (or override makeRequest)
+                .setType(new TypeToken<List<BeerDefault>>() {}.getType())
 
-            // this is not related to Retrofit 1 - just demo without overriding makeRequest(callback):
-            //   Retrofit API method to call will be selected based on the method return type
-            //
-            // Note: default requester for Retrofit 1 doesn't support Rx -
-            //   please consider to switch to Retrofit 2 (or override makeRequest)
-            .setType(new TypeToken<List<BeerDefault>>() {}.getType())
+                // this is not related to Retrofit - just demo for default binding (reflection based)
+                .setListItem(R.layout.grid_item_default)
 
-            // this is not related to Retrofit 1 - just demo for default binding (reflection based)
-            .setListItem(R.layout.grid_item_default)
+                .setViewBinder(MainFragment.this::setViewValue) // data binding (optional)
 
-            .setLoaderCallback(MainFragment.this::onLoadFinished)
+                .setLoaderCallback(MainFragment.this::onLoadFinished)
 
-            .setViewBinder(new ViewBinder() {                       // data binding (optional too)
-                @Override
-                public boolean setViewValue(View view, Object data, String textRepresentation) {
-                    return MainFragment.this.setViewValue(view, data, textRepresentation);
-                }
-            })
+                .setRx(mRxRetrofit)                             // optional too
 
-            .setRx(mRxRetrofit)                                     // optional
+                .setDescriptionId(R.string.table_desc_beers)    // data description for GUI (optional)
 
-            .setDescriptionId(R.string.table_desc_beers)            // data description for GUI (optional)
+                .setProgress(new ProgressDemo())                // custom data loading progress screen (optional)
 
-            .setProgress(new ProgressDemo())                        // custom data loading progress screen
-
-            .create();
+                .create();
     }
 
     private void onLoadFinished(List<?> data, Source source) {
@@ -459,7 +452,10 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
             int partCounter = 0;
             if (size > 0) {
-                String img = ((Beer) adapter.getItem(size - 1)).getImage();
+                Object item = adapter.getItem(size - 1);
+                String img = item instanceof Beer ? ((Beer) item).getImage():
+                        // 'cause of default binding (reflection based) in non-Retrofit2 demo
+                        (String) ((ContentValues) item).get("image");
                 int pos = img.indexOf("img_");
                 switch (img.substring(pos + 4, pos + 6)) {
                     case "05":

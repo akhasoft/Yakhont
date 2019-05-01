@@ -24,6 +24,8 @@ import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx.RxSubscription;
 import akha.yakhont.technology.rx.Rx2;
 
+import androidx.annotation.NonNull;
+
 import java.lang.reflect.Method;
 
 /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -61,11 +63,15 @@ public class FlavorHelper {                    // full
 
         private        final RxSubscription     mRxSubscription     = new RxSubscription();
 
+        public RxSubscription getRxSubscription() {
+            return mRxSubscription;
+        }
+
         public void unsubscribe() {
             mRxSubscription.unsubscribe();
         }
 
-        public static void unsubscribeAnonymous() {
+        public static void unsubscribeAnonymous(@NonNull final String msg) {
             if (!sRxSubscription.notEmpty()) return;
 
             CoreLogger.logWarning(String.format(msg, "subscribers"));
@@ -76,7 +82,7 @@ public class FlavorHelper {                    // full
             getRxSubscriptionHandler(rx).add(resultRx);
         }
 
-        private static <D> RxSubscription getRxSubscriptionHandler(final BaseRx<D> rx) {
+        public static <D> RxSubscription getRxSubscriptionHandler(final BaseRx<D> rx) {
             Retrofit2.checkRxComponent(rx);
             return rx == null ? sRxSubscription: rx.getRx().getFlavorCommonRx().mRxSubscription;
         }

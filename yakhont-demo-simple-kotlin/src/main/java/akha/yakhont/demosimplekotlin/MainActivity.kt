@@ -47,6 +47,8 @@ class MainActivity: AppCompatActivity(), LocationListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+//      akha.yakhont.Core.setFullLoggingInfo(true)      // for debug
+
         setLocation()
 
         (findViewById<View>(R.id.recycler) as RecyclerView)

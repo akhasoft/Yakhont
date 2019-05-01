@@ -77,16 +77,15 @@ their sources (especially useful for libraries developers).
 The powerful loader wrappers and adapters, which (in simplest, but typical case) 
 allows loading and binding data in nearly one line of code, are abstracting you away from things like 
 loaders management, caching, progress dialogs (fully customizable), errors handling and low-level threading;
-don't miss the swipe-to-refresh and both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and
-[RxJava 2](https://github.com/ReactiveX/RxJava) support too.
+don't miss the 'swipe-to-refresh' and [RxJava](https://github.com/ReactiveX/RxJava) support too.
 
 In short, the data loaders and adapters features are:
 - automatic (but fully customizable) data binding
 - automatic and absolutely transparent cache
 - fully asynchronous 
 - forced timeouts 
-- both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and [RxJava 2](https://github.com/ReactiveX/RxJava) support
-- both [Retrofit](http://square.github.io/retrofit/1.x/retrofit/) and [Retrofit 2](http://square.github.io/retrofit/2.x/retrofit/) support
+- [RxJava](https://github.com/ReactiveX/RxJava) support
+- [Retrofit](http://square.github.io/retrofit/2.x/retrofit/) support
 - swipe-to-refresh
 - device orientation changing support
 - fully customizable progress GUI
@@ -97,14 +96,14 @@ and old ([GoogleApiClient](https://developers.google.com/android/reference/com/g
 Google Location API support (please visit [Android Developers Blog](https://android-developers.googleblog.com/2017/06/reduce-friction-with-new-location-apis.html) for more info)
 - completely auto (but fully customizable via callbacks) permission handling
 - tons of boilerplate code are not needed anymore - just annotate your Activity
-- Rx support (both [RxJava](https://github.com/ReactiveX/RxJava/tree/1.x) and [RxJava 2](https://github.com/ReactiveX/RxJava))
+- Rx support ([RxJava](https://github.com/ReactiveX/RxJava))
 
 For more information please refer to the [detailed feature list](https://github.com/akhasoft/Yakhont/wiki).
 
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 430 KB (except the _full_ version, which is about 510 KB).
+The Yakhont AAR is about 410 KB (except the _full_ version, which is about 510 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above.
 
@@ -134,7 +133,7 @@ The most complex demo with tons of customization.
 ## Versions
 
 - _core_: main functionality
-- _full_: core + debug classes for Activities and Fragments
+- _full_: core + Rx 1 support + debug classes for Activities and Fragments
 
 ## Usage
 
@@ -323,7 +322,7 @@ $ ./gradlew --configure-on-demand yakhont-demo-simple-kotlin:clean yakhont-demo-
 
 To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code):
 
-- add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling -> Dictionaries
+- add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling
 
 ## Communication
 

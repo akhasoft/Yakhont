@@ -16,11 +16,12 @@
 
 package akha.yakhont;
 
-import akha.yakhont.CoreLogger;
 import akha.yakhont.technology.rx.BaseRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.Rx2;
+
+import androidx.annotation.NonNull;
 
 import java.lang.reflect.Method;
 
@@ -30,17 +31,21 @@ public class FlavorHelper {
     private FlavorHelper() {
     }
 
+    @SuppressWarnings("EmptyMethod")
     public static void setRxErrorHandlerDefault() {
     }
 
+    @SuppressWarnings("EmptyMethod")
     public static void setRxErrorHandlerJustLog() {
     }
 
+    @SuppressWarnings({"SameReturnValue", "unused"})
     public static <D> Object handleRx(final Object handler, final Method method, final Object[] args,
                                       final CallbackRx<D> callback) {
         return null;
     }
 
+    @SuppressWarnings({"EmptyMethod", "unused"})
     public static void cancelRx(final Object subscription) {
     }
 
@@ -54,12 +59,15 @@ public class FlavorHelper {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static class FlavorCommonRx {
 
+        @SuppressWarnings("EmptyMethod")
         public void unsubscribe() {
         }
 
-        public static void unsubscribeAnonymous() {
+        @SuppressWarnings({"EmptyMethod", "unused"})
+        public static void unsubscribeAnonymous(@NonNull final String msg) {
         }
 
+        @SuppressWarnings({"EmptyMethod", "unused"})
         public static <D> void add(final BaseRx<D> rx, final Object resultRx) {
         }
     }
