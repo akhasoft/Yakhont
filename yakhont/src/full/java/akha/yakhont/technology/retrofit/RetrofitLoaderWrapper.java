@@ -28,12 +28,14 @@ import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.util.AndroidException;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelStore;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.util.Collection;
 
 import retrofit.Callback;
 import retrofit.RetrofitError;
@@ -173,9 +175,11 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             setTypeIfNotSet(TypeHelper.getType(type));
 
             if (response.getBody() != null) {
-                final ContentValues contentValues = getDataForCache(type);
-                if (contentValues != null)
-                    baseResponse.setValues(new ContentValues[] {contentValues});
+                final Collection<ContentValues> contentValues = getDataForCache(type);
+                if (contentValues != null) {
+                    final ContentValues[] tmpArray = new ContentValues[contentValues.size()];
+                    baseResponse.setValues(contentValues.toArray(tmpArray));
+                }
             }
             else
                 CoreLogger.logError("body == null");
@@ -183,7 +187,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
         baseViewModel.getData().onComplete(true, baseResponse);
     }
 
-    private ContentValues getDataForCache(@NonNull final Class type) {
+    private Collection<ContentValues> getDataForCache(@NonNull final Class type) {
         final String data = mRetrofit.getData();
         if (data == null)
             CoreLogger.logError("no data to cache found; if you're using your own " +

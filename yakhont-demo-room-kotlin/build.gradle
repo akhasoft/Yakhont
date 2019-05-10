@@ -1,0 +1,181 @@
+/*
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+buildscript {
+    repositories {
+        jcenter()
+        flatDir dirs: '../yakhont-weaver/build/libs'                        // Yakhont weaver
+    }
+    dependencies {
+        classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"
+        classpath "org.javassist:javassist:$projectLibVerJavassist"         // Yakhont weaver
+    }
+}
+
+apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-android-extensions'
+apply plugin: 'kotlin-kapt'
+
+def dependenciesStrategy = { DependencyResolveDetails details ->
+    if (details.requested.group == 'com.google.android.gms') {
+        if (details.requested.name == 'play-services-location' ||
+            details.requested.name == 'play-services-places-placereport')
+            details.useVersion      projectLibVerLocation
+        else
+            details.useVersion      projectLibVerGms
+        details.because 'To enforce releasable units for Google Play Services'
+    }
+    if (details.requested.group == 'com.squareup.retrofit2') {
+        details.useVersion          projectLibVerRetrofit2
+        details.because 'To enforce releasable units for Retrofit 2'
+    }
+    if (details.requested.group == 'com.squareup.okhttp3') {
+        details.useVersion          projectLibVerOkHttp3
+        details.because 'To enforce releasable units for OkHttp 3'
+    }
+    if (details.requested.group == 'com.google.dagger') {
+        details.useVersion          projectLibVerDagger
+        details.because 'To enforce releasable units for Dagger 2'
+    }
+}
+
+//noinspection GroovyMissingReturnStatement
+android {
+    compileSdkVersion           28
+    buildToolsVersion          '28.0.3'
+
+    //noinspection GroovyMissingReturnStatement
+    defaultConfig {
+        applicationId         'akha.yakhont.demoroomkotlin'
+        minSdkVersion           14
+        targetSdkVersion        28
+        versionCode            10101
+        versionName           '1.1'
+        resConfigs            'en', 'ru'
+    }
+
+    compileOptions {
+        sourceCompatibility     JavaVersion.VERSION_1_8
+        targetCompatibility     JavaVersion.VERSION_1_8
+    }
+
+    lintOptions {
+        abortOnError            false
+    }
+
+    dataBinding {
+        enabled                 true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled       projectDebug != '2'
+
+            projectProGuardFiles.each {
+                //noinspection GroovyAssignabilityCheck
+                proguardFile            '../proguard/libs/' + it
+            }
+            proguardFile                '../proguard/libs/proguard-gson.pro'
+
+            proguardFile                './proguard/proguard-project-app.pro'
+            proguardFile                '../proguard/proguard-project.pro'
+            //noinspection GroovyAssignabilityCheck
+            proguardFile                getDefaultProguardFile('proguard-android.txt')
+        }
+    }
+
+    // workaround for the local Yakhont aar
+    repositories {
+        flatDir dirs: '../yakhont/build/outputs/aar'
+    }
+
+    applicationVariants.all { variant ->
+        String prefix = variant.buildType.name
+        configurations.getByName(prefix + 'UnitTestCompileClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        configurations.getByName(prefix + 'UnitTestRuntimeClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.runtimeConfiguration                 .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getAnnotationProcessorConfiguration().resolutionStrategy.eachDependency dependenciesStrategy
+    }
+    testVariants      .all { variant ->
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getRuntimeConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+    }
+}
+
+dependencies {
+    implementation      "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
+    implementation      "androidx.core:core-ktx:$projectLibVerKotlinCoreCore"
+    kapt                "com.android.databinding:compiler:$projectLibVerKotlinDatabindingCompiler"
+
+    implementation      "androidx.appcompat:appcompat:$projectLibVerAppcompatAppcompat"
+    implementation      "androidx.recyclerview:recyclerview:$projectLibVerRecyclerViewRecyclerView"
+
+    implementation      "androidx.annotation:annotation:$projectLibVerAnnotationAnnotation"
+    implementation      "androidx.lifecycle:lifecycle-common-java8:$projectLibVerLifecycleLifecycleCommonJava8"
+    implementation      "androidx.lifecycle:lifecycle-extensions:$projectLibVerLifecycleLifecycleExtensions"
+    implementation      "androidx.lifecycle:lifecycle-viewmodel-ktx:$projectLibVerKotlinLifecycleLifecycleViewmodel"
+    implementation      "androidx.lifecycle:lifecycle-reactivestreams-ktx:$projectLibVerKotlinLifecycleLifecycleReactiveStreams"
+    // comment out if you don't need Location API
+    // (and uncomment lines in proguard-project-app.pro)
+    implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
+    implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
+
+    implementation      "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2
+    kapt                "com.google.dagger:dagger-compiler:$projectLibVerDagger"
+
+    implementation      "com.google.code.gson:gson:$projectLibVerGson"              // Gson
+
+    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {  // Retrofit
+        exclude group:  "com.squareup.okhttp3", module: "okhttp"
+    }
+    implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerDefault") {
+        exclude group:  "com.google.code.gson", module: "gson"
+    }
+    implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
+    implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
+
+    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
+
+    implementation      name:'yakhont', ext:'aar'
+}
+
+// let's build release (or debug) only - just to reduce building time
+android.variantFilter { variant ->
+    if (variant.buildType.name == (projectDebug == '1' ? 'release': 'debug')) {
+        variant.setIgnore(true)
+    }
+}
+
+// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
+String[] weaverConfigFiles = null
+String pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
+boolean weaverDebug = false, weaverAddConfig = true
+
+android.applicationVariants.all { variant ->
+    JavaCompile javaCompile = variant.javaCompileProvider.get()
+    javaCompile.doLast {
+        //noinspection UnnecessaryQualifiedReference
+        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
+                javaCompile.destinationDir.toString() + File.pathSeparator + buildDir.toString() + 
+                    kotlinDir.replace('/', File.separator) + (projectDebug == '1' ? 'debug': 'release'),
+                javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
+                weaverConfigFiles, weaverAddConfig)
+    }
+}

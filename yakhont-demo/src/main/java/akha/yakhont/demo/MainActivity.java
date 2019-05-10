@@ -39,13 +39,14 @@ import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.Date;
 
 import dagger.BindsInstance;
 import dagger.Component;
 import dagger.Module;
-
-import java.util.Date;
 
 @CallbacksInherited( /* value = */ LocationCallbacks.class /* , properties = R.string.permissions_rationale_demo */ )
 public class MainActivity extends AppCompatActivity implements LocationListener /* optional */ {

@@ -16,6 +16,8 @@
 
 package akha.yakhont.demo.retrofit;
 
+import akha.yakhont.demo.retrofit.LocalOkHttpClientHelper.Data;
+
 import akha.yakhont.Core.Utils;
 
 import android.content.Context;
@@ -27,7 +29,6 @@ import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 
 import retrofit.client.Client;
-import retrofit.client.Header;
 import retrofit.client.Request;
 import retrofit.client.Response;
 import retrofit.mime.TypedInput;
@@ -39,8 +40,10 @@ import retrofit.mime.TypedInput;
 public class LocalOkHttpClient implements Client {
 
     private static final String             TAG                         = "LocalOkHttpClient";
+    private static final int                HTTP_CODE_OK                = 200;
 
     private final LocalOkHttpClientHelper   mLocalOkHttpClientHelper;
+    private int                             mEmulatedNetworkDelay;
 
     public LocalOkHttpClient(Context context) {
         mLocalOkHttpClientHelper = new LocalOkHttpClientHelper(context);
@@ -50,9 +53,15 @@ public class LocalOkHttpClient implements Client {
         return mLocalOkHttpClientHelper;
     }
 
+    @SuppressWarnings("UnusedReturnValue")
+    public LocalOkHttpClient setEmulatedNetworkDelay(int delay) {
+        mEmulatedNetworkDelay = delay;
+        return this;
+    }
+
     @Override
     public Response execute(Request request) throws IOException {
-        final int delay = mLocalOkHttpClientHelper.getDelay();
+        final int delay = mEmulatedNetworkDelay;
         if (delay > 0) {
             final CountDownLatch countDownLatch = new CountDownLatch(1);
             //noinspection Convert2Lambda,Anonymous2MethodRef
@@ -69,18 +78,16 @@ public class LocalOkHttpClient implements Client {
                 Log.e(TAG, "interrupted", exception);
             }
         }
-        LocalOkHttpClientHelper.Data data = mLocalOkHttpClientHelper.execute(request.getUrl(),
-                request.getMethod());
-        //noinspection Convert2Diamond
-        return new Response(request.getUrl(), LocalOkHttpClientHelper.HTTP_CODE_OK, data.message(),
-                new ArrayList<Header>(), new TypedInputStream(data));
+        Data data = mLocalOkHttpClientHelper.execute(request.getUrl(), request.getMethod());
+        return new Response(request.getUrl(), HTTP_CODE_OK, data.message(),
+                new ArrayList<>(), new TypedInputStream(data));
     }
 
     private static class TypedInputStream implements TypedInput {
 
-        private final LocalOkHttpClientHelper.Data mData;
+        private final Data mData;
 
-        private TypedInputStream(LocalOkHttpClientHelper.Data data) {
+        private TypedInputStream(Data data) {
             mData = data;
         }
 

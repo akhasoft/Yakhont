@@ -19,9 +19,9 @@ buildscript {
         jcenter()
         flatDir dirs: '../yakhont-weaver/build/libs'                        // Yakhont weaver
     }
-    dependencies {                                                          // Yakhont weaver
+    dependencies {
         classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"
-        classpath "org.javassist:javassist:$projectLibVerJavassist"
+        classpath "org.javassist:javassist:$projectLibVerJavassist"         // Yakhont weaver
     }
 }
 
@@ -65,7 +65,6 @@ android {
         targetSdkVersion        28
         versionCode            10101
         versionName           '1.1'
-
         resConfigs            'en', 'ru'
     }
 
@@ -166,17 +165,16 @@ android.variantFilter { variant ->
 
 // use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
-String pkg = android.defaultConfig.applicationId, kotlin = '/tmp/kotlin-classes/'
+String pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
-    JavaCompile javaCompile  = variant.javaCompileProvider.get()
+    JavaCompile javaCompile = variant.javaCompileProvider.get()
     javaCompile.doLast {
-        String kotlinBase    = buildDir.toString()  + kotlin.replace('/', File.separator)
-        String kotlinClasses = kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
         //noinspection UnnecessaryQualifiedReference
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
-                javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
+                javaCompile.destinationDir.toString() + File.pathSeparator + buildDir.toString() + 
+                    kotlinDir.replace('/', File.separator) + (projectDebug == '1' ? 'debug': 'release'),
                 javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
                 weaverConfigFiles, weaverAddConfig)
     }

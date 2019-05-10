@@ -14,4 +14,5 @@
  * limitations under the License.
  */
 
-include ':yakhont', ':yakhont-weaver', ':yakhont-demo', ':yakhont-demo-simple', ':yakhont-demo-simple-kotlin'
+include ':yakhont', ':yakhont-weaver', ':yakhont-demo', ':yakhont-demo-simple'
+include ':yakhont-demo-simple-kotlin', ':yakhont-demo-room-kotlin'

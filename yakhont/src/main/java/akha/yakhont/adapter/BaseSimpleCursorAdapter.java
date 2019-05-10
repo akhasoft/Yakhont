@@ -25,6 +25,7 @@ import android.database.Cursor;
 import android.os.Build;
 import android.view.View;
 import android.widget.SimpleCursorAdapter;
+
 import androidx.annotation.CallSuper;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;

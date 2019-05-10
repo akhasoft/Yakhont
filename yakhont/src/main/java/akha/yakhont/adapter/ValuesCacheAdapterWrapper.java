@@ -34,6 +34,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.provider.BaseColumns;
 import android.view.ViewGroup;
+
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Size;

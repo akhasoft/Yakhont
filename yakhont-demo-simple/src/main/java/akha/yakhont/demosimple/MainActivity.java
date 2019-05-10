@@ -17,16 +17,17 @@
 package akha.yakhont.demosimple;
 
 import akha.yakhont.demosimple.model.Data;
-import akha.yakhont.demosimple.retrofit.LocalOkHttpClient2;
 import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core;
 import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.annotation.CallbacksInherited;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
+import akha.yakhont.technology.retrofit.BaseLocalOkHttpClient2;
 import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader;
@@ -42,6 +43,7 @@ import androidx.paging.PositionalDataSource;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -104,6 +106,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         @Override
         public void loadInitial(@NonNull LoadInitialParams         params,
                                 @NonNull LoadInitialCallback<Data> callback) {
+            BaseResponseLoaderWrapper.clearCache(mLoader);
             CoreLoadHelper.setPagingCallback(mLoader, (data, source) ->
                     callback.onResult(data, 0)).start(null);
         }
@@ -119,7 +122,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     // provides demo data for the endless paged adapter
-    private static class LocalOkHttpClient extends LocalOkHttpClient2 {
+    private static class LocalOkHttpClient extends BaseLocalOkHttpClient2 {
 
         private static final int                PAGE_SIZE                       = 20;
 
@@ -127,22 +130,18 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         private LocalOkHttpClient(Retrofit2 retrofit2) {
             super(retrofit2);
-            // just to demo the progress GUI - uncomment it if needed
-//          setEmulatedNetworkDelay(7);
         }
 
         @Override
-        protected String getJson() {
-            StringBuilder builder = new StringBuilder("[");
-
+        protected String getContent() {
+            List<String> data = new ArrayList<>();
             for (int i = mItemCounter; i < mItemCounter + PAGE_SIZE; i++)
-                builder.append("{\"title\":\"").append("loaded page ").append(mPageCounter + 1)
-                        .append(", item ").append(i + 1).append("\"},");
+                data.add("loaded page " + (mPageCounter + 1) + ", item " + (i + 1));
 
             mItemCounter += PAGE_SIZE;
             mPageCounter++;
 
-            return builder.replace(builder.length() - 1, builder.length(), "]").toString();
+            return BaseLocalOkHttpClient2.getJson(data);
         }
     }
 

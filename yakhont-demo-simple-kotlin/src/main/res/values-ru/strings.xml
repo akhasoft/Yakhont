@@ -15,6 +15,6 @@
 -->
 
 <resources>
-    <string name="app_name"        >Яхонт: демо на Котлин</string>
+    <string name="app_name"        >Яхонт: простое демо на Котлин</string>
     <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
 </resources>

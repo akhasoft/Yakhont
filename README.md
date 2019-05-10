@@ -77,7 +77,7 @@ their sources (especially useful for libraries developers).
 The powerful loader wrappers and adapters, which (in simplest, but typical case) 
 allows loading and binding data in nearly one line of code, are abstracting you away from things like 
 loaders management, caching, progress dialogs (fully customizable), errors handling and low-level threading;
-don't miss the 'swipe-to-refresh' and [RxJava](https://github.com/ReactiveX/RxJava) support too.
+don't miss the 'pull-to-refresh' and [RxJava](https://github.com/ReactiveX/RxJava) support too.
 
 In short, the data loaders and adapters features are:
 - automatic (but fully customizable) data binding
@@ -86,9 +86,9 @@ In short, the data loaders and adapters features are:
 - forced timeouts 
 - [RxJava](https://github.com/ReactiveX/RxJava) support
 - [Retrofit](http://square.github.io/retrofit/2.x/retrofit/) support
-- swipe-to-refresh
+- pull-to-refresh
 - device orientation changing support
-- fully customizable progress GUI
+- fully customizable progress GUI (with loading cancel possibility)
 
 In addition, there are the location features which includes:
 - both new ([FusedLocationProviderClient](https://developers.google.com/android/reference/com/google/android/gms/location/FusedLocationProviderClient)-based)
@@ -125,15 +125,18 @@ demo applications can be downloaded from the
 
 1. [demo simple kotlin](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
 The simplest demo, just loads and displays some list (with "pull-to refresh" support).
-2. [demo simple](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk):
+2. [demo room kotlin](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+The [Google room library](https://developer.android.com/topic/libraries/architecture/room) 
+usage demo (+ custom adapter demo).
+3. [demo simple](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk):
 The endless adapter demo (based on [Google paging library](https://developer.android.com/topic/libraries/architecture/paging)).
-3. [demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+4. [demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
 The most complex demo with tons of customization.
 
 ## Versions
 
 - _core_: main functionality
-- _full_: core + Rx 1 support + debug classes for Activities and Fragments
+- _full_: core + Rx1 support + debug classes for Activities and Fragments
 
 ## Usage
 
@@ -208,13 +211,13 @@ android.applicationVariants.all { variant ->
 // use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
 String[] weaverConfigFiles = null
 
-String pkg = android.defaultConfig.applicationId, kotlin = '/tmp/kotlin-classes/'
+String pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile  = variant.javaCompileProvider.get()
     javaCompile.doLast {
-        String kotlinBase    = buildDir.toString()  + kotlin.replace('/', File.separator)
+        String kotlinBase    = buildDir.toString()  + kotlinDir.replace('/', File.separator)
         String kotlinClasses = kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
         
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
@@ -313,9 +316,13 @@ $ git clone https://github.com/akhasoft/Yakhont.git
 $ cd Yakhont
 $ ./gradlew --configure-on-demand yakhont-weaver:clean yakhont-weaver:build
 $ ./gradlew --configure-on-demand yakhont:clean yakhont:build
+```
+To build Yakhont demo applications, additionally execute the following commands:
+```
 $ ./gradlew --configure-on-demand yakhont-demo:clean yakhont-demo:build
 $ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:build
 $ ./gradlew --configure-on-demand yakhont-demo-simple-kotlin:clean yakhont-demo-simple-kotlin:build
+$ ./gradlew --configure-on-demand yakhont-demo-room-kotlin:clean yakhont-demo-room-kotlin:build
 ```
 
 **Note:** you may need to update your Android SDK before building.

@@ -50,8 +50,8 @@ public class Rotate3dAnimation extends Animation {
      * @param centerY the Y center of the 3D rotation
      * @param reverse true if the translation should be reversed, false otherwise
      */
-    public Rotate3dAnimation(float fromDegrees, float toDegrees,
-                             float centerX, float centerY, @SuppressWarnings("SameParameterValue") float depthZ, boolean reverse) {
+    public Rotate3dAnimation(float fromDegrees, float toDegrees, float centerX, float centerY,
+                             @SuppressWarnings("SameParameterValue") float depthZ, boolean reverse) {
         mFromDegrees = fromDegrees;
         mToDegrees = toDegrees;
         mCenterX = centerX;

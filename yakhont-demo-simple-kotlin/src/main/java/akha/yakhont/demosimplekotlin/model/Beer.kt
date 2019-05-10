@@ -19,11 +19,11 @@ package akha.yakhont.demosimplekotlin.model
 import androidx.databinding.BaseObservable
 import androidx.databinding.Bindable
 
-import com.google.gson.annotations.SerializedName
-
 import java.util.Locale
 
-class Beer: BaseObservable() {      // POJO with Data Binding Library support
+import com.google.gson.annotations.SerializedName
+
+class Beer: BaseObservable() {          // POJO with Data Binding Library support
 
     @SerializedName("title")
     @get:Bindable

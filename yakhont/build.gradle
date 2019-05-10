@@ -75,6 +75,7 @@ android {
         targetSdkVersion        28
         versionCode        verCode
         versionName        verName
+        resConfigs             'en', 'ru'
     }
 
     compileOptions {

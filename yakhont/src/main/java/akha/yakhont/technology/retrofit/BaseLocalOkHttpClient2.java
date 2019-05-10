@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package akha.yakhont.demosimple.retrofit;
+package akha.yakhont.technology.retrofit;
+
+import akha.yakhont.CoreLogger;
+import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
+import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
+
 import androidx.annotation.Nullable;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -39,67 +46,270 @@ import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
+import okhttp3.logging.HttpLoggingInterceptor;
 
 import okio.ByteString;
 import okio.Timeout;
 
-// base OkHttp3 local client (no Yakhont dependencies)
-public abstract class LocalOkHttpClient2Base extends OkHttpClient {
+/**
+ * The local client for
+ * {@link <a href="http://square.github.io/okhttp/">OkHttp3</a>} library. Intended for
+ * data loading from resources, arrays, etc. Allows network delay emulation.
+ *
+ * @see #getContentRaw
+ * @see #getContent
+ * @see #handle(Request)
+ */
+public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
 
-    private static final String         TAG                         = "LocalOkHttpClient2";
+    private   static final String       TYPE_JSON                   = "application/json";
+    private   static final String       MESSAGE                     = "";
+    private   static final byte[]       EMPTY_BYTES                 = new byte[0];
 
-    private final List<Interceptor>     mInterceptors               = new ArrayList<>();
-    private int                         mEmulatedNetworkDelay;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected static final int          HTTP_CODE_OK                = 200;
 
-    protected abstract String getJson();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected final List<Interceptor>   mInterceptors               = new ArrayList<>();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected final Charset             mCharset;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected final String              mMediaType;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected final Retrofit2           mRetrofit2;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected       int                 mEmulatedNetworkDelay;
 
+    /**
+     * Initialises a newly created {@code BaseLocalOkHttpClient2} object.
+     */
     @SuppressWarnings("unused")
-    public LocalOkHttpClient2Base setEmulatedNetworkDelay(int delay) {
+    public BaseLocalOkHttpClient2() {
+        this(null);
+    }
+
+    /**
+     * Initialises a newly created {@code BaseLocalOkHttpClient2} object.
+     *
+     * @param retrofit2
+     *        The {@code Retrofit2} component (or null)
+     */
+    @SuppressWarnings("WeakerAccess")
+    public BaseLocalOkHttpClient2(final Retrofit2 retrofit2) {
+        this(retrofit2, null, null);
+    }
+
+    /**
+     * Initialises a newly created {@code BaseLocalOkHttpClient2} object.
+     *
+     * @param retrofit2
+     *        The {@code Retrofit2} component (or null)
+     *
+     * @param mediaType
+     *        The media type, e.g. "application/json" (the default one)
+     *
+     * @param charset
+     *        The {@code Charset} component (or null) for getting bytes from string
+     *
+     * @see #getContent
+     */
+    @SuppressWarnings("WeakerAccess")
+    public BaseLocalOkHttpClient2(final Retrofit2 retrofit2,
+                                  final String mediaType, final Charset charset) {
+        mMediaType  = mediaType;
+        mCharset    = charset;
+
+        mRetrofit2  = retrofit2;
+        if (retrofit2 == null) return;
+
+        final HttpLoggingInterceptor logger = new HttpLoggingInterceptor();
+        logger.setLevel(HttpLoggingInterceptor.Level.BODY);
+        add(logger);
+
+        //noinspection unused
+        add(new BodySaverInterceptor() {
+            @Override
+            public void set(BodyCache data) {
+                mRetrofit2.setData(data);
+            }
+        });
+    }
+
+    /**
+     * Subject to override, returns content as string. Called if {@link #getContentRaw}
+     * return null, otherwise ignored.
+     *
+     * @return  The content to put in {@link Response} object
+     *
+     * @see #handle(Request)
+     */
+    @SuppressWarnings({"SameReturnValue", "WeakerAccess"})
+    protected String getContent() {
+        return null;
+    }
+
+    /**
+     * Subject to override, returns content as byte array. If returns null,
+     * {@link #getContent} will be called.
+     *
+     * @return  The content to put in {@link Response} object
+     *
+     * @see #handle(Request)
+     */
+    @SuppressWarnings({"SameReturnValue", "WeakerAccess"})
+    protected byte[] getContentRaw() {
+        return null;
+    }
+
+    /**
+     * Helper method to get string array as JSON.
+     *
+     * @param data
+     *        The string array
+     *
+     * @return  The JSON string
+     */
+    @SuppressWarnings("unused")
+    public static String getJson(final String[] data) {
+        return data == null ? null: getJson(Arrays.asList(data));
+    }
+
+    /**
+     * Helper method to get string collection as JSON.
+     *
+     * @param data
+     *        The string collection
+     *
+     * @return  The JSON string
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static String getJson(final Collection<String> data) {
+        if (data == null) return null;
+        final StringBuilder builder = new StringBuilder("[");
+        for (final String str: data)
+            builder.append("{\"title\":\"").append(str).append("\"},");
+        return builder.replace(builder.length() - 1, builder.length(), "]").toString();
+    }
+
+    /**
+     * Sets network delay emulation.
+     *
+     * @param delay
+     *        The emulated network delay (in milliseconds)
+     *
+     * @return  This {@code BaseLocalOkHttpClient2} object to allow for chaining of calls
+     */
+    @SuppressWarnings("unused")
+    public BaseLocalOkHttpClient2 setEmulatedNetworkDelay(final int delay) {
         mEmulatedNetworkDelay = delay;
         return this;
     }
 
+    /**
+     * Adds {@code Interceptor}.
+     *
+     * @param interceptor
+     *        The {@code Interceptor}
+     *
+     * @return  This {@code BaseLocalOkHttpClient2} object to allow for chaining of calls
+     */
     @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
-    public LocalOkHttpClient2Base add(Interceptor interceptor) {
+    public BaseLocalOkHttpClient2 add(final Interceptor interceptor) {
         return handle(interceptor, true);
     }
 
+    /**
+     * Removes {@code Interceptor}.
+     *
+     * @param interceptor
+     *        The {@code Interceptor}
+     *
+     * @return  This {@code BaseLocalOkHttpClient2} object to allow for chaining of calls
+     */
     @SuppressWarnings("unused")
-    public LocalOkHttpClient2Base remove(Interceptor interceptor) {
+    public BaseLocalOkHttpClient2 remove(final Interceptor interceptor) {
         return handle(interceptor, false);
     }
 
-    private LocalOkHttpClient2Base handle(Interceptor interceptor, boolean add) {
+    private BaseLocalOkHttpClient2 handle(final Interceptor interceptor, final boolean add) {
         if (interceptor == null)
-            Log.w(TAG, "interceptor == null");
+            CoreLogger.logWarning("interceptor == null");
         else {
-            boolean result = add ? mInterceptors.add(interceptor): mInterceptors.remove(interceptor);
-            if (!result) Log.e(TAG, "can't " + (add ? "add": "remove") + " interceptor " + interceptor);
+            final boolean result = add ? mInterceptors.add(interceptor): mInterceptors.remove(interceptor);
+            if (!result)
+                CoreLogger.logError("can't " + (add ? "add": "remove") + " interceptor " + interceptor);
         }
         return this;
     }
 
-    private Response handle(final Request request) {
+    /**
+     * Emulates OkHttp3 request to the Internet, subject to override
+     * (if customizing {@link #getContentRaw} is not enough).
+     *
+     * @param request
+     *        The {@code Request}
+     *
+     * @return  The {@code Response}
+     *
+     * @throws  IOException
+     *          please refer to the exception description
+     */
+    @SuppressWarnings({"RedundantThrows", "WeakerAccess"})
+    protected Response handle(final Request request) throws IOException {
+        byte[] content = getContentRaw();
+        if (content == null) {
+            final String str = getContent();
+            if (str != null)
+                content = mCharset == null ? str.getBytes(): str.getBytes(mCharset);
+        }
+        if (content == null) {
+            CoreLogger.logError("no content, please use 'getContent()' or 'getContentRaw()' methods");
+            content = EMPTY_BYTES;
+        }
         return new Response.Builder()
-                .code(200)
+                .code(HTTP_CODE_OK)
                 .protocol(Protocol.HTTP_1_0)
                 .request(request)
-                .message("")
-                .body(ResponseBody.create(MediaType.parse("application/json"),
-                        getJson().getBytes()))
+                .message(MESSAGE)
+                .body(ResponseBody.create(MediaType.parse(
+                        mMediaType != null ? mMediaType: TYPE_JSON), content))
                 .build();
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public WebSocket newWebSocket(final Request request, final WebSocketListener listener) {
+        return new WebSocket() {
+            @Override public void    cancel   (               ) {                 }
+            @Override public boolean close    (int i, String s) { return    true; }
+            @Override public long    queueSize(               ) { return       0; }
+            @Override public Request request  (               ) { return request; }
+            @Override public boolean send     (ByteString b   ) { return    true; }
+            @Override public boolean send     (String s       ) { return    true; }
+        };
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Call newCall(final Request request) {
+        return new CallI(request);
     }
 
     private class CallI implements Call {
 
         private final Request mRequest;
 
+        @SuppressWarnings("unused")
         private CallI(final Request request) {
             mRequest = request;
         }
 
         @Override
-        public Response execute() {
+        public Response execute() throws IOException {
             final Response response = handle(mRequest);
             if (mInterceptors.size() > 0) {
                 final ChainI chain = new ChainI(response);
@@ -108,22 +318,22 @@ public abstract class LocalOkHttpClient2Base extends OkHttpClient {
                         interceptor.intercept(chain);
                     }
                     catch (Exception exception) {
-                        Log.e(TAG, "interceptor failed", exception);
+                        CoreLogger.log("interceptor failed", exception);
                     }
             }
             return response;
         }
 
         @Override
-        public void enqueue(final Callback responseCallback) {
-            @SuppressWarnings({"Convert2Lambda"})
+        public void enqueue(final Callback callback) {
+            @SuppressWarnings("Convert2Lambda")
             final Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
                     new Thread() {
                         @Override
                         public void run() {
-                            enqueueWrapper(responseCallback);
+                            enqueueWrapper(callback);
                         }
                     }.start();
                 }
@@ -134,12 +344,16 @@ public abstract class LocalOkHttpClient2Base extends OkHttpClient {
                 new Handler(Looper.getMainLooper()).postDelayed(runnable, mEmulatedNetworkDelay * 1000);
         }
 
-        private void enqueueWrapper(Callback responseCallback) {
+        private void enqueueWrapper(final Callback callback) {
+            if (callback == null) {
+                CoreLogger.logError("callback == null");
+                return;
+            }
             try {
-                responseCallback.onResponse(this, execute());
+                callback.onResponse(this, execute());
             }
             catch (IOException exception) {
-                responseCallback.onFailure(this, exception);
+                callback.onFailure(this, exception);
             }
         }
 
@@ -155,6 +369,7 @@ public abstract class LocalOkHttpClient2Base extends OkHttpClient {
 
             private final Response mResponse;
 
+            @SuppressWarnings("unused")
             private ChainI(final Response response) {
                 mResponse = response;
             }
@@ -171,22 +386,5 @@ public abstract class LocalOkHttpClient2Base extends OkHttpClient {
             @Override public Chain      withWriteTimeout    (int i, TimeUnit t) { return       this; }
             @Override public int        writeTimeoutMillis  (                 ) { return          0; }
         }
-    }
-
-    @Override
-    public Call newCall(final Request request) {
-        return new CallI(request);
-    }
-
-    @Override
-    public WebSocket newWebSocket(final Request request, WebSocketListener listener) {
-        return new WebSocket() {
-            @Override public void    cancel   (               ) {                 }
-            @Override public boolean close    (int i, String s) { return    true; }
-            @Override public long    queueSize(               ) { return       0; }
-            @Override public Request request  (               ) { return request; }
-            @Override public boolean send     (ByteString b   ) { return    true; }
-            @Override public boolean send     (String s       ) { return    true; }
-        };
     }
 }

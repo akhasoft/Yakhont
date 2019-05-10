@@ -19,9 +19,9 @@ buildscript {
         jcenter()
         flatDir dirs: '../yakhont-weaver/build/libs'                        // Yakhont weaver
     }
-    dependencies {                                                          // Yakhont weaver
+    dependencies {
         classpath "akha.yakhont.weaver:yakhont-weaver:0.9.19"
-        classpath "org.javassist:javassist:$projectLibVerJavassist"
+        classpath "org.javassist:javassist:$projectLibVerJavassist"         // Yakhont weaver
     }
 }
 
@@ -62,7 +62,6 @@ android {
         targetSdkVersion        28
         versionCode            10101
         versionName           '1.1'
-
         resConfigs            'en', 'ru'
     }
 

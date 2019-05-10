@@ -22,8 +22,6 @@ import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.RetainDialogFragment;
 import akha.yakhont.CoreLogger;
-// ProGuard issue
-// import akha.yakhont.R;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.app.Activity;
@@ -31,9 +29,14 @@ import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
+
+import java.lang.ref.WeakReference;
+
+import javax.inject.Provider;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -41,10 +44,6 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
 import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationServices;
-
-import java.lang.ref.WeakReference;
-
-import javax.inject.Provider;
 
 /**
  * The client to work with {@link GoogleApiClient}-based Google Play Services Location API.

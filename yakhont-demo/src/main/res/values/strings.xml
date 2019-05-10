@@ -15,7 +15,7 @@
 -->
 
 <resources>
-    <string name="app_name">Yakhont Demo</string>
+    <string name="app_name">Yakhont Full Demo</string>
 
     <string name="flag_force">Load from cache</string>
     <string name="flag_merge">Merge</string>

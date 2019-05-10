@@ -29,6 +29,7 @@ import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
 import android.location.Location;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;

@@ -28,12 +28,12 @@ import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.squareup.okhttp.OkHttpClient;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import com.squareup.okhttp.OkHttpClient;
 
 import retrofit.Callback;
 import retrofit.RequestInterceptor;

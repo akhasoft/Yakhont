@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+@file:Suppress("Annotator")
+
 package akha.yakhont.demosimplekotlin
 
 import akha.yakhont.demosimplekotlin.model.Beer
@@ -30,6 +32,7 @@ import android.location.Location
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -67,8 +70,8 @@ class MainActivity: AppCompatActivity(), LocationListener {
         Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
                 LocalOkHttpClient2(retrofit2)
                 // just to demo the progress GUI - comment it out if not needed
-                .setEmulatedNetworkDelay(7),
-                retrofit2, savedInstanceState).start(savedInstanceState)
+                .setEmulatedNetworkDelay(7)
+                , retrofit2, savedInstanceState).start(savedInstanceState)
     }
 
     override fun onLocationChanged(location: Location, date: Date) {

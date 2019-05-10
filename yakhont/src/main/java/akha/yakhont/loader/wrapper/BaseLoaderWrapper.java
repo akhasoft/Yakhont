@@ -22,8 +22,6 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
-// ProGuard issue
-// import akha.yakhont.R;
 import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
@@ -191,9 +189,9 @@ public abstract class BaseLoaderWrapper<D> {
          * @param cls
          *        The type of data
          *
-         * @return  The ContentValues
+         * @return  The data to store
          */
-        ContentValues getValues(String string, byte[] bytes, Class cls);
+        Collection<ContentValues> getValues(String string, byte[] bytes, Class cls);
 
         /**
          * Converts cursor to data.

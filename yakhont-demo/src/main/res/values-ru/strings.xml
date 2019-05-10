@@ -15,7 +15,7 @@
 -->
 
 <resources>
-    <string name="app_name">Яхонт: демо</string>
+    <string name="app_name">Яхонт: детальное демо</string>
 
     <string name="flag_force">Загрузка из кэша</string>
     <string name="flag_merge">Добавить к уже загруженному</string>

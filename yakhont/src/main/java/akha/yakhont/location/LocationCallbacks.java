@@ -25,8 +25,6 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CorePermissions;
 import akha.yakhont.CorePermissions.RequestBuilder;
-// ProGuard issue
-// import akha.yakhont.R;
 import akha.yakhont.callback.BaseCallbacks.CallbacksCustomizer;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycle;
@@ -41,9 +39,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
 
-import dagger.Lazy;
+import androidx.annotation.NonNull;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +53,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.inject.Provider;
+
+import dagger.Lazy;
 
 /**
  * Extends the {@link BaseActivityCallbacks} class to provide location APIs support. For example, in Activity:

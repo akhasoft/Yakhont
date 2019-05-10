@@ -66,28 +66,29 @@ import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.databinding.BindingAdapter;
 import androidx.fragment.app.Fragment;
 
-import com.google.gson.reflect.TypeToken;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import com.google.gson.reflect.TypeToken;
+
 public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
-    private       CoreLoad<? extends Throwable, ?>              mCoreLoad;
+    private       CoreLoad<? extends Throwable, ?>               mCoreLoad;
     @SuppressWarnings("unused")
-    private       boolean                                       mNotDisplayLoadingErrors;
+    private       boolean                                        mNotDisplayLoadingErrors;
 
-    private       LocalOkHttpClient                             mOkHttpClient;
-    private       LocalOkHttpClient2                            mOkHttpClient2;
+    private       LocalOkHttpClient                              mOkHttpClient;
+    private       LocalOkHttpClient2                             mOkHttpClient2;
 
-    private       Retrofit <RetrofitApi,  List<BeerDefault>>    mRetrofit;
-    private       Retrofit2<Retrofit2Api, List<Beer>>           mRetrofit2;
+    private       Retrofit <RetrofitApi,  List<BeerDefault>>     mRetrofit;
+    private       Retrofit2<Retrofit2Api, List<Beer>>            mRetrofit2;
 
     // every loader should have unique Retrofit object; don't share it with other loaders
     private void createRetrofit(Context context) {
@@ -110,9 +111,9 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     private void setEmulatedNetworkDelay() {
         if (getMainActivity().isRetrofit2())
-            mOkHttpClient2.getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
+            mOkHttpClient2.setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
         else
-            mOkHttpClient .getLocalOkHttpClientHelper().setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
+            mOkHttpClient .setEmulatedNetworkDelay(EMULATED_NETWORK_DELAY);
     }
 
     @Override
@@ -147,7 +148,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         startLoading(false);
 
         // emulates network delay to demonstrate progress customization
-        mGridView.postDelayed(this::setEmulatedNetworkDelay, 300);
+        mGridView.postDelayed(this::setEmulatedNetworkDelay, 500);
     }
 
     private void startLoading(boolean byUserRequest) {
@@ -175,20 +176,20 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                     //   it's better to use 'setRequester(Retrofit2Api::getDataRx)'
 //                  builder.getApi(callback).getDataRx();
 
-                    // raw call for Retrofit2 with Rx2 ('getApi()' takes null)
+                    // raw call ('getApi()' takes null) for Retrofit2 with Rx2
                     //   it's exactly the same as 'setRequester(Retrofit2Api::getDataRx)' below
                     //   and 'getApi(callback).getDataRx()' above
                     builder.getRx2DisposableHandler().add(
                             akha.yakhont.technology.rx.Rx2.handle(builder.getApi(null).getDataRx(),
                                     Retrofit2.getRxWrapper(callback)));
 
-                    // raw call for Retrofit2 with Rx ('getApi()' takes null)
+                    // raw call ('getApi()' takes null) for Retrofit2 with Rx
                     //   don't forget to set MainActivity.USE_RX_JAVA_2 = false
 //                  akha.yakhont.technology.rx.Rx.getRxSubscriptionHandler(builder.getRx()).add(
 //                          akha.yakhont.technology.rx.Rx.handle(builder.getApi(null).getDataOldRx(),
 //                                  Retrofit2.getRxWrapper(callback)));
 
-                    // raw call for Retrofit2 without Rx ('getApi()' takes null)
+                    // raw call ('getApi()' takes null) for Retrofit2 without Rx
 //                  builder.getApi(null).getData("some parameter").enqueue(callback);
                 })
 */
@@ -222,7 +223,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
                 .setProgress(new ProgressDemo())                // custom data loading progress screen (optional)
 /* or something like this:
-                // if you're implementing your own cancel confirmation logic, you should to call
+                // if you're implementing your own cancel confirmation logic, you should call
                 //   'LiveDataDialog.cancel(Activity)' to cancel data loading
                 .setProgress(() -> new LiveDataDialog.Progress() {
                     @Override public void setText(String text)                  {...}

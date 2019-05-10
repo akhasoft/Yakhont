@@ -32,11 +32,8 @@ import java.util.Locale;
  */
 public class LocalOkHttpClientHelper {
 
-    public static final int                 HTTP_CODE_OK                = 200;
-
     private final WeakReference<Context>    mContext;
     private String                          mScenario;
-    private int                             mEmulatedNetworkDelay;
 
     public LocalOkHttpClientHelper(Context context) {
         mContext = new WeakReference<>(context);
@@ -44,10 +41,6 @@ public class LocalOkHttpClientHelper {
 
     public void setScenario(String scenario) {
         mScenario = scenario;
-    }
-
-    public void setEmulatedNetworkDelay(int delay) {
-        mEmulatedNetworkDelay = delay;
     }
 
     public Data execute(String url, String method) throws IOException {
@@ -78,10 +71,6 @@ public class LocalOkHttpClientHelper {
     private void handleError(String msg) throws IOException {
         Log.e("LocalOkHttpClientHelper", msg);
         throw new IOException(msg);
-    }
-
-    public int getDelay() {
-        return mEmulatedNetworkDelay;
     }
 
     public static class Data {

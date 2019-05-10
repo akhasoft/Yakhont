@@ -27,6 +27,7 @@ import akha.yakhont.loader.wrapper.BaseLoaderWrapper.ConverterHelper;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+
 import androidx.annotation.NonNull;
 
 import java.io.ByteArrayInputStream;
@@ -34,6 +35,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.lang.reflect.Type;
+import java.util.Collection;
+import java.util.Collections;
 
 /**
  * The data converter.
@@ -135,7 +138,7 @@ public class BaseConverter<D> implements Converter<D> {
      * Please refer to the base method description.
      */
     @Override
-    public ContentValues getValues(String string, byte[] bytes, Class cls) {
+    public Collection<ContentValues> getValues(String string, byte[] bytes, Class cls) {
         if (cls == null) {
             CoreLogger.logError("data class == null");
             return null;
@@ -148,7 +151,7 @@ public class BaseConverter<D> implements Converter<D> {
         contentValues.put(CLASS_BYTES , getClassBytes (cls));
         contentValues.put(CLASS_STRING, getClassString(cls));
 
-        return contentValues;
+        return Collections.singleton(contentValues);
     }
 
     /**

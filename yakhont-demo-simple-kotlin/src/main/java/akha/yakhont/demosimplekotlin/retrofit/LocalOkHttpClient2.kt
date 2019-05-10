@@ -16,14 +16,11 @@
 
 package akha.yakhont.demosimplekotlin.retrofit
 
+import akha.yakhont.technology.retrofit.BaseLocalOkHttpClient2
 import akha.yakhont.technology.retrofit.Retrofit2
-import akha.yakhont.technology.retrofit.Retrofit2.BodyCache
-import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor
-
-import okhttp3.logging.HttpLoggingInterceptor
 
 // OkHttp3 local client to load data from array
-class LocalOkHttpClient2(private val mRetrofit2: Retrofit2<*, *>): LocalOkHttpClient2Base() {
+class LocalOkHttpClient2(retrofit2: Retrofit2<*, *>): BaseLocalOkHttpClient2(retrofit2) {
 
     private val mData = arrayOf(
             "Duvel",
@@ -44,22 +41,7 @@ class LocalOkHttpClient2(private val mRetrofit2: Retrofit2<*, *>): LocalOkHttpCl
             "Westvleteren",
             "Wilderen Goud")
 
-    init {
-        val logger = HttpLoggingInterceptor()
-        logger.level = HttpLoggingInterceptor.Level.BODY
-        add(logger)
-
-        add(object: BodySaverInterceptor() {
-            override fun set(data: BodyCache) {
-                mRetrofit2.data = data
-            }
-        })
-    }
-
-    override fun getJson(): String {
-        val builder = StringBuilder("[")
-        for (str in mData)
-            builder.append("{\"title\":\"").append(str).append("\"},")
-        return builder.replace(builder.length - 1, builder.length, "]").toString()
+    override fun getContent(): String {
+        return getJson(mData)
     }
 }

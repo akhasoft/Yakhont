@@ -47,6 +47,9 @@ import androidx.fragment.app.Fragment;
 import androidx.databinding.ViewDataBinding;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelStore;
+import androidx.paging.DataSource;
+import androidx.paging.PagedList.Config;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -55,9 +58,6 @@ import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 
-import androidx.paging.DataSource;
-import androidx.paging.PagedList.Config;
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 
@@ -221,12 +221,15 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                     body, response, null, null, Source.NETWORK, null);
 
             if (body != null) {
-                final Class<?> type = body.getClass();  // collections are without generic info
+                final Class<?> type = body.getClass();      // collections are without generic info
                 setTypeIfNotSet(TypeHelper.getType(type));
 
-                final ContentValues contentValues = getDataForCache(type);
-                if (contentValues != null)
-                    baseResponse.setValues(new ContentValues[] {contentValues});
+                final Collection<ContentValues> contentValues = getDataForCache(type);
+                if (contentValues != null) {
+                    // ContentProvider.bulkInsert requires array
+                    final ContentValues[] tmpArray = new ContentValues[contentValues.size()];
+                    baseResponse.setValues(contentValues.toArray(tmpArray));
+                }
             }
             else
                 CoreLogger.logError("body == null");
@@ -251,7 +254,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         onError(call, response, new Exception("error code " + code), baseViewModel);
     }
 
-    private ContentValues getDataForCache(@NonNull final Class type) {
+    private Collection<ContentValues> getDataForCache(@NonNull final Class type) {
         final BodyCache data = mRetrofit.getData();
         if (data == null)
             CoreLogger.logError("no data to cache found; if you're using your own " +

@@ -39,24 +39,25 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.Toast;
+
 import androidx.annotation.IdRes;
 import androidx.annotation.StringRes;
+
+import java.lang.ref.WeakReference;
+
+import javax.inject.Named;
+import javax.inject.Provider;
 
 import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 
-import java.lang.ref.WeakReference;
-
 import dagger.BindsInstance;
 import dagger.Component;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-
-import javax.inject.Named;
-import javax.inject.Provider;
 
 /**
  * The {@link <a href="http://google.github.io/dagger/">Dagger 2</a>} component. Usage example:

@@ -25,6 +25,7 @@ import android.database.Cursor;
 import android.view.View;
 import android.widget.Checkable;
 import android.widget.ImageView;
+
 import androidx.annotation.CallSuper;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;

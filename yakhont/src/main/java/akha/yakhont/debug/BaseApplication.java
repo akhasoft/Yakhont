@@ -26,6 +26,7 @@ import android.app.Application;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.StrictMode;
+
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
 

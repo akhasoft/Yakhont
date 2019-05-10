@@ -20,9 +20,9 @@ import androidx.annotation.NonNull;
 import androidx.databinding.BaseObservable;
 import androidx.databinding.Bindable;
 
-import com.google.gson.annotations.SerializedName;
-
 import java.util.Locale;
+
+import com.google.gson.annotations.SerializedName;
 
 @SuppressWarnings("unused")
 public class Beer extends BaseObservable {      // POJO with Data Binding Library support

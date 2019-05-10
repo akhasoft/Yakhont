@@ -199,7 +199,7 @@ public class Weaver {
                     String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
             throws NotFoundException, CannotCompileException, IOException {
 
-        log(false, sNewLine + "Yakhont: weaving compiled classes in " + classesDirs);
+        log(false, sNewLine + "Yakhont: weaving compiled classes in [" + classesDirs + "]...");
 
         try {
             runReal(debugBuild, debug, packageName, classesDirs,
@@ -470,8 +470,24 @@ public class Weaver {
         List<String> names = new ArrayList<>(mAnnotations.keySet());
         if (before) Collections.reverse(names);
 
-        for (int k = 0; k < names.size(); k++)
-            for (CtMethod method: clsDest.getDeclaredMethods()) {
+        for (int k = 0; k < names.size(); k++) {
+            final CtMethod[] methods;
+            try {
+                methods = clsDest.getDeclaredMethods();
+            }
+            catch (Exception exception) {                   // API bug workaround
+                String msg = exception.getMessage();
+                if (msg != null && msg.contains("cannot find") && msg.contains("main.java.")) {
+                    if (mDebug)
+                        exception.printStackTrace();
+                    else
+                        log(false, msg);
+                    return;
+                }
+                throw exception;
+            }
+
+            for (CtMethod method: methods) {
                 if (!method.hasAnnotation(names.get(k))) continue;
 
                 Map<Condition, List<String>> map = mAnnotations.get(names.get(k));
@@ -482,7 +498,7 @@ public class Weaver {
                 for (int j = 0; j < conditions.size(); j++) {
                     Condition condition = conditions.get(j);
                     if (!mDebugBuild && condition == Condition.DEBUG ||
-                         mDebugBuild && condition == Condition.RELEASE) continue;
+                            mDebugBuild && condition == Condition.RELEASE) continue;
 
                     List<String> methodData = map.get(conditions.get(j));
                     if (before) Collections.reverse(methodData);
@@ -493,6 +509,7 @@ public class Weaver {
                                 pool, before);
                 }
             }
+        }
     }
 
     private void validateAnnotations() {
