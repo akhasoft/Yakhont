@@ -31,16 +31,21 @@ import akha.yakhont.location.GoogleLocationClientNew;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.os.CountDownTimer;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.widget.Toast;
 
 import androidx.annotation.IdRes;
+import androidx.annotation.LayoutRes;
+import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 
 import java.lang.ref.WeakReference;
@@ -137,8 +142,8 @@ import dagger.Provides;
  *         }
  *
  *         &#064;Override
- *         protected BaseDialog getToast(boolean useSnackbarIsoToast, boolean durationLong) {
- *             return super.getToast(useSnackbarIsoToast, durationLong);
+ *         protected BaseDialog getToast(boolean useSnackbarIsoToast, Integer duration) {
+ *             return super.getToast(useSnackbarIsoToast, duration);
  *         }
  *     }
  * }
@@ -377,7 +382,7 @@ public interface Dagger2 {
          * @return  The alert component
          */
         protected BaseDialog getPermissionAlert(final int requestCode) {
-            return new BaseSnackbar(false, requestCode)
+            return new BaseSnackbar(Snackbar.LENGTH_SHORT, requestCode)
                     .setActionString(R.string.yakhont_alert_ok);
         }
 
@@ -388,13 +393,17 @@ public interface Dagger2 {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_LONG)
         public BaseDialog provideLongToast(Parameters parameters) {
-            return getToast(getFlagToast(parameters), true);
+            final boolean useSnackbarIsoToast = getFlagToast(parameters);
+            return getToast(useSnackbarIsoToast,
+                    useSnackbarIsoToast ? Snackbar.LENGTH_LONG: Toast.LENGTH_LONG);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_SHORT)
         public BaseDialog provideShortToast(Parameters parameters) {
-            return getToast(getFlagToast(parameters), false);
+            final boolean useSnackbarIsoToast = getFlagToast(parameters);
+            return getToast(useSnackbarIsoToast,
+                    useSnackbarIsoToast ? Snackbar.LENGTH_SHORT: Toast.LENGTH_SHORT);
         }
 
         /**
@@ -404,14 +413,16 @@ public interface Dagger2 {
          * @param useSnackbarIsoToast
          *        {@code true} for using {@link Snackbar} instead of {@link Toast}
          *
-         * @param durationLong
-         *        {@code true} to display the text notification for a long period of time, {@code false} otherwise
+         * @param duration
+         *        duration in milliseconds (or
+         *        {@code Snackbar.LENGTH_LONG}, {@code Snackbar.LENGTH_SHORT},
+         *        {@code Toast.LENGTH_LONG}, {@code Toast.LENGTH_SHORT}), null for default value
          *
          * @return  {@link Toast} or {@link Snackbar}
          */
-        protected BaseDialog getToast(final boolean useSnackbarIsoToast, final boolean durationLong) {
+        protected BaseDialog getToast(final boolean useSnackbarIsoToast, final Integer duration) {
             return useSnackbarIsoToast ?
-                    new BaseSnackbar(durationLong, null): new BaseToast(durationLong);
+                    new BaseSnackbar(duration, null): new BaseToast(duration);
         }
 
         private static boolean getFlag() {
@@ -419,36 +430,45 @@ public interface Dagger2 {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void showToast(@StringRes final int resId, final boolean durationLong) {
-            show(getFlag(), null, resId, durationLong);
+        public static void showToast(@StringRes final int resId, final Integer duration) {
+            show(getFlag(), null, resId, duration);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void showToast(final String text, final boolean durationLong) {
-            show(getFlag(), text, Core.NOT_VALID_RES_ID, durationLong);
+        public static void showToast(final String text, final Integer duration) {
+            show(getFlag(), text, Core.NOT_VALID_RES_ID, duration);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void showSnackbar(final String text, final boolean durationLong) {
-            show(true, text, Core.NOT_VALID_RES_ID, durationLong);
+        public static void showToastExt(final Toast toast, final Integer duration) {
+            new BaseToast(toast, duration, null).startToast(null, null, null);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void showSnackbar(@StringRes final int resId, final boolean durationLong) {
-            show(true, null, resId, durationLong);
+        public static void showToastExt(@LayoutRes final int viewId, final Integer duration) {
+            new BaseToast(viewId, duration, null).startToast(null, null, null);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void showSnackbar(final String text, final Integer duration) {
+            show(true, text, Core.NOT_VALID_RES_ID, duration);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void showSnackbar(@StringRes final int resId, final Integer duration) {
+            show(true, null, resId, duration);
         }
 
         private static void show(final boolean useSnackbarIsoToast, String text,
-                                 @StringRes final int resId, final boolean durationLong) {
+                                 @StringRes final int resId, final Integer duration) {
             if (text == null && !validate(resId)) return;
-
             if (text == null) text = Utils.getApplication().getString(resId);
 
             if (useSnackbarIsoToast)
-                new BaseSnackbar(durationLong, null)
+                new BaseSnackbar(duration, null)
                         .start(Utils.getCurrentActivity(), text, null);
             else
-                new BaseToast(durationLong).startToast(null, text, null);
+                new BaseToast(duration).startToast(null, text, null);
         }
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
@@ -512,21 +532,32 @@ class BaseSnackbar implements BaseDialog {
     private       boolean                   mShown;
 
     @SuppressWarnings("unused")
-    public BaseSnackbar(final Boolean durationLong, final Integer requestCode) {
-        this(Core.NOT_VALID_VIEW_ID, durationLong, requestCode);
+    public BaseSnackbar(final Integer duration, final Integer requestCode) {
+        this(Core.NOT_VALID_VIEW_ID, duration, requestCode);
     }
 
     @SuppressWarnings({"WeakerAccess", "unused"})
     public BaseSnackbar(@SuppressWarnings("SameParameterValue") @IdRes final int listViewId,
-                        final Boolean durationLong, final Integer requestCode) {
+                        Integer duration, final Integer requestCode) {
 
         mViewId      = listViewId;
         mRequestCode = requestCode;
 
         Dagger2.checkRequestCode(requestCode);
 
-        if (durationLong != null)
-            mDuration = durationLong ? Snackbar.LENGTH_LONG: Snackbar.LENGTH_SHORT;
+        if (duration != null) {
+            if (!isStandardDuration(duration) && duration <= 0) {
+                CoreLogger.logError("wrong Snackbar duration " + duration);
+                duration = Snackbar.LENGTH_SHORT;
+            }
+            mDuration = isStandardDuration(duration) ? duration : Core.adjustTimeout(duration);
+        }
+    }
+
+    private static boolean isStandardDuration(final int duration) {
+        return duration == Snackbar.LENGTH_INDEFINITE ||
+               duration == Snackbar.LENGTH_LONG       ||
+               duration == Snackbar.LENGTH_SHORT;
     }
 
     @SuppressWarnings("unused")
@@ -743,25 +774,58 @@ class BaseSnackbar implements BaseDialog {
 class BaseToast implements BaseDialog {
 
     private static final int                DELAY               = 3000;
+    private static final int                UPDATE_INTERVAL     = 300;
 
-    private final boolean                   mDurationLong;
+    private final Toast                     mToast;
     private final Integer                   mRequestCode;
+    @NonNull
+    private final Integer                   mDuration;
+    @LayoutRes
+    private final int                       mViewId;
 
-    public BaseToast(final boolean durationLong) {
-        this(durationLong, null);
+    public BaseToast(final Integer duration) {
+        this(Core.NOT_VALID_RES_ID, duration);
     }
 
     @SuppressWarnings("WeakerAccess")
-    public BaseToast(final boolean durationLong, final Integer requestCode) {
-        mDurationLong   = durationLong;
+    public BaseToast(@LayoutRes final int viewId, final Integer duration) {
+        this(viewId, duration, null);
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public BaseToast(@LayoutRes final int viewId, final Integer duration, final Integer requestCode) {
+        this(null, viewId, duration, requestCode);
+    }
+
+    public BaseToast(@NonNull final Toast toast, final Integer duration, final Integer requestCode) {
+        this(toast, Core.NOT_VALID_RES_ID, duration, requestCode);
+    }
+
+    private BaseToast(final Toast toast, @LayoutRes final int viewId,
+                      Integer duration, final Integer requestCode) {
+
+        if (duration != null && toast != null)
+            toast.setDuration(isStandardDuration(duration) ? duration: Toast.LENGTH_SHORT);
+
+        if (duration == null) duration = Toast.LENGTH_SHORT;
+        if (!isStandardDuration(duration) && duration <= 0) {
+            CoreLogger.logError("wrong Toast duration " + duration);
+            duration = Toast.LENGTH_SHORT;
+        }
+
+        mDuration       = isStandardDuration(duration) ? duration: Core.adjustTimeout(duration);
         mRequestCode    = requestCode;
+        mViewId         = viewId;
+        mToast          = toast;
 
         Dagger2.checkRequestCode(requestCode);
     }
 
+    @SuppressLint("ShowToast")
     public boolean startToast(Context context, final String text, final Intent data) {
 
-        if (!Dagger2.UiModule.validate(text)) return false;
+        if (mToast == null && mViewId == Core.NOT_VALID_RES_ID &&
+                !Dagger2.UiModule.validate(text)) return false;
 
         try {
             if (context == null) {
@@ -770,14 +834,43 @@ class BaseToast implements BaseDialog {
                     context = Utils.getApplication();
             }
 
-            Toast.makeText(context, text,
-                    mDurationLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
+            Toast toast = mToast;
+            if (toast == null) {
+                if (mViewId != Core.NOT_VALID_RES_ID) {
+                    toast = new Toast(context);
+                    toast.setView(LayoutInflater.from(context)
+                            .inflate(mViewId, null, false));
+                    toast.setDuration(getDuration());
+                }
+                else
+                    toast = Toast.makeText(context, text, getDuration());
+            }
+            final Toast toastToShow = toast;
+
+            if (isStandardDuration(mDuration))
+                toastToShow.show();
+            else
+                new CountDownTimer(mDuration, UPDATE_INTERVAL) {
+                    @Override
+                    public void onTick(long millisUntilFinished) {
+                        toastToShow.show();
+                    }
+
+                    @Override
+                    public void onFinish() {
+                        toastToShow.cancel();
+                    }
+                }.start();
 
             if (mRequestCode != null)
                 if (context instanceof Activity) {
                     final Activity activity = (Activity) context;
+
+                    final int delay = isStandardDuration(mDuration) ? DELAY: mDuration + 500;
+                    CoreLogger.log("BaseToast onActivityResult() delay " + delay);
+
                     //noinspection Convert2Lambda
-                    Utils.runInBackground(DELAY, new Runnable() {
+                    Utils.runInBackground(delay, new Runnable() {
                         @Override
                         public void run() {
                             Dagger2.onActivityResult(activity, data, mRequestCode, Activity.RESULT_OK);
@@ -785,7 +878,7 @@ class BaseToast implements BaseDialog {
                     });
                 }
                 else
-                    CoreLogger.log("context is not Activity, onActivityResult() will not be called");
+                    CoreLogger.logError("context is not Activity, onActivityResult() will not be called");
 
             return true;
         }
@@ -795,13 +888,21 @@ class BaseToast implements BaseDialog {
         }
     }
 
+    private static boolean isStandardDuration(final int duration) {
+        return duration == Toast.LENGTH_LONG || duration == Toast.LENGTH_SHORT;
+    }
+
+    private int getDuration() {
+        return isStandardDuration(mDuration) ? mDuration: Toast.LENGTH_SHORT;
+    }
+
     @Override
     public boolean start(final Activity activity, final String text, final Intent data) {
         return startToast(activity, text, data);
     }
 
     @Override
-    public boolean stop() {     // not used
+    public boolean stop() {
         return true;
     }
 

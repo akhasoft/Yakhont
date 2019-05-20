@@ -24,5 +24,5 @@ import retrofit2.http.GET
 interface Retrofit2Api {
 
     @get:GET("/data")
-    val data: Call<Array<Beer>>
+    val data: Call<List<Beer>>
 }

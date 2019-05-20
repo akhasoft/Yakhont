@@ -25,10 +25,11 @@ import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
+// for javadoc
 import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
-import akha.yakhont.loader.BaseLiveData.Requester;
+import akha.yakhont.loader.BaseLiveData.DataLoader;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseViewModel.PagingViewModel;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
@@ -167,7 +168,7 @@ public abstract class BaseLoaderWrapper<D> {
      *
      * @see BaseConverter
      */
-    public interface Converter<D> {
+    public interface Converter<D> extends CacheHelper {
 
         /**
          * Sets {@code ConverterGetter}.
@@ -181,10 +182,10 @@ public abstract class BaseLoaderWrapper<D> {
          * Returns the data to store in cache.
          *
          * @param string
-         *        The string data
+         *        Some string (most of the time - MIME type, e.g. "application/json")
          *
          * @param bytes
-         *        The bytes data
+         *        Some bytes (most of the time - JSON from web-server)
          *
          * @param cls
          *        The type of data
@@ -209,6 +210,45 @@ public abstract class BaseLoaderWrapper<D> {
          * @return  The type of data (or null)
          */
         Type getType();
+    }
+
+    /**
+     * The API to work with loaded data cache.
+     */
+    public interface CacheHelper {
+
+        /**
+         * Stores just loaded data in cache.
+         *
+         * @param data
+         *        The data to store
+         *
+         * @return  {@code true} if data storage supported, {@code false} otherwise (or null - in case of {@code Exception})
+         */
+        Boolean store(Collection<ContentValues> data);
+
+        /**
+         * Clears the given table in cache.
+         *
+         * @param tableName
+         *        The table name
+         *
+         * @return  {@code true} if deleting data in table supported, {@code false} otherwise (or null - in case of {@code Exception})
+         */
+        Boolean clear(String tableName);
+
+        /**
+         * Returns cursor for the given table in cache.
+         *
+         * @param tableName
+         *        The table name
+         *
+         * @return  The {@code Cursor} object
+         *
+         * @throws  UnsupportedOperationException
+         *          if getting cursor for the given table is not supported
+         */
+        Cursor getCursor(String tableName) throws UnsupportedOperationException;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -645,15 +685,20 @@ public abstract class BaseLoaderWrapper<D> {
                                                 @NonNull final ViewModelStore   store,
                                                          final String           key,
                                                          final String           tableName,
-                                                @NonNull final Requester<D>     requester,
-                                                @NonNull final Observer <D>     observer) {
+                                                @NonNull final DataLoader<D>    dataLoader,
+                                                @NonNull final Observer  <D>    observer) {
         return new BaseViewModel.Builder<>(observer)
                 .setViewModelStore(store)
                 .setActivity(activity)
                 .setKey(key)
                 .setTableName(tableName)
-                .setRequester(requester)
+                .setDataLoader(dataLoader)
                 .create();
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Converter getConverter() {
+        return null;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -698,9 +743,46 @@ public abstract class BaseLoaderWrapper<D> {
         return mBaseViewModelKey != null ? mBaseViewModelKey: mLoaderId;
     }
 
-    private class RequesterHelper implements Requester<D> {
+    private class RequesterHelper implements DataLoader<D> {
 
         private          WeakReference<BaseViewModel<D>>    mBaseViewModel;
+
+        private Converter<?> getConverterHelper() {
+            final Converter<?> converter = getConverter();
+            if (converter == null)
+                CoreLogger.logError("converter == null, loader ID: " + mLoaderId);
+            return converter;
+        }
+
+        @Override
+        public Boolean store(Collection<ContentValues> values) {
+            final Converter<?> converter = getConverterHelper();
+            try {
+                return converter == null ? null: converter.store(values);
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception);
+                return null;
+            }
+        }
+
+        @Override
+        public Boolean clear(String tableName) {
+            final Converter<?> converter = getConverterHelper();
+            try {
+                return converter == null ? null: converter.clear(tableName);
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception);
+                return null;
+            }
+        }
+
+        @Override
+        public Cursor getCursor(String tableName) throws UnsupportedOperationException {
+            final Converter<?> converter = getConverterHelper();
+            return converter == null ? null: converter.getCursor(tableName);
+        }
 
         @Override
         public void cancel() {

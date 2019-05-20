@@ -30,6 +30,7 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.util.Collection;
 import java.util.Locale;
 
 /**
@@ -66,22 +67,22 @@ public class BaseResponse<R, E, D> {
         UNKNOWN
     }
 
-    private static final String                   sNewLine                = System.getProperty("line.separator");
+    private static final String                         sNewLine          = System.getProperty("line.separator");
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public  static final    String[]              MIN_COLUMNS             = new String[] {BaseColumns._ID};
+    public  static final    String[]                    MIN_COLUMNS       = new String[] {BaseColumns._ID};
     
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public  static final    Cursor                EMPTY_CURSOR            = new MatrixCursor(MIN_COLUMNS, 0);
+    public  static final    Cursor                      EMPTY_CURSOR      = new MatrixCursor(MIN_COLUMNS, 0);
 
-    private final           R                     mResponse;
-    private final           E                     mError;
-    private                 D                     mData;
-    private final           Cursor                mCursor;
-    private                 ContentValues[]       mContentValues;
-    private final           Source                mSource;
-    private final           Throwable             mThrowable;
+    private final           R                           mResponse;
+    private final           E                           mError;
+    private                 D                           mData;
+    private final           Cursor                      mCursor;
+    private                 Collection<ContentValues>   mContentValues;
+    private final           Source                      mSource;
+    private final           Throwable                   mThrowable;
 
     /**
      * Initialises a newly created {@code BaseResponse} object.
@@ -158,12 +159,12 @@ public class BaseResponse<R, E, D> {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public void setValues(final ContentValues[] values) {
+    public void setValues(final Collection<ContentValues> values) {
         mContentValues = values;
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public ContentValues[] getValues() {
+    public Collection<ContentValues> getValues() {
         return mContentValues;
     }
 
@@ -261,8 +262,8 @@ public class BaseResponse<R, E, D> {
 
     private static class LogCursorHandler implements CursorHandler {
 
-        private final StringBuilder         mBuilder;
-        private final Locale                mLocale;
+        private final StringBuilder                     mBuilder;
+        private final Locale                            mLocale;
 
         private LogCursorHandler(@NonNull final StringBuilder builder, @NonNull final Locale locale) {
             mLocale     = locale;

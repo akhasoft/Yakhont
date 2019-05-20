@@ -238,4 +238,28 @@ public class BaseConverter<D> implements Converter<D> {
             return true;
         }
     }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Boolean store(Collection<ContentValues> values) {
+        return false;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Boolean clear(String tableName) {
+        return false;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Cursor getCursor(String tableName) throws UnsupportedOperationException {
+        throw new UnsupportedOperationException("BaseConverter.getCursor(" + tableName + ")");
+    }
 }

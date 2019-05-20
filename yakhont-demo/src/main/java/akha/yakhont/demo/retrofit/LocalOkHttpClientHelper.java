@@ -16,8 +16,9 @@
 
 package akha.yakhont.demo.retrofit;
 
+import akha.yakhont.CoreLogger;
+
 import android.content.Context;
-import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -69,7 +70,7 @@ public class LocalOkHttpClientHelper {
     }
 
     private void handleError(String msg) throws IOException {
-        Log.e("LocalOkHttpClientHelper", msg);
+        CoreLogger.logError(msg);
         throw new IOException(msg);
     }
 

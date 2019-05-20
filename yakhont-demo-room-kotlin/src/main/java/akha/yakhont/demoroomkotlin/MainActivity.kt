@@ -19,62 +19,209 @@ package akha.yakhont.demoroomkotlin
 import akha.yakhont.demoroomkotlin.model.Beer
 import akha.yakhont.demoroomkotlin.retrofit.LocalOkHttpClient2
 import akha.yakhont.demoroomkotlin.retrofit.Retrofit2Api
+import akha.yakhont.demoroomkotlin.room.AppDatabase
+import akha.yakhont.demoroomkotlin.room.Item
 
+import kotlinx.android.synthetic.main.recycler_item.view.title
+
+import akha.yakhont.Core
+import akha.yakhont.Core.Utils
+import akha.yakhont.Core.Utils.CursorHandler
+import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter
 import akha.yakhont.callback.annotation.CallbacksInherited
+import akha.yakhont.loader.BaseConverter
+import akha.yakhont.loader.BaseResponse
+import akha.yakhont.loader.BaseViewModel
 import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
 import akha.yakhont.technology.retrofit.Retrofit2
+import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader
 
+import android.content.ContentValues
+import android.database.Cursor
 import android.location.Location
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.room.Room
 
 import java.util.Date
+import java.lang.reflect.Type
+
+import com.google.gson.reflect.TypeToken
+import org.json.JSONArray
+import retrofit2.Response
+
+private const val ROOM_DB_KEY           = "room"
+private const val ROOM_DB_NAME          = "demo"
+private const val ROOM_DB_TABLE_NAME    = "item"
+private const val ROOM_DB_COLUMN_NAME   = "title"
 
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
 
-    companion object {
-        private var      sLocation: String? = null
-    }
+    private lateinit var client : LocalOkHttpClient2
+    private lateinit var adapter: CustomAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7)
+
 //      akha.yakhont.Core.setFullLoggingInfo(true)      // for debug
 
         setLocation()
 
-        (findViewById<View>(R.id.recycler) as RecyclerView)
-                .layoutManager = LinearLayoutManager(this)
-/*
-        ////////
-        // normally it should be enough - but here we have the local client, so see below...
+        val recyclerView: RecyclerView = findViewById<View>(R.id.recycler) as RecyclerView
+        recyclerView.layoutManager = LinearLayoutManager(this)
 
-        Retrofit2Loader.start<Retrofit2Api>("http://...", Retrofit2Api::class.java, { it.data },
-                BR.beer, savedInstanceState)
+        if (savedInstanceState != null) {                // handling screen orientation changes
+            Retrofit2Loader.getExistingLoader<Throwable, List<Beer>>()
 
-        ////////
-*/
-        val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
+            recyclerView.adapter = BaseViewModel.getData<Any>(ROOM_DB_KEY) as CustomAdapter
+            return
+        }
 
-        Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
-                LocalOkHttpClient2(retrofit2), retrofit2, savedInstanceState).start(savedInstanceState)
+        adapter = CustomAdapter()
+        recyclerView.adapter = adapter
+
+        val retrofit2 = Retrofit2<Retrofit2Api, List<Beer>>()
+        client = LocalOkHttpClient2(retrofit2)
+        retrofit2.init(Retrofit2Api::class.java, "http://localhost/", client)
+
+        Retrofit2Loader.adjust<List<Beer>>(Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(retrofit2)
+                .setRequester{it.data}
+                .setDataBinding(BR.beer)
+
+                // Room-specific settings
+                .setTableName(ROOM_DB_TABLE_NAME)
+                .setConverter(RoomConverter())
+
+                // custom-adapter-specific (not related to Room - just custom adapter demo)
+                .setAdapter(adapter)
+
+                .create()).start(null)
+
+        BaseViewModel.setData(ROOM_DB_KEY, adapter)
+    }
+
+    private inner class RoomConverter: BaseConverter<List<Beer>>() {
+
+        private inner class Handler: CursorHandler {
+
+            val data: ArrayList<Beer> = ArrayList()
+
+            override fun handle(cursor: Cursor): Boolean {
+                val beer = Beer()
+                beer.title = cursor.getString(cursor.getColumnIndex(ROOM_DB_COLUMN_NAME))
+                data.add(beer)
+                return true
+            }
+        }
+
+        override fun getData(cursor: Cursor): List<Beer> {
+            val handler = Handler()
+            Utils.cursorHelper(cursor, handler, true, false, null)
+            return handler.data
+        }
+
+        override fun getValues(type: String, data: ByteArray, cls: Class<*>): Collection<ContentValues> {
+            val json = JSONArray(String(data))
+            val result: ArrayList<ContentValues> = ArrayList()
+            for (i in 0 until json.length()) {
+                val values = ContentValues()
+                values.put(ROOM_DB_COLUMN_NAME, json.getJSONObject(i).getString(ROOM_DB_COLUMN_NAME))
+                result.add(values)
+            }
+            return result
+        }
+
+        private fun getDb(): AppDatabase {  // Core keeps the one and only instance of the AppDatabase
+            var db: AppDatabase? = Core.getSingleton(ROOM_DB_KEY)
+            if (db == null) {
+                db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, ROOM_DB_NAME).build()
+                Core.setSingleton(ROOM_DB_KEY, db)
+            }
+            return db
+        }
+
+        override fun store(data: Collection<ContentValues>): Boolean {
+            val itemDao = getDb().itemDao()
+            for (values in data)            // for autoincrement id should be 0
+                itemDao.insert(Item(0, values.getAsString(ROOM_DB_COLUMN_NAME)))
+            return true
+        }
+
+        override fun clear(tableName: String): Boolean {
+            getDb().itemDao().deleteAll()
+            return true
+        }
+
+        @Throws(UnsupportedOperationException::class)
+        override fun getCursor(tableName: String): Cursor {
+            return getDb().itemDao().getAll()
+        }
+
+        override fun getType(): Type {
+            return object: TypeToken<List<Beer>>(){}.type
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // not related to Room - just custom adapter demo
+
+    private inner class CustomAdapter: RecyclerView.Adapter<CustomAdapter.ViewHolder>(),
+            CacheAdapter<Response<List<Beer>>, Throwable, List<Beer>> {
+
+        private val data: ArrayList<Beer> = ArrayList()
+
+        // Yakhont-specific - every custom adapter should implement this
+        override fun update(data: BaseResponse<Response<List<Beer>>, Throwable, List<Beer>>,
+                            isMerge: Boolean, onLoadFinished: Runnable?) {
+            this.data.clear()
+            this.data.addAll(data.result)
+            adapter.notifyDataSetChanged()
+        }
+
+        private inner class ViewHolder(view: View): RecyclerView.ViewHolder(view) {
+            val title: TextView = view.title
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context).inflate(
+                    R.layout.recycler_item, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.title.text = data[position].title
+        }
+
+        override fun getItemCount(): Int {
+            return data.size
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    companion object {
+        private var location: String? = null
     }
 
     override fun onLocationChanged(location: Location, date: Date) {
-        sLocation = LocationCallbacks.toDms(location, this)
+        MainActivity.location = LocationCallbacks.toDms(location, this)
         setLocation()
     }
 
     private fun setLocation() {
-        if (sLocation != null) (findViewById<View>(R.id.location) as TextView).text = sLocation
+        if (location != null) (findViewById<View>(R.id.location) as TextView).text = location
     }
 }

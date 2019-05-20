@@ -68,6 +68,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        setDebugLogging(BuildConfig.DEBUG);         // optional
+
         setLocation();
 
         ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(new LinearLayoutManager(this));
@@ -80,25 +82,26 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         ////////
 */
-        setDebugLogging(BuildConfig.DEBUG);         // optional
-
         if (savedInstanceState != null) {           // handling screen orientation changes
             mLoader = Retrofit2Loader.getExistingLoader();
             return;
         }
 
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
-        retrofit2.init(Retrofit2Api.class, "http://localhost/", new LocalOkHttpClient(retrofit2));
+        retrofit2.init(Retrofit2Api.class, "http://localhost/", new LocalOkHttpClient2(retrofit2));
 
         mLoader = Retrofit2Loader.adjust(new Retrofit2CoreLoadBuilder<>(retrofit2)
                 .setRequester(Retrofit2Api::getData)
 // or           .setRequester(retrofit2Api -> retrofit2Api.getData(some parameter(s)))
                 .setDataBinding(BR.data)
+
+                // paging-specific settings
                 .setPagingConfig(new PagedList.Config.Builder()
-                        .setPageSize(LocalOkHttpClient.PAGE_SIZE)
+                        .setPageSize(LocalOkHttpClient2.PAGE_SIZE)
                         .setEnablePlaceholders(false)
                         .build())
                 .setPagingDataSourceProducer((Callable<DemoDataSource>) DemoDataSource::new)
+
                 .create());
     }
 
@@ -122,13 +125,13 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     // provides demo data for the endless paged adapter
-    private static class LocalOkHttpClient extends BaseLocalOkHttpClient2 {
+    private static class LocalOkHttpClient2 extends BaseLocalOkHttpClient2 {
 
         private static final int                PAGE_SIZE                       = 20;
 
         private int                             mItemCounter, mPageCounter;
 
-        private LocalOkHttpClient(Retrofit2 retrofit2) {
+        private LocalOkHttpClient2(Retrofit2 retrofit2) {
             super(retrofit2);
         }
 

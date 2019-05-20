@@ -19,14 +19,13 @@ package akha.yakhont.loader;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
+import akha.yakhont.Core.Utils.DataStore;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
-import akha.yakhont.loader.BaseLiveData.Requester;
-import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
+import akha.yakhont.loader.BaseLiveData.DataLoader;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
-import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
 
 import android.app.Activity;
 
@@ -83,7 +82,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected            List<CoreLoad<?, ?>>   mCoreLoads;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected      final Map<String, Object>    mStore              = Utils.newMap();
+    protected      final DataStore              mStore              = new DataStore();
 
     /**
      * Initialises a newly created {@link BaseViewModel} object.
@@ -401,14 +400,35 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *        The type of data
      *
      * @return  The previous data for the given key (or null)
+     *
+     * @see #getDataExt
+     * @see #setData
      */
-    @SuppressWarnings({"unchecked", "unused"})
-    public <V> V setData(final String key, final Object value) {
-        if (key == null) {
-            CoreLogger.logError("setData: key == null");
-            return null;
-        }
-        return (V) mStore.put(key, value);
+    @SuppressWarnings("unused")
+    public <V> V setDataExt(final String key, final V value) {
+        return mStore.setData(key, value);
+    }
+
+    /**
+     * Sets some data to keep in the {@link ViewModel} associated with the current {@code Activity}.
+     *
+     * @param key
+     *        The key
+     *
+     * @param value
+     *        The data
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The previous data for the given key (or null)
+     *
+     * @see #getData
+     * @see #setDataExt
+     */
+    @SuppressWarnings("unused")
+    public static <V> V setData(final String key, final V value) {
+        return get().setDataExt(key, value);
     }
 
     /**
@@ -421,14 +441,33 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *        The type of data
      *
      * @return  The data for the given key (or null)
+     *
+     * @see #setDataExt
+     * @see #getData
      */
     @SuppressWarnings({"unchecked", "unused"})
-    public <V> V getData(final String key) {
-        if (key == null) {
-            CoreLogger.logError("getData: key == null");
-            return null;
-        }
-        return (V) mStore.get(key);
+    public <V> V getDataExt(final String key) {
+        return (V) mStore.getData(key);
+    }
+
+    /**
+     * Returns the data (associated with the given key) kept in the {@link ViewModel}
+     * associated with the current {@code Activity}.
+     *
+     * @param key
+     *        The key
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The data for the given key (or null)
+     *
+     * @see #setData
+     * @see #getDataExt
+     */
+    @SuppressWarnings("unused")
+    public static <V> V getData(final String key) {
+        return get().getDataExt(key);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1181,7 +1220,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected     String                                    mTableName;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     Requester                <D>              mRequester;
+        protected     DataLoader               <D>              mDataLoader;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected     Class                    <S>              mClass;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1263,17 +1302,15 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
 
         /**
-         * Sets the requester component.
+         * Sets the DataLoader component.
          *
-         * @param requester
-         *        The {@code BaseResponseLoaderWrapper.Requester}
+         * @param dataLoader
+         *        The {@code DataLoader}
          *
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
-         *
-         * @see     CoreLoadExtendedBuilder#setRequester(BaseResponseLoaderWrapper.Requester)
          */
-        public Builder<S, Key, T, R, E, D> setRequester(final Requester<D> requester) {
-            mRequester              = requester;
+        public Builder<S, Key, T, R, E, D> setDataLoader(final DataLoader<D> dataLoader) {
+            mDataLoader             = dataLoader;
             return this;
         }
 
@@ -1445,13 +1482,13 @@ public class BaseViewModel<D> extends AndroidViewModel {
             if (mLifecycleOwner == null) mLifecycleOwner = getLifecycleOwner(activity);
 
             if (mData == null) {
-                if (mRequester == null) {
-                    CoreLogger.logError("requester == null, please set in BaseViewModelBuilder");
+                if (mDataLoader == null) {
+                    CoreLogger.logError("DataLoader == null, please set in BaseViewModelBuilder");
                     return null;
                 }
                 mData = mTableName == null ?
-                        new BaseLiveData <>(mRequester, mBaseDialog):
-                        new CacheLiveData<>(mRequester, mBaseDialog, mTableName, mUriResolver);
+                        new BaseLiveData <>(mDataLoader, mBaseDialog):
+                        new CacheLiveData<>(mDataLoader, mBaseDialog, mTableName, mUriResolver);
                 if (mData instanceof CacheLiveData && mDataSourceProducer != null)
                     ((CacheLiveData) mData).setMerge(true);
             }

@@ -25,6 +25,7 @@ import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.CacheHelper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
@@ -102,7 +103,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     // setProgressDelay description should be consistent
     private static final int                        DEFAULT_PROGRESS_DELAY  = 700;      // ms
 
-    private        final Requester<D>               mRequester;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected      final DataLoader<D>              mDataLoader;
     private        final BaseDialog                 mBaseDialog;
     private        final AtomicBoolean              mLoading                = new AtomicBoolean();
     private        final AtomicBoolean              mSetValue               = new AtomicBoolean();
@@ -114,12 +116,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     private        final Provider<BaseDialog>       mToast;
 
     /**
-     * The API to make data loading requests.
+     * The data loading helper API.
      *
      * @param <D>
      *        The type of data
      */
-    public interface Requester<D> extends Callable<D> {
+    public interface DataLoader<D> extends Callable<D>, CacheHelper {
 
         /**
          * Cancels the current data loading request (if any).
@@ -153,33 +155,33 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     /**
      * Initialises a newly created {@code BaseLiveData} object.
      *
-     * @param requester
-     *        The data loading requester
+     * @param dataLoader
+     *        The {@code DataLoader} component
      */
     @SuppressWarnings("unused")
-    public BaseLiveData(@NonNull final Requester<D> requester) {
-        this(requester, getDefaultBaseDialog());
+    public BaseLiveData(@NonNull final DataLoader<D> dataLoader) {
+        this(dataLoader, getDefaultBaseDialog());
     }
 
     /**
      * Initialises a newly created {@code BaseLiveData} object.
      *
-     * @param requester
-     *        The data loading requester
+     * @param dataLoader
+     *        The {@code DataLoader} component
      *
      * @param dialog
      *        The data loading progress GUI
      */
-    public BaseLiveData(@NonNull final Requester<D> requester, final BaseDialog dialog) {
+    public BaseLiveData(@NonNull final DataLoader<D> dataLoader, final BaseDialog dialog) {
 
-        mRequester              = requester;
+        mDataLoader             = dataLoader;
         mBaseDialog             = dialog != null ? dialog: getDefaultBaseDialog();
         mToast                  = Core.getDagger().getToastLong();
 
         mBaseDialog.setOnCancel(new Runnable() {
             @Override
             public void run() {
-                CoreLogger.logWarning("cancelled by user " + mRequester);
+                CoreLogger.logWarning("cancelled by user " + mDataLoader);
                 onComplete(true);
             }
 
@@ -202,7 +204,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         if (cancel) {
             mSetValue.set(false);
-            mRequester.cancel();
+            mDataLoader.cancel();
         }
         else {
             if (mLoadParameters.mFuture != null) {
@@ -279,7 +281,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected void onCompleteHelper(final boolean success, final D result, Boolean notDisplayErrors) {
         if (success) {
-            if (result instanceof BaseResponse) ((BaseResponse) result).setValues(null);
+            if (result instanceof BaseResponse) ((BaseResponse<?, ?, ?>) result).setValues(null);
 
             setValue(result);
             return;
@@ -385,7 +387,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                                 loadParameters.getTimeout(), new Runnable() {
                             @Override
                             public void run() {
-                                CoreLogger.logWarning("request timeout " + mRequester);
+                                CoreLogger.logWarning("request timeout " + mDataLoader);
                                 onComplete(false, getTimeoutStub(), true);
                             }
                         }): null, loadParameters);
@@ -404,7 +406,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             mSetValue.set(true);
 
-            return mRequester.call();
+            return mDataLoader.call();
         }
         catch (Exception exception) {
             onComplete(false, getErrorStub(exception), false);
@@ -512,6 +514,53 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         private              Boolean                mMerge, mMergeFromParameters;
 
         /**
+         * Initialises a newly created {@code CacheLiveData} object.
+         *
+         * @param dataLoader
+         *        The {@code DataLoader} component
+         *
+         * @param tableName
+         *        The name of the table in the database (to cache the loaded data)
+         *
+         * @param uriResolver
+         *        The URI resolver
+         */
+        @SuppressWarnings("unused")
+        public CacheLiveData(@NonNull final DataLoader<D> dataLoader,
+                             @NonNull final String tableName, final UriResolver uriResolver) {
+            super(dataLoader);
+
+            mUri = init(tableName, uriResolver);
+        }
+
+        /**
+         * Initialises a newly created {@code CacheLiveData} object.
+         *
+         * @param dataLoader
+         *        The {@code DataLoader} component
+         *
+         * @param dialog
+         *        The data loading progress GUI
+         *
+         * @param tableName
+         *        The name of the table in the database (to cache the loaded data)
+         *
+         * @param uriResolver
+         *        The URI resolver
+         */
+        public CacheLiveData(@NonNull final DataLoader<D> dataLoader, final BaseDialog dialog,
+                             @NonNull final String tableName, final UriResolver uriResolver) {
+            super(dataLoader, dialog);
+
+            mUri = init(tableName, uriResolver);
+        }
+
+        private Uri init(@NonNull final String tableName, UriResolver uriResolver) {
+            if (uriResolver == null) uriResolver = Utils.getUriResolver();
+            return uriResolver.getUri(tableName);
+        }
+
+        /**
          * Sets the "merge data" flag.
          *
          * @param merge
@@ -524,53 +573,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             final Boolean previous = mMerge;
             mMerge = merge;
             return previous;
-        }
-
-        /**
-         * Initialises a newly created {@code CacheLiveData} object.
-         *
-         * @param requester
-         *        The data loading requester
-         *
-         * @param tableName
-         *        The name of the table in the database (to cache the loaded data)
-         *
-         * @param uriResolver
-         *        The URI resolver
-         */
-        @SuppressWarnings("unused")
-        public CacheLiveData(@NonNull final Requester<D> requester,
-                             @NonNull final String tableName, final UriResolver uriResolver) {
-            super(requester);
-
-            mUri   = init(tableName, uriResolver);
-        }
-
-        /**
-         * Initialises a newly created {@code CacheLiveData} object.
-         *
-         * @param requester
-         *        The data loading requester
-         *
-         * @param dialog
-         *        The data loading progress GUI
-         *
-         * @param tableName
-         *        The name of the table in the database (to cache the loaded data)
-         *
-         * @param uriResolver
-         *        The URI resolver
-         */
-        public CacheLiveData(@NonNull final Requester<D> requester, final BaseDialog dialog,
-                             @NonNull final String tableName, final UriResolver uriResolver) {
-            super(requester, dialog);
-
-            mUri   = init(tableName, uriResolver);
-        }
-
-        private Uri init(@NonNull final String tableName, UriResolver uriResolver) {
-            if (uriResolver == null) uriResolver = Utils.getUriResolver();
-            return uriResolver.getUri(tableName);
         }
 
         /**
@@ -601,7 +603,23 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         mMergeFromParameters != null ? mMergeFromParameters: false);
             else {
                 CoreLogger.log("about to load data from cache, previous success flag: " + success);
-                final Cursor cursor = query();
+                final String tableName = Utils.getCacheTableName(mUri);
+
+                Cursor cursor;
+                try {
+                    cursor = mDataLoader.getCursor(tableName);
+                    CoreLogger.log("custom converter getCursor, table: " + tableName);
+                }
+                catch (UnsupportedOperationException exception) {
+                    CoreLogger.log(CoreLogger.getDefaultLevel(),
+                            "default converter getCursor, table: " + tableName, exception);
+                    cursor = query();
+                }
+                catch (Exception exception) {
+                    CoreLogger.log(exception);
+                    return;
+                }
+
                 if (cursor != null) result = handleCursor(result, cursor);
             }
             super.onComplete(success, result);
@@ -643,17 +661,17 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected ContentValues[] getContentValues(final D result) {
-            return result instanceof BaseResponse ? ((BaseResponse) result).getValues(): null;
+        protected Collection<ContentValues> getContentValues(final D result) {
+            return result instanceof BaseResponse ? ((BaseResponse<?, ?, ?>) result).getValues(): null;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected void storeResult(final ContentValues[] values, final D result, final boolean merge) {
-            if (result == null) {
-                CoreLogger.logError("nothing to store in cache, empty result");
+        protected void storeResult(final Collection<ContentValues> values,
+                                   final D result, final boolean merge) {
+            if (values == null || values.size() == 0) {
+                CoreLogger.logError("nothing to store in cache, empty values");
                 return;
             }
-
             if (result instanceof BaseResponse) {
                 final Source source = ((BaseResponse) result).getSource();
                 if (source != Source.NETWORK) {
@@ -662,23 +680,42 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 }
             }
 
-            if (Utils.getCacheTableName(mUri) == null) {
+            final String tableName = Utils.getCacheTableName(mUri);
+            if (tableName == null) {
                 CoreLogger.logError("can't store in cache, empty table name");
                 return;
             }
-            if (values == null || values.length == 0) {
-                CoreLogger.logError("nothing to store in cache, empty values");
-                return;
-            }
+
             CoreLogger.log("about to store in cache, merge " + merge);
 
             Utils.runInBackground(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        if (!merge) Utils.clearCache(mUri);
+                        Boolean result;
+                        if (!merge) {
+                            result = mDataLoader.clear(tableName);
+                            if (result == null) return;
 
-                        getContext().getContentResolver().bulkInsert(mUri, values);
+                            if (result)
+                                CoreLogger.log("custom converter delete, table: " + tableName);
+                            else {
+                                CoreLogger.log("default converter delete, table: " + tableName);
+                                Utils.clearCache(mUri);
+                            }
+                        }
+
+                        result = mDataLoader.store(values);
+                        if (result == null) return;
+
+                        if (result) {
+                            CoreLogger.log("custom converter store, table: " + tableName);
+                            return;
+                        }
+                        CoreLogger.log("default converter store, table: " + tableName);
+
+                        final ContentValues[] tmp = new ContentValues[values.size()];
+                        getContext().getContentResolver().bulkInsert(mUri, values.toArray(tmp));
                     }
                     catch (Exception exception) {
                         CoreLogger.log("can not store result", exception);

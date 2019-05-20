@@ -19,9 +19,9 @@ package akha.yakhont.demo.retrofit;
 import akha.yakhont.demo.retrofit.LocalOkHttpClientHelper.Data;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.CoreLogger;
 
 import android.content.Context;
-import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,7 +39,6 @@ import retrofit.mime.TypedInput;
  */
 public class LocalOkHttpClient implements Client {
 
-    private static final String             TAG                         = "LocalOkHttpClient";
     private static final int                HTTP_CODE_OK                = 200;
 
     private final LocalOkHttpClientHelper   mLocalOkHttpClientHelper;
@@ -62,6 +61,7 @@ public class LocalOkHttpClient implements Client {
     @Override
     public Response execute(Request request) throws IOException {
         final int delay = mEmulatedNetworkDelay;
+
         if (delay > 0) {
             final CountDownLatch countDownLatch = new CountDownLatch(1);
             //noinspection Convert2Lambda,Anonymous2MethodRef
@@ -75,10 +75,12 @@ public class LocalOkHttpClient implements Client {
                 countDownLatch.await();
             }
             catch (InterruptedException exception) {
-                Log.e(TAG, "interrupted", exception);
+                CoreLogger.log("interrupted", exception);
             }
         }
+
         Data data = mLocalOkHttpClientHelper.execute(request.getUrl(), request.getMethod());
+
         return new Response(request.getUrl(), HTTP_CODE_OK, data.message(),
                 new ArrayList<>(), new TypedInputStream(data));
     }
@@ -102,7 +104,7 @@ public class LocalOkHttpClient implements Client {
                 return mData.stream().available();
             }
             catch (IOException exception) {
-                Log.e(TAG, "error", exception);
+                CoreLogger.log(exception);
                 return 0;
             }
         }

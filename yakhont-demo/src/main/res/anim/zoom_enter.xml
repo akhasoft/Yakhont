@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <!--
 /*
 ** Copyright 2009, The Android Open Source Project
@@ -19,6 +20,7 @@
 
 <!-- Special window zoom animation: this is the element that enters the screen,
      it starts at 200% and scales down.  Goes with zoom_exit.xml. -->
+
 <set xmlns:android="http://schemas.android.com/apk/res/android"
         android:interpolator="@android:anim/decelerate_interpolator">
     <scale android:fromXScale="2.0" android:toXScale="1.0"

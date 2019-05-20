@@ -16,6 +16,7 @@
 
 package akha.yakhont;
 
+import akha.yakhont.Core.Utils.DataStore;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
@@ -79,6 +80,7 @@ import androidx.annotation.AnyRes;
 import androidx.annotation.CallSuper;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntRange;
+import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.StringRes;
@@ -223,6 +225,8 @@ public class Core implements DefaultLifecycleObserver {
 
     private static final AtomicBoolean                  sResumed                    = new AtomicBoolean();
     private static final AtomicBoolean                  sStarted                    = new AtomicBoolean();
+
+    private static final DataStore                      sStore                      = new DataStore();
 
     /**
      *  The data loading dialog API.
@@ -460,8 +464,8 @@ public class Core implements DefaultLifecycleObserver {
      *         }
      *
      *         &#064;Override
-     *         protected BaseDialog getToast(boolean useSnackbarIsoToast, boolean durationLong) {
-     *             return super.getToast(useSnackbarIsoToast, durationLong);
+     *         protected BaseDialog getToast(boolean useSnackbarIsoToast, Integer duration) {
+     *             return super.getToast(useSnackbarIsoToast, duration);
      *         }
      *     }
      * }
@@ -1004,16 +1008,51 @@ public class Core implements DefaultLifecycleObserver {
         return sNetworkStatusListeners.remove(listener);
     }
 
+    /**
+     * Sets some data (singleton) to keep in this application's store.
+     *
+     * @param key
+     *        The key
+     *
+     * @param value
+     *        The data
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The previous data for the given key (or null)
+     *
+     * @see #getSingleton
+     */
+    @SuppressWarnings("unused")
+    public static <V> V setSingleton(final String key, final V value) {
+        return sStore.setData(key, value);
+    }
+
+    /**
+     * Returns the data (associated with the given key singleton) kept in this application's store.
+     *
+     * @param key
+     *        The key
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The data for the given key (or null)
+     *
+     * @see #setSingleton
+     */
+    @SuppressWarnings({"unchecked", "unused"})
+    public static <V> V getSingleton(final String key) {
+        return (V) sStore.getData(key);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * The Yakhont utilities class.
      */
     public static class Utils {
-
-        /** To use with {@link #showToast(String, boolean)} etc. The value is {@value}. */
-        @SuppressWarnings("unused")
-        public static final  boolean                    SHOW_DURATION_LONG              = true;
 
         @SuppressWarnings("Convert2Lambda")
         private static       UriResolver                sUriResolver                    = new UriResolver() {
@@ -1109,45 +1148,90 @@ public class Core implements DefaultLifecycleObserver {
          * Shows {@link Toast}.
          *
          * @param text
-         *        The text to show
+         *        The text to show in {@code Toast}
          *
-         * @param durationLong
-         *        {@link #SHOW_DURATION_LONG} for using {@link Toast#LENGTH_LONG},
-         *        !{@link #SHOW_DURATION_LONG} for {@link Toast#LENGTH_SHORT}
+         * @param duration
+         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
+         *        {@code Toast.LENGTH_SHORT}), null for default value
          */
         @SuppressWarnings("unused")
-        public static void showToast(final String text, final boolean durationLong) {
-            UiModule.showToast(text, durationLong);
+        public static void showToast(final String text, final Integer duration) {
+            UiModule.showToast(text, duration);
         }
 
         /**
          * Shows {@link Toast}.
          *
          * @param resId
-         *        The resource ID of the string resource to show
+         *        The string ID to show in {@code Toast}
          *
-         * @param durationLong
-         *        {@link #SHOW_DURATION_LONG} for using {@link Toast#LENGTH_LONG},
-         *        !{@link #SHOW_DURATION_LONG} for {@link Toast#LENGTH_SHORT}
+         * @param duration
+         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
+         *        {@code Toast.LENGTH_SHORT}), null for default value
          */
         @SuppressWarnings("unused")
-        public static void showToast(@StringRes final int resId, final boolean durationLong) {
-            UiModule.showToast(resId, durationLong);
+        public static void showToast(@StringRes final int resId, final Integer duration) {
+            UiModule.showToast(resId, duration);
+        }
+
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param toast
+         *        The {@code Toast} to show
+         *
+         * @param duration
+         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
+         *        {@code Toast.LENGTH_SHORT}), null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showToastExt(final Toast toast, final Integer duration) {
+            UiModule.showToastExt(toast, duration);
+        }
+
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param viewId
+         *        The layout ID to show in {@code Toast}
+         *
+         * @param duration
+         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
+         *        {@code Toast.LENGTH_SHORT}), null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showToastExt(@LayoutRes final int viewId, final Integer duration) {
+            UiModule.showToastExt(viewId, duration);
         }
 
         /**
          * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
          *
          * @param text
-         *        The text to show
+         *        The text to show in {@code Snackbar}
          *
-         * @param durationLong
-         *        {@link #SHOW_DURATION_LONG} for using {@link Snackbar#LENGTH_LONG},
-         *        !{@link #SHOW_DURATION_LONG} for {@link Snackbar#LENGTH_SHORT}
+         * @param duration
+         *        duration in seconds or milliseconds (or {@code Snackbar.LENGTH_INDEFINITE},
+         *        {@code Snackbar.LENGTH_LONG}, {@code Snackbar.LENGTH_SHORT}), null for default value
          */
         @SuppressWarnings("unused")
-        public static void showSnackbar(final String text, final boolean durationLong) {
-            UiModule.showSnackbar(text, durationLong);
+        public static void showSnackbar(final String text, final Integer duration) {
+            UiModule.showSnackbar(text, duration);
+        }
+
+        /**
+         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
+         *
+         * @param resId
+         *        The string ID to show in {@code Snackbar}
+         *
+         * @param duration
+         *        duration in seconds or milliseconds (or {@code Snackbar.LENGTH_INDEFINITE},
+         *        {@code Snackbar.LENGTH_LONG}, {@code Snackbar.LENGTH_SHORT}), null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showSnackbar(@StringRes final int resId, final Integer duration) {
+            UiModule.showSnackbar(resId, duration);
         }
 
         /**
@@ -1158,21 +1242,6 @@ public class Core implements DefaultLifecycleObserver {
         @SuppressWarnings("unused")
         public static BaseDialog getLoadingProgressDefault() {
             return LiveDataDialog.getInstance();
-        }
-
-        /**
-         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
-         *
-         * @param resId
-         *        The resource ID of the string resource to show
-         *
-         * @param durationLong
-         *        {@link #SHOW_DURATION_LONG} for using {@link Snackbar#LENGTH_LONG},
-         *        !{@link #SHOW_DURATION_LONG} for {@link Snackbar#LENGTH_SHORT}
-         */
-        @SuppressWarnings("unused")
-        public static void showSnackbar(@StringRes final int resId, final boolean durationLong) {
-            UiModule.showSnackbar(resId, durationLong);
         }
 
         /**
@@ -2337,12 +2406,49 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /**
+         * Intended to use with {@link #cursorHelper} method.
+         */
         public interface CursorHandler {
-            boolean handle(Cursor cursor);  // return true to move to next row
+
+            /**
+             * Handles the current cursor row.
+             *
+             * @param cursor
+             *        The {@code Cursor}
+             *
+             * @return  {@code true} to move to the next row (after handling the current one), {@code false} otherwise
+             *
+             * @see #cursorHelper
+             */
+            boolean handle(Cursor cursor);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc"})
+        /**
+         * Helper method to work with {@code Cursor} objects. Iterates through all cursor rows (if any)
+         * and applies to each one the handler provided.
+         *
+         * @param cursor
+         *        The {@code Cursor}
+         *
+         * @param cursorHandler
+         *        The custom handler for each cursor row
+         *
+         * @param moveToFirst
+         *        {@code true} to move to the first row before handling started,
+         *        {@code false} to work from the current cursor position
+         *
+         * @param onlyOne
+         *        {@code true} if only one row should be handled, {@code false} otherwise
+         *
+         * @param closeOrRestorePos
+         *        null - close cursor after handling, {@code true} - restore initial cursor position,
+         *        {@code false} - leave cursor as is
+         *
+         * @return  {@code true} in case of no errors, {@code false} otherwise
+         *
+         * @see CursorHandler
+         */
         public static boolean cursorHelper(final Cursor cursor, final CursorHandler cursorHandler,
                                            final boolean moveToFirst, final boolean onlyOne,
                                            final Boolean closeOrRestorePos) {
@@ -2440,6 +2546,29 @@ public class Core implements DefaultLifecycleObserver {
                 // handles https://code.google.com/p/android/issues/detail?id=17423
                 if (dialog != null && dialogFragment.getRetainInstance())
                     dialog.setDismissMessage(null);
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static class DataStore {
+
+            private final Map<String, Object>           mStore                          = newMap();
+
+            @SuppressWarnings("unchecked")
+            public <V> V setData(final String key, final V value) {
+                if (key == null) {
+                    CoreLogger.logError("setData: key == null");
+                    return null;
+                }
+                return (V) mStore.put(key, value);
+            }
+
+            public Object getData(final String key) {
+                if (key == null) {
+                    CoreLogger.logError("getData: key == null");
+                    return null;
+                }
+                return mStore.get(key);
             }
         }
 

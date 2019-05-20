@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-package akha.yakhont.demoroomkotlin.model
+package akha.yakhont.demoroomkotlin.room
 
-import androidx.databinding.BaseObservable
-import androidx.databinding.Bindable
+import androidx.room.Database
+import androidx.room.RoomDatabase
 
-import java.util.Locale
-
-import com.google.gson.annotations.SerializedName
-
-class Beer: BaseObservable() {      // POJO with Data Binding Library support
-
-    @SerializedName("title")
-    @get:Bindable
-    var title: String? = null
-
-    override fun toString(): String {
-        return String.format(Locale.getDefault(), "title: %s", title)
-    }
+@Database(entities = [Item::class], version = 1,
+        exportSchema = false /* just to simplify demo - don't use in real projects */ )
+abstract class AppDatabase: RoomDatabase() {
+    abstract fun itemDao(): ItemDao
 }

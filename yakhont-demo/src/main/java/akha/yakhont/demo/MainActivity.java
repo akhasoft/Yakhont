@@ -37,12 +37,14 @@ import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
 import android.location.Location;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.Date;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import dagger.BindsInstance;
 import dagger.Component;
@@ -104,7 +106,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             @Override
             public void onClick(View view) {
                 Utils.showSnackbar(LocationCallbacks.toDms(getLocation(), MainActivity.this),
-                        Utils.SHOW_DURATION_LONG);
+                        Snackbar.LENGTH_LONG);
             }
         });
 
@@ -112,7 +114,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         findViewById(R.id.fab_info).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Utils.showToast(R.string.info, Utils.SHOW_DURATION_LONG);
+                Utils.showToast(R.string.info, Toast.LENGTH_LONG);
             }
         });
     }
@@ -141,12 +143,12 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         mRx = new LocationRx(isRxJava2(), this).subscribe(new SubscriberRx<Location>() {
             @Override
             public void onNext(Location location) {
-                Log.w("MainActivity", "LocationRx: " + location);
+                CoreLogger.log("LocationRx: " + location);
             }
 
             @Override
             public void onError(Throwable throwable) {
-                Log.e("MainActivity", "LocationRx: " + throwable);
+                CoreLogger.log(throwable);
             }
         });
 
@@ -162,7 +164,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     @Override
     public void onLocationChanged(Location location, Date date) {
-        Log.w("MainActivity", "onLocationChanged: " + location);
+        CoreLogger.log("onLocationChanged: " + location);
     }
 
     @Override
@@ -236,8 +238,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         @SuppressWarnings("EmptyMethod")
         @Override
-        protected BaseDialog getToast(boolean useSnackbarIsoToast, boolean durationLong) {
-            return super.getToast(useSnackbarIsoToast, durationLong);
+        protected BaseDialog getToast(boolean useSnackbarIsoToast, Integer duration) {
+            return super.getToast(useSnackbarIsoToast, duration);
         }
     }
 }

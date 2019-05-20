@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <!-- Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
 
      Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +18,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <string name="yakhont_loader_progress" tools:ignore="TypographyEllipsis"
-                                                        >Идет загрузка данных (%s)...</string>
+                                                        >Идет загрузка данных\n(%s)...</string>
     <string name="yakhont_loader_progress_def_info"     >подробности недоступны</string>
     <string name="yakhont_loader_alert"                 >Отменить загрузку данных?</string>
     <string name="yakhont_loader_cancelled"             >Загрузка данных отменена</string>

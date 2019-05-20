@@ -14,22 +14,22 @@
  * limitations under the License.
  */
 
-package akha.yakhont.demoroomkotlin.model
+package akha.yakhont.demoroomkotlin.room
 
-import androidx.databinding.BaseObservable
-import androidx.databinding.Bindable
+import android.database.Cursor
 
-import java.util.Locale
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.Query
 
-import com.google.gson.annotations.SerializedName
+@Dao
+interface ItemDao {
+    @Query("SELECT * FROM item")
+    fun getAll(): Cursor
 
-class Beer: BaseObservable() {      // POJO with Data Binding Library support
+    @Insert
+    fun insert(vararg items: Item)
 
-    @SerializedName("title")
-    @get:Bindable
-    var title: String? = null
-
-    override fun toString(): String {
-        return String.format(Locale.getDefault(), "title: %s", title)
-    }
+    @Query("DELETE FROM item")
+    fun deleteAll()
 }

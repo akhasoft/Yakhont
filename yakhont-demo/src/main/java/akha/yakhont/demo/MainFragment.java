@@ -29,6 +29,7 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.Core.Utils.MeasuredViewAdjuster;
 import akha.yakhont.Core.Utils.RetainDialogFragment;
+import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
@@ -57,7 +58,6 @@ import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -66,6 +66,7 @@ import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -366,12 +367,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     private void logRx(String info, List<?> data) {
-        Log.w("MainFragment", "LoaderRx (" + info + "): onNext, data == " + (data == null ? "null":
+        CoreLogger.log("LoaderRx (" + info + "): onNext, data == " + (data == null ? "null":
                 Arrays.deepToString(data.toArray())));
     }
 
     private void logRx(String info, Throwable throwable) {
-        Log.e("MainFragment", "LoaderRx (" + info + "): onError, error == " + throwable);
+        CoreLogger.logError("LoaderRx (" + info + "): onError, error == " + throwable);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -557,7 +558,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                     BaseViewModel.get().getData().confirm(getActivity(), view);
                     return true;
                 }
-                Utils.showToast(R.string.yakhont_loader_cancelled, !Utils.SHOW_DURATION_LONG);
+                Utils.showToast(R.string.yakhont_loader_cancelled, Toast.LENGTH_LONG);
                 LiveDataDialog.cancel(getActivity());
                 return false;
             });

@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-@file:Suppress("Annotator")
-
 package akha.yakhont.demosimplekotlin
 
 import akha.yakhont.demosimplekotlin.model.Beer
@@ -43,7 +41,7 @@ import java.util.Date
 class MainActivity: AppCompatActivity(), LocationListener {
 
     companion object {
-        private var      sLocation: String? = null
+        private var      location: String? = null
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,26 +58,30 @@ class MainActivity: AppCompatActivity(), LocationListener {
         ////////
         // normally it should be enough - but here we have the local client, so see below...
 
-        Retrofit2Loader.start<Retrofit2Api>("http://...", Retrofit2Api::class.java, { it.data },
+        Retrofit2Loader.start<Retrofit2Api>("http://...", Retrofit2Api::class.java, {it.data},
                 BR.beer, savedInstanceState)
 
         ////////
 */
-        val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
+        if (savedInstanceState != null)                  // handling screen orientation changes
+            Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>()
+        else {
+            val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
 
-        Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data }, BR.beer,
-                LocalOkHttpClient2(retrofit2)
-                // just to demo the progress GUI - comment it out if not needed
-                .setEmulatedNetworkDelay(7)
-                , retrofit2, savedInstanceState).start(savedInstanceState)
+            Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java,
+                    {it.data}, BR.beer, LocalOkHttpClient2(retrofit2)
+                    // just to demo the progress GUI - comment it out if not needed
+                    .setEmulatedNetworkDelay(7)
+                    , retrofit2, null).start(null)
+        }
     }
 
     override fun onLocationChanged(location: Location, date: Date) {
-        sLocation = LocationCallbacks.toDms(location, this)
+        MainActivity.location = LocationCallbacks.toDms(location, this)
         setLocation()
     }
 
     private fun setLocation() {
-        if (sLocation != null) (findViewById<View>(R.id.location) as TextView).text = sLocation
+        if (location != null) (findViewById<View>(R.id.location) as TextView).text = location
     }
 }

@@ -12,16 +12,13 @@
      distributed under the License is distributed on an "AS IS" BASIS,
      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
      See the License for the specific language governing permissions and
-     limitations under the License.
+    limitations under the License.
 -->
 
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
+    android:shape="rectangle">
 
-    <gradient
-        android:startColor ="#00BBBBBB"
-        android:endColor   ="#00BBBBBB"
-        android:centerColor="#77BBBBBB">
-    </gradient>
+    <corners android:radius="16dp" />
+    <solid android:color="#FF00DDFF" />
 
 </shape>

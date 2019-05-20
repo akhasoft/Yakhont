@@ -16,11 +16,11 @@
 
 package akha.yakhont.demo.retrofit;
 
+import akha.yakhont.CoreLogger;
 import akha.yakhont.technology.retrofit.BaseLocalOkHttpClient2;
 import akha.yakhont.technology.retrofit.Retrofit2;
 
 import android.content.Context;
-import android.util.Log;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,8 +33,6 @@ import okhttp3.ResponseBody;
 
 // OkHttp3 local client for Retrofit 2
 public class LocalOkHttpClient2 extends BaseLocalOkHttpClient2 {
-
-    private static final String             TAG                         = "LocalOkHttpClient2";
 
     private final LocalOkHttpClientHelper   mLocalOkHttpClientHelper;
 
@@ -58,7 +56,7 @@ public class LocalOkHttpClient2 extends BaseLocalOkHttpClient2 {
 
         int result = stream.read(content);
         if (result <= 0) {
-            Log.e(TAG, "can't read input stream");
+            CoreLogger.logError("can't read input stream");
             return null;
         }
 

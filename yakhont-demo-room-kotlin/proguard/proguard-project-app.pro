@@ -24,3 +24,7 @@
 -keep class akha.yakhont.demoroomkotlin.model.** { *; }
 
 -keep interface akha.yakhont.demoroomkotlin.retrofit.** { *; }
+
+-keep class kotlin.coroutines.CoroutineContext
+-keep class kotlin.coroutines.CoroutineContext$Key
+-keep class kotlin.jvm.functions.Function2

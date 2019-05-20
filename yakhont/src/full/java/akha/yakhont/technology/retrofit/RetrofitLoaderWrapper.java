@@ -176,10 +176,8 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
 
             if (response.getBody() != null) {
                 final Collection<ContentValues> contentValues = getDataForCache(type);
-                if (contentValues != null) {
-                    final ContentValues[] tmpArray = new ContentValues[contentValues.size()];
-                    baseResponse.setValues(contentValues.toArray(tmpArray));
-                }
+                if (contentValues != null)
+                    baseResponse.setValues(contentValues);
             }
             else
                 CoreLogger.logError("body == null");
@@ -336,8 +334,8 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             final Method method = mRetrofit.getMethod(getRequester());
 
             final RetrofitLoaderWrapper<D, T> result = new RetrofitLoaderWrapper<>(viewModelStore,
-                    mLoaderId, getRequester(), getTableName(method), mDescription, getConverter(),
-                    getUriResolver(), mRetrofit);
+                    mLoaderId, getRequester(), mTableName != null ? mTableName: getTableName(method),
+                    mDescription, getConverter(), getUriResolver(), mRetrofit);
 
             setType(result, mRetrofit.getYakhontRestAdapter().getType(method));
             return result;

@@ -31,8 +31,8 @@ import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.ViewHolderCreator;
 import akha.yakhont.adapter.ValuesCacheAdapterWrapper;
-import akha.yakhont.loader.BaseLiveData;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
+import akha.yakhont.loader.BaseLiveData.DataLoader;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
@@ -539,8 +539,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             @NonNull final ViewModelStore                                   store,
                      final String                                           key,
                      final String                                           tableName,
-            @NonNull final BaseLiveData.Requester<BaseResponse<R, E, D>>    requester,
-            @NonNull final Observer<BaseResponse<R, E, D>>                  observer) {
+            @NonNull final DataLoader<BaseResponse<R, E, D>>                dataLoader,
+            @NonNull final Observer<BaseResponse  <R, E, D>>                observer) {
 
         @SuppressWarnings("unchecked")
         final PagingRecyclerViewAdapter<Object, Object, Object> adapter =
@@ -554,12 +554,18 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 .setActivity(activity)
                 .setKey(key)
                 .setTableName(tableName)
-                .setRequester(requester)
+                .setDataLoader(dataLoader)
                 .setDataSourceProducer(dataSourceProducer)
                 .setConfig(mPagingConfig)
                 .setPageSize(mPageSize)
                 .setAdapter(adapter)
                 .create();
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    @Override
+    protected Converter getConverter() {
+        return mConverter;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -589,7 +595,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       Requester<C>                            mRequester;
 
-        private         String                                  mTableName;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       String                                  mTableName;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       String                                  mDescription;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})

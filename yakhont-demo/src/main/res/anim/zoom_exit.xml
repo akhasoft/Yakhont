@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <!--
 /*
 ** Copyright 2009, The Android Open Source Project
@@ -21,6 +22,7 @@
      screen, it is forced above the entering element and starts at its
      normal size (filling the screen) and scales down while fading out.
      This goes with zoom_enter.xml. -->
+
 <set xmlns:android="http://schemas.android.com/apk/res/android"
         android:interpolator="@android:anim/decelerate_interpolator"
         android:zAdjustment="top">

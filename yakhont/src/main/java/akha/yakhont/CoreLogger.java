@@ -1161,8 +1161,12 @@ public class CoreLogger {
 
         private static final String                     ANR_TRACES               = "/data/anr/traces.txt";
         private static final String                     ZIP_PREFIX               = "data_yakhont";
+
         private static final int                        SCREENSHOT_QUALITY       =  100;
+
         private static final int                        DELAY                    = 3000;
+        private static final int                        DELAY_TOAST              = 3000;
+
         private static final String                     DEFAULT_PREFIX           = "log";
         private static final String                     DEFAULT_EXTENSION        = "txt";
 
@@ -1220,7 +1224,7 @@ public class CoreLogger {
                                     .append(errors.get(error));
 
                         Utils.showToast(activity.getString(R.string.yakhont_send_debug_email,
-                                Arrays.deepToString(addresses)), true);
+                                Arrays.deepToString(addresses)), DELAY_TOAST);
                         //noinspection Convert2Lambda
                         Utils.runInBackground(DELAY, new Runnable() {
                             @Override

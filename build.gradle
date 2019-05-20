@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:3.4.0"
+        classpath "com.android.tools.build:gradle:3.4.1"
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
         classpath "com.github.dcendents:android-maven-gradle-plugin:2.0"
@@ -102,6 +102,7 @@ ext {
     projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.0'
+    projectLibVerRoom                                           =  '2.1.0-beta01'
 
     projectLibVerDagger                                         =  '2.22.1'
 
@@ -109,7 +110,7 @@ ext {
 
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.0.2'
-    projectLibVerCoreCore                                       =  '1.0.1'
+    projectLibVerCoreCore                                       =  '1.0.2'
     projectLibVerFragmentFragment                               =  '1.0.0'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
@@ -125,7 +126,7 @@ ext {
 
     projectLibVerNotxMaterialMaterial                           =  '1.0.0'
 
-    projectLibVerKotlinCoreCore                                 =  '1.0.1'
+    projectLibVerKotlinCoreCore                                 =  '1.0.2'
     projectLibVerKotlinDatabindingCompiler                      =  '3.1.4'
     projectLibVerKotlinLifecycleLifecycleViewmodel              =  '2.0.0'
     projectLibVerKotlinLifecycleLifecycleReactiveStreams        =  '2.0.0'

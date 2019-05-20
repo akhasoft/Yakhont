@@ -225,11 +225,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                 setTypeIfNotSet(TypeHelper.getType(type));
 
                 final Collection<ContentValues> contentValues = getDataForCache(type);
-                if (contentValues != null) {
-                    // ContentProvider.bulkInsert requires array
-                    final ContentValues[] tmpArray = new ContentValues[contentValues.size()];
-                    baseResponse.setValues(contentValues.toArray(tmpArray));
-                }
+                if (contentValues != null)
+                    baseResponse.setValues(contentValues);
             }
             else
                 CoreLogger.logError("body == null");
@@ -439,8 +436,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             final Method method = mRetrofit.getMethod(getRequester());
 
             final Retrofit2LoaderWrapper<D, T> result = new Retrofit2LoaderWrapper<>(viewModelStore,
-                    mLoaderId, getRequester(), getTableName(method), mDescription, getConverter(),
-                    getUriResolver(), mRetrofit);
+                    mLoaderId, getRequester(), mTableName != null ? mTableName: getTableName(method),
+                    mDescription, getConverter(), getUriResolver(), mRetrofit);
 
             setType(result, TypeHelper.getType(method));
             return result;
@@ -585,7 +582,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         }
 
         private static <D> void start(final CoreLoad<Throwable, D> coreLoad, final Bundle savedInstanceState) {
-            if (coreLoad != null) coreLoad.start(savedInstanceState);
+            if (coreLoad != null && savedInstanceState == null) coreLoad.start(null);
         }
 
         /**

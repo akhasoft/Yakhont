@@ -137,6 +137,11 @@ dependencies {
     implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
     implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
+    implementation      "androidx.room:room-runtime:$projectLibVerRoom"
+    kapt                "androidx.room:room-compiler:$projectLibVerRoom"
+    implementation      "androidx.room:room-ktx:$projectLibVerRoom"
+    implementation      "androidx.room:room-rxjava2:$projectLibVerRoom"
+
     implementation      "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2
     kapt                "com.google.dagger:dagger-compiler:$projectLibVerDagger"
 

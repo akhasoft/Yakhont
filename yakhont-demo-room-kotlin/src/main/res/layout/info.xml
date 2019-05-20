@@ -15,13 +15,22 @@
      limitations under the License.
 -->
 
-<shape xmlns:android="http://schemas.android.com/apk/res/android"
-    android:shape="oval">
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content"
+    android:background="@drawable/info_background"
+    android:orientation="vertical">
 
-    <gradient
-        android:startColor ="#00BBBBBB"
-        android:endColor   ="#00BBBBBB"
-        android:centerColor="#77BBBBBB">
-    </gradient>
+    <TextView
+        android:id="@+id/yakhont_loader_text"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:text="@string/demo_description"
+        android:textColor="@android:color/white"
+        android:textStyle="bold"
+        android:layout_margin="12dp" />
 
-</shape>
+</LinearLayout>
