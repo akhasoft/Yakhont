@@ -120,7 +120,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * Please refer to the base method description.
      */
     @Override
-    public void onCreate(Activity activity, Bundle savedInstanceState) {
+    public void onCreate(final Activity activity, final Bundle savedInstanceState) {
         mRequestLocationUpdates = true;
         mRunLocationUpdates     = true;
 
@@ -131,7 +131,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * Please refer to the base method description.
      */
     @Override
-    public void onResume(Activity activity) {
+    public void onResume(final Activity activity) {
         CoreLogger.log("mRequestLocationUpdates " + mRequestLocationUpdates);
         if (mRequestLocationUpdates) startSettingsUpdates(activity);
     }
@@ -140,7 +140,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * Please refer to the base method description.
      */
     @Override
-    public void onSaveInstanceState(Activity activity, Bundle savedInstanceState) {
+    public void onSaveInstanceState(final Activity activity, final Bundle savedInstanceState) {
         super.onSaveInstanceState(activity, savedInstanceState);
 
         savedInstanceState.putBoolean(ARG_REQUEST_UPDATES, mRequestLocationUpdates);
@@ -200,7 +200,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         mSettingsClient.checkLocationSettings(createNewLocationSettingsRequest())
                 .addOnCompleteListener(activity, new OnCompleteListener<LocationSettingsResponse>() {
                     @Override
-                    public void onComplete(@NonNull Task<LocationSettingsResponse> task) {
+                    public void onComplete(@NonNull final Task<LocationSettingsResponse> task) {
                         log(task);
                         if (!task.isSuccessful()) {
                             taskOnFailure(task.getException());
@@ -213,7 +213,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                 })
                 .addOnFailureListener(activity, new OnFailureListener() {
                     @Override
-                    public void onFailure(@NonNull Exception exception) {
+                    public void onFailure(@NonNull final Exception exception) {
                         if (!checkLocationSettingsOnFailure(activity, exception))
                             onLocationError(exception, null);
                     }
@@ -232,7 +232,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "BooleanMethodIsAlwaysInverted"})
-    protected boolean checkLocationSettingsOnFailure(final Activity activity, @NonNull Exception exception) {
+    protected boolean checkLocationSettingsOnFailure(final Activity activity, @NonNull final Exception exception) {
         logException(exception);
 
         if (!(exception instanceof ApiException)) {
@@ -274,7 +274,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * Please refer to the base method description.
      */
     @Override
-    public boolean onActivityResult(Activity activity, RequestCodes requestCode, int resultCode, Intent data) {
+    public boolean onActivityResult(final Activity activity, final RequestCodes requestCode,
+                                    final int resultCode, final Intent data) {
         if (requestCode != RequestCodes.LOCATION_CHECK_SETTINGS) return false;
 
         switch (resultCode) {
@@ -337,7 +338,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     public static PendingIntent createPendingIntentBroadcast(@NonNull final Activity activity,
                                                              @NonNull final Class    classBroadcast,
                                                              @NonNull final String   action,
-                                                             final int      requestCode) {
+                                                                      final int      requestCode) {
         final Intent intent = new Intent(activity, classBroadcast);
         intent.setAction(action);
         return PendingIntent.getBroadcast(activity, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -388,7 +389,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     public static PendingIntent createPendingIntentService(@NonNull final Activity activity,
                                                            @NonNull final Class    classService,
                                                            @NonNull final String   action,
-                                                           final int      requestCode) {
+                                                                    final int      requestCode) {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1) {
             CoreLogger.logError("For apps targeting API level O, only PendingIntent.getBroadcast() should be used");
             return null;

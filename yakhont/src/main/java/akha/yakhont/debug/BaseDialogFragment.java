@@ -86,7 +86,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
+    public void onActivityCreated(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onActivityCreated(savedInstanceState);
@@ -97,7 +97,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         CoreLogger.log(getDebugMessage() + ", requestCode " + requestCode +
                 ", resultCode " + resultCode + " " + Utils.getActivityResultString(resultCode));
                 
@@ -110,7 +110,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onAttach(Activity activity) {
+    public void onAttach(final Activity activity) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(activity);
@@ -121,7 +121,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(final Context context) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(context);
@@ -130,7 +130,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-protected void onBindDialogView(View view) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-protected void onBindDialogView(final View view) {
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    super.onBindDialogView(view);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
@@ -140,7 +140,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onCancel(DialogInterface dialog) {
+    public void onCancel(final DialogInterface dialog) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onCancel(dialog);
@@ -149,7 +149,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-public void onClick(DialogInterface dialog, int which) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-public void onClick(final DialogInterface dialog, final int which) {
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", which " + which, false);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    super.onClick(dialog, which);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
@@ -159,7 +159,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(final Configuration newConfig) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", newConfig " + newConfig, false);
 
         super.onConfigurationChanged(newConfig);
@@ -170,7 +170,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    public void onCreate(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onCreate(savedInstanceState);
@@ -181,7 +181,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @NonNull
     @Override
-    public Dialog onCreateDialog(Bundle savedInstanceState) {
+    public Dialog onCreateDialog(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         return super.onCreateDialog(savedInstanceState);
@@ -190,7 +190,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-protected View onCreateDialogView(Context context) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-protected View onCreateDialogView(final Context context) {
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    return super.onCreateDialogView(context);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
@@ -201,8 +201,8 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     @Nullable
     @CallSuper
     @Override
-    public View onCreateView(@NonNull  LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull  final LayoutInflater inflater, @Nullable final ViewGroup container,
+                             @Nullable final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         return super.onCreateView(inflater, container, savedInstanceState);
@@ -246,7 +246,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@CallSuper
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-public void onDialogClosed(boolean positiveResult) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-public void onDialogClosed(final boolean positiveResult) {
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", positiveResult " + positiveResult, false);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-    super.onDialogClosed(positiveResult);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat,MultiSelectListPreferenceDialogFragmentCompat-}
@@ -256,7 +256,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onDismiss(DialogInterface dialog) {
+    public void onDismiss(final DialogInterface dialog) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onDismiss(dialog);
@@ -268,7 +268,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onInflate(Activity activity, AttributeSet attrs, Bundle savedInstanceState) {
+    public void onInflate(final Activity activity, final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(activity, attrs, savedInstanceState);
@@ -279,7 +279,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onInflate(Context context, AttributeSet attrs, Bundle savedInstanceState) {
+    public void onInflate(final Context context, final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(context, attrs, savedInstanceState);
@@ -310,7 +310,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-@CallSuper
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-@Override
-    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-protected void onPrepareDialogBuilder(androidx.appcompat.app.AlertDialog.Builder builder) {
+    //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-protected void onPrepareDialogBuilder(final androidx.appcompat.app.AlertDialog.Builder builder) {
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-    super.onPrepareDialogBuilder(builder);
     //YakhontPreprocessor:addToGenerated-EditTextPreferenceDialogFragmentCompat,ListPreferenceDialogFragmentCompat-}
@@ -320,7 +320,8 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions,
+                                           @NonNull final int[] grantResults) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestCode " + requestCode +
                 ", permissions "  + Arrays.deepToString(permissions) +
                 ", grantResults " + Arrays.toString(grantResults), false);
@@ -344,7 +345,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
+    public void onSaveInstanceState(@NonNull final Bundle outState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", outState " + outState, false);
 
         super.onSaveInstanceState(outState);
@@ -377,7 +378,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull final View view, @Nullable final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onViewCreated(view, savedInstanceState);
@@ -388,7 +389,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onViewStateRestored(Bundle savedInstanceState) {
+    public void onViewStateRestored(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onViewStateRestored(savedInstanceState);
@@ -399,7 +400,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void setRetainInstance(boolean retain) {
+    public void setRetainInstance(final boolean retain) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", retain " + retain, true);
 
         super.setRetainInstance(retain);
@@ -410,7 +411,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void setTargetFragment(Fragment fragment, int requestCode) {
+    public void setTargetFragment(final Fragment fragment, final int requestCode) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment + ", requestCode " + requestCode, true);
 
         super.setTargetFragment(fragment, requestCode);

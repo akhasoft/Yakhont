@@ -23,7 +23,6 @@ import akha.yakhont.Core;
 import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.annotation.CallbacksInherited;
-import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
@@ -52,6 +51,7 @@ import java.util.concurrent.Callable;
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
     private        CoreLoad<Throwable, List<Data>>      mLoader;
+    private        LocalOkHttpClient2                   mOkHttpClient2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,7 +68,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        setDebugLogging(BuildConfig.DEBUG);         // optional
+//      setDebugLogging(BuildConfig.DEBUG);         // optional
 
         setLocation();
 
@@ -88,7 +88,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
 
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
-        retrofit2.init(Retrofit2Api.class, "http://localhost/", new LocalOkHttpClient2(retrofit2));
+        mOkHttpClient2 = new LocalOkHttpClient2(retrofit2);
+        retrofit2.init(Retrofit2Api.class, "http://localhost/", mOkHttpClient2);
 
         mLoader = Retrofit2Loader.adjust(new Retrofit2CoreLoadBuilder<>(retrofit2)
                 .setRequester(Retrofit2Api::getData)
@@ -109,16 +110,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         @Override
         public void loadInitial(@NonNull LoadInitialParams         params,
                                 @NonNull LoadInitialCallback<Data> callback) {
-            BaseResponseLoaderWrapper.clearCache(mLoader);
             CoreLoadHelper.setPagingCallback(mLoader, (data, source) ->
-                    callback.onResult(data, 0)).start(null);
+                    callback.onResult(data, 0)).start(0 /* page ID for cache */ );
         }
 
         @Override
         public void loadRange(@NonNull LoadRangeParams         params,
                               @NonNull LoadRangeCallback<Data> callback) {
             CoreLoadHelper.setPagingCallback(mLoader, (data, source) ->
-                    callback.onResult(data)).start(null);
+                    callback.onResult(data)).start(mOkHttpClient2.mPageCounter /* page ID for cache */ );
         }
     }
 
@@ -148,7 +148,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         }
     }
 
-    @SuppressWarnings("SameParameterValue")
+    @SuppressWarnings({"SameParameterValue", "unused"})
     private void setDebugLogging(boolean debug) {
         if (!debug) return;
 

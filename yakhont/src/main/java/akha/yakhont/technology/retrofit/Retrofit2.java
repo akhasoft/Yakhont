@@ -91,8 +91,8 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     private static final Charset                UTF8            = Charset.forName("UTF-8");
 
     private static final Callback               EMPTY_CALLBACK  = new Callback() {
-        @Override public void onResponse(Call call, Response  response ) {}
-        @Override public void onFailure (Call call, Throwable throwable) {}
+        @Override public void onResponse(final Call call, final Response  response ) {}
+        @Override public void onFailure (final Call call, final Throwable throwable) {}
     };
 
     private              BodyCache              mData;
@@ -321,13 +321,13 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         return callback == null ? null: new CallbackRx<D>() {
             @SuppressWarnings("unused")
             @Override
-            public void onResult(D result) {
+            public void onResult(final D result) {
                 callback.onResponse(null, Response.success(result));
             }
 
             @SuppressWarnings("unused")
             @Override
-            public void onError(Throwable throwable) {
+            public void onError(final Throwable throwable) {
                 callback.onFailure(null, throwable);
             }
         };

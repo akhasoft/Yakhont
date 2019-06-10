@@ -22,26 +22,25 @@ import akha.yakhont.technology.retrofit.Retrofit2
 // OkHttp3 local client to load data from array
 class LocalOkHttpClient2(retrofit2: Retrofit2<*, *>): BaseLocalOkHttpClient2(retrofit2) {
 
-    private val data = arrayOf(
-            "Duvel",
-            "Abbaye de Brogne",
-            "Chimay",
-            "Delirium Tremens",
-            "Gouden Carolus",
-            "Green Killer",
-            "Gulden Draak",
-            "Liefmans",
-            "Orval Trappist",
-            "Pauwel Kwak",
-            "Petrus",
-            "Rodenbach Grand Cru",
-            "Val-Dieu",
-            "Waterloo",
-            "Westmalle",
-            "Westvleteren",
-            "Wilderen Goud")
-
     override fun getContent(): String {
-        return getJson(data)
+        return getJson(
+                "Duvel",
+                "Abbaye de Brogne",
+                "Chimay",
+                "Delirium Tremens",
+                "Gouden Carolus",
+                "Green Killer",
+                "Gulden Draak",
+                "Liefmans",
+                "Orval Trappist",
+                "Pauwel Kwak",
+                "Petrus",
+                "Rodenbach Grand Cru",
+                "Val-Dieu",
+                "Waterloo",
+                "Westmalle",
+                "Westvleteren",
+                "Wilderen Goud"
+        )
     }
 }

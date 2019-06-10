@@ -99,7 +99,8 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static void update(@NonNull final Activity activity, @NonNull final AtomicInteger value, @NonNull final String info) {
+    protected static void update(@NonNull final Activity activity, @NonNull final AtomicInteger value,
+                                 @NonNull final String info) {
         log(info, value.incrementAndGet(), getActivityName(activity));
     }
 
@@ -140,19 +141,19 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     static {
         final Map<String, ActivityLifecycle> callbacks = new HashMap<>();
 
-        callbacks.put("onActivityCreated",                  ActivityLifecycle.CREATED);
-        callbacks.put("onActivityStarted",                  ActivityLifecycle.STARTED);
-        callbacks.put("onActivityResumed",                  ActivityLifecycle.RESUMED);
-        callbacks.put("onActivityPaused",                   ActivityLifecycle.PAUSED);
-        callbacks.put("onActivityStopped",                  ActivityLifecycle.STOPPED);
-        callbacks.put("onActivityDestroyed",                ActivityLifecycle.DESTROYED);
-        callbacks.put("onActivitySaveInstanceState",        ActivityLifecycle.SAVE_INSTANCE_STATE);
+        callbacks.put("onActivityCreated",           ActivityLifecycle.CREATED);
+        callbacks.put("onActivityStarted",           ActivityLifecycle.STARTED);
+        callbacks.put("onActivityResumed",           ActivityLifecycle.RESUMED);
+        callbacks.put("onActivityPaused",            ActivityLifecycle.PAUSED);
+        callbacks.put("onActivityStopped",           ActivityLifecycle.STOPPED);
+        callbacks.put("onActivityDestroyed",         ActivityLifecycle.DESTROYED);
+        callbacks.put("onActivitySaveInstanceState", ActivityLifecycle.SAVE_INSTANCE_STATE);
 
         CALLBACKS = Collections.unmodifiableMap(callbacks);
     }
 
     private static final Map<BaseActivityCallbacks, Set<ActivityLifecycle>>
-                                                            sCallbacks                  = Utils.newMap();
+                                                            sCallbacks      = Utils.newMap();
 
     /**
      * Returns the collection of registered callbacks handlers.
@@ -236,7 +237,8 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      *        The additional information concerning the activity state
      */
     @SuppressWarnings("WeakerAccess")
-    protected static void apply(@NonNull final ActivityLifecycle lifeCycle, @NonNull final Activity activity, final Bundle state) {
+    protected static void apply(@NonNull final ActivityLifecycle lifeCycle,
+                                @NonNull final Activity activity, final Bundle state) {
 
         switch (lifeCycle) {
             case CREATED:
@@ -267,7 +269,8 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     }
 
     private static void apply(@NonNull final BaseActivityCallbacks callbacks,
-                              @NonNull final ActivityLifecycle lifeCycle, @NonNull final Activity activity, final Bundle state) {
+                              @NonNull final ActivityLifecycle lifeCycle,
+                              @NonNull final Activity activity, final Bundle state) {
 
         CoreLogger.log(CoreLogger.Level.INFO, "proceeding: lifeCycle " + lifeCycle + ", " + callbacks.getClass().getName());
 
@@ -443,7 +446,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
          * Please refer to the base method description.
          */
         @Override
-        public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
+        public void onActivityCreated(@NonNull final Activity activity, final Bundle savedInstanceState) {
             log(activity, "onActivityCreated callback");
 
             apply(ActivityLifecycle.CREATED, activity, savedInstanceState);
@@ -453,7 +456,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
          * Please refer to the base method description.
          */
         @Override
-        public void onActivityDestroyed(Activity activity) {
+        public void onActivityDestroyed(@NonNull final Activity activity) {
             log(activity, "onActivityDestroyed callback");
 
             apply(ActivityLifecycle.DESTROYED, activity, null /* ignored */);
@@ -463,7 +466,8 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
          * Please refer to the base method description.
          */
         @Override
-        public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
+        public void onActivitySaveInstanceState(@NonNull final Activity activity,
+                                                @NonNull final Bundle outState) {
             log(activity, "onActivitySaveInstanceState callback");
 
             apply(ActivityLifecycle.SAVE_INSTANCE_STATE, activity, outState);
@@ -473,7 +477,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
          * Please refer to the base method description.
          */
         @Override
-        public void onActivityResumed(Activity activity) {
+        public void onActivityResumed(@NonNull final Activity activity) {
             update(activity, sResumed, "sResumed");
 
             apply(ActivityLifecycle.RESUMED, activity, null /* ignored */);
@@ -483,7 +487,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
          * Please refer to the base method description.
          */
         @Override
-        public void onActivityPaused(Activity activity) {
+        public void onActivityPaused(@NonNull final Activity activity) {
             update(activity, sPaused, "sPaused");
 
             apply(ActivityLifecycle.PAUSED, activity, null /* ignored */);
@@ -493,7 +497,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
          * Please refer to the base method description.
          */
         @Override
-        public void onActivityStarted(Activity activity) {
+        public void onActivityStarted(@NonNull final Activity activity) {
             update(activity, sStarted, "sStarted");
 
             apply(ActivityLifecycle.STARTED, activity, null /* ignored */);
@@ -503,7 +507,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
          * Please refer to the base method description.
          */
         @Override
-        public void onActivityStopped(Activity activity) {
+        public void onActivityStopped(@NonNull final Activity activity) {
             update(activity, sStopped, "sStopped");
 
             apply(ActivityLifecycle.STOPPED, activity, null /* ignored */);
@@ -692,7 +696,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     public static class CurrentActivityHelper {
 
         private final AtomicReference<WeakReference<Activity>>
-                                                            mActivity                   = new AtomicReference<>();
+                                                            mActivity   = new AtomicReference<>();
 
         private void setActivity(final Activity activity) {
             mActivity.set(new WeakReference<>(activity));

@@ -70,6 +70,8 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStore;
 import androidx.paging.DataSource;
+import androidx.paging.LivePagedListBuilder;
+import androidx.paging.PagedList.BoundaryCallback;
 import androidx.paging.PagedList.Config;
 import androidx.recyclerview.widget.DiffUtil.ItemCallback;
 import androidx.recyclerview.widget.RecyclerView;
@@ -80,6 +82,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -131,6 +134,10 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     private             PagingRecyclerViewAdapter<?, R, E>      mPagingAdapter;
     private             Config                                  mPagingConfig;
     private             Integer                                 mPageSize;
+
+    private             BoundaryCallback<?>                     mBoundaryCallback;
+    private             Executor                                mFetchExecutor;
+    private             Object                                  mInitialLoadKey;
 
     /**
      * The API for data loading.
@@ -234,6 +241,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param uriResolver
      *        The URI resolver (for cache provider)
      */
+    @SuppressWarnings("unused")
     protected BaseResponseLoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                         @NonNull final Requester<C> requester,
                                         @NonNull final String tableName, final String description,
@@ -535,30 +543,39 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @Override
     protected BaseViewModel<BaseResponse<R, E, D>> getBaseViewModel(
-                     final Activity                                         activity,
-            @NonNull final ViewModelStore                                   store,
-                     final String                                           key,
-                     final String                                           tableName,
+                     final Activity                                         activity  ,
+            @NonNull final ViewModelStore                                   store     ,
+                     final String                                           key       ,
+                     final String                                           tableName ,
             @NonNull final DataLoader<BaseResponse<R, E, D>>                dataLoader,
-            @NonNull final Observer<BaseResponse  <R, E, D>>                observer) {
+            @NonNull final Observer<BaseResponse  <R, E, D>>                observer  ) {
 
         @SuppressWarnings("unchecked")
-        final PagingRecyclerViewAdapter<Object, Object, Object> adapter =
-                (PagingRecyclerViewAdapter<Object, Object, Object>) mPagingAdapter;
+        final PagingRecyclerViewAdapter<Object, Object, Object>     adapter            =
+             (PagingRecyclerViewAdapter<Object, Object, Object>)    mPagingAdapter     ;
         @SuppressWarnings("unchecked")
-        final Callable<? extends DataSource<Object, Object>> dataSourceProducer =
-                (Callable<? extends DataSource<Object, Object>>)    mDataSourceProducer;
+        final Callable<? extends DataSource<Object, Object>>        dataSourceProducer =
+             (Callable<? extends DataSource<Object, Object>>)       mDataSourceProducer;
+        @SuppressWarnings("unchecked")
+        final BoundaryCallback<Object>                              boundaryCallback   =
+             (BoundaryCallback<Object>)                             mBoundaryCallback  ;
 
-        return new BaseViewModel.Builder<>(observer)
-                .setViewModelStore(store)
-                .setActivity(activity)
-                .setKey(key)
-                .setTableName(tableName)
-                .setDataLoader(dataLoader)
-                .setDataSourceProducer(dataSourceProducer)
-                .setConfig(mPagingConfig)
-                .setPageSize(mPageSize)
-                .setAdapter(adapter)
+        return new BaseViewModel.Builder<>(observer          )
+                .setViewModelStore        (store             )
+                .setActivity              (activity          )
+                .setKey                   (key               )
+                .setTableName             (tableName         )
+                .setDataLoader            (dataLoader        )
+
+                .setDataSourceProducer    (dataSourceProducer)
+                .setConfig                (mPagingConfig     )
+                .setPageSize              (mPageSize         )
+
+                .setBoundaryCallback      (boundaryCallback  )
+                .setFetchExecutor         (mFetchExecutor    )
+                .setInitialLoadKey        (mInitialLoadKey   )
+
+                .setAdapter               (adapter)
                 .create();
     }
 
@@ -1403,7 +1420,18 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @see     LoadParameters#NO_LOAD
          */
         @SuppressWarnings("unused")
-        boolean start(final Bundle savedInstanceState);
+        boolean start(Bundle savedInstanceState);
+
+        /**
+         * Starts all loaders associated with the given {@code CoreLoad} component.
+         *
+         * @param pageId
+         *        The page ID (if paging adapter used)
+         *
+         * @return  {@code true} if data loading was successfully started, {@code false} otherwise
+         */
+        @SuppressWarnings("unused")
+        boolean start(long pageId);
 
         /**
          * Starts all loaders associated with the given {@code CoreLoad} component.
@@ -1439,7 +1467,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoad} object to allow for chaining of calls
          */
         @SuppressWarnings({"UnusedReturnValue", "unused"})
-        CoreLoad<E, D> setGoBackOnCancelLoading(final boolean isGoBackOnCancelLoading);
+        CoreLoad<E, D> setGoBackOnCancelLoading(boolean isGoBackOnCancelLoading);
     }
 
     /**
@@ -1495,8 +1523,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * Please refer to the base method description.
          */
         @Override
-        public CoreLoad<E, D> cancelLoading(final Activity paramActivity) {
-            final Activity activity = paramActivity != null ? paramActivity: Utils.getCurrentActivity();
+        public CoreLoad<E, D> cancelLoading(final Activity activity) {
+            final Activity activityTmp = activity != null ? activity: Utils.getCurrentActivity();
 
             CoreLogger.logWarning("about to cancel loading");
 
@@ -1509,7 +1537,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             Utils.postToMainLoop(new Runnable() {
                     @Override
                     public void run() {
-                        if (activity != null) activity.onBackPressed();
+                        if (activityTmp != null) activityTmp.onBackPressed();
                     }
 
                     @NonNull
@@ -1540,6 +1568,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @Override
         public boolean start(final Bundle savedInstanceState) {
             return start(null, BaseLoaderWrapper.getLoadParameters(savedInstanceState));
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public boolean start(final long pageId) {
+            return start(null, new LoadParameters(pageId));
         }
 
         /**
@@ -1603,6 +1639,13 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         protected Integer                               mPageSize;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected ItemCallback<?>                       mPagingItemCallback;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected BoundaryCallback<?>                   mBoundaryCallback;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Executor                              mFetchExecutor;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Object                                mInitialLoadKey;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Runnable                              mSwipeToRefreshCallback;
@@ -1671,6 +1714,51 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 final Callable<? extends DataSource<?, ?>> dataSourceProducer) {
             checkData(mDataSourceProducer, dataSourceProducer, "DataSourceProducer");
             mDataSourceProducer = dataSourceProducer;
+            return this;
+        }
+
+        /**
+         * Sets BoundaryCallback for paging.
+         *
+         * @param boundaryCallback
+         *        The BoundaryCallback (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        public CoreLoadBuilder<C, R, E, D> setPagingBoundaryCallback(final BoundaryCallback<?> boundaryCallback) {
+            checkData(mBoundaryCallback, boundaryCallback, "BoundaryCallback");
+            mBoundaryCallback = boundaryCallback;
+            return this;
+        }
+
+        /**
+         * Sets fetch executor for paging.
+         *
+         * @param fetchExecutor
+         *        The fetch executor (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        public CoreLoadBuilder<C, R, E, D> setPagingFetchExecutor(final Executor fetchExecutor) {
+            checkData(mFetchExecutor, fetchExecutor, "FetchExecutor");
+            mFetchExecutor = fetchExecutor;
+            return this;
+        }
+
+        /**
+         * Sets initial load key for paging.
+         *
+         * @param initialLoadKey
+         *        The initial load key (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        public CoreLoadBuilder<C, R, E, D> setPagingInitialLoadKey(final Object initialLoadKey) {
+            checkData(mInitialLoadKey, initialLoadKey, "InitialLoadKey");
+            mInitialLoadKey = initialLoadKey;
             return this;
         }
 
@@ -1880,8 +1968,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         @LayoutRes
         @SuppressWarnings("SameParameterValue")
-        private int getItemLayout(@NonNull final Resources resources, @NonNull final View list,
-                                  @NonNull final String defType, @NonNull final String defPackage) {
+        private int getItemLayout(@NonNull final Resources resources, @NonNull final View   list,
+                                  @NonNull final String defType,      @NonNull final String defPackage) {
 
             final String name = list.getId() != Core.NOT_VALID_VIEW_ID ? resources.getResourceEntryName(list.getId()):
                     list instanceof RecyclerView ? "recycler": list instanceof GridView ? "grid": "list";
@@ -1974,6 +2062,10 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                     loader.mDataSourceProducer = mDataSourceProducer;
                     loader.mPagingConfig       = mPagingConfig;
                     loader.mPageSize           = mPageSize;
+
+                    loader.mBoundaryCallback   = mBoundaryCallback;
+                    loader.mFetchExecutor      = mFetchExecutor;
+                    loader.mInitialLoadKey     = mInitialLoadKey;
 
                     setAdapter(list, loader);
                 }
@@ -2565,6 +2657,67 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
+         * Sets BoundaryCallback for paging.
+         *
+         * @param boundaryCallback
+         *        The BoundaryCallback (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingBoundaryCallback(
+                final BoundaryCallback<?> boundaryCallback) {
+            super.setPagingBoundaryCallback(boundaryCallback);
+            return this;
+        }
+
+        /**
+         * Sets fetch executor for paging.
+         *
+         * @param fetchExecutor
+         *        The fetch executor (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingFetchExecutor(final Executor fetchExecutor) {
+            super.setPagingFetchExecutor(fetchExecutor);
+            return this;
+        }
+
+        /**
+         * Sets initial load key for paging.
+         *
+         * @param initialLoadKey
+         *        The initial load key (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingInitialLoadKey(final Object initialLoadKey) {
+            super.setPagingInitialLoadKey(initialLoadKey);
+            return this;
+        }
+
+        /**
+         * Sets paging configuration.
+         *
+         * @param config
+         *        The configuration
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @NonNull
+        @Override
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingConfig(final Config config) {
+            super.setPagingConfig(config);
+            return this;
+        }
+
+        /**
          * Sets the click handler for {@code RecyclerView} items.
          *
          * @param listener
@@ -2590,21 +2743,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setSwipeToRefreshCallback(final Runnable callback) {
             super.setSwipeToRefreshCallback(callback);
-            return this;
-        }
-
-        /**
-         * Sets paging configuration.
-         *
-         * @param config
-         *        The configuration
-         *
-         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
-         */
-        @NonNull
-        @Override
-        public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingConfig(final Config config) {
-            super.setPagingConfig(config);
             return this;
         }
 
@@ -2913,17 +3051,19 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        protected CoreLoad<E, D> create(BaseResponseLoaderBuilder<C, R, E, D> builder) {
+        protected CoreLoad<E, D> create(final BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(null, null, builder);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        protected CoreLoad<E, D> create(@NonNull final Activity activity, BaseResponseLoaderBuilder<C, R, E, D> builder) {
+        protected CoreLoad<E, D> create(@NonNull final Activity activity,
+                                        final BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(activity, null, builder);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        protected CoreLoad<E, D> create(@NonNull final Fragment fragment, BaseResponseLoaderBuilder<C, R, E, D> builder) {
+        protected CoreLoad<E, D> create(@NonNull final Fragment fragment,
+                                        final BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(fragment.getActivity(), fragment, builder);
         }
 

@@ -97,7 +97,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
+    public void onActivityCreated(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onActivityCreated(savedInstanceState);
@@ -108,7 +108,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         CoreLogger.log(getDebugMessage() + ", requestCode " + requestCode +
                 ", resultCode " + resultCode + " " + Utils.getActivityResultString(resultCode));
                 
@@ -121,7 +121,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onAttach(Activity activity) {
+    public void onAttach(final Activity activity) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(activity);
@@ -132,7 +132,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onAttach(Context context) {
+    public void onAttach(final Context context) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(context);
@@ -141,7 +141,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     /** Please refer to the base method description. */                                                 //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
     @CallSuper                                                                                          //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
     @Override                                                                                           //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
-    public void onAttachFragment(Fragment childFragment) {                                              //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    public void onAttachFragment(final Fragment childFragment) {                                        //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", childFragment " + childFragment, false); //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
 
         super.onAttachFragment(childFragment);                                                          //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
@@ -152,7 +152,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(final Configuration newConfig) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", newConfig " + newConfig, false);
 
         super.onConfigurationChanged(newConfig);
@@ -163,7 +163,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    public void onCreate(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onCreate(savedInstanceState);
@@ -175,8 +175,8 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     @Nullable
     @CallSuper
     @Override
-    public View onCreateView(@NonNull  LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull  final LayoutInflater inflater, @Nullable final ViewGroup container,
+                             @Nullable final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         return super.onCreateView(inflater, container, savedInstanceState);
@@ -218,7 +218,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-@CallSuper
     //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-@Override
-    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-public void onGuidedActionClicked(androidx.leanback.widget.GuidedAction action) {
+    //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-public void onGuidedActionClicked(final androidx.leanback.widget.GuidedAction action) {
     //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", action " + action, false);
     //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-    super.onGuidedActionClicked(action);
     //YakhontPreprocessor:addToGenerated-GuidedStepSupportFragment-}
@@ -229,7 +229,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onInflate(Activity activity, AttributeSet attrs, Bundle savedInstanceState) {
+    public void onInflate(final Activity activity, final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(activity, attrs, savedInstanceState);
@@ -240,7 +240,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onInflate(Context context, AttributeSet attrs, Bundle savedInstanceState) {
+    public void onInflate(final Context context, final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(context, attrs, savedInstanceState);
@@ -249,10 +249,10 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-ListFragment-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-ListFragment-@CallSuper
     //YakhontPreprocessor:addToGenerated-ListFragment-@Override
-    //YakhontPreprocessor:addToGenerated-ListFragment-public void onListItemClick(android.widget.ListView l, View v, int position, long id) {
+    //YakhontPreprocessor:addToGenerated-ListFragment-public void onListItemClick(final android.widget.ListView list, final View view, final int position, final long id) {
     //YakhontPreprocessor:addToGenerated-ListFragment-    CoreLogger.log(getDebugLevel(), getDebugMessage() +
     //YakhontPreprocessor:addToGenerated-ListFragment-            ", position " + position + ", id " + id, false);
-    //YakhontPreprocessor:addToGenerated-ListFragment-    super.onListItemClick(l, v, position, id);
+    //YakhontPreprocessor:addToGenerated-ListFragment-    super.onListItemClick(list, view, position, id);
     //YakhontPreprocessor:addToGenerated-ListFragment-}
 
     /**
@@ -280,8 +280,8 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-@CallSuper
     //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-@Override
-    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-public boolean onPreferenceTreeClick(android.preference.PreferenceScreen preferenceScreen,
-    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-                                     android.preference.Preference preference) {
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-public boolean onPreferenceTreeClick(final android.preference.PreferenceScreen preferenceScreen,
+    //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-                                     final android.preference.Preference preference) {
     //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
     //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-    return super.onPreferenceTreeClick(preferenceScreen, preference);
     //YakhontPreprocessor:addToGenerated-PreferenceFragmentCompat-}
@@ -291,7 +291,8 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions,
+                                           @NonNull final int[] grantResults) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestCode " + requestCode +
                 ", permissions "  + Arrays.deepToString(permissions) +
                 ", grantResults " + Arrays.toString(grantResults), false);
@@ -315,7 +316,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
+    public void onSaveInstanceState(@NonNull final Bundle outState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", outState " + outState, false);
 
         super.onSaveInstanceState(outState);
@@ -348,7 +349,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+    public void onViewCreated(@NonNull final View view, @Nullable final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onViewCreated(view, savedInstanceState);
@@ -359,7 +360,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onViewStateRestored(Bundle savedInstanceState) {
+    public void onViewStateRestored(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onViewStateRestored(savedInstanceState);
@@ -370,7 +371,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void setRetainInstance(boolean retain) {
+    public void setRetainInstance(final boolean retain) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", retain " + retain, true);
 
         super.setRetainInstance(retain);
@@ -379,7 +380,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     /** Please refer to the base method description. */                                                                       //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
     @CallSuper                                                                                                                //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
     @Override                                                                                                                 //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
-    public void setTargetFragment(Fragment fragment, int requestCode) {                                                       //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    public void setTargetFragment(final Fragment fragment, final int requestCode) {                                                       //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment + ", requestCode " + requestCode, true); //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
 
         super.setTargetFragment(fragment, requestCode);                                                                       //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment

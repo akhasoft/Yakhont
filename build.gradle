@@ -81,8 +81,19 @@ ext {
                                'proguard-square-retrofit2.pro'                          ,
                                'proguard-support-v7-appcompat.pro']
 
-    bintrayName             = 'yakhont'
-    bintrayRepo             = 'maven'
+    bintrayName             =  'yakhont'
+    bintrayRepo             =  'maven'
+
+    projectResConfigs       = ['en', 'ru']
+
+    projectVerSdkMin                                            =  14
+    projectVerSdk                                               =  29
+    projectVerBuildTools                                        = '29.0.0'
+
+    projectVerName                                              = '0.9.19'
+    projectVerCode                                              =    901901
+    projectVerNameDemo                                          = '1.1'
+    projectVerCodeDemo                                          =  10101
 
     projectLibVerDefault                                        = 'default'
 
@@ -102,7 +113,7 @@ ext {
     projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.0'
-    projectLibVerRoom                                           =  '2.1.0-beta01'
+    projectLibVerRoom                                           =  '2.1.0-rc01'
 
     projectLibVerDagger                                         =  '2.22.1'
 
@@ -122,6 +133,7 @@ ext {
     projectLibVerLifecycleLifecycleExtensions                   =  '2.0.0'
     projectLibVerMediaMedia                                     =  '1.0.1'
     projectLibVerMediaRouterMediaRouter                         =  '1.0.0'
+    projectLibVerPreferencePreference                           =  '1.1.0-beta01'
     projectLibVerRecyclerViewRecyclerView                       =  '1.0.0'
 
     projectLibVerNotxMaterialMaterial                           =  '1.0.0'

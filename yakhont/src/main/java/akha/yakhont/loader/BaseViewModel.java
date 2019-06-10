@@ -48,10 +48,12 @@ import androidx.paging.DataSource;
 import androidx.paging.LivePagedListBuilder;
 import androidx.paging.PageKeyedDataSource;
 import androidx.paging.PagedList;
+import androidx.paging.PagedList.BoundaryCallback;
 import androidx.paging.PagedList.Config;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -59,6 +61,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 
 /**
  * {@link ViewModel} extender, adjusted to work with {@link BaseLiveData}.
@@ -67,6 +70,8 @@ import java.util.concurrent.Callable;
  *        The type of data
  *
  * @see BaseLiveData
+ *
+ * @author akha
  */
 @SuppressWarnings("JavadocReference")
 public class BaseViewModel<D> extends AndroidViewModel {
@@ -377,14 +382,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Sets the {@link CoreLoad} to keep in this {@link ViewModel}
+     * Sets the {@link CoreLoad}'s to keep in this {@link ViewModel}
      * (mostly for screen orientation changes handling).
      *
-     * @param coreLoad
-     *        The {@link CoreLoad}
+     * @param coreLoads
+     *        The {@link CoreLoad}'s
      */
-    public void setCoreLoad(final CoreLoad<?, ?> coreLoad) {
-        setCoreLoads(coreLoad == null ? null: Collections.singletonList(coreLoad));
+    public void setCoreLoads(final CoreLoad<?, ?>... coreLoads) {
+        setCoreLoads(coreLoads == null ? null: Arrays.asList(coreLoads));
     }
 
     /**
@@ -1005,6 +1010,15 @@ public class BaseViewModel<D> extends AndroidViewModel {
          *
          * @param adapter
          *        The {@link PagingRecyclerViewAdapter}
+         *
+         * @param boundaryCallback
+         *        The {@link BoundaryCallback} (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @param fetchExecutor
+         *        The fetch {@link Executor} (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @param initialLoadKey
+         *        The initial load key (please refer to {@link LivePagedListBuilder} for details)
          */
         @SuppressWarnings("WeakerAccess")
         protected PagingViewModel(
@@ -1012,21 +1026,32 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 @NonNull final Observer                          <D>    observer,
                 @NonNull final Callable<? extends DataSource<Key, T>>   dataSourceProducer,
                 @NonNull final Config                                   config,
-                @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter) {
+                @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter,
+                         final BoundaryCallback         <T      >       boundaryCallback,
+                         final Executor                                 fetchExecutor,
+                         final Key                                      initialLoadKey) {
 
             super(data, observer);
 
-            mDataSourceFactory  = new DataSourceFactory<>(dataSourceProducer);
-            mDataPaged          = new LivePagedListBuilder<>(mDataSourceFactory, config).build();
-            mAdapter            = adapter;
+            mAdapter              = adapter;
+            mDataSourceFactory    = new DataSourceFactory<>(dataSourceProducer);
+
+            final LivePagedListBuilder<Key, T> builder =
+                    new LivePagedListBuilder<>(mDataSourceFactory, config);
+
+            if (boundaryCallback != null) builder.setBoundaryCallback(boundaryCallback);
+            if (fetchExecutor    != null) builder.setFetchExecutor   (fetchExecutor   );
+            if (initialLoadKey   != null) builder.setInitialLoadKey  (initialLoadKey  );
+
+            mDataPaged            = builder.build();
 
             //noinspection Convert2Lambda
-            mObserverPaged      = new Observer<PagedList<T>>() {
+            mObserverPaged        = new Observer<PagedList<T>>() {
                 @Override
                 public void onChanged(@Nullable PagedList<T> data) {
                     mAdapter.submitList(data);
 
-                    if (mSwipeToRefresh != null) Utils.safeRunnableRun(mSwipeToRefresh);
+                    if (mSwipeToRefresh != null) Utils.safeRun(mSwipeToRefresh);
                 }
             };
         }
@@ -1063,6 +1088,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
             private final   Config                                      mConfig;
             private final   PagingRecyclerViewAdapter<T, R, E>          mAdapter;
 
+            private final   BoundaryCallback         <T      >          mBoundaryCallback;
+            private final   Executor                                    mFetchExecutor;
+            private final   Key                                         mInitialLoadKey;
+
             private ViewModelFactory(
                     @NonNull final ViewModelStore                           store,
                     @NonNull final BaseLiveData                      <D>    data,
@@ -1070,18 +1099,26 @@ public class BaseViewModel<D> extends AndroidViewModel {
                              final String                                   key,
                     @NonNull final Callable<? extends DataSource<Key, T>>   dataSourceProducer,
                     @NonNull final Config                                   config,
-                    @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter) {
+                    @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter,
+                             final BoundaryCallback         <T      >       boundaryCallback,
+                             final Executor                                 fetchExecutor,
+                             final Key                                      initialLoadKey) {
 
                 super(store, data, observer, key);
 
                 mDataSourceProducer     = dataSourceProducer;
                 mConfig                 = config;
                 mAdapter                = adapter;
+
+                mBoundaryCallback       = boundaryCallback;
+                mFetchExecutor          = fetchExecutor;
+                mInitialLoadKey         = initialLoadKey;
             }
 
             @Override
             protected BaseViewModel<D> createViewModel() {
-                return new PagingViewModel<>(mData, mObserver, mDataSourceProducer, mConfig, mAdapter);
+                return new PagingViewModel<>(mData, mObserver, mDataSourceProducer, mConfig,
+                        mAdapter, mBoundaryCallback, mFetchExecutor, mInitialLoadKey);
             }
         }
 
@@ -1094,10 +1131,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
                              final String                                   key,
                     @NonNull final Callable<? extends DataSource<Key, T>>   dataSourceProducer,
                     @NonNull final Config                                   config,
-                    @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter) {
-
+                    @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter,
+                             final BoundaryCallback         <T      >       boundaryCallback,
+                             final Executor                                 fetchExecutor,
+                             final Key                                      initialLoadKey) {
                 super(store, new ViewModelFactory<>(store, data, observer, key, dataSourceProducer,
-                        config, adapter));
+                        config, adapter, boundaryCallback, fetchExecutor, initialLoadKey));
             }
         }
 
@@ -1123,20 +1162,20 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
                     return new PageKeyedDataSource<Key, T>() {
                         @Override
-                        public void loadAfter  (@NonNull LoadParams         <Key   > params,
-                                                @NonNull LoadCallback       <Key, T> callback) {
+                        public void loadAfter  (@NonNull final LoadParams         <Key   > params,
+                                                @NonNull final LoadCallback       <Key, T> callback) {
                             handleStubCall();
                         }
 
                         @Override
-                        public void loadBefore (@NonNull LoadParams         <Key   > params,
-                                                @NonNull LoadCallback       <Key, T> callback) {
+                        public void loadBefore (@NonNull final LoadParams         <Key   > params,
+                                                @NonNull final LoadCallback       <Key, T> callback) {
                             handleStubCall();
                         }
 
                         @Override
-                        public void loadInitial(@NonNull LoadInitialParams  <Key   > params,
-                                                @NonNull LoadInitialCallback<Key, T> callback) {
+                        public void loadInitial(@NonNull final LoadInitialParams  <Key   > params,
+                                                @NonNull final LoadInitialCallback<Key, T> callback) {
                             handleStubCall();
                         }
                     };
@@ -1236,6 +1275,13 @@ public class BaseViewModel<D> extends AndroidViewModel {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected     PagingRecyclerViewAdapter<T, R, E>        mAdapter;
 
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     BoundaryCallback         <T      >        mBoundaryCallback;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Executor                                  mFetchExecutor;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Key                                       mInitialLoadKey;
+
         private final Observer                 <D>              mObserver;
 
         /**
@@ -1246,6 +1292,45 @@ public class BaseViewModel<D> extends AndroidViewModel {
          */
         public Builder(@NonNull final Observer <D> observer) {
             mObserver               = observer;
+        }
+
+        /**
+         * Sets the {@code BoundaryCallback} component.
+         *
+         * @param boundaryCallback
+         *        The {@code BoundaryCallback} (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
+        public Builder<S, Key, T, R, E, D> setBoundaryCallback(final BoundaryCallback<T> boundaryCallback) {
+            mBoundaryCallback       = boundaryCallback;
+            return this;
+        }
+
+        /**
+         * Sets the fetch {@code Executor} component.
+         *
+         * @param fetchExecutor
+         *        The {@code Executor} (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
+        public Builder<S, Key, T, R, E, D> setFetchExecutor(final Executor fetchExecutor) {
+            mFetchExecutor          = fetchExecutor;
+            return this;
+        }
+
+        /**
+         * Sets the initial load key.
+         *
+         * @param initialLoadKey
+         *        The initial load key (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
+        public Builder<S, Key, T, R, E, D> setInitialLoadKey(final Key initialLoadKey) {
+            mInitialLoadKey         = initialLoadKey;
+            return this;
         }
 
         /**
@@ -1516,7 +1601,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 if (mClass == null) mClass = castBaseViewModelClass(true);
 
                 result = new PagingViewModel.ViewModelProvider<>(mStore, mData, mObserver, mKey,
-                        mDataSourceProducer, mConfig, mAdapter).get(mKey, mClass);
+                        mDataSourceProducer, mConfig, mAdapter, mBoundaryCallback, mFetchExecutor,
+                        mInitialLoadKey).get(mKey, mClass);
             }
             result.updateUi(false, mLifecycleOwner);
 

@@ -372,7 +372,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     private void logRx(String info, Throwable throwable) {
-        CoreLogger.logError("LoaderRx (" + info + "): onError, error == " + throwable);
+        CoreLogger.log("LoaderRx (" + info + ")", throwable);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

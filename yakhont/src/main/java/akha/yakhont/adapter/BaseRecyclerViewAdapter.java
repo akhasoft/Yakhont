@@ -229,12 +229,12 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      * Please refer to the base method description.
      */
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull ViewHolder holder, final int position) {
         onBindViewHolderItem(holder, position, null, false);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public void onBindViewHolderItem(@NonNull ViewHolder holder, int position,
+    public void onBindViewHolderItem(@NonNull ViewHolder holder, final int position,
                                      final T item, final boolean useItem) {
         if (mDataBinder != null)
             mDataBinder.bind(position, useItem ? item: mBaseCacheAdapter.getItem(position), holder.itemView);
@@ -247,7 +247,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      */
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, final int viewType) {
         if (mViewHolderCreator == null)
             throw new RuntimeException("please set ViewHolder creator via call to setViewHolderCreator()");
 
@@ -340,14 +340,14 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, final int viewType) {
             return mViewHolderCreator != null ? super.onCreateViewHolder(parent, viewType):
                     setOnClickListener(new DataBindingViewHolder(parent, mLayoutId, mDataBindingId));
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @Override
-        public void onBindViewHolderItem(@NonNull ViewHolder holder, int position,
+        public void onBindViewHolderItem(@NonNull ViewHolder holder, final int position,
                                          final T item, final boolean useItem) {
             DataBindingViewHolder.bind(holder, useItem ? item:
                     DataBindingCacheAdapterWrapper.getData(mBaseCacheAdapter, position), null);
@@ -587,7 +587,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          */
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, final int viewType) {
             return mRecyclerViewAdapter.onCreateViewHolder(parent, viewType);
         }
 
@@ -595,7 +595,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          * Please refer to the base method description.
          */
         @Override
-        public void onBindViewHolder(@NonNull ViewHolder viewHolder, int position) {
+        public void onBindViewHolder(@NonNull ViewHolder viewHolder, final int position) {
             final T item = getItem(position);
             if (item == null) return;
 

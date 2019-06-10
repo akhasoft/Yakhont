@@ -134,11 +134,11 @@ public class Weaver {
      * @param bootClassPath
      *        The {@code android.bootClasspath} (actually {@code android.jar}'s location)
      *
-     * @param configFiles
-     *        The names (and locations) of configuration files (if any), or null (means default one)
-     *
      * @param addConfig
-     *        Indicates whether the configuration file provided should be added to the default one
+     *        Indicates whether the configuration file(s) provided should be added to the default one
+     *
+     * @param configFiles
+     *        The names (and locations) of configuration files (if any), or null (means the default one)
      *
      * @throws  NotFoundException
      *          please refer to the exception description
@@ -149,14 +149,14 @@ public class Weaver {
      */
     @Deprecated
     public void run(boolean debug, String packageName, String classesDir,
-                    String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
+                    String classPath, String bootClassPath, boolean addConfig, String... configFiles)
             throws NotFoundException, CannotCompileException, IOException {
         if (classesDir.endsWith("debug"))
             run(true, debug, packageName, classesDir, classPath, bootClassPath,
-                    configFiles, addConfig);
+                    addConfig, configFiles);
         else if (classesDir.endsWith("release"))
             run(false, debug, packageName, classesDir, classPath, bootClassPath,
-                    configFiles, addConfig);
+                    addConfig, configFiles);
         else
             log(false, ERROR + "can not detect build type");
     }
@@ -182,11 +182,11 @@ public class Weaver {
      * @param bootClassPath
      *        The {@code android.bootClasspath} (actually {@code android.jar}'s location)
      *
-     * @param configFiles
-     *        The names (and locations) of configuration files (if any), or null (means default one)
-     *
      * @param addConfig
-     *        Indicates whether the configuration file provided should be added to the default one
+     *        Indicates whether the configuration file(s) provided should be added to the default one
+     *
+     * @param configFiles
+     *        The names (and locations) of configuration files (if any), or null (means the default one)
      *
      * @throws  NotFoundException
      *          please refer to the exception description
@@ -196,7 +196,7 @@ public class Weaver {
      *          please refer to the exception description
      */
     public void run(boolean debugBuild, boolean debug, String packageName, String classesDirs,
-                    String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
+                    String classPath, String bootClassPath, boolean addConfig, String... configFiles)
             throws NotFoundException, CannotCompileException, IOException {
 
         log(false, sNewLine + "Yakhont: weaving compiled classes in [" + classesDirs + "]...");

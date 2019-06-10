@@ -124,7 +124,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onSaveInstanceState(Activity activity, Bundle savedInstanceState) {
+    public void onSaveInstanceState(final Activity activity, final Bundle savedInstanceState) {
         super.onSaveInstanceState(activity, savedInstanceState);
 
         savedInstanceState.putBoolean(ARG_RESOLVING_ERROR    , mResolvingError   );
@@ -149,7 +149,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onCreate(Activity activity, Bundle savedInstanceState) {
+    public void onCreate(final Activity activity, final Bundle savedInstanceState) {
         mWasPaused = false;
         if (mToast == null) mToast = Core.getDagger().getToastLong();
 
@@ -160,7 +160,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onStart(Activity activity) {
+    public void onStart(final Activity activity) {
         connect();
     }
 
@@ -168,7 +168,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onResume(Activity activity) {
+    public void onResume(final Activity activity) {
         if (mWasPaused && mClient.isConnected()) startLocationUpdates(activity);
     }
 
@@ -176,7 +176,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onPause(Activity activity) {
+    public void onPause(final Activity activity) {
         mWasPaused = true;
 
         // Stop location updates to save battery, but don't disconnect the GoogleApiClient object.
@@ -187,7 +187,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onStop(Activity activity) {
+    public void onStop(final Activity activity) {
         if (mClient.isConnected()) mClient.disconnect();
     }
 
@@ -209,7 +209,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onConnected(Bundle connectionHint) {
+    public void onConnected(final Bundle connectionHint) {
         CoreLogger.log("onConnected");
 
         final Activity activity = LocationCallbacks.getActivity();
@@ -223,7 +223,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onConnectionSuspended(int cause) {
+    public void onConnectionSuspended(final int cause) {
         CoreLogger.log("cause " + cause);
 
         // The connection has been interrupted.
@@ -237,12 +237,12 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public void onConnectionFailed(@NonNull ConnectionResult result) {
+    public void onConnectionFailed(@NonNull final ConnectionResult result) {
         if (!onConnectionFailedHelper(result))
             mLocationCallbacks.onLocationError(result.toString());
     }
 
-    private boolean onConnectionFailedHelper(@NonNull ConnectionResult result) {
+    private boolean onConnectionFailedHelper(@NonNull final ConnectionResult result) {
         CoreLogger.log("connection failed: error code " + result.getErrorCode() + ", result: " + result +
                 ", resolving error: " + mResolvingError + ", system error dialog: " + mSystemErrorDialog);
 
@@ -344,7 +344,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
 
         @NonNull
         @Override
-        public Dialog onCreateDialog(Bundle savedInstanceState) {
+        public Dialog onCreateDialog(final Bundle savedInstanceState) {
             final Bundle arguments = getArguments();
             final int errorCode = arguments != null ? arguments.getInt(ARG_DIALOG_ERROR):
                     ConnectionResult.INTERNAL_ERROR;    // should never happen
@@ -365,7 +365,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         }
 
         @Override
-        public void onDismiss(DialogInterface dialog) {
+        public void onDismiss(final DialogInterface dialog) {
             super.onDismiss(dialog);
 
             onDismiss(getCurrentActivity());
@@ -381,7 +381,8 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      * Please refer to the base method description.
      */
     @Override
-    public boolean onActivityResult(Activity activity, RequestCodes requestCode, int resultCode, Intent data) {
+    public boolean onActivityResult(final Activity activity, final RequestCodes requestCode,
+                                    final int resultCode, final Intent data) {
         switch (requestCode) {
             case LOCATION_CONNECTION_FAILED:
                 clearResolvingError();

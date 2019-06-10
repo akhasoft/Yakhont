@@ -170,8 +170,7 @@ public class Bubbles {
         if (!cancel) return;
 
         synchronized (sViews) {
-            //noinspection ToArrayCallWithZeroLengthArrayArgument
-            for (TextView view: sViews.toArray(new TextView[sViews.size()]))
+            for (TextView view: sViews.toArray(new TextView[0]))
                 if (clear) {
                     cancelRainbow(view);
 

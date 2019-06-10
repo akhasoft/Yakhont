@@ -71,8 +71,7 @@ def generateActivities() {
         'android.app.ExpandableListActivity'                                                ,                     
         'android.app.LauncherActivity'                                                      ,                           
         'android.app.ListActivity'                                                          ,                               
-        'android.app.NativeActivity'                                                        ,                             
-        'android.preference.PreferenceActivity'
+        'android.app.NativeActivity'
     ]
 
     String[] debugSupportActivityClasses = [    // FragmentActivity is a special case
@@ -101,8 +100,8 @@ def generateFragments() {
         'androidx.leanback.app.RowsSupportFragment'                                         ,
         'androidx.leanback.app.SearchSupportFragment'                                       ,
         'androidx.leanback.app.VerticalGridSupportFragment'                                 ,
-        'androidx.leanback.preference.LeanbackListPreferenceDialogFragment'                 ,
-        'androidx.leanback.preference.LeanbackPreferenceDialogFragment'                     ,
+//        'androidx.leanback.preference.LeanbackListPreferenceDialogFragmentCompat'           ,
+//        'androidx.leanback.preference.LeanbackPreferenceDialogFragmentCompat'               ,
         'androidx.mediarouter.app.MediaRouteDiscoveryFragment'
     ]
     

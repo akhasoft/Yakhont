@@ -742,7 +742,7 @@ public class CoreLogger {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Converts integer to hex string.
+     * Converts integer to hex string (e.g. "0xABCD").
      *
      * @param data
      *        The integer to convert
@@ -750,7 +750,7 @@ public class CoreLogger {
      * @return  The integer hex representation
      */
     @SuppressWarnings("WeakerAccess")
-    public static String toHex(int data) {
+    public static String toHex(final int data) {
         return "0x" + Integer.toHexString(data).toUpperCase(Utils.getLocale());
     }
 
@@ -769,7 +769,7 @@ public class CoreLogger {
      * @return  The byte array readable representation
      */
     @SuppressWarnings("unused")
-    public static String toHex(final byte[] data, int length, final boolean bytesOnly) {
+    public static String toHex(final byte[] data, final int length, final boolean bytesOnly) {
         return toHex(data, 0, length, bytesOnly, null, null);
     }
 
@@ -796,7 +796,7 @@ public class CoreLogger {
      *
      * @return  The byte array readable representation
      */
-    public static String toHex(final byte[] data, int offset, int length, final boolean bytesOnly,
+    public static String toHex(final byte[] data, final int offset, final int length, final boolean bytesOnly,
                                Locale locale, final Charset charset) {
         if (data        == null) return null;
         if (data.length ==    0) return   "";
@@ -930,7 +930,7 @@ public class CoreLogger {
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     @NonNull
-    public static List<String> getLogCat(List<String> list, final boolean clearList, final String cmd) {
+    public static List<String> getLogCat(final List<String> list, final boolean clearList, final String cmd) {
         final List<String> listActual = (list == null) ? new ArrayList<>(): list;
         if (clearList) listActual.clear();
 
@@ -950,12 +950,12 @@ public class CoreLogger {
      * @param activity
      *        The Activity
      *
-     * @param address
-     *        The e-mail address
+     * @param addresses
+     *        The e-mail addresses
      */
     @SuppressWarnings("unused")
-    public static void sendLogCat(@NonNull final Activity activity, @NonNull final String address) {
-        sendLogCat(activity, address, LOGCAT_DEFAULT_SUBJECT, true, null);
+    public static void sendLogCat(@NonNull final Activity activity, @NonNull final String... addresses) {
+        sendLogCat(activity, null, true, LOGCAT_DEFAULT_SUBJECT, addresses);
     }
 
     /**
@@ -964,24 +964,24 @@ public class CoreLogger {
      * @param activity
      *        The Activity
      *
-     * @param address
-     *        The e-mail address
-     *
-     * @param subject
-     *        The e-mail subject
+     * @param cmd
+     *        <code>logcat</code> command line, or null for the default one ("logcat -d")
      *
      * @param clearList
      *        Indicates whether the list should be cleared before adding new records
      *
-     * @param cmd
-     *        <code>logcat</code> command line, or null for the default one ("logcat -d")
+     * @param subject
+     *        The e-mail subject
+     *
+     * @param addresses
+     *        The e-mail addresses
      */
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
-    public static void sendLogCat(@NonNull final Activity activity,
-                                  @NonNull final String address, @NonNull final String subject,
-                                  final boolean clearList, final String cmd) {
-        Utils.sendEmail(activity, new String[] {address}, subject, TextUtils.join(sNewLine,
-                getLogCat(null, clearList, cmd)), null);
+    public static void sendLogCat(@NonNull final Activity activity, final String cmd,
+                                  final boolean clearList, @NonNull final String subject,
+                                  @NonNull final String... addresses) {
+        Utils.sendEmail(activity, subject, TextUtils.join(sNewLine,
+                getLogCat(null, clearList, cmd)), null, addresses);
     }
 
     /**
@@ -990,12 +990,6 @@ public class CoreLogger {
      *
      * @param context
      *        The Context
-     *
-     * @param addresses
-     *        The list of email addresses to send data
-     *
-     * @param subject
-     *        The email subject (or null)
      *
      * @param cmd
      *        The logcat command to execute (or null to execute the default one)
@@ -1008,17 +1002,23 @@ public class CoreLogger {
      *
      * @param moreFiles
      *        Additional files to include (or null)
+     *
+     * @param subject
+     *        The email subject (or null)
+     *
+     * @param addresses
+     *        The list of email addresses to send data
      */
     @SuppressWarnings("WeakerAccess")
-    public static void sendData(final Context context, final String[] addresses, final String subject,
-                                final String cmd, final boolean hasScreenShot, final boolean hasDb,
-                                final String[] moreFiles) {
+    public static void sendData(final Context context, final String cmd, final boolean hasScreenShot,
+                                final boolean hasDb, final String[] moreFiles,
+                                final String subject, final String... addresses) {
         //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Sender.sendEmailSync(context, addresses, subject, cmd, hasScreenShot, hasDb, moreFiles);
+                    Sender.sendEmailSync(context, cmd, hasScreenShot, hasDb, moreFiles, subject, addresses);
                 }
                 catch (Exception exception) {
                     log("failed to send CoreLogger shake debug email", exception);
@@ -1036,17 +1036,13 @@ public class CoreLogger {
      * @param context
      *        The Context
      *
-     * @param address
-     *        The email address to send data
+     * @param addresses
+     *        The email addresses to send data
      */
     @SuppressWarnings("unused")
-    public static void registerShakeDataSender(final Context context, final String address) {
-        if (address == null) {
-            logError("address == null");
-            return;
-        }
-        registerShakeDataSender(context, new String[] {address}, null, null,
-                true, true, null);
+    public static void registerShakeDataSender(final Context context, final String... addresses) {
+        registerShakeDataSender(context, null,
+                true, true, null, null, addresses);
     }
 
     /**
@@ -1055,12 +1051,6 @@ public class CoreLogger {
      *
      * @param context
      *        The Context
-     *
-     * @param addresses
-     *        The list of email addresses to send data
-     *
-     * @param subject
-     *        The email subject (or null)
      *
      * @param cmd
      *        The logcat command to execute (or null to execute the default one)
@@ -1073,14 +1063,22 @@ public class CoreLogger {
      *
      * @param moreFiles
      *        Additional files to include (or null)
+     *
+     * @param subject
+     *        The email subject (or null)
+     *
+     * @param addresses
+     *        The list of email addresses to send data
      */
     @SuppressWarnings("WeakerAccess")
-    public static void registerShakeDataSender(final Context context, final String[] addresses,
-                                               @SuppressWarnings("SameParameterValue") final String  subject,
-                                               @SuppressWarnings("SameParameterValue") final String  cmd,
-                                               @SuppressWarnings("SameParameterValue") final boolean hasScreenShot,
-                                               @SuppressWarnings("SameParameterValue") final boolean hasDb,
-                                               @SuppressWarnings("SameParameterValue") final String[] moreFiles) {
+    public static void registerShakeDataSender(
+            final Context context,
+            @SuppressWarnings("SameParameterValue") final String   cmd,
+            @SuppressWarnings("SameParameterValue") final boolean  hasScreenShot,
+            @SuppressWarnings("SameParameterValue") final boolean  hasDb,
+            @SuppressWarnings("SameParameterValue") final String[] moreFiles,
+            @SuppressWarnings("SameParameterValue") final String   subject,
+            final String... addresses) {
         if (context == null || addresses == null || addresses.length == 0) {
             logError("no arguments");
             return;
@@ -1091,7 +1089,7 @@ public class CoreLogger {
         new ShakeEventListener(contextToUse, new Runnable() {
             @Override
             public void run() {
-                sendData(contextToUse, addresses, subject, cmd, hasScreenShot, hasDb, moreFiles);
+                sendData(contextToUse, cmd, hasScreenShot, hasDb, moreFiles, subject, addresses);
             }
         }).register();
     }
@@ -1146,7 +1144,7 @@ public class CoreLogger {
 
             log("shake detected");
             mLastShakeTime = currentTime;
-            Utils.safeRunnableRun(mHandler);
+            Utils.safeRun(mHandler);
         }
 
         @Override
@@ -1170,9 +1168,9 @@ public class CoreLogger {
         private static final String                     DEFAULT_PREFIX           = "log";
         private static final String                     DEFAULT_EXTENSION        = "txt";
 
-        private static void sendEmailSync(final Context context, final String[] addresses, final String subject,
-                                          final String cmd, final boolean hasScreenShot, final boolean hasDb,
-                                          final String[] moreFiles) {
+        private static void sendEmailSync(final Context context, final String cmd, final boolean hasScreenShot,
+                                          final boolean hasDb, final String[] moreFiles,
+                                          final String subject, final String... addresses) {
             if (context == null || addresses == null || addresses.length == 0) {
                 logError("no arguments");
                 return;
@@ -1215,9 +1213,8 @@ public class CoreLogger {
                 public void run() {
                     try {
                         final File zipFile = getTmpFile(ZIP_PREFIX, suffix, "zip", tmpDir);
-                        //noinspection ToArrayCallWithZeroLengthArrayArgument
-                        if (!Utils.zip(list.toArray(new String[list.size()]),
-                                zipFile.getAbsolutePath(), errors)) return;
+                        if (!Utils.zip(errors, zipFile.getAbsolutePath(), list.toArray(new String[0])))
+                            return;
 
                         for (final String error: errors.keySet())
                             body.append(sNewLine).append(sNewLine).append(error).append(sNewLine)
@@ -1229,8 +1226,7 @@ public class CoreLogger {
                         Utils.runInBackground(DELAY, new Runnable() {
                             @Override
                             public void run() {
-                                Utils.sendEmail(activity, addresses, subjectToSend, body.toString(),
-                                                zipFile);
+                                Utils.sendEmail(activity, subjectToSend, body.toString(), zipFile, addresses);
                             }
                         });
                     }
@@ -1343,15 +1339,15 @@ public class CoreLogger {
         private static void complete(final File screenShot, final List<String> list, final Runnable runnable) {
             try {
                 if (screenShot != null) list.add(screenShot.getAbsolutePath());
-                Utils.safeRunnableRun(runnable);
+                Utils.safeRun(runnable);
             }
             finally {
                 delete(screenShot);
             }
         }
 
-        @TargetApi(Build.VERSION_CODES.O)
-        @RequiresApi(Build.VERSION_CODES.O)
+        @TargetApi  (      Build.VERSION_CODES.O)
+        @RequiresApi(api = Build.VERSION_CODES.O)
         private static void getScreenShotNew(final Activity activity, final File tmpDir,
                                              final String suffix,     final Map<String, Exception> errors,
                                              final List<String> list, final Runnable runnable) {
@@ -1398,42 +1394,42 @@ public class CoreLogger {
     // @LogDebug support
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final boolean[] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final boolean[] x) { return toString(Arrays.toString(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final char   [] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final char   [] x) { return toString(Arrays.toString(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final byte   [] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final byte   [] x) { return toString(Arrays.toString(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final short  [] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final short  [] x) { return toString(Arrays.toString(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final int    [] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final int    [] x) { return toString(Arrays.toString(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final long   [] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final long   [] x) { return toString(Arrays.toString(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final float  [] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final float  [] x) { return toString(Arrays.toString(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final double [] ret) { return toString(Arrays.toString(ret)); }
+    public static String toString(final double [] x) { return toString(Arrays.toString(x)); }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final boolean ret) { return toString(Boolean  .valueOf(ret)); }
+    public static String toString(final boolean x) { return toString(Boolean  .valueOf(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final char    ret) { return toString(Character.valueOf(ret)); }
+    public static String toString(final char    x) { return toString(Character.valueOf(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final byte    ret) { return toString(Byte     .valueOf(ret)); }
+    public static String toString(final byte    x) { return toString(Byte     .valueOf(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final short   ret) { return toString(Short    .valueOf(ret)); }
+    public static String toString(final short   x) { return toString(Short    .valueOf(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final int     ret) { return toString(Integer  .valueOf(ret)); }
+    public static String toString(final int     x) { return toString(Integer  .valueOf(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final long    ret) { return toString(Long     .valueOf(ret)); }
+    public static String toString(final long    x) { return toString(Long     .valueOf(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final float   ret) { return toString(Float    .valueOf(ret)); }
+    public static String toString(final float   x) { return toString(Float    .valueOf(x)); }
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static String toString(final double  ret) { return toString(Double   .valueOf(ret)); }
+    public static String toString(final double  x) { return toString(Double   .valueOf(x)); }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public static String toString(final Object ret) {
-        return ret == null ? "null": ret instanceof Object[] ?
-                Arrays.deepToString((Object[]) ret): ret.toString();
+    public static String toString(final Object object) {
+        return object == null ? "null": object instanceof Object[] ?
+                Arrays.deepToString((Object[]) object): object.toString();
     }
 }

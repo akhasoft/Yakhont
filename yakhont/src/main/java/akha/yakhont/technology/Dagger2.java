@@ -325,7 +325,7 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides
-        public LocationClient provideLocationClient(Parameters parameters) {
+        public LocationClient provideLocationClient(final Parameters parameters) {
             return getLocationClient(getFlagLocation(parameters));
         }
 
@@ -363,13 +363,13 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION)
-        public BaseDialog providePermissionAlert(Parameters parameters) {
+        public BaseDialog providePermissionAlert(final Parameters parameters) {
             return getPermissionAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT));
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION_DENIED)
-        public BaseDialog providePermissionDeniedAlert(Parameters parameters) {
+        public BaseDialog providePermissionDeniedAlert(final Parameters parameters) {
             return getPermissionAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT));
         }
 
@@ -392,7 +392,7 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_LONG)
-        public BaseDialog provideLongToast(Parameters parameters) {
+        public BaseDialog provideLongToast(final Parameters parameters) {
             final boolean useSnackbarIsoToast = getFlagToast(parameters);
             return getToast(useSnackbarIsoToast,
                     useSnackbarIsoToast ? Snackbar.LENGTH_LONG: Toast.LENGTH_LONG);
@@ -400,7 +400,7 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_TOAST_LENGTH_SHORT)
-        public BaseDialog provideShortToast(Parameters parameters) {
+        public BaseDialog provideShortToast(final Parameters parameters) {
             final boolean useSnackbarIsoToast = getFlagToast(parameters);
             return getToast(useSnackbarIsoToast,
                     useSnackbarIsoToast ? Snackbar.LENGTH_SHORT: Toast.LENGTH_SHORT);
@@ -414,11 +414,11 @@ public interface Dagger2 {
          *        {@code true} for using {@link Snackbar} instead of {@link Toast}
          *
          * @param duration
-         *        duration in milliseconds (or
+         *        duration in seconds or milliseconds (or {@code Snackbar.LENGTH_INDEFINITE},
          *        {@code Snackbar.LENGTH_LONG}, {@code Snackbar.LENGTH_SHORT},
          *        {@code Toast.LENGTH_LONG}, {@code Toast.LENGTH_SHORT}), null for default value
          *
-         * @return  {@link Toast} or {@link Snackbar}
+         * @return  {@link Toast}-based or {@link Snackbar}-based implementation
          */
         protected BaseDialog getToast(final boolean useSnackbarIsoToast, final Integer duration) {
             return useSnackbarIsoToast ?
@@ -494,7 +494,7 @@ public interface Dagger2 {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     static void onActivityResult(final Activity activity, final Intent intent,
-                                 final int requestCode, final int resultCode) {
+                                 final int requestCode,   final int resultCode) {
         if (activity == null)
             CoreLogger.logError("activity == null");
         else
@@ -716,7 +716,7 @@ class BaseSnackbar implements BaseDialog {
     }
 
     @SuppressWarnings("unused")
-    public static View getView(final Activity activity, Integer viewId) {
+    public static View getView(final Activity activity, final Integer viewId) {
         View view = viewId == null ? null: ViewHelper.getView(activity, viewId);
 
         if (view == null && (viewId == null || viewId != Core.NOT_VALID_VIEW_ID)) {
@@ -756,7 +756,7 @@ class BaseSnackbar implements BaseDialog {
     }
 
     @Override
-    public boolean confirm(Activity context, View view) {
+    public boolean confirm(final Activity context, final View view) {
         return false;
     }
 
@@ -907,7 +907,7 @@ class BaseToast implements BaseDialog {
     }
 
     @Override
-    public boolean confirm(Activity context, View view) {
+    public boolean confirm(final Activity context, final View view) {
         return false;
     }
 

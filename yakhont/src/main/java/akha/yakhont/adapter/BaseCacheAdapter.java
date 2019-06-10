@@ -27,6 +27,7 @@ import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 
@@ -133,10 +134,10 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Converts {@code Cursor} to data.
          *
          * @param cursor
-         *        The {@code Cursor}
+         *        The cursor
          *
          * @param position
-         *        The position
+         *        The cursor position
          *
          * @return  The Collection
          */
@@ -209,7 +210,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param onLoadFinished
          *        The loaded data adjustment
          */
-        void update(BaseResponse<R, E, D> data, boolean isMerge, final Runnable onLoadFinished);
+        void update(BaseResponse<R, E, D> data, boolean isMerge, Runnable onLoadFinished);
     }
 
     /**
@@ -314,6 +315,11 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         setCurrentAdapter(false);
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected boolean isInternalCache() {
+        return getConverter().getConverter().isInternalCache();
+    }
+
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public DataConverter<T, R, E, D> getConverter() {
         return mConverter;
@@ -363,7 +369,16 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 final Cursor cursor = data.getCursor();
                 D            result = data.getResult();
 
-                if (result == null) result = mConverter.getConverter().getData(cursor);
+                final Converter<D> converter = mConverter.getConverter();
+                if (result == null && converter.isInternalCache()) {
+                    @SuppressWarnings("unchecked")
+                    final D tmp = (D) converter.getData(cursor, null);
+                    result = tmp;
+                    final LoadParameters parameters = data.getParameters();
+                    CoreLogger.log("internal cache, cursor converted to data for table "
+                            + (parameters == null ? "null": parameters.getTableName()));
+                }
+
                 if (result == null) {
                     customize(onLoadFinished);
                     updateCursor(cursor);
@@ -391,7 +406,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     private void customize(final Runnable onLoadFinished) {
-        if (onLoadFinished != null) Utils.safeRunnableRun(onLoadFinished);
+        if (onLoadFinished != null) Utils.safeRun(onLoadFinished);
     }
 
     @SuppressLint("ObsoleteSdkInt")
@@ -441,7 +456,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     public void updateCursor(final Cursor cursor) {
         setCurrentAdapter(false);
 
-        mCursorAdapter.swapCursor(cursor != null && cursor.getCount() > 0 ? cursor: null);
+        final Cursor prevCursor = mCursorAdapter.swapCursor(
+                cursor != null && cursor.getCount() > 0 ? cursor: null);
+        if (prevCursor != null && !prevCursor.isClosed()) prevCursor.close();
     }
 
     /**
@@ -453,6 +470,17 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     @SuppressWarnings("WeakerAccess")
     public void setCurrentAdapter(final boolean isArray) {
         mBaseAdapter = isArray ? mArrayAdapter: (BaseAdapter) mCursorAdapter;
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected void setCurrentAdapterForInternalCache(final boolean isArray) {
+        if (isInternalCache()) {
+            setCurrentAdapter(true);
+            if (!isArray)
+                CoreLogger.log(Level.WARNING, "BaseCursorAdapter ignored", true);
+        }
+        else
+            setCurrentAdapter(isArray);
     }
 
     /**
@@ -555,7 +583,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public boolean isEnabled(int position) {
+    public boolean isEnabled(final int position) {
         return mBaseAdapter.isEnabled(position);
     }
 
@@ -563,7 +591,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public View getDropDownView(int position, View convertView, ViewGroup parent) {
+    public View getDropDownView(final int position, final View convertView, final ViewGroup parent) {
         return mBaseAdapter.getDropDownView(position, convertView, parent);
     }
 
@@ -579,30 +607,37 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public T getItem(int position) {
+    public T getItem(final int position) {
         return isCursorAdapter() ? getItemCursor(position): getItemArray(position);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected T getItemArray(int position) {
+    protected T getItemArray(final int position) {
         return mArrayAdapter.getItem(position);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected T getItemCursor(int position) {
+    protected T getItemCursor(final int position) {
         final Cursor cursor = mCursorAdapter.getItemCursor(position);
         if (cursor == null) {
             CoreLogger.logError("can't retrieve item for cursor position " + position);
             return null;
         }
-        return mConverter.convert(cursor, position);
+        final Converter<D> converter = mConverter.getConverter();
+        return converter.isInternalCache() ? mConverter.convert(cursor, position):
+                getItemCursor(converter, cursor, position);
+    }
+
+    @SuppressWarnings("unchecked")
+    private T getItemCursor(final Converter<D> converter, final Cursor cursor, final int position) {
+        return (T) converter.getData(cursor, position);
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public long getItemId(int position) {
+    public long getItemId(final int position) {
         return mBaseAdapter.getItemId(position);
     }
 
@@ -610,7 +645,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public int getItemViewType(int position) {
+    public int getItemViewType(final int position) {
         return mBaseAdapter.getItemViewType(position);
     }
 
@@ -618,7 +653,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(final int position, final View convertView, final ViewGroup parent) {
         return mBaseAdapter.getView(position, convertView, parent);
     }
 
@@ -650,7 +685,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public void registerDataSetObserver(DataSetObserver observer) {
+    public void registerDataSetObserver(final DataSetObserver observer) {
         mCursorAdapter.registerDataSetObserver(observer);
         mArrayAdapter .registerDataSetObserver(observer);
     }
@@ -659,7 +694,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * Please refer to the base method description.
      */
     @Override
-    public void unregisterDataSetObserver(DataSetObserver observer) {
+    public void unregisterDataSetObserver(final DataSetObserver observer) {
         mCursorAdapter.unregisterDataSetObserver(observer);
         mArrayAdapter .unregisterDataSetObserver(observer);
     }
@@ -741,7 +776,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Please refer to the base method description.
          */
         @Override
-        public void setDropDownViewTheme(Resources.Theme theme) {
+        public void setDropDownViewTheme(final Resources.Theme theme) {
             if (isCursorAdapter())
                 ((ThemedSpinnerAdapter) getCursorAdapter()).setDropDownViewTheme(theme);
             else
@@ -778,7 +813,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         @SuppressWarnings("WeakerAccess")
         public ApiMDataBindingCacheAdapter(@NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
                                            @NonNull   final DataConverter   <Object, R, E, D>  converter) {
-            super(DataBindingCacheAdapter.STUB, arrayAdapter, converter);
+            super(new DataBindingCursorAdapter(), arrayAdapter, converter);
         }
 
         /**
@@ -786,8 +821,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @Override
         public void setCurrentAdapter(final boolean isArray) {
-            super.setCurrentAdapter(DataBindingCacheAdapter.getCurrentAdapterData());
-            DataBindingCacheAdapter.checkArray(isArray);
+            setCurrentAdapterForInternalCache(isArray);
         }
     }
 
@@ -881,7 +915,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Please refer to the base method description.
          */
         @Override
-        public void setDropDownViewTheme(Resources.Theme theme) {
+        public void setDropDownViewTheme(final Resources.Theme theme) {
             mDropDownHelper.setDropDownViewTheme(theme);
         }
 
@@ -889,7 +923,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * Please refer to the base method description.
          */
         @Override
-        public View getDropDownView(int position, View convertView, ViewGroup parent) {
+        public View getDropDownView(final int position, View convertView, final ViewGroup parent) {
             if (convertView == null) convertView = mDropDownHelper.getDropDownViewInflater()
                     .inflate(mLayoutId, parent, false);
             return super.getDropDownView(position, convertView, parent);
@@ -931,16 +965,11 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                                               @LayoutRes final int                                layoutId,
                                               @NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
                                               @NonNull   final DataConverter   <Object, R, E, D>  converter) {
-            super(context, layoutId, DataBindingCacheAdapter.STUB, arrayAdapter, converter);
+            super(context, layoutId, new DataBindingCursorAdapter(), arrayAdapter, converter);
         }
 
-        /**
-         * Please refer to the base method description.
-         */
-        @Override
         public void setCurrentAdapter(final boolean isArray) {
-            super.setCurrentAdapter(DataBindingCacheAdapter.getCurrentAdapterData());
-            DataBindingCacheAdapter.checkArray(isArray);
+            setCurrentAdapterForInternalCache(isArray);
         }
     }
 
@@ -958,27 +987,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      */
     public static class DataBindingCacheAdapter<R, E, D> extends BaseCacheAdapter<Object, R, E, D> {
 
-        private static final BaseCursorAdapter                                  STUB = new BaseCursorAdapter() {
-            @Override public boolean areAllItemsEnabled()                         { return true; }
-            @Override public int     getCount()                                   { return    0; }
-            @Override public View    getDropDownView(int p, View c, ViewGroup g)  { return null; }
-            @Override public Filter  getFilter()                                  { return null; }
-            @Override public Object  getItem(int p)                               { return null; }
-            @Override public Cursor  getItemCursor(int p)                         { return null; }
-            @Override public long    getItemId(int p)                             { return    0; }
-            @Override public int     getItemViewType(int p)                       { return    0; }
-            @Override public View    getView(int p, View c, ViewGroup g)          { return null; }
-            @Override public int     getViewTypeCount()                           { return    0; }
-            @Override public boolean hasStableIds()                               { return true; }
-            @Override public boolean isEmpty()                                    { return true; }
-            @Override public boolean isEnabled(int p)                             { return true; }
-            @Override public void    registerDataSetObserver(DataSetObserver o)   {              }
-            @Override public void    setAdapterViewBinder(ViewBinder v)           {              }
-            @Override public void    setDataConverter(DataConverter d)            {              }
-            @Override public Cursor  swapCursor(Cursor c)                         { return    c; }
-            @Override public void    unregisterDataSetObserver(DataSetObserver o) {              }
-        };
-
         /**
          * Initialises a newly created {@code DataBindingCacheAdapter} object.
          *
@@ -989,9 +997,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *        The {@code DataConverter}
          */
         @SuppressWarnings("WeakerAccess")
-        public DataBindingCacheAdapter(@NonNull final BaseArrayAdapter<Object>           arrayAdapter,
-                                       @NonNull final DataConverter   <Object, R, E, D>  converter) {
-            super(STUB, arrayAdapter, converter);
+        public DataBindingCacheAdapter(@NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
+                                       @NonNull   final DataConverter   <Object, R, E, D>  converter) {
+            super(new DataBindingCursorAdapter(), arrayAdapter, converter);
         }
 
         /**
@@ -999,19 +1007,68 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @Override
         public void setCurrentAdapter(final boolean isArray) {
-            super.setCurrentAdapter(getCurrentAdapterData());
-            checkArray(isArray);
+            setCurrentAdapterForInternalCache(isArray);
+        }
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static class DataBindingCursorAdapter extends BaseAdapter implements BaseCursorAdapter {
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected               Cursor                          mCursor;
+
+        /** Please refer to the base method description. */
+        @Override
+        public Cursor swapCursor(final Cursor cursor) {
+            if (cursor == mCursor) return null;
+
+            final Cursor prevCursor = mCursor;
+            mCursor = cursor;
+            return prevCursor;
         }
 
-        @SuppressWarnings("SameReturnValue")
-        private static boolean getCurrentAdapterData() {
-            return true;
+        /** Please refer to the base method description. */
+        @Override
+        public int getCount() {
+            return mCursor == null ? 0: mCursor.getCount();
         }
 
-        private static void checkArray(final boolean isArray) {
-            if (!isArray)
-                CoreLogger.log(Level.WARNING, "BaseCursorAdapter ignored", true);
+        /** Please refer to the base method description. */
+        @Override
+        public boolean isEmpty() {
+            return mCursor == null || mCursor.getCount() < 1;
         }
+
+        /** Please refer to the base method description. */
+        @Override
+        public Object getItem(final int position) {
+            return getItemCursor(position);
+        }
+
+        /** Please refer to the base method description. */
+        @Override
+        public Cursor getItemCursor(final int position) {
+            return BaseSimpleCursorSupportAdapter.getItemCursor(position, mCursor);
+        }
+
+        private void report(final String msg) {
+            CoreLogger.logWarning(msg);
+        }
+        /** Please refer to the base method description. */
+        @Override public void setAdapterViewBinder(final ViewBinder v                ) {
+            report("setAdapterViewBinder: ignored arg " + v);
+        }
+        /** Please refer to the base method description. */
+        @Override public void setDataConverter(final DataConverter d                 ) {
+            report("setDataConverter: ignored arg " + d);
+        }
+
+        /** Please refer to the base method description. */
+        @Override public Filter  getFilter()                                           { return null; }
+        /** Please refer to the base method description. */
+        @Override public long    getItemId(final int p)                                { return    p; }
+        /** Please refer to the base method description. */
+        @Override public View    getView(final int p, final View v, final ViewGroup g) { return null; }
     }
 
     /**
@@ -1247,7 +1304,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @NonNull
         @Override
-        public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+        public View getView(final int position, final View convertView, @NonNull final ViewGroup parent) {
             return mDataBinder.bind(position, getItem(position),
                     convertView == null ? mViewInflater.inflate(parent): convertView);
         }
@@ -1428,7 +1485,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @SuppressWarnings("unused")
         @Override
-        public Cursor swapCursor(Cursor cursor) {
+        public Cursor swapCursor(final Cursor cursor) {
             mCursorCache = null;
             return cursor;
         }
@@ -1438,16 +1495,20 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @SuppressWarnings("unused")
         @Override
-        public T convert(Cursor cursor, int position) {
+        public T convert(final Cursor cursor, final int position) {
+            if (cursor == null) {           // should never happen
+                CoreLogger.logError("cursor is null");
+                return null;
+            }
             if (mConverter == null) {       // should never happen
                 CoreLogger.logWarning("converter is null");
                 mConverter = new BaseConverter<>();
             }
 
             if (mCursorCache == null) {
-                final D data;
+                final Object data;
                 try {
-                    data = mConverter.getData(cursor);
+                    data = mConverter.getData(cursor, null);
                 }
                 finally {
                     if (!cursor.isClosed()) cursor.close();
@@ -1634,7 +1695,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
         @SuppressWarnings("unused")
         @Override
-        public Collection<Object> convert(BaseResponse<R, E, D> baseResponse) {
+        public Collection<Object> convert(final BaseResponse<R, E, D> baseResponse) {
             if (baseResponse == null) {
                 CoreLogger.logError("baseResponse == null");
                 return null;
@@ -1703,7 +1764,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          */
         @NonNull
         @Override
-        public View getView(int position, View convertView, @NonNull ViewGroup parent) {
+        public View getView(final int position, final View convertView, @NonNull final ViewGroup parent) {
             if (mBaseCacheAdapter == null) {
                 CoreLogger.logWarning("mBaseCacheAdapter == null");
                 return convertView;
@@ -1968,7 +2029,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <T, R, E, D> T getData(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
                                              final int position) {
-            return baseCacheAdapter.getArrayAdapter().getItem(position);
+            return baseCacheAdapter.isInternalCache() ?
+                   baseCacheAdapter.getArrayAdapter().getItem(position): baseCacheAdapter.getItem(position);
         }
     }
 }

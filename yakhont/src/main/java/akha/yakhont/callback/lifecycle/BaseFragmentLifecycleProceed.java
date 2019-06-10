@@ -90,21 +90,21 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
     static {
         final Map<String, FragmentLifecycle> callbacks = new HashMap<>();
 
-        callbacks.put("onFragmentCreated",                  FragmentLifecycle.CREATED);
-        callbacks.put("onFragmentStarted",                  FragmentLifecycle.STARTED);
-        callbacks.put("onFragmentResumed",                  FragmentLifecycle.RESUMED);
-        callbacks.put("onFragmentPaused",                   FragmentLifecycle.PAUSED);
-        callbacks.put("onFragmentStopped",                  FragmentLifecycle.STOPPED);
-        callbacks.put("onFragmentDestroyed",                FragmentLifecycle.DESTROYED);
-        callbacks.put("onFragmentSaveInstanceState",        FragmentLifecycle.SAVE_INSTANCE_STATE);
+        callbacks.put("onFragmentCreated",           FragmentLifecycle.CREATED);
+        callbacks.put("onFragmentStarted",           FragmentLifecycle.STARTED);
+        callbacks.put("onFragmentResumed",           FragmentLifecycle.RESUMED);
+        callbacks.put("onFragmentPaused",            FragmentLifecycle.PAUSED);
+        callbacks.put("onFragmentStopped",           FragmentLifecycle.STOPPED);
+        callbacks.put("onFragmentDestroyed",         FragmentLifecycle.DESTROYED);
+        callbacks.put("onFragmentSaveInstanceState", FragmentLifecycle.SAVE_INSTANCE_STATE);
 
-        callbacks.put("onFragmentActivityCreated",          FragmentLifecycle.ACTIVITY_CREATED);
+        callbacks.put("onFragmentActivityCreated",   FragmentLifecycle.ACTIVITY_CREATED);
 
         CALLBACKS = Collections.unmodifiableMap(callbacks);
     }
 
     private static final Map<BaseFragmentCallbacks, Set<FragmentLifecycle>>
-                                                            sCallbacks                  = Utils.newMap();
+                                                            sCallbacks      = Utils.newMap();
 
     /**
      * Returns the collection of registered callbacks handlers.
@@ -189,8 +189,8 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *        The additional information concerning the fragment state
      */
     @SuppressWarnings("WeakerAccess")
-    protected static void apply(@NonNull final FragmentLifecycle lifeCycle, @NonNull final Fragment fragment,
-                                final Bundle state) {
+    protected static void apply(@NonNull final FragmentLifecycle lifeCycle,
+                                @NonNull final Fragment fragment, final Bundle state) {
 
         final Boolean created;
         switch (lifeCycle) {
@@ -210,7 +210,8 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
     }
 
     private static void apply(@NonNull final BaseFragmentCallbacks callbacks,
-                              @NonNull final FragmentLifecycle lifeCycle, @NonNull final Fragment fragment, final Bundle state) {
+                              @NonNull final FragmentLifecycle lifeCycle,
+                              @NonNull final Fragment fragment, final Bundle state) {
 
         CoreLogger.log(CoreLogger.Level.INFO, "proceeding: lifeCycle " + lifeCycle + ", " + callbacks.getClass().getName());
 

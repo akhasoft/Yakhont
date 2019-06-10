@@ -18,19 +18,21 @@ apply plugin: 'com.android.library'
 
 apply from:   'preprocessor.gradle'
 
-String verName                  = '0.9.19'
-int    verCode                  =    901901
+String verName                  =   projectVerName
+int    verCode                  =   projectVerCode
+
+String projectDimensions        =  'common'
 
 ext {
-    publishedName               = 'Yakhont'
-    publishedDescription        = 'The high-level Android components for data loading, location, lifecycle callbacks and many more'
+    publishedName               =  'Yakhont'
+    publishedDescription        =  'The high-level Android components for data loading, location, lifecycle callbacks and many more'
 
-    publishedGroupId            = projectGroupId
-    publishedArtifactId         = 'yakhont'
-    publishedPackaging          = 'aar'
-    publishedVersion            = verName
+    publishedGroupId            =   projectGroupId
+    publishedArtifactId         =  'yakhont'
+    publishedPackaging          =  'aar'
+    publishedVersion            =   verName
 
-    projectDefaultFlavor        = 'core'
+    projectDefaultFlavor        =  'core'
     projectJavaDocLinks         = ['http://google.github.io/dagger/api/latest/'             ,
                                    'http://reactivex.io/RxJava/1.x/javadoc/'                ,
                                    'http://reactivex.io/RxJava/2.x/javadoc/'                ,
@@ -39,9 +41,9 @@ ext {
 }
 
 def dependenciesStrategy = { DependencyResolveDetails details ->
-    if (details.requested.group == 'com.google.android.gms') {
-        if (details.requested.name == 'play-services-location' || 
-            details.requested.name == 'play-services-places-placereport')
+    if     (details.requested.group == 'com.google.android.gms') {
+        if (details.requested.name  == 'play-services-location' || 
+            details.requested.name  == 'play-services-places-placereport')
             details.useVersion      projectLibVerLocation
         else
             details.useVersion      projectLibVerGms
@@ -67,15 +69,15 @@ def dependenciesStrategy = { DependencyResolveDetails details ->
 
 //noinspection GroovyMissingReturnStatement
 android {
-    compileSdkVersion           28
-    buildToolsVersion          '28.0.3'
+    compileSdkVersion           projectVerSdk
+    buildToolsVersion           projectVerBuildTools
 
     defaultConfig {
-        minSdkVersion           14
-        targetSdkVersion        28
-        versionCode        verCode
-        versionName        verName
-        resConfigs             'en', 'ru'
+        minSdkVersion           projectVerSdkMin
+        targetSdkVersion        projectVerSdk
+        versionCode             verCode
+        versionName             verName
+        resConfigs              projectResConfigs
     }
 
     compileOptions {
@@ -83,14 +85,14 @@ android {
         targetCompatibility     JavaVersion.VERSION_1_8
     }
 
-    flavorDimensions           'common'
+    flavorDimensions            projectDimensions
 
     productFlavors {
         core {
-            dimension          'common'
+            dimension           projectDimensions
         }
-        full {                 // core + debug classes (for Activities and Fragments)
-            dimension          'common'
+        full {                  // core + debug classes (for Activities and Fragments)
+            dimension           projectDimensions
         }
     }
 
@@ -166,6 +168,7 @@ dependencies {
     fullApi             "androidx.leanback:leanback-preference:$projectLibVerLeanbackLeanbackPreference"
     fullApi             "androidx.legacy:legacy-preference-v14:$projectLibVerLegacyLegacyPreferenceV14"
     fullApi             "androidx.mediarouter:mediarouter:$projectLibVerMediaRouterMediaRouter"
+    fullApi             "androidx.preference:preference:$projectLibVerPreferencePreference"
 
     api                 "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2
     annotationProcessor "com.google.dagger:dagger-compiler:$projectLibVerDefault"

@@ -160,13 +160,13 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
                          @NonNull final BaseViewModel<BaseResponse<Response, Exception, D>> baseViewModel) {
         //noinspection Convert2Diamond
         baseViewModel.getData().onComplete(false, new BaseResponse<Response, Exception, D>(
-                null, null, null, new RetrofitException(error), Source.NETWORK, error));
+                mParameters, null, null, null, new RetrofitException(error), Source.NETWORK, error));
     }
 
     private void onSuccess(final D result, final Response response,
                            @NonNull final BaseViewModel<BaseResponse<Response, Exception, D>> baseViewModel) {
         final BaseResponse<Response, Exception, D> baseResponse = new BaseResponse<>(
-                result, response, null, null, Source.NETWORK, null);
+                mParameters, result, response, null, null, Source.NETWORK, null);
 
         if (result == null )
             CoreLogger.logError("result == null");
@@ -191,7 +191,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
             CoreLogger.logError("no data to cache found; if you're using your own " +
                     "RestAdapter, please consider to add BodySaverLogger "              +
                     "(for working example please refer to akha.yakhont.technology.retrofit.Retrofit)");
-        return data == null ? null: mConverter.getValues(data, null, type);
+        return data == null ? null: mConverter.getValues(data, null, type, mParameters.getPageId());
     }
 
     private static class ConverterHelperRetrofit<D> implements ConverterHelper<D> {

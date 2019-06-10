@@ -23,6 +23,7 @@ import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor;
 import android.os.Handler;
 import android.os.Looper;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.IOException;
@@ -170,7 +171,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      * @return  The JSON string
      */
     @SuppressWarnings("unused")
-    public static String getJson(final String[] data) {
+    public static String getJson(final String... data) {
         return data == null ? null: getJson(Arrays.asList(data));
     }
 
@@ -282,12 +283,12 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
     @Override
     public WebSocket newWebSocket(final Request request, final WebSocketListener listener) {
         return new WebSocket() {
-            @Override public void    cancel   (               ) {                 }
-            @Override public boolean close    (int i, String s) { return    true; }
-            @Override public long    queueSize(               ) { return       0; }
-            @Override public Request request  (               ) { return request; }
-            @Override public boolean send     (ByteString b   ) { return    true; }
-            @Override public boolean send     (String s       ) { return    true; }
+            @Override public void    cancel   (                           ) {                 }
+            @Override public boolean close    (final int i, final String s) { return    true; }
+            @Override public long    queueSize(                           ) { return       0; }
+            @Override public Request request  (                           ) { return request; }
+            @Override public boolean send     (final ByteString b         ) { return    true; }
+            @Override public boolean send     (final String s             ) { return    true; }
         };
     }
 
@@ -357,7 +358,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
             }
         }
 
-        @SuppressWarnings("MethodDoesntCallSuperMethod")
+        @NonNull
         @Override public Call    clone     () { return new CallI(mRequest); }
         @Override public void    cancel    () {                             }
         @Override public boolean isCanceled() { return               false; }
@@ -375,16 +376,16 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
             }
 
             @Nullable   // for application interceptors this is always null
-            @Override public Connection connection          (                 ) { return       null; }
-            @Override public Call       call                (                 ) { return CallI.this; }
-            @Override public int        connectTimeoutMillis(                 ) { return          0; }
-            @Override public Response   proceed             (Request r        ) { return  mResponse; }
-            @Override public int        readTimeoutMillis   (                 ) { return          0; }
-            @Override public Request    request             (                 ) { return   mRequest; }
-            @Override public Chain      withConnectTimeout  (int i, TimeUnit t) { return       this; }
-            @Override public Chain      withReadTimeout     (int i, TimeUnit t) { return       this; }
-            @Override public Chain      withWriteTimeout    (int i, TimeUnit t) { return       this; }
-            @Override public int        writeTimeoutMillis  (                 ) { return          0; }
+            @Override public Connection connection          (                             ) { return       null; }
+            @Override public Call       call                (                             ) { return CallI.this; }
+            @Override public int        connectTimeoutMillis(                             ) { return          0; }
+            @Override public Response   proceed             (final Request r              ) { return  mResponse; }
+            @Override public int        readTimeoutMillis   (                             ) { return          0; }
+            @Override public Request    request             (                             ) { return   mRequest; }
+            @Override public Chain      withConnectTimeout  (final int i, final TimeUnit t) { return       this; }
+            @Override public Chain      withReadTimeout     (final int i, final TimeUnit t) { return       this; }
+            @Override public Chain      withWriteTimeout    (final int i, final TimeUnit t) { return       this; }
+            @Override public int        writeTimeoutMillis  (                             ) { return          0; }
         }
     }
 }

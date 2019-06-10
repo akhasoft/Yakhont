@@ -186,7 +186,7 @@ public class Rx<D> extends CommonRx<D> {
             }
 
             @Override
-            public void onError(Throwable throwable) {
+            public void onError(final Throwable throwable) {
                 subscriber.onError(throwable);
             }
 
@@ -198,7 +198,7 @@ public class Rx<D> extends CommonRx<D> {
         if (mHasProducer) //noinspection Anonymous2MethodRef,Convert2Lambda
             subscriberWrapper.setProducer(new Producer() {
                 @Override
-                public void request(long n) {
+                public void request(final long n) {
                     subscriber.request(n);
                 }
             });
@@ -290,7 +290,7 @@ public class Rx<D> extends CommonRx<D> {
         //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Action1<D>() {
             @Override
-            public void call(D data) {
+            public void call(final D data) {
                 callback.onResult(data);
             }
         };
@@ -301,7 +301,7 @@ public class Rx<D> extends CommonRx<D> {
         //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Action1<Throwable>() {
             @Override
-            public void call(Throwable throwable) {
+            public void call(final Throwable throwable) {
                 callback.onError(throwable);
             }
         };
@@ -431,12 +431,12 @@ public class Rx<D> extends CommonRx<D> {
 
                 register(new CallbackRx<D>() {
                     @Override
-                    public void onResult(D result) {
+                    public void onResult(final D result) {
                         Rx.this.onResult(subscriber, result);
                     }
 
                     @Override
-                    public void onError(Throwable throwable) {
+                    public void onError(final Throwable throwable) {
                         Rx.this.onError(subscriber, throwable);
                     }
                 });

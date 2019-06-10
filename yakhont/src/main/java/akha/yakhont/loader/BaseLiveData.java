@@ -33,6 +33,7 @@ import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBu
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -78,6 +79,8 @@ import com.google.android.material.snackbar.Snackbar;
  *        The type of data
  *
  * @see BaseViewModel
+ *
+ * @author akha
  */
 @SuppressWarnings("JavadocReference")
 public class BaseLiveData<D> extends MutableLiveData<D> {
@@ -231,7 +234,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return noErrors;
     }
 
-    private Boolean onComplete(final boolean cancel) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected Boolean onComplete(final boolean cancel) {
         synchronized (mLockLoading) {
             return onCompleteAsync(cancel);
         }
@@ -439,7 +443,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected D getErrorStub(final Exception exception) {
         return castBaseResponse(new BaseResponse<>(
-                null, null, null, null, Source.UNKNOWN, exception));
+                null, null, null, null, null, Source.UNKNOWN, exception));
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -597,9 +601,34 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          * Please refer to the base method description.
          */
         @Override
-        public void onComplete(final boolean success, D result) {
+        public void onComplete(final boolean success, final D result) {
+            Utils.runInBackground(new Runnable() {
+                @Override
+                public void run() {
+                    onCompleteHelper(success, result);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "CacheLiveData.onComplete()";
+                }
+            });
+
+        }
+
+        private void onCompleteHelper(final boolean success, D result) {
+            String selection = null;
+            if (result instanceof BaseResponse) {
+                final Long pageId = ((BaseResponse) result).getParameters().getPageId();
+                selection = pageId == null || pageId == BaseConverter.PAGE_ID_DEFAULT ? null:
+                        String.format(Utils.getLocale(), "%s = %d", BaseConverter.PAGE_ID, pageId);
+            }
+            else
+                CoreLogger.logWarning("no query selection (for non-BaseResponse result)");
+
             if (success && result != null)
-                storeResult(getContentValues(result), result, mMerge != null ? mMerge:
+                storeResult(selection, getContentValues(result), result, mMerge != null ? mMerge:
                         mMergeFromParameters != null ? mMergeFromParameters: false);
             else {
                 CoreLogger.log("about to load data from cache, previous success flag: " + success);
@@ -607,16 +636,18 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
                 Cursor cursor;
                 try {
-                    cursor = mDataLoader.getCursor(tableName);
+                    cursor = mDataLoader.getCursor(tableName, result instanceof BaseResponse ?
+                            ((BaseResponse) result).getParameters(): null);
                     CoreLogger.log("custom converter getCursor, table: " + tableName);
                 }
                 catch (UnsupportedOperationException exception) {
                     CoreLogger.log(CoreLogger.getDefaultLevel(),
                             "default converter getCursor, table: " + tableName, exception);
-                    cursor = query();
+                    cursor = query(selection);
                 }
                 catch (Exception exception) {
                     CoreLogger.log(exception);
+                    onComplete(false);
                     return;
                 }
 
@@ -625,10 +656,10 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             super.onComplete(success, result);
         }
 
-        private Cursor query() {
+        private Cursor query(final String selection) {
             try {
                 final Cursor cursor = getContext().getContentResolver().query(mUri, null,
-                        null, null, null);
+                        selection, null, null);
                 if (cursor == null)
                     CoreLogger.logError("cache cursor == null, URI: " + mUri);
                 return cursor;
@@ -656,7 +687,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             if (!(result instanceof BaseResponse)) return result;
 
             final BaseResponse baseResponse = (BaseResponse) result;
-            return castBaseResponse(new BaseResponse<>(null, null, cursor,
+            return castBaseResponse(new BaseResponse<>(null, null, null, cursor,
                     baseResponse.getError(), Source.CACHE, baseResponse.getThrowable()));
         }
 
@@ -666,7 +697,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected void storeResult(final Collection<ContentValues> values,
+        protected void storeResult(final String selection, final Collection<ContentValues> values,
                                    final D result, final boolean merge) {
             if (values == null || values.size() == 0) {
                 CoreLogger.logError("nothing to store in cache, empty values");
@@ -692,10 +723,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 @Override
                 public void run() {
                     try {
+                        final ContentResolver contentResolver = getContext().getContentResolver();
+
                         Boolean result;
                         if (!merge) {
                             result = mDataLoader.clear(tableName);
-                            if (result == null) return;
+                            if (result == null) {
+                                CoreLogger.logWarning("unexpected error in DataLoader.clear(), table: " + tableName);
+                                return;
+                            }
 
                             if (result)
                                 CoreLogger.log("custom converter delete, table: " + tableName);
@@ -704,9 +740,17 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                                 Utils.clearCache(mUri);
                             }
                         }
+                        else if (selection != null && mDataLoader.isInternalCache()) {
+                            final int rowsQty = contentResolver.delete(mUri, selection, null);
+                            CoreLogger.log("paging delete, table: " + tableName + ", selection: " +
+                                    selection + ", rows qty: " + rowsQty);
+                        }
 
                         result = mDataLoader.store(values);
-                        if (result == null) return;
+                        if (result == null) {
+                            CoreLogger.logWarning("unexpected error in DataLoader.store(), table: " + tableName);
+                            return;
+                        }
 
                         if (result) {
                             CoreLogger.log("custom converter store, table: " + tableName);
@@ -714,8 +758,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         }
                         CoreLogger.log("default converter store, table: " + tableName);
 
-                        final ContentValues[] tmp = new ContentValues[values.size()];
-                        getContext().getContentResolver().bulkInsert(mUri, values.toArray(tmp));
+                        contentResolver.bulkInsert(mUri, values.toArray(new ContentValues[0]));
                     }
                     catch (Exception exception) {
                         CoreLogger.log("can not store result", exception);
@@ -795,7 +838,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * Please refer to the base method description.
              */
             @Override
-            public void setText(String text) {
+            public void setText(final String text) {
             }
 
             /**
@@ -1262,7 +1305,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          */
         @SuppressWarnings("unused")
         @Override
-        public boolean start(Activity context, String text, Intent data) {
+        public boolean start(final Activity context, final String text, final Intent data) {
             start(text);
             return true;
         }
@@ -1336,7 +1379,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         synchronized (mLockCancel) {
                             try {
                                 CoreLogger.log("about to cancel data loading, object " + this);
-                                Utils.safeRunnableRun(mOnCancel);
+                                Utils.safeRun(mOnCancel);
                             }
                             catch (Exception exception) {
                                 CoreLogger.log(exception);

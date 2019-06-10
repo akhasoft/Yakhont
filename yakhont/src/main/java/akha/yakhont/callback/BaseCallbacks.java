@@ -429,11 +429,12 @@ public abstract class BaseCallbacks<T> {
         return isFound(object, callbacks, callbackClass, callback, parameters, properties);
     }
 
-    private static <T> boolean isFound(@NonNull final T                       object,
-                                       final Class<? extends BaseCallbacks>[] callbackClasses,
-                                       @NonNull final Class                   callbackClass,
-                                                final BaseCallbacks<T>        callback,
-                                       final String[] parameters, final int[] properties) {
+    private static <T> boolean isFound(@NonNull final T                                object,
+                                                final Class<? extends BaseCallbacks>[] callbackClasses,
+                                       @NonNull final Class                            callbackClass,
+                                                final BaseCallbacks<T>                 callback,
+                                                final String[]                         parameters,
+                                                final int[]                            properties) {
         if (sValidator == null)
             CoreLogger.logWarning("sValidator == null");
         else
@@ -441,6 +442,7 @@ public abstract class BaseCallbacks<T> {
 
         if (callbackClasses != null)
             for (final Class<? extends BaseCallbacks> baseCallbacksClass: callbackClasses)
+
                 if (baseCallbacksClass.isAssignableFrom(callbackClass)) {
                     if (callback != null)
                         if (callback instanceof CallbacksCustomizer)
@@ -452,6 +454,7 @@ public abstract class BaseCallbacks<T> {
                                     " CallbacksCustomizer: " + CoreLogger.getDescription(callback));
                     return true;
                 }
+
         return false;
     }
 
@@ -599,6 +602,7 @@ public abstract class BaseCallbacks<T> {
         private static <C extends BaseCacheCallbacks<T>, T, D> boolean unregister(
                 @NonNull final Map<C, D> callbacksMap, final C callbacks,
                 final Class<? extends BaseCacheCallbacks<T>> callbacksClass) {
+
             for (final C tmp: callbacksMap.keySet())
                 if (callbacks != null ? tmp.equals(callbacks): tmp.getClass().equals(callbacksClass)) {
                     tmp.onUnregister();
@@ -626,13 +630,15 @@ public abstract class BaseCallbacks<T> {
          * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
          */
         @SuppressWarnings("unused")
-        public static <T> boolean proceed(@NonNull final BaseCacheCallbacks<T> callbacks, @NonNull final T object) {
+        public static <T> boolean proceed(@NonNull final BaseCacheCallbacks<T> callbacks,
+                                          @NonNull final T object) {
             return proceed(callbacks, null, object, null);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static <T> boolean proceed(@NonNull final BaseCacheCallbacks<T> callbacks, final Boolean isCreate,
-                                          @NonNull final T object, final Callable<Boolean> condition) {
+        public static <T> boolean proceed(@NonNull final BaseCacheCallbacks<T> callbacks,
+                                          final Boolean isCreate, @NonNull final T object,
+                                          final Callable<Boolean> condition) {
             try {
                 boolean proceed = false;
                 if (isCreate != null)
@@ -657,13 +663,15 @@ public abstract class BaseCallbacks<T> {
             }
         }
 
-        private static <T> void add(@NonNull final BaseCacheCallbacks<T> callbacks, final boolean proceed, @NonNull final T object) {
+        private static <T> void add(@NonNull final BaseCacheCallbacks<T> callbacks,
+                                    final boolean proceed, @NonNull final T object) {
             if (!callbacks.mAll.containsKey(object))                callbacks.mAll.put(object, proceed);
             //noinspection RedundantCollectionOperation
             if (proceed && !callbacks.mProceeded.contains(object))  callbacks.mProceeded.add(object);
         }
 
-        private static <T> void remove(@NonNull final BaseCacheCallbacks<T> callbacks, @NonNull final T object) {
+        private static <T> void remove(@NonNull final BaseCacheCallbacks<T> callbacks,
+                                       @NonNull final T object) {
             //noinspection RedundantCollectionOperation
             if (callbacks.mAll.containsKey(object))                 callbacks.mAll.remove(object);
             //noinspection RedundantCollectionOperation
@@ -771,8 +779,9 @@ public abstract class BaseCallbacks<T> {
         /** @exclude */
         @SuppressWarnings({"JavaDoc", "WeakerAccess", "SameParameterValue"})
         public static <E extends Enum<E>, T> void apply(
-                @NonNull final Map<? extends BaseCacheCallbacks<T>, Set<E>> callbacksMap, @NonNull final BaseCacheCallbacks<T> callbacks,
-                final Boolean created, @NonNull final E lifeCycle, @NonNull final T object, @NonNull final Runnable runnable) {
+                @NonNull final Map<? extends BaseCacheCallbacks<T>, Set<E>> callbacksMap,
+                @NonNull final BaseCacheCallbacks<T> callbacks, final Boolean created,
+                @NonNull final E lifeCycle, @NonNull final T object, @NonNull final Runnable runnable) {
 
             //noinspection Convert2Lambda
             if (proceed(callbacks, created, object, new Callable<Boolean>() {
@@ -782,7 +791,7 @@ public abstract class BaseCallbacks<T> {
                     return lifeCycles == null || lifeCycles.size() == 0 || lifeCycles.contains(lifeCycle);
                 }
             }))
-                Utils.safeRunnableRun(runnable);
+                Utils.safeRun(runnable);
         }
     }
 }

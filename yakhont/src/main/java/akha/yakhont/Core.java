@@ -51,17 +51,16 @@ import android.app.Dialog;
 import android.content.ComponentCallbacks;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.PackageInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.net.Network;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -96,6 +95,7 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.Serializable;
 import java.lang.ref.WeakReference;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.Method;
@@ -114,6 +114,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -172,8 +173,6 @@ public class Core implements DefaultLifecycleObserver {
     private static final String                         BASE_URI                    = "content://%s.provider";
     @SuppressWarnings("unused")
     private static final String                         LOG_TAG_FORMAT              = "v.%s-%d-%s";
-
-    private static final String                         PREFERENCES_NAME            = "BasePreferences";
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IntRange(from = 1) public  static final int        TIMEOUT_CONNECTION          = 20;   // seconds
@@ -731,7 +730,7 @@ public class Core implements DefaultLifecycleObserver {
          * Please refer to the base method description.
          */
         @Override
-        public void onConfigurationChanged(final Configuration newConfig) {
+        public void onConfigurationChanged(@NonNull final Configuration newConfig) {
             CoreLogger.logWarning("newConfig " + newConfig);
 
             for (final ConfigurationChangedListener listener: sAppCallbacksListeners)
@@ -777,10 +776,9 @@ public class Core implements DefaultLifecycleObserver {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public static class BaseListeners {
 
-        /** @exclude */
-        @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected static void notifyListener(@NonNull final Runnable runnable) {
-            Utils.safeRunnableRun(runnable);
+            Utils.safeRun(runnable);
         }
     }
 
@@ -790,6 +788,7 @@ public class Core implements DefaultLifecycleObserver {
     private static class Init extends BaseListeners {
 
         private static final AtomicBoolean              sConnected                      = new AtomicBoolean(true);
+        private static final Object                     sConnectedLock                  = new Object();
         private static boolean                          sRunNetworkMonitor;
         private static String                           sBaseUri;
 
@@ -800,7 +799,7 @@ public class Core implements DefaultLifecycleObserver {
         private static HideKeyboardCallbacks            sHideKeyboardCallbacks;
         private static OrientationCallbacks             sOrientationCallbacks;
 
-        public static void registerCallbacks(@NonNull final Application application, boolean firstInit) {
+        public static void registerCallbacks(@NonNull final Application application, final boolean firstInit) {
             if (firstInit) registerCallbacks(application);
 
             if (sHideKeyboard) {
@@ -936,23 +935,72 @@ public class Core implements DefaultLifecycleObserver {
                         return;
                     }
 
-                    @SuppressWarnings("Convert2Lambda")
                     final boolean result = new CorePermissions.RequestBuilder(activity, PERMISSION)
                             .setOnGranted(new Runnable() {
                                 @Override
                                 public void run() {
-                                    @SuppressLint("MissingPermission") final NetworkInfo activeInfo =
-                                            connectivityManager.getActiveNetworkInfo();
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                                        handleConnectionNew();
+                                    else
+                                        handleConnectionOld();
+                                }
 
-                                    boolean isConnected = false;
-                                    if (activeInfo != null && activeInfo.isConnected()) isConnected = true;
-
-                                    if (sConnected.getAndSet(isConnected) != isConnected) {
-                                        CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
-                                                "network is " + (isConnected ? "": "NOT ") +
-                                                        "available");
-                                        onNetworkStatusChanged(isConnected);
+                                private void setConnected(final boolean isConnected) {
+                                    synchronized (sConnectedLock) {
+                                        if (sConnected.getAndSet(isConnected) != isConnected) {
+                                            CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
+                                                    "network is " + (isConnected ? "": "NOT ") +
+                                                            "available");
+                                            onNetworkStatusChanged(isConnected);
+                                        }
                                     }
+                                }
+
+                                @SuppressWarnings("deprecation")
+                                private void handleConnectionOld() {
+                                    @SuppressLint("MissingPermission")
+                                    final android.net.NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
+                                    setConnected(activeInfo != null && activeInfo.isConnected());
+                                }
+
+                                @SuppressLint("MissingPermission")
+                                @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
+                                @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+                                private void handleConnectionNew() {
+                                    connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(),
+                                            new ConnectivityManager.NetworkCallback() {
+                                                @Override
+                                                public void onAvailable(@NonNull final Network network) {
+                                                    CoreLogger.log(Level.DEBUG, "NetworkCallback.onAvailable()");
+                                                    setConnected( true);
+                                                }
+
+                                                @Override
+                                                public void onBlockedStatusChanged(@NonNull final Network network,
+                                                                                   final boolean blocked) {
+                                                    CoreLogger.log(blocked? Level.WARNING: Level.DEBUG,
+                                                            "NetworkCallback.onBlockedStatusChanged() " + blocked);
+                                                    setConnected(!blocked);
+                                                }
+
+                                                @Override
+                                                public void onLosing(@NonNull final Network network, final int maxMsToLive) {
+                                                    CoreLogger.log(Level.WARNING, "NetworkCallback.onLosing()");
+                                                    setConnected(false);
+                                                }
+
+                                                @Override
+                                                public void onLost(@NonNull final Network network) {
+                                                    CoreLogger.log(Level.WARNING, "NetworkCallback.onLost()");
+                                                    setConnected(false);
+                                                }
+
+                                                @Override
+                                                public void onUnavailable() {
+                                                    CoreLogger.log(Level.WARNING, "NetworkCallback.onUnavailable()");
+                                                    setConnected(false);
+                                                }
+                                            });
                                 }
                             })
                             .request();
@@ -1073,10 +1121,10 @@ public class Core implements DefaultLifecycleObserver {
          * @param runnable
          *        The Runnable
          *
-         * @return  Returns {@code true} if the Runnable was successfully ran, {@code false} otherwise.
+         * @return  {@code true} if the Runnable was successfully ran, {@code false} otherwise
          */
         @SuppressWarnings("UnusedReturnValue")
-        public static boolean safeRunnableRun(final Runnable runnable) {
+        public static boolean safeRun(final Runnable runnable) {
             if (runnable == null)
                 CoreLogger.logWarning("runnable == null");
             else {
@@ -1089,6 +1137,31 @@ public class Core implements DefaultLifecycleObserver {
                 }
             }
             return false;
+        }
+
+        /**
+         * Runs {@link Callable#call} without throwing exceptions (if any).
+         *
+         * @param callable
+         *        The Callable
+         *
+         * @param <T>
+         *        The result type of method {@link Callable#call}
+         *
+         * @return  The result of method {@link Callable#call} (or null)
+         */
+        public static <T> T safeRun(final Callable<T> callable) {
+            if (callable == null)
+                CoreLogger.logWarning("callable == null");
+            else {
+                try {
+                    return callable.call();
+                }
+                catch (Exception exception) {
+                    CoreLogger.log("failed callable " + callable, exception);
+                }
+            }
+            return null;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -1336,11 +1409,6 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        public static SharedPreferences getPreferences(@NonNull final ContextWrapper contextWrapper) {
-            return contextWrapper.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
-        }
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public static int getInvertedColor(final int color) {
             return Color.rgb(255 - Color.red(color), 255 - Color.green(color), 255 - Color.blue(color));
         }
@@ -1357,7 +1425,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static RequestCodes getRequestCode(int requestCode) {
+        public static RequestCodes getRequestCode(final int requestCode) {
             return RequestCodesHandler.getRequestCode(requestCode);
         }
 
@@ -1448,7 +1516,9 @@ public class Core implements DefaultLifecycleObserver {
          * @return  The network status flag
          */
         public static boolean isConnected() {
-            return Init.sConnected.get();
+            synchronized (Init.sConnectedLock) {
+                return Init.sConnected.get();
+            }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1583,12 +1653,12 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static String removeExtraSpaces(String str) {
+        public static String removeExtraSpaces(final String str) {
             return str == null ? null: str.trim().replaceAll("\\s+", " ");
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static String replaceSpecialChars(String str) {
+        public static String replaceSpecialChars(final String str) {
             return str == null ? null: str.trim().replaceAll("[^A-Za-z0-9_]", "_");
         }
 
@@ -1603,8 +1673,6 @@ public class Core implements DefaultLifecycleObserver {
         public static File getTmpDir(@NonNull final Context context) {
             File dir;
             if (checkTmpDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)))                    return dir;
-            if (checkTmpDir(dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)))  return dir;
-            if (checkTmpDir(dir = Environment.getExternalStorageDirectory()))                                      return dir;
             if (checkTmpDir(dir = context.getExternalCacheDir()))                                                  return dir;
 
             CoreLogger.logError("can not find tmp directory");
@@ -1619,24 +1687,24 @@ public class Core implements DefaultLifecycleObserver {
         /**
          * Creates ZIP file.
          *
-         * @param srcFiles
-         *        The source files
-         *
          * @param zipFile
          *        The destination ZIP file
+         *
+         * @param srcFiles
+         *        The source files
          *
          * @return  {@code true} if ZIP file was created successfully, {@code false} otherwise
          */
         @SuppressWarnings("unused")
-        public static boolean zip(final String[] srcFiles, final String zipFile) {
-            return zip(srcFiles, zipFile, null);
+        public static boolean zip(final String zipFile, final String... srcFiles) {
+            return zip(null, zipFile, srcFiles);
         }
 
         private static final int                        ZIP_BUFFER_SIZE                 = 2048;
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static boolean zip(final String[] srcFiles, final String zipFile,
-                                  final Map<String, Exception> errors) {
+        public static boolean zip(final Map<String, Exception> errors,
+                                  final String zipFile, final String... srcFiles) {
             if (zipFile == null || srcFiles == null || srcFiles.length == 0) {
                 CoreLogger.logError("no arguments");
                 return false;
@@ -1684,9 +1752,6 @@ public class Core implements DefaultLifecycleObserver {
          * @param activity
          *        The Activity
          *
-         * @param addresses
-         *        The email's addresses
-         *
          * @param subject
          *        The email's subject
          *
@@ -1696,9 +1761,12 @@ public class Core implements DefaultLifecycleObserver {
          * @param attachment
          *        The email's attachment (or null)
          *
+         * @param addresses
+         *        The email's addresses
+         *
          */
-        public static void sendEmail(final Activity activity, final String[] addresses,
-                                     final String subject, final String text, final File attachment) {
+        public static void sendEmail(final Activity activity, final String subject, final String text,
+                                     final File attachment, final String... addresses) {
             if (activity == null || addresses == null || addresses.length == 0 ||
                     subject == null || text == null) {
                 CoreLogger.logError("no arguments");
@@ -1835,7 +1903,7 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-            public static RequestCodes getRequestCode(int requestCode) {
+            public static RequestCodes getRequestCode(final int requestCode) {
                 final RequestCodes code = getRequestCode(requestCode, REQUEST_CODES_OFFSET);
                 return !code.equals(RequestCodes.UNKNOWN) ? code:
                         getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
@@ -1894,7 +1962,7 @@ public class Core implements DefaultLifecycleObserver {
                 return new Runnable() {
                     @Override
                     public void run() {
-                        safeRunnableRun(runnable);
+                        safeRun(runnable);
                     }
 
                     @NonNull
@@ -2341,7 +2409,7 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
-            public static Type getType(Type type) {
+            public static Type getType(final Type type) {
                 return type == null               ||
                        type instanceof Collection || type instanceof GenericArrayType ? type:
                        getParameterizedType(type);  // actually - Rx handling
@@ -2434,9 +2502,8 @@ public class Core implements DefaultLifecycleObserver {
          * @param cursorHandler
          *        The custom handler for each cursor row
          *
-         * @param moveToFirst
-         *        {@code true} to move to the first row before handling started,
-         *        {@code false} to work from the current cursor position
+         * @param position
+         *        The cursor position to move, null - to work from the current one, 0 - to move to first
          *
          * @param onlyOne
          *        {@code true} if only one row should be handled, {@code false} otherwise
@@ -2450,7 +2517,7 @@ public class Core implements DefaultLifecycleObserver {
          * @see CursorHandler
          */
         public static boolean cursorHelper(final Cursor cursor, final CursorHandler cursorHandler,
-                                           final boolean moveToFirst, final boolean onlyOne,
+                                           final Integer position, final boolean onlyOne,
                                            final Boolean closeOrRestorePos) {
             if (cursorHandler == null) {
                 CoreLogger.logWarning("nothing to do");
@@ -2469,9 +2536,15 @@ public class Core implements DefaultLifecycleObserver {
             final boolean restorePos = close ? false: closeOrRestorePos;
 
             try {
-                if (moveToFirst && !cursor.moveToFirst()) {
-                    CoreLogger.logWarning("empty cursor");
-                    return true;
+                if (position != null && !cursor.moveToPosition(position)) {
+                    if (position == 0) {
+                        CoreLogger.logWarning("empty cursor");
+                        return true;
+                    }
+                    else {
+                        CoreLogger.logError("wrong cursor position " + position);
+                        return false;
+                    }
                 }
 
                 if (cursor.isBeforeFirst()) {
@@ -2550,7 +2623,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static class DataStore {
+        public static class DataStore implements Serializable {
 
             private final Map<String, Object>           mStore                          = newMap();
 

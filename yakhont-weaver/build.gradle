@@ -17,15 +17,15 @@
 apply plugin: 'java'
 
 ext {
-    publishedName               = 'Yakhont Weaver'
-    publishedDescription        = 'The Yakhont component for working with the Java bytecode'
+    publishedName               =   'Yakhont Weaver'
+    publishedDescription        =   'The Yakhont component for working with the Java bytecode'
 
-    publishedGroupId            = rootProject.ext.projectGroupId
-    publishedArtifactId         = 'yakhont-weaver'
-    publishedPackaging          = 'jar'
-    publishedVersion            = '0.9.19'
+    publishedGroupId            =    projectGroupId
+    publishedArtifactId         =   'yakhont-weaver'
+    publishedPackaging          =   'jar'
+    publishedVersion            =    projectVerName
 
-    projectJavaDocLinks         = ['http://google.github.io/android-gradle-dsl/javadoc/current/']
+    projectJavaDocLinks         = [ 'http://google.github.io/android-gradle-dsl/javadoc/current/']
     projectJavaDocLinksOffline  = [['http://www.javassist.org/html/', '.']]
 }
 
@@ -39,7 +39,7 @@ sourceSets {
 }
 
 dependencies {
-    implementation "org.javassist:javassist:${rootProject.ext.projectLibVerJavassist}"
+    implementation "org.javassist:javassist:$projectLibVerJavassist"
     //noinspection GradleDependency
     implementation "com.android.tools.build:transform-api:1.5.0"
     //noinspection GradleDependency

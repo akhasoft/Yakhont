@@ -19,6 +19,9 @@ package akha.yakhont.loader;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CursorHandler;
+import akha.yakhont.Core.Utils.DataStore;
+import akha.yakhont.CoreReflection;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
@@ -31,6 +34,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -76,6 +80,7 @@ public class BaseResponse<R, E, D> {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public  static final    Cursor                      EMPTY_CURSOR      = new MatrixCursor(MIN_COLUMNS, 0);
 
+    private final           LoadParameters              mParameters;
     private final           R                           mResponse;
     private final           E                           mError;
     private                 D                           mData;
@@ -84,6 +89,8 @@ public class BaseResponse<R, E, D> {
     private final           Source                      mSource;
     private final           Throwable                   mThrowable;
 
+    private final           DataStore                   mStore            = new DataStore();
+
     /**
      * Initialises a newly created {@code BaseResponse} object.
      *
@@ -91,11 +98,14 @@ public class BaseResponse<R, E, D> {
      *        The source of data
      */
     public BaseResponse(@NonNull final Source source) {
-        this(null, null, null, null, source, null);
+        this(null, null, null, null, null, source, null);
     }
 
     /**
      * Initialises a newly created {@code BaseResponse} object.
+     *
+     * @param parameters
+     *        The data loading parameters
      *
      * @param data
      *        The data
@@ -115,14 +125,63 @@ public class BaseResponse<R, E, D> {
      * @param throwable
      *        The additional error info (normally if error is not an instance of Throwable)
      */
-    public BaseResponse(final D data, final R response, final Cursor cursor, final E error,
-                        @NonNull final Source source, final Throwable throwable) {
+    public BaseResponse(final LoadParameters parameters, final D data, final R response, final Cursor cursor,
+                        final E error, @NonNull final Source source, final Throwable throwable) {
+        mParameters         = parameters;
         mData               = data;
         mResponse           = response;
         mCursor             = cursor;
         mSource             = source;
         mError              = error;
         mThrowable          = throwable;
+    }
+
+    /**
+     * Sets some data to keep in this {@link BaseResponse}.
+     *
+     * @param key
+     *        The key
+     *
+     * @param value
+     *        The data
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The previous data for the given key (or null)
+     *
+     * @see #getUserData
+     */
+    @SuppressWarnings("unused")
+    public <V> V setUserData(final String key, final V value) {
+        return mStore.setData(key, value);
+    }
+
+    /**
+     * Returns the data (associated with the given key) kept in this {@link BaseResponse}.
+     *
+     * @param key
+     *        The key
+     *
+     * @param <V>
+     *        The type of data
+     *
+     * @return  The data for the given key (or null)
+     *
+     * @see #setUserData
+     */
+    @SuppressWarnings({"unchecked", "unused"})
+    public <V> V getUserData(final String key) {
+        return (V) mStore.getData(key);
+    }
+
+    /**
+     * Returns the data loading parameters.
+     *
+     * @return  The data loading parameters
+     */
+    public LoadParameters getParameters() {
+        return mParameters;
     }
 
     /**
@@ -233,17 +292,24 @@ public class BaseResponse<R, E, D> {
         builder.append(String.format(locale, "%s, class: %s, error: %s%s",
                 mSource.name(), mData == null ? null: mData.getClass().getName(),
                 mError, sNewLine));
-        builder.append(String.format(locale, "more error info: %s%s", mThrowable, sNewLine));
+        builder.append(String.format(locale, "more error info: %s%s%s", mThrowable, sNewLine, sNewLine));
+
+        builder.append(String.format(locale, "data loading parameters: %s%s%s",
+                mParameters == null ? "null": mParameters, sNewLine, sNewLine));
 
         if (mData == null)
             builder.append("no data").append(sNewLine);
         else {
-            if (mData.getClass().isArray()) {
-                final Object[] array = (Object[]) mData;
-                builder.append(String.format(locale, "data: length %d%s", array.length, sNewLine));
+            if (CoreReflection.isNotSingle(mData)) {
+                final List<Object> data = CoreReflection.getObjects(mData, true);
+                if (data == null)
+                    builder.append(String.format(locale, "data: null%s", sNewLine));
+                else {
+                    builder.append(String.format(locale, "data: size %d%s", data.size(), sNewLine));
 
-                for (int i = 0; i < array.length; i++)
-                    builder.append(String.format(locale, "[%d] %s%s", i, array[i], sNewLine));
+                    for (int i = 0; i < data.size(); i++)
+                        builder.append(String.format(locale, "[%d] %s%s", i, data.get(i), sNewLine));
+                }
             }
             else
                 builder.append("data ").append(mData).append(sNewLine);
@@ -252,7 +318,7 @@ public class BaseResponse<R, E, D> {
         if (mCursor == null)
             builder.append("no cursor");
         else if (Utils.cursorHelper(mCursor, new LogCursorHandler(builder, locale),
-                true, false, true))
+                0, false, true))
             builder.delete(builder.length() - 1, builder.length());
         else
             builder.append("can't log cursor");
@@ -272,7 +338,7 @@ public class BaseResponse<R, E, D> {
         }
 
         @Override
-        public boolean handle(Cursor cursor) {
+        public boolean handle(final Cursor cursor) {
             for (int i = 0; i < cursor.getColumnCount(); i++)
                 mBuilder.append(String.format(mLocale, "%s%s == %s", i == 0 ? "": ", ",
                         cursor.getColumnName(i), getString(cursor, i, mLocale)));

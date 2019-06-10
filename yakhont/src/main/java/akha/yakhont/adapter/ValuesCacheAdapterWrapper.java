@@ -61,7 +61,6 @@ import java.util.Set;
  *
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<ContentValues, R, E, D> {
 
     /**
@@ -171,8 +170,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
                        final boolean  supportCursorAdapter) {
         final Set<String>           fromSet = Utils.newSet();
         final int[]                 to      = BaseCacheAdapter.getViewsBinding(context, layoutId, fromSet);
-        //noinspection ToArrayCallWithZeroLengthArrayArgument
-        final String[]              from    = fromSet.toArray(new String[fromSet.size()]);
+        final String[]              from    = fromSet.toArray(new String[0]);
         return init(support, supportCursorAdapter, context, layoutId, from, to);
     }
 
@@ -302,7 +300,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
          */
         @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, final int viewType) {
             return mViewHolderCreator != null ? super.onCreateViewHolder(parent, viewType):
                    new ViewHolder(mViewInflater.inflate(parent)) {};
         }
@@ -319,6 +317,11 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
             mFrom = from;
         }
 
+        @SuppressWarnings("unchecked")
+        private D getData(final Cursor cursor) {
+            return (D) mConverter.getData(cursor, null);
+        }
+        
         @SuppressWarnings("unused")
         @Override
         public Collection<ContentValues> convert(@NonNull final BaseResponse<R, E, D> baseResponse) {
@@ -327,7 +330,8 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
 
             try {
                 D data = baseResponse.getResult();
-                if (data == null) data = mConverter.getData(cursor);
+
+                if (data == null) data = getData(cursor);
                 if (data == null)
                     CoreLogger.logError("can't retrieve result from BaseResponse");
                 else {

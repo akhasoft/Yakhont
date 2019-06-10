@@ -84,7 +84,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
         //noinspection Convert2Lambda
         setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override
-            public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+            public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
                 return BaseSimpleCursorSupportAdapter.setViewValueHelper(
                         mViewBinder, mContext, view, cursor, columnIndex);
             }
@@ -124,13 +124,13 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     @CallSuper
-    public Cursor swapCursor(Cursor cursor) {
+    public Cursor swapCursor(final Cursor cursor) {
         return super.swapCursor(BaseSimpleCursorSupportAdapter.swapCursor(mDataConverter, cursor));
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
-    public Cursor getItemCursor(int position) {
+    public Cursor getItemCursor(final int position) {
         return BaseSimpleCursorSupportAdapter.getItemCursor(position, getCursor());
     }
 }

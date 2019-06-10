@@ -103,7 +103,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 420 KB (except the _full_ version, which is about 520 KB).
+The Yakhont AAR is about 440 KB (except the _full_ version, which is about 530 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above.
 
@@ -182,7 +182,7 @@ dependencies {
 //  and if you're going to customize Yakhont using build-in Dagger 2:
     implementation      'com.google.dagger:dagger:2.x'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.x'
-//  for Kotlin replace 'annotationProcessor' with 'kapt'
+//  for Kotlin please replace 'annotationProcessor' with 'kapt'
 }
 ```
 
@@ -190,8 +190,8 @@ dependencies {
 
     4.1. For Java:
 ```groovy
-// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
-String[] weaverConfigFiles = null
+// use default config (or provide something like "projectDir.absolutePath + '/your_weaver.config'")
+String weaverConfigFiles = null
 
 String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
@@ -202,14 +202,14 @@ android.applicationVariants.all { variant ->
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString(), 
             javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
-            weaverConfigFiles, weaverAddConfig)
+            weaverAddConfig, weaverConfigFiles)
     }
 }
 ```
-      4.2. For Kotlin (plus - optionally - Java):
+      4.2. For Kotlin (and - optionally - Java):
 ```groovy
-// use default config (or specify something like "new String[] {projectDir.absolutePath + '/weaver.config'}")
-String[] weaverConfigFiles = null
+// use default config (or provide something like "projectDir.absolutePath + '/your_weaver.config'")
+String weaverConfigFiles = null
 
 String pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
 boolean weaverDebug = false, weaverAddConfig = true
@@ -223,7 +223,7 @@ android.applicationVariants.all { variant ->
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
             javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
-            weaverConfigFiles, weaverAddConfig)
+            weaverAddConfig, weaverConfigFiles)
     }
 }
 ```
@@ -327,9 +327,8 @@ $ ./gradlew --configure-on-demand yakhont-demo-room-kotlin:clean yakhont-demo-ro
 
 **Note:** you may need to update your Android SDK before building.
 
-To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code):
-
-- add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling
+To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code)
+add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling.
 
 ## Communication
 

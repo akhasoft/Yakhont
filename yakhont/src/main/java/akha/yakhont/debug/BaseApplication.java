@@ -74,7 +74,7 @@ public class BaseApplication extends Application {
      */
     @CallSuper
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull final Configuration newConfig) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", newConfig " + newConfig, false);
 
         super.onConfigurationChanged(newConfig);
@@ -120,7 +120,7 @@ public class BaseApplication extends Application {
      */
     @CallSuper
     @Override
-    public void onTrimMemory(int level) {
+    public void onTrimMemory(final int level) {
         CoreLogger.log(getDebugLevel(), "level " + level, false);
 
         super.onTrimMemory(level);

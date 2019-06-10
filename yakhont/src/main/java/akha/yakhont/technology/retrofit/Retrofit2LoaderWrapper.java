@@ -166,13 +166,13 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         try {
             mRequester.makeRequest(new Callback<D>() {
                 @Override
-                public void onResponse(Call<D> call, Response<D> response) {
+                public void onResponse(final Call<D> call, final Response<D> response) {
                     mRetrofit.clearCall();
                     onSuccess(call, response, baseViewModel);
                 }
 
                 @Override
-                public void onFailure(Call<D> call, Throwable throwable) {
+                public void onFailure(final Call<D> call, final Throwable throwable) {
                     mRetrofit.clearCall();
                     onError(call, null, throwable, baseViewModel);
                 }
@@ -197,7 +197,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             try {
                 CoreLogger.log(level, "about to cancel Retrofit data loading, object " + this);
 
-                Utils.safeRunnableRun(cancelHandler);
+                Utils.safeRun(cancelHandler);
                 return true;
             }
             catch (Exception exception) {
@@ -210,7 +210,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                          final Response<D> response, final Throwable error,
                          @NonNull final BaseViewModel<BaseResponse<Response<D>, Throwable, D>> baseViewModel) {
         baseViewModel.getData().onComplete(false, new BaseResponse<>(
-                null, response, null, error, Source.NETWORK, null));
+                mParameters, null, response, null, error, Source.NETWORK, null));
     }
 
     private void onSuccess(final Call<D> call, final Response<D> response,
@@ -218,7 +218,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         if (response.isSuccessful()) {
             final D body = response.body();
             final BaseResponse<Response<D>, Throwable, D> baseResponse = new BaseResponse<>(
-                    body, response, null, null, Source.NETWORK, null);
+                    mParameters, body, response, null, null, Source.NETWORK, null);
 
             if (body != null) {
                 final Class<?> type = body.getClass();      // collections are without generic info
@@ -257,7 +257,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             CoreLogger.logError("no data to cache found; if you're using your own " +
                     "OkHttpClient, please consider to add BodySaverInterceptor "        +
                     "(for working example please refer to LocalOkHttpClient2 in demo-simple)");
-        return data == null ? null: mConverter.getValues(data.getType(), data.getResponse(), type);
+        return data == null ? null: mConverter.getValues(data.getType(), data.getResponse(),
+                type, mParameters.getPageId());
     }
 
     private retrofit2.Converter<ResponseBody, D> getConverter(final Type type) {
@@ -421,7 +422,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
                 @SuppressWarnings("unused")
                 @Override
-                public void request(Callback<D> callback) throws Throwable {
+                public void request(final Callback<D> callback) throws Throwable {
                     if (mRetrofit.checkForDefaultRequesterOnly(mMethod, callback))
                         mRetrofit.request(mMethod, null, mRx);
                 }
@@ -786,7 +787,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
             // for handling screen orientation changes
             final BaseViewModel<D> viewModel = BaseViewModel.get();
-            if (viewModel != null) viewModel.setCoreLoad(coreLoad);
+            if (viewModel != null) viewModel.setCoreLoads(coreLoad);
 
             return coreLoad;
         }

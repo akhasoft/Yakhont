@@ -20,8 +20,13 @@ import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger.Level;
 
 import android.os.Build;
+import android.util.SparseArray;
+import android.util.SparseBooleanArray;
+import android.util.SparseIntArray;
+import android.util.SparseLongArray;
 
 import androidx.annotation.NonNull;
+import androidx.collection.ArrayMap;
 import androidx.collection.ArraySet;
 
 import java.lang.annotation.Annotation;
@@ -105,7 +110,8 @@ public class CoreReflection {
      * Same as {@link #invoke(Object, String, Object...)} but never throws exceptions.
      */
     @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
-    public static <T> T invokeSafe(@NonNull final Object object, @NonNull final String methodName, final Object... args) {
+    public static <T> T invokeSafe(@NonNull final Object object, @NonNull final String methodName,
+                                   final Object... args) {
         try {
             return invoke(object, methodName, args);
         }
@@ -293,7 +299,8 @@ public class CoreReflection {
     }
 
     /**
-     * Checks if parameter is array or {@link Collection}.
+     * Checks if parameter is array, {@code ArrayMap}, {@code Collection}, {@code SparseArray}
+     * or {@code Sparse*Array}.
      *
      * @param object
      *        The object (or object's class) on which to check
@@ -303,12 +310,26 @@ public class CoreReflection {
     public static boolean isNotSingle(@NonNull final Object object) {
         final Class<?> cls = getClass(object);
 
-        // should be consistent with getObjects(Object)
-        return cls.isArray() || Collection.class.isAssignableFrom(cls);
+        // should be consistent with getSize(Object) and getObjects(Object)
+        if (cls.isArray() || Collection.class.isAssignableFrom(cls)
+                || ArrayMap            .class.isAssignableFrom(cls)
+                || SparseArray         .class.isAssignableFrom(cls)
+                || SparseBooleanArray  .class.isAssignableFrom(cls)
+                || SparseIntArray      .class.isAssignableFrom(cls))          return true;
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT         &&
+                android.util.ArrayMap  .class.isAssignableFrom(cls))          return true;
+
+        //noinspection RedundantIfStatement
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 &&
+                SparseLongArray        .class.isAssignableFrom(cls))          return true;
+
+        return false;
     }
 
     /**
-     * Returns the size of parameter (if it's an array or {@link Collection}).
+     * Returns the size of parameter (if it's an array, {@code ArrayMap}, {@code Collection},
+     * {@code SparseArray} or {@code Sparse*Array}).
      *
      * @param object
      *        The object
@@ -319,16 +340,27 @@ public class CoreReflection {
     public static int getSize(@NonNull final Object object) {
         final Class<?> cls = getClass(object);
 
-        if (cls.isArray())                          return Array.getLength(object);
-        if (Collection.class.isAssignableFrom(cls)) return ((Collection) object).size();
+        // should be consistent with isNotSingle(Object) and getObjects(Object)
+        if (cls.isArray())                                   return Array.getLength(object);
+        if (Collection        .class.isAssignableFrom(cls)) return ((Collection        ) object).size();
 
-        CoreLogger.logError("failed getSize() for class " + CoreLogger.getDescription(cls));
+        if (ArrayMap          .class.isAssignableFrom(cls)) return ((ArrayMap          ) object).size();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT         && android.util.
+            ArrayMap          .class.isAssignableFrom(cls)) return ((android.util.ArrayMap
+                                                                                       ) object).size();
+        if (SparseArray       .class.isAssignableFrom(cls)) return ((SparseArray       ) object).size();
+        if (SparseBooleanArray.class.isAssignableFrom(cls)) return ((SparseBooleanArray) object).size();
+        if (SparseIntArray    .class.isAssignableFrom(cls)) return ((SparseIntArray    ) object).size();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 &&
+            SparseLongArray   .class.isAssignableFrom(cls)) return ((SparseLongArray   ) object).size();
+
+        CoreLogger.logError("failed to find size for class " + CoreLogger.getDescription(cls));
         return 0;
     }
 
     /**
-     * Returns contained objects if parameter is array, or {@link Collection}, or null
-     * - but refer to the 'handleSingles' parameter.
+     * Returns contained objects if parameter is array, {@code ArrayMap}, {@code Collection},
+     * {@code SparseArray}, {@code Sparse*Array}, or null (please refer to the 'handleSingles' parameter).
      *
      * @param object
      *        The object
@@ -344,24 +376,104 @@ public class CoreReflection {
             return null;
         }
         final Class<?> cls = object.getClass();    // not getClass(object)
-        List<Object> result = null;
 
-        // should be consistent with isSingle(Object)
+        // should be consistent with isNotSingle(Object) and getSize(Object)
+        List<Object> result = null;
         try {
             if (cls.isArray()) {
-                result = new ArrayList<>();
-                for (int i = 0; i < Array.getLength(object); i++)
-                    result.add(Array.get(object, i));
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(Array.getLength(object), new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return Array.get(object, idx);
+                    }
+                });
             }
             else if (Collection.class.isAssignableFrom(cls)) {
-                result = List.class.isAssignableFrom(cls) ? castToList(object):
+                result = List.class.isAssignableFrom(cls) ? getObjectsCastToList(object):
                         new ArrayList<>((Collection<?>) object);
             }
-            else if (handleSingles) {
-                warningSingle(cls);
 
-                result = new ArrayList<>();
-                result.add(object);
+            else if (ArrayMap.class.isAssignableFrom(cls)) {
+                final ArrayMap arrayMap = (ArrayMap<?, ?>) object;
+
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(arrayMap.size(), new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return arrayMap.get(arrayMap.keyAt(idx));
+                    }
+                });
+            }
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT &&
+                     android.util.ArrayMap.class.isAssignableFrom(cls)) {
+                final android.util.ArrayMap arrayMap = (android.util.ArrayMap<?, ?>) object;
+
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(arrayMap.size(), new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return arrayMap.get(arrayMap.keyAt(idx));
+                    }
+                });
+            }
+
+            else if (SparseArray.class.isAssignableFrom(cls)) {
+                final SparseArray sparseArray = (SparseArray<?>) object;
+
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(sparseArray.size(), new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return sparseArray.get(sparseArray.keyAt(idx));
+                    }
+                });
+            }
+            else if (SparseBooleanArray.class.isAssignableFrom(cls)) {
+                final SparseBooleanArray sparseArray = (SparseBooleanArray) object;
+
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(sparseArray.size(), new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return sparseArray.get(sparseArray.keyAt(idx));
+                    }
+                });
+            }
+            else if (SparseIntArray.class.isAssignableFrom(cls)) {
+                final SparseIntArray sparseArray = (SparseIntArray) object;
+
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(sparseArray.size(), new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return sparseArray.get(sparseArray.keyAt(idx));
+                    }
+                });
+            }
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 &&
+                     SparseLongArray.class.isAssignableFrom(cls)) {
+                final SparseLongArray sparseArray = (SparseLongArray) object;
+
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(sparseArray.size(), new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return sparseArray.get(sparseArray.keyAt(idx));
+                    }
+                });
+            }
+
+            else if (handleSingles) {
+                getObjectsWarningSingle(cls);
+
+                //noinspection Convert2Lambda
+                result = getObjectsHelper(1, new GetObjectsHelper() {
+                    @Override
+                    public Object getObject(final int idx) {
+                        return object;
+                    }
+                });
             }
         }
         catch (Exception exception) {
@@ -369,21 +481,33 @@ public class CoreReflection {
             return null;
         }
 
-        if (result == null) warningSingle(cls);
+        if (result == null) getObjectsWarningSingle(cls);
         return result;
     }
 
+    private interface GetObjectsHelper {
+        Object getObject(final int idx);
+    }
+
+    private static List<Object> getObjectsHelper(final int size, final GetObjectsHelper helper) {
+        final List<Object> list = new ArrayList<>();
+        for (int i = 0; i < size; i++)
+            list.add(helper.getObject(i));
+        return list;
+    }
+
     @SuppressWarnings("unchecked")
-    private static List<Object> castToList(final Object object) {
+    private static List<Object> getObjectsCastToList(final Object object) {
         return (List<Object>) object;
     }
 
-    private static void warningSingle(final Class<?> cls) {
+    private static void getObjectsWarningSingle(final Class<?> cls) {
         CoreLogger.logWarning("neither array nor Collection: " + CoreLogger.getDescription(cls));
     }
 
     /**
-     * Returns contained object at given position if parameter is array or {@link List} (null otherwise).
+     * Returns contained object at given position if parameter is array, {@code ArrayMap}, {@code List},
+     * {@code SparseArray}, {@code Sparse*Array} or {@code ArraySet} (null otherwise).
      *
      * @param object
      *        The object
@@ -413,6 +537,47 @@ public class CoreReflection {
                 if (checkSize(((List<?>) object).size(), position, "List"))
                     return ((List<?>) object).get(position);
             }
+
+            else if (ArrayMap.class.isAssignableFrom(cls)) {
+                if (checkSize(((ArrayMap<?, ?>) object).size(), position, "ArrayMap (support library)")) {
+                    final ArrayMap<?, ?> arrayMap = (ArrayMap<?, ?>) object;
+                    return arrayMap.get(arrayMap.keyAt(position));
+                }
+            }
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT &&
+                    android.util.ArrayMap.class.isAssignableFrom(cls)) {
+                if (checkSize(((android.util.ArrayMap<?, ?>) object).size(), position, "ArrayMap")) {
+                    final android.util.ArrayMap<?, ?> arrayMap = (android.util.ArrayMap<?, ?>) object;
+                    return arrayMap.get(arrayMap.keyAt(position));
+                }
+            }
+
+            else if (SparseArray.class.isAssignableFrom(cls)) {
+                if (checkSize(((SparseArray<?>) object).size(), position, "SparseArray")) {
+                    final SparseArray sparseArray = (SparseArray<?>) object;
+                    return sparseArray.get(sparseArray.keyAt(position));
+                }
+            }
+            else if (SparseBooleanArray.class.isAssignableFrom(cls)) {
+                if (checkSize(((SparseBooleanArray) object).size(), position, "SparseBooleanArray")) {
+                    final SparseBooleanArray sparseArray = (SparseBooleanArray) object;
+                    return sparseArray.get(sparseArray.keyAt(position));
+                }
+            }
+            else if (SparseIntArray.class.isAssignableFrom(cls)) {
+                if (checkSize(((SparseIntArray) object).size(), position, "SparseIntArray")) {
+                    final SparseIntArray sparseArray = (SparseIntArray) object;
+                    return sparseArray.get(sparseArray.keyAt(position));
+                }
+            }
+            else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 &&
+                     SparseLongArray.class.isAssignableFrom(cls)) {
+                if (checkSize(((SparseLongArray) object).size(), position, "SparseLongArray")) {
+                    final SparseLongArray sparseArray = (SparseLongArray) object;
+                    return sparseArray.get(sparseArray.keyAt(position));
+                }
+            }
+
             else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
                      android.util.ArraySet.class.isAssignableFrom(cls)) {
                 if (checkSize(((android.util.ArraySet<?>) object).size(), position, "ArraySet"))
@@ -440,19 +605,37 @@ public class CoreReflection {
         return !nOk;
     }
 
+    private static Object mergeObjectsHelper(@NonNull final Object object) {
+        final Class<?> cls = getClass(object);
+
+        if (ArrayMap          .class.isAssignableFrom(cls) ||
+            SparseArray       .class.isAssignableFrom(cls) ||
+            SparseBooleanArray.class.isAssignableFrom(cls) ||
+            SparseIntArray    .class.isAssignableFrom(cls)) return getObjects(object, false);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT         && android.util.
+            ArrayMap          .class.isAssignableFrom(cls)) return getObjects(object, false);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 &&
+            SparseLongArray   .class.isAssignableFrom(cls)) return getObjects(object, false);
+
+        return object;
+    }
+
     /**
-     * Merges data (if parameters are arrays or Collections).
+     * Merges data (each parameter can be array, {@code ArrayMap}, {@code Collection},
+     * {@code SparseArray} or {@code Sparse*Array}).
      *
      * @param object1
-     *        The array or {@link Collection}
+     *        The 1st object to merge (or null)
      *
      * @param object2
-     *        The array or {@link Collection}
+     *        The 2nd object to merge (or null)
      *
      * @return  The merged data (or null)
      */
     @SuppressWarnings("unchecked")
-    public static Object mergeObjects(final Object object1, final Object object2) {
+    public static Object mergeObjects(Object object1, Object object2) {
         if (object1 == null) return object2;
         if (object2 == null) return object1;
 
@@ -466,6 +649,9 @@ public class CoreReflection {
             }
             else
                 return mergeObjects(object2, object1);
+
+        object1 = mergeObjectsHelper(object1);
+        object2 = mergeObjectsHelper(object2);
 
         int size2 = getSize(object2);
 

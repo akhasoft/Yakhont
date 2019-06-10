@@ -277,12 +277,14 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     @Override
     public void set(final String[] parameters, final int[] properties) {
         if (parameters != null && parameters.length > 0 && parameters[0] != null) {
+
             if (properties != null && properties.length > 0 && properties[0] != Core.NOT_VALID_RES_ID)
                 CoreLogger.logWarning("properties[0] will be ignored 'cause " +
                         "permissions rationale is already defined as 'parameters'");
             if (parameters.length != 1)
                 CoreLogger.logWarning("only first parameter accepted, all others are ignored: " +
                         Arrays.deepToString(parameters));
+
             mPermissionsRationale = parameters[0];
         }
         if (properties != null && properties.length > 0) {
@@ -301,8 +303,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
             }
             if (properties.length > 1) {
                 mPermissionsRequestCode = properties[1];
-                CoreLogger.log("permissions request code set to " + properties[1] +
-                        ", object: " + this);
+                CoreLogger.log("permissions request code set to " + properties[1] + ", object: " + this);
             }
         }
     }
@@ -437,27 +438,29 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         if (locationClient != null) locationClient.onSaveInstanceState(activity, outState);
     }
 
+    private void handle(@NonNull final Activity activity, @NonNull final ActivityLifecycle lifecycle,
+                        @NonNull final AtomicInteger counter, @NonNull final Runnable runnable) {
+        sActivity.set(activity);
+        if (counter.incrementAndGet() == 1) addTask(lifecycle, runnable);
+    }
+
     /**
      * Please refer to the base method description.
      */
     @Override
     public void onActivityStarted(@NonNull final Activity activity) {
-        sActivity.set(activity);
+        //noinspection Convert2Lambda
+        handle(activity, ActivityLifecycle.STARTED, mStartStopCounter, new Runnable() {
+            @Override
+            public void run() {
+                final LocationClient locationClient = getLocationClient();
+                if (locationClient != null && mStartStopCounter.get() == 1) {
 
-        if (mStartStopCounter.incrementAndGet() == 1)
-
-            //noinspection Convert2Lambda
-            addTask(ActivityLifecycle.STARTED, new Runnable() {
-                @Override
-                public void run() {
-                    final LocationClient locationClient = getLocationClient();
-                    if (locationClient != null && mStartStopCounter.get() == 1) {
-
-                        CoreLogger.log("LocationClient.onStart()");
-                        locationClient.onStart(activity);
-                    }
+                    CoreLogger.log("LocationClient.onStart()");
+                    locationClient.onStart(activity);
                 }
-            });
+            }
+        });
     }
 
     /**
@@ -465,22 +468,23 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     @Override
     public void onActivityResumed(@NonNull final Activity activity) {
-        sActivity.set(activity);
+        //noinspection Convert2Lambda
+        handle(activity, ActivityLifecycle.RESUMED, mPauseResumeCounter, new Runnable() {
+            @Override
+            public void run() {
+                final LocationClient locationClient = getLocationClient();
+                if (locationClient != null && mPauseResumeCounter.get() == 1) {
 
-        if (mPauseResumeCounter.incrementAndGet() == 1)
-
-            //noinspection Convert2Lambda
-            addTask(ActivityLifecycle.RESUMED, new Runnable() {
-                @Override
-                public void run() {
-                    final LocationClient locationClient = getLocationClient();
-                    if (locationClient != null && mPauseResumeCounter.get() == 1) {
-
-                        CoreLogger.log("LocationClient.onResume()");
-                        locationClient.onResume(activity);
-                    }
+                    CoreLogger.log("LocationClient.onResume()");
+                    locationClient.onResume(activity);
                 }
-            });
+            }
+        });
+    }
+
+    private void handle(@NonNull final ActivityLifecycle lifecycle,
+                        @NonNull final AtomicInteger counter, @NonNull final Runnable runnable) {
+        if (counter.decrementAndGet() == 0) addTask(lifecycle, runnable);
     }
 
     /**
@@ -488,20 +492,18 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     @Override
     public void onActivityPaused(@NonNull final Activity activity) {
-        if (mPauseResumeCounter.decrementAndGet() == 0)
+        //noinspection Convert2Lambda
+        handle(ActivityLifecycle.PAUSED, mPauseResumeCounter, new Runnable() {
+            @Override
+            public void run() {
+                final LocationClient locationClient = getLocationClient();
+                if (locationClient != null && mPauseResumeCounter.get() == 0) {
 
-            //noinspection Convert2Lambda
-            addTask(ActivityLifecycle.PAUSED, new Runnable() {
-                @Override
-                public void run() {
-                    final LocationClient locationClient = getLocationClient();
-                    if (locationClient != null && mPauseResumeCounter.get() == 0) {
-
-                        CoreLogger.log("LocationClient.onPause()");
-                        locationClient.onPause(activity);
-                    }
+                    CoreLogger.log("LocationClient.onPause()");
+                    locationClient.onPause(activity);
                 }
-            });
+            }
+        });
     }
 
     /**
@@ -509,20 +511,18 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     @Override
     public void onActivityStopped(@NonNull final Activity activity) {
-        if (mStartStopCounter.decrementAndGet() == 0)
+        //noinspection Convert2Lambda
+        handle(ActivityLifecycle.STOPPED, mStartStopCounter, new Runnable() {
+            @Override
+            public void run() {
+                final LocationClient locationClient = getLocationClient();
+                if (locationClient != null && mStartStopCounter.get() == 0) {
 
-            //noinspection Convert2Lambda
-            addTask(ActivityLifecycle.STOPPED, new Runnable() {
-                @Override
-                public void run() {
-                    final LocationClient locationClient = getLocationClient();
-                    if (locationClient != null && mStartStopCounter.get() == 0) {
-
-                        CoreLogger.log("LocationClient.onStop()");
-                        locationClient.onStop(activity);
-                    }
+                    CoreLogger.log("LocationClient.onStop()");
+                    locationClient.onStop(activity);
                 }
-            });
+            }
+        });
     }
 
     /**

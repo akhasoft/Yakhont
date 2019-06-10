@@ -85,7 +85,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         //noinspection Convert2Lambda
         setViewBinder(new SimpleCursorAdapter.ViewBinder() {
             @Override
-            public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
+            public boolean setViewValue(final View view, final Cursor cursor, final int columnIndex) {
                 return setViewValueHelper(mViewBinder, mContext, view, cursor, columnIndex);
             }
         });
@@ -124,13 +124,13 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
     @CallSuper
-    public Cursor swapCursor(Cursor cursor) {
+    public Cursor swapCursor(final Cursor cursor) {
         return super.swapCursor(swapCursor(mDataConverter, cursor));
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
-    public Cursor getItemCursor(int position) {
+    public Cursor getItemCursor(final int position) {
         return getItemCursor(position, getCursor());
     }
 
@@ -185,7 +185,11 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
             return null;
         }
         if (cursor == null) {
-            CoreLogger.logWarning("getCursor() returns null");
+            CoreLogger.logError("cursor == null");
+            return null;
+        }
+        if (cursor.isClosed()) {
+            CoreLogger.logError("cursor already closed");
             return null;
         }
 

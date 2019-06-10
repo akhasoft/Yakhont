@@ -84,7 +84,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onActionModeFinished(ActionMode mode) {
+    public void onActionModeFinished(final ActionMode mode) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
 
         super.onActionModeFinished(mode);
@@ -95,7 +95,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onActionModeStarted(ActionMode mode) {
+    public void onActionModeStarted(final ActionMode mode) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
 
         super.onActionModeStarted(mode);
@@ -106,7 +106,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onActivityReenter(int resultCode, Intent data) {
+    public void onActivityReenter(final int resultCode, final Intent data) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", resultCode " + resultCode + ", data " + data, false);
 
         super.onActivityReenter(resultCode, data);
@@ -117,7 +117,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+    public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         CoreLogger.log(getDebugMessage() + ", requestCode " + requestCode +
                 ", resultCode " + resultCode + " " + Utils.getActivityResultString(resultCode));
 
@@ -130,7 +130,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    public void onAttachFragment(android.app.Fragment fragment) {
+    public void onAttachFragment(final android.app.Fragment fragment) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment, false);
 
         //YakhontPreprocessor:addToGenerated-FragmentActivity-CoreLogger.logWarning("about to attach android.app.Fragment to FragmentActivity");
@@ -141,7 +141,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-FragmentActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-FragmentActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-FragmentActivity-@Override
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-public void onAttachFragment(androidx.fragment.app.Fragment fragment) {
+    //YakhontPreprocessor:addToGenerated-FragmentActivity-public void onAttachFragment(final androidx.fragment.app.Fragment fragment) {
     //YakhontPreprocessor:addToGenerated-FragmentActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", fragment " + fragment, false);
     //YakhontPreprocessor:addToGenerated-FragmentActivity-    super.onAttachFragment(fragment);
     //YakhontPreprocessor:addToGenerated-FragmentActivity-}
@@ -170,11 +170,11 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-ExpandableListActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-ExpandableListActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-ExpandableListActivity-@Override
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-public boolean onChildClick(android.widget.ExpandableListView parent, View v,
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-                            int groupPosition, int childPosition, long id) {
+    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-public boolean onChildClick(final android.widget.ExpandableListView parent, final View view,
+    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-                            final int groupPosition, final int childPosition, final long id) {
     //YakhontPreprocessor:addToGenerated-ExpandableListActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", groupPosition " + groupPosition +
     //YakhontPreprocessor:addToGenerated-ExpandableListActivity-            ", childPosition " + childPosition + ", id " + id, false);
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-    return super.onChildClick(parent, v, groupPosition, childPosition, id);
+    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-    return super.onChildClick(parent, view, groupPosition, childPosition, id);
     //YakhontPreprocessor:addToGenerated-ExpandableListActivity-}
 
     /**
@@ -182,7 +182,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull final Configuration newConfig) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", newConfig " + newConfig, false);
 
         super.onConfigurationChanged(newConfig);
@@ -193,7 +193,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {
         BaseApplication.setStrictMode(getApplication(), getDebugMessage());
 
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
@@ -207,7 +207,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    protected Dialog onCreateDialog(int id) {
+    protected Dialog onCreateDialog(final int id) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id, false);
 
         return super.onCreateDialog(id);
@@ -219,7 +219,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    protected Dialog onCreateDialog(int id, Bundle args) {
+    protected Dialog onCreateDialog(final int id, final Bundle args) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id + ", args " + args, false);
 
         return super.onCreateDialog(id, args);
@@ -230,7 +230,8 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
+    public View onCreateView(final View parent, @NonNull final String name,
+                             @NonNull final Context context, @NonNull final AttributeSet attrs) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", parent " + parent +
                 ", name " + name + ", attrs " + attrs, false);
 
@@ -242,7 +243,8 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public View onCreateView(String name, Context context, AttributeSet attrs) {
+    public View onCreateView(@NonNull final String name,
+                             @NonNull final Context context, @NonNull final AttributeSet attrs) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() +
                 ", name " + name + ", attrs " + attrs, false);
 
@@ -274,7 +276,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-PreferenceActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-PreferenceActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-PreferenceActivity-@Override
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-public void onHeaderClick(android.preference.PreferenceActivity.Header header, int position) {
+    //YakhontPreprocessor:addToGenerated-PreferenceActivity-public void onHeaderClick(final android.preference.PreferenceActivity.Header header, final int position) {
     //YakhontPreprocessor:addToGenerated-PreferenceActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", position " + position, false);
     //YakhontPreprocessor:addToGenerated-PreferenceActivity-    super.onHeaderClick(header, position);
     //YakhontPreprocessor:addToGenerated-PreferenceActivity-}
@@ -282,10 +284,10 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-@Override
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-protected void onListItemClick(android.widget.ListView l, View v, int position, long id) {
+    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-protected void onListItemClick(final android.widget.ListView list, final View view, final int position, final long id) {
     //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() +
     //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-            ", position " + position + ", id " + id, false);
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-    super.onListItemClick(l, v, position, id);
+    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-    super.onListItemClick(list, view, position, id);
     //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-}
 
     /**
@@ -315,7 +317,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public boolean onNavigateUpFromChild(Activity child) {
+    public boolean onNavigateUpFromChild(final Activity child) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", child " + child, false);
 
         return super.onNavigateUpFromChild(child);
@@ -326,7 +328,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    protected void onNewIntent(Intent intent) {
+    protected void onNewIntent(final Intent intent) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", intent " + intent, false);
 
         super.onNewIntent(intent);
@@ -348,7 +350,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    protected void onPostCreate(Bundle savedInstanceState) {
+    protected void onPostCreate(final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onPostCreate(savedInstanceState);
@@ -359,7 +361,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onPostCreate(Bundle savedInstanceState, PersistableBundle persistentState) {
+    public void onPostCreate(final Bundle savedInstanceState, final PersistableBundle persistentState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState +
                 ", persistentState " + persistentState, false);
 
@@ -383,7 +385,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    protected void onPrepareDialog(int id, Dialog dialog) {
+    protected void onPrepareDialog(final int id, final Dialog dialog) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id, false);
 
         super.onPrepareDialog(id, dialog);
@@ -395,7 +397,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     @SuppressWarnings({"deprecation", "RedundantSuppression"})
     @CallSuper
     @Override
-    protected void onPrepareDialog(int id, Dialog dialog, Bundle args) {
+    protected void onPrepareDialog(final int id, final Dialog dialog, final Bundle args) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", id " + id + ", args " + args, false);
 
         super.onPrepareDialog(id, dialog, args);
@@ -406,7 +408,8 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions,
+                                           @NonNull final int[] grantResults) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestCode " + requestCode +
                 ", permissions " + Arrays.deepToString(permissions) +
                 ", grantResults " + Arrays.toString(grantResults), false);
@@ -430,7 +433,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    protected void onRestoreInstanceState(@NonNull final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState, false);
 
         super.onRestoreInstanceState(savedInstanceState);
@@ -441,7 +444,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onRestoreInstanceState(Bundle savedInstanceState, PersistableBundle persistentState) {
+    public void onRestoreInstanceState(final Bundle savedInstanceState, final PersistableBundle persistentState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", savedInstanceState " + savedInstanceState +
                 ", persistentState " + persistentState, false);
 
@@ -467,20 +470,12 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-FragmentActivity-    super.onResumeFragments();
     //YakhontPreprocessor:addToGenerated-FragmentActivity-}
 
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-@Override
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-public Object onRetainCustomNonConfigurationInstance() {
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-    return super.onRetainCustomNonConfigurationInstance();
-    //YakhontPreprocessor:addToGenerated-FragmentActivity-}
-
     /**
      * Please refer to the base method description.
      */
     @CallSuper
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull final Bundle outState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", outState " + outState, false);
 
         super.onSaveInstanceState(outState);
@@ -491,7 +486,8 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onSaveInstanceState(Bundle outState, PersistableBundle outPersistentState) {
+    public void onSaveInstanceState(@NonNull final Bundle outState,
+                                    @NonNull final PersistableBundle outPersistentState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", outState " + outState +
                 ", outPersistentState " + outPersistentState, false);
 
@@ -514,17 +510,6 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onStateNotSaved() {
-        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
-
-        super.onStateNotSaved();
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @CallSuper
-    @Override
     protected void onStop() {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
@@ -534,7 +519,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-@Override
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity-public void onSupportActionModeFinished(androidx.appcompat.view.ActionMode mode) {
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-public void onSupportActionModeFinished(final androidx.appcompat.view.ActionMode mode) {
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-    super.onSupportActionModeFinished(mode);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-}
@@ -542,7 +527,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-/** Please refer to the base method description. */
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-@CallSuper
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-@Override
-    //YakhontPreprocessor:addToGenerated-AppCompatActivity-public void onSupportActionModeStarted(androidx.appcompat.view.ActionMode mode) {
+    //YakhontPreprocessor:addToGenerated-AppCompatActivity-public void onSupportActionModeStarted(final androidx.appcompat.view.ActionMode mode) {
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", mode " + mode, false);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-    super.onSupportActionModeStarted(mode);
     //YakhontPreprocessor:addToGenerated-AppCompatActivity-}
@@ -560,7 +545,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onTrimMemory(int level) {
+    public void onTrimMemory(final int level) {
         CoreLogger.log(Utils.getOnTrimMemoryLevel(level), getDebugMessage() + ", level " +
                 Utils.getOnTrimMemoryLevelString(level), false);
 
@@ -572,7 +557,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void setRequestedOrientation(int requestedOrientation) {
+    public void setRequestedOrientation(final int requestedOrientation) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestedOrientation " + requestedOrientation, true);
 
         super.setRequestedOrientation(requestedOrientation);
@@ -619,7 +604,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /** @exclude {@yakhont.preprocessor.remove.in.generated} */ @SuppressWarnings("JavaDoc")
     @CallSuper                                                                                  //YakhontPreprocessor:removeInGenerated
     @Override                                                                                   //YakhontPreprocessor:removeInGenerated
-    public boolean dispatchKeyEvent(@NonNull KeyEvent event) {                                  //YakhontPreprocessor:removeInGenerated
+    public boolean dispatchKeyEvent(@NonNull final KeyEvent event) {                            //YakhontPreprocessor:removeInGenerated
         mBackKeyHandler.handleKeyEvent(event);                                                  //YakhontPreprocessor:removeInGenerated
 
         //noinspection RestrictedApi

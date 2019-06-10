@@ -19,6 +19,7 @@ package akha.yakhont;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CursorHandler;
+import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
 
 import android.annotation.SuppressLint;
@@ -53,6 +54,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 /**
  * The {@link ContentProvider} which does not use predefined database schema but creates tables
@@ -87,7 +89,7 @@ import java.util.Set;
 public class BaseCacheProvider extends ContentProvider {
 
     private static final String         DB_NAME           = "cache.db";
-    private static final int            DB_VERSION        = 2;
+    private static final int            DB_VERSION        = 3;
 
     private static final String         MIME_DIR          = "vnd.android.cursor.dir";
     private static final String         MIME_ITEM         = "vnd.android.cursor.item";
@@ -95,8 +97,11 @@ public class BaseCacheProvider extends ContentProvider {
 
     private static final String         SELECTION_ID      = BaseColumns._ID + " = ?";
 
+    private static final String         CREATE_INDEX      = "CREATE INDEX IF NOT EXISTS %s ON %s (%s);";
+
     private static final String         CREATE_TABLE      = "CREATE TABLE IF NOT EXISTS %s (" + BaseColumns._ID +
                                                             " INTEGER PRIMARY KEY";     // alias for rowid
+
     private static final String         ALTER_TABLE       = "ALTER TABLE %s ADD COLUMN %s %s;";
 
     /** @exclude */
@@ -158,7 +163,7 @@ public class BaseCacheProvider extends ContentProvider {
     @CallSuper
     @Nullable
     @Override
-    public Bundle call(@NonNull String method, @Nullable String arg, @Nullable Bundle extras) {
+    public Bundle call(@NonNull final String method, @Nullable final String arg, @Nullable final Bundle extras) {
         final Bundle bundle;
         switch (method) {
             case "getDbName":
@@ -198,7 +203,7 @@ public class BaseCacheProvider extends ContentProvider {
      * Please refer to the base method description.
      */
     @Override
-    public Uri insert(@NonNull Uri uri, ContentValues values) {
+    public Uri insert(@NonNull final Uri uri, final ContentValues values) {
         return insert(uri, values, false, null);
     }
 
@@ -404,13 +409,13 @@ public class BaseCacheProvider extends ContentProvider {
      * Please refer to the base method description.
      */
     @Override
-    public Cursor query(@NonNull Uri uri, String[] projection, String selection, String[] selectionArgs,
-                        String sortOrder) {
+    public Cursor query(@NonNull final Uri uri, final String[] projection, final String selection,
+                        final String[] selectionArgs, final String sortOrder) {
         //noinspection Convert2Lambda
         return handle(new CallableHelper<Cursor>() {
             @Override
-            public Cursor call(String table, String condition, String[] args, String[] columns,
-                               String order, ContentValues data) {
+            public Cursor call(final String table, final String condition, final String[] args,
+                               final String[] columns, final String order, final ContentValues data) {
                 return mDbHelper.getReadableDatabase().query(table, columns, condition, args,
                         null, null, order);
             }
@@ -421,12 +426,12 @@ public class BaseCacheProvider extends ContentProvider {
      * Please refer to the base method description.
      */
     @Override
-    public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
+    public int delete(@NonNull final Uri uri, final String selection, final String[] selectionArgs) {
         //noinspection Convert2Lambda
         return handle(new CallableHelper<Integer>() {
             @Override
-            public Integer call(String table, String condition, String[] args, String[] columns,
-                                String order, ContentValues data) {
+            public Integer call(final String table, String condition, final String[] args,
+                                final String[] columns, final String order, final ContentValues data) {
                 if (!isTableExist(table)) {
                     CoreLogger.logWarning("tried to remove rows from not existing table " + table);
                     return 0;
@@ -446,12 +451,13 @@ public class BaseCacheProvider extends ContentProvider {
      * Please refer to the base method description.
      */
     @Override
-    public int update(@NonNull Uri uri, ContentValues values, String selection, String[] selectionArgs) {
+    public int update(@NonNull final Uri uri, final ContentValues values,
+                      final String selection, final String[] selectionArgs) {
         //noinspection Convert2Lambda
         return handle(new CallableHelper<Integer>() {
             @Override
-            public Integer call(String table, String condition, String[] args, String[] columns,
-                                String order, ContentValues data) {
+            public Integer call(final String table, final String condition, final String[] args,
+                                final String[] columns, final String order, final ContentValues data) {
                 final int rows = mDbHelper.getWritableDatabase().update(table, data, condition, args);
 
                 CoreLogger.log(String.format(getLocale(),
@@ -465,7 +471,7 @@ public class BaseCacheProvider extends ContentProvider {
      * Please refer to the base method description.
      */
     @Override
-    public String getType(@NonNull Uri uri) {
+    public String getType(@NonNull final Uri uri) {
         final String param = Utils.getCacheTableName(uri);
         if (param == null) {
             CoreLogger.logError("getType failed");
@@ -579,11 +585,11 @@ public class BaseCacheProvider extends ContentProvider {
         //noinspection Convert2Lambda
         if (Utils.cursorHelper(cursor, new Utils.CursorHandler() {
                     @Override
-                    public boolean handle(Cursor cursor) {
+                    public boolean handle(final Cursor cursor) {
                         if (column.equals(cursor.getString(idx))) result[0] = true;
                         return !result[0];
                     }
-                }, true, false, null))
+                }, 0, false, null))
             return result[0];
         else {
             CoreLogger.logError(String.format("can't read columns list for %s", table));
@@ -610,10 +616,24 @@ public class BaseCacheProvider extends ContentProvider {
         CoreLogger.log(String.format("%s", table));
 
         final CreateTableScriptBuilder builder = new CreateTableScriptBuilder(table);
-        for (final String columnName: columns.keySet())
+        boolean addPageIndex = false;
+        for (final String columnName: columns.keySet()) {
             builder.addColumn(columnName, getDataType(columns, columnName));
+            if (columnName.equals(BaseConverter.PAGE_ID)) addPageIndex = true;
+        }
+        final boolean addPageIndexCallable = addPageIndex;
 
-        return execSQL(db, builder.create());
+        //noinspection Convert2Lambda
+        return runTransaction(db, new Callable<Boolean>() {
+            @Override
+            public Boolean call() {
+                boolean result = execSQL(db, builder.create());
+                if (addPageIndexCallable)                                   // paging support
+                    result = execSQL(db, String.format(CREATE_INDEX, String.format("idx_%s_%s",
+                            table, BaseConverter.PAGE_ID), table, BaseConverter.PAGE_ID));
+                return result;
+            }
+        });
     }
 
     private CreateTableScriptBuilder.DataType getDataType(
@@ -702,30 +722,58 @@ public class BaseCacheProvider extends ContentProvider {
      * @param db
      *        The database
      *
-     * @param runnable
-     *        The transaction to execute
+     * @param callable
+     *        The transaction to execute, should return {@code true} if successful
      *
      * @return  {@code true} if transaction completed successfully, {@code false} otherwise
      */
     @SuppressLint("ObsoleteSdkInt")
-    public static boolean runTransaction(@NonNull final SQLiteDatabase db, @NonNull final Runnable runnable) {
+    public static boolean runTransaction(@NonNull final SQLiteDatabase    db,
+                                         @NonNull final Callable<Boolean> callable) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             db.beginTransactionNonExclusive();
         else
             db.beginTransaction();
 
         try {
-            runnable.run();
-            db.setTransactionSuccessful();
-            return true;
+            final Boolean result = callable.call();
+            if (result != null && result) {
+                db.setTransactionSuccessful();
+                return true;
+            }
         }
         catch (Exception exception) {
-            CoreLogger.log("failed runnable " + runnable, exception);
-            return false;
+            CoreLogger.log("failed transaction, callable " + callable, exception);
         }
         finally {
             db.endTransaction();
         }
+
+        CoreLogger.logError("failed transaction, callable " + callable);
+        return false;
+    }
+
+    /**
+     * Executes transaction.
+     *
+     * @param db
+     *        The database
+     *
+     * @param runnable
+     *        The transaction to execute
+     *
+     * @return  {@code true} if transaction completed successfully, {@code false} otherwise
+     */
+    public static boolean runTransaction(@NonNull final SQLiteDatabase db,
+                                         @NonNull final Runnable       runnable) {
+        //noinspection Convert2Lambda
+        return runTransaction(db, new Callable<Boolean>() {
+            @Override
+            public Boolean call() {
+                runnable.run();
+                return true;
+            }
+        });
     }
 
     /**
@@ -796,11 +844,11 @@ public class BaseCacheProvider extends ContentProvider {
      *        The database
      *
      * @param script
-     *        The script to execute
+     *        The script(s) to execute
      *
      * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    public static boolean executeSQLScript(@NonNull final SQLiteDatabase db, final String[] script) {
+    public static boolean executeSQLScript(@NonNull final SQLiteDatabase db, final String... script) {
         if (script == null || script.length == 0) {
             CoreLogger.logWarning("nothing to do");
             return false;
@@ -822,22 +870,6 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     /**
-     * Executes SQL provided.
-     *
-     * @param db
-     *        The database
-     *
-     * @param script
-     *        The script to execute
-     *
-     * @return  {@code true} if script was executed successfully, {@code false} otherwise
-     */
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    public static boolean executeSQLScript(@NonNull final SQLiteDatabase db, final String script) {
-        return executeSQLScript(db, new String[] { script });
-    }
-
-    /**
      * Clears (drops) tables, virtual tables and views based on information from sqlite_master.
      *
      * @param db
@@ -850,7 +882,7 @@ public class BaseCacheProvider extends ContentProvider {
                 "SELECT type, name, rootpage FROM sqlite_master", null);
 
         final CacheClearCursorHandler handler = new CacheClearCursorHandler();
-        if (Utils.cursorHelper(cursor, handler, true, false, null)) {
+        if (Utils.cursorHelper(cursor, handler, 0, false, null)) {
             try {
                 boolean result = true;
 
@@ -896,7 +928,7 @@ public class BaseCacheProvider extends ContentProvider {
         private Integer mIdxType, mIdxName, mIdxPage;
 
         @Override
-        public boolean handle(Cursor cursor) {
+        public boolean handle(final Cursor cursor) {
             if (mIdxType == null) mIdxType = cursor.getColumnIndex("type");
             if (mIdxName == null) mIdxName = cursor.getColumnIndex("name");
             if (mIdxPage == null) mIdxPage = cursor.getColumnIndex("rootpage");
@@ -960,7 +992,7 @@ public class BaseCacheProvider extends ContentProvider {
                              final int oldVersion, final int newVersion) {
         CoreLogger.log(String.format(getLocale(),
                 "on upgrade database %s from version %d to %d", DB_NAME, oldVersion, newVersion));
-        if (newVersion == 2 && oldVersion == 1)
+        if (newVersion > 1 && oldVersion == 1)
             if (!clear(mDbHelper.getWritableDatabase()))
                 CoreLogger.logError(String.format(getLocale(), "error during clear database %s", DB_NAME));
     }

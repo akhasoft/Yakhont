@@ -66,8 +66,8 @@ import retrofit.YakhontRestAdapter;
 public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
     private static final Callback                   EMPTY_CALLBACK          = new Callback() {
-        @Override public void success(Object object, Response response) {}
-        @Override public void failure(RetrofitError error             ) {}
+        @Override public void success(final Object object, final Response response) {}
+        @Override public void failure(final RetrofitError error                   ) {}
     };
 
     private              YakhontRestAdapter<T>      mYakhontRestAdapter;

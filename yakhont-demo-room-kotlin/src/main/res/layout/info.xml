@@ -30,7 +30,6 @@
         android:gravity="center"
         android:text="@string/demo_description"
         android:textColor="@android:color/white"
-        android:textStyle="bold"
         android:layout_margin="12dp" />
 
 </LinearLayout>

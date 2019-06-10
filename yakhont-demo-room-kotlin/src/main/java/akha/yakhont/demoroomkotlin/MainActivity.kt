@@ -26,12 +26,12 @@ import kotlinx.android.synthetic.main.recycler_item.view.title
 
 import akha.yakhont.Core
 import akha.yakhont.Core.Utils
-import akha.yakhont.Core.Utils.CursorHandler
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter
 import akha.yakhont.callback.annotation.CallbacksInherited
 import akha.yakhont.loader.BaseConverter
 import akha.yakhont.loader.BaseResponse
 import akha.yakhont.loader.BaseViewModel
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters
 import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
 import akha.yakhont.technology.retrofit.Retrofit2
@@ -67,8 +67,12 @@ private const val ROOM_DB_COLUMN_NAME   = "title"
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
 
+    // By default Yakhont provides the fully transparent cache -
+    //   but you can use Room (or whatever) instead
+
     private lateinit var client : LocalOkHttpClient2
     private lateinit var adapter: CustomAdapter
+    private          var cursor : Cursor? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -113,35 +117,15 @@ class MainActivity: AppCompatActivity(), LocationListener {
         BaseViewModel.setData(ROOM_DB_KEY, adapter)
     }
 
+    override fun onDestroy() {
+        cursor?.close()         // closes the data cache cursor (if any) - see 'getCursor()' below
+        super.onDestroy()
+    }
+
     private inner class RoomConverter: BaseConverter<List<Beer>>() {
 
-        private inner class Handler: CursorHandler {
-
-            val data: ArrayList<Beer> = ArrayList()
-
-            override fun handle(cursor: Cursor): Boolean {
-                val beer = Beer()
-                beer.title = cursor.getString(cursor.getColumnIndex(ROOM_DB_COLUMN_NAME))
-                data.add(beer)
-                return true
-            }
-        }
-
-        override fun getData(cursor: Cursor): List<Beer> {
-            val handler = Handler()
-            Utils.cursorHelper(cursor, handler, true, false, null)
-            return handler.data
-        }
-
-        override fun getValues(type: String, data: ByteArray, cls: Class<*>): Collection<ContentValues> {
-            val json = JSONArray(String(data))
-            val result: ArrayList<ContentValues> = ArrayList()
-            for (i in 0 until json.length()) {
-                val values = ContentValues()
-                values.put(ROOM_DB_COLUMN_NAME, json.getJSONObject(i).getString(ROOM_DB_COLUMN_NAME))
-                result.add(values)
-            }
-            return result
+        override fun isInternalCache(): Boolean {
+            return false
         }
 
         private fun getDb(): AppDatabase {  // Core keeps the one and only instance of the AppDatabase
@@ -151,6 +135,25 @@ class MainActivity: AppCompatActivity(), LocationListener {
                 Core.setSingleton(ROOM_DB_KEY, db)
             }
             return db
+        }
+
+        override fun getData(cursor: Cursor, position: Int): Beer {
+            cursor.moveToPosition(position)
+            val beer = Beer()
+            beer.title = cursor.getString(cursor.getColumnIndex(ROOM_DB_COLUMN_NAME))
+            return beer
+        }
+
+        override fun getValues(type: String, data: ByteArray, cls: Class<*>, pageId: Long): Collection<ContentValues> {
+            val json = JSONArray(String(data))
+            val result: ArrayList<ContentValues> = ArrayList()
+
+            for (i in 0 until json.length()) {
+                val values = ContentValues()
+                values.put(ROOM_DB_COLUMN_NAME, json.getJSONObject(i).getString(ROOM_DB_COLUMN_NAME))
+                result.add(values)
+            }
+            return result
         }
 
         override fun store(data: Collection<ContentValues>): Boolean {
@@ -166,8 +169,9 @@ class MainActivity: AppCompatActivity(), LocationListener {
         }
 
         @Throws(UnsupportedOperationException::class)
-        override fun getCursor(tableName: String): Cursor {
-            return getDb().itemDao().getAll()
+        override fun getCursor(tableName: String, parameters: LoadParameters): Cursor? {
+            if (cursor == null) cursor = getDb().itemDao().getAll()
+            return cursor
         }
 
         override fun getType(): Type {
@@ -187,7 +191,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         override fun update(data: BaseResponse<Response<List<Beer>>, Throwable, List<Beer>>,
                             isMerge: Boolean, onLoadFinished: Runnable?) {
             this.data.clear()
-            this.data.addAll(data.result)
+            if (data.result != null) this.data.addAll(data.result)
             adapter.notifyDataSetChanged()
         }
 

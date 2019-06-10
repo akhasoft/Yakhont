@@ -96,7 +96,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
-    public void onChangedConfiguration(Configuration newConfig) {
+    public void onChangedConfiguration(final Configuration newConfig) {
         if (mAlert       != null) mAlert.stop();
         if (mAlertDenied != null) mAlertDenied.stop();
 
@@ -114,7 +114,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess", "BooleanMethodIsAlwaysInverted"})
-    protected static boolean checkData(final Activity activity, final String[] permissions) {
+    protected static boolean checkData(final Context context, final String... permissions) {
         if (permissions == null) {
             CoreLogger.logError("permissions == null");
             return false;
@@ -125,29 +125,28 @@ public class CorePermissions implements ConfigurationChangedListener {
         }
 
         for (final String permission: permissions)
-            if (!checkData(activity, permission)) return false;
+            if (!checkData(context, permission)) return false;
 
         return true;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static String[] check(final Activity activity, final String[] permissions) {
+    protected static String[] check(final Context context, final String... permissions) {
         final ArrayList<String> list = new ArrayList<>();
         for (final String permission: permissions)
-            if (!check(activity, permission))
+            if (!check(context, permission))
                 list.add(permission);
 
         if (list.size() == 0)
             CoreLogger.log("permissions" + Arrays.deepToString(permissions) +
                     " are already granted, so nothing to do");
 
-        //noinspection ToArrayCallWithZeroLengthArrayArgument
-        return list.size() == 0 ? null: list.toArray(new String[list.size()]);
+        return list.size() == 0 ? null: list.toArray(new String[0]);
     }
 
     /** @exclude */
     @SuppressWarnings({"JavaDoc", "WeakerAccess", "SameReturnValue"})
-    protected boolean requestWrapper(final Activity activity, final String[] permissions) {
+    protected boolean requestWrapper(final Activity activity, final String... permissions) {
         CoreLogger.log("about to request permissions: " + Arrays.deepToString(permissions));
 
         ActivityCompat.requestPermissions(activity, permissions, mRequestCode);
@@ -155,7 +154,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected boolean requestHandler(final Activity activity, final String[] permissions, String rationale) {
+    protected boolean requestHandler(final Activity activity, String rationale, final String... permissions) {
         final ArrayList<String> rationales = new ArrayList<>();
         for (final String permission: permissions)
             if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission))
@@ -452,7 +451,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     protected static void runCallback(final Runnable callback, final boolean denied) {
         CoreLogger.log(!denied && callback == null ? Level.WARNING: CoreLogger.getDefaultLevel(),
                 (denied ? "onDenied": "onGranted") + " == " + callback);
-        if (callback != null) Utils.safeRunnableRun(callback);
+        if (callback != null) Utils.safeRun(callback);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -487,24 +486,11 @@ public class CorePermissions implements ConfigurationChangedListener {
          * @param activity
          *        The Activity
          *
-         * @param permission
-         *        The permission (e.g. Manifest.permission.ACCESS_FINE_LOCATION)
-         */
-        public RequestBuilder(final Activity activity, final String permission) {
-            this(activity, new String[] {permission});
-        }
-
-        /**
-         * Initialises a newly created {@code RequestBuilder} object.
-         *
-         * @param activity
-         *        The Activity
-         *
          * @param permissions
          *        The permissions
          */
         @SuppressWarnings("WeakerAccess")
-        public RequestBuilder(final Activity activity, final String[] permissions) {
+        public RequestBuilder(final Activity activity, final String... permissions) {
             mActivity    = new WeakReference<>(activity);
             mPermissions = permissions;
         }
@@ -638,7 +624,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
             Core.register(corePermissions);
 
-            return corePermissions.requestHandler(activity, permissions, mRationale);
+            return corePermissions.requestHandler(activity, mRationale, permissions);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})

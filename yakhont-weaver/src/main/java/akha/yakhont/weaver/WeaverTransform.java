@@ -71,15 +71,15 @@ public class WeaverTransform extends com.android.build.api.transform.Transform {
      * @param bootClassPath
      *        The {@code android.bootClasspath} (actually {@code android.jar}'s location)
      *
-     * @param configFiles
-     *        The names (and locations) of configuration files (if any), or null (means default one)
-     *
      * @param addConfig
-     *        Indicates whether the configuration file provided should be added to the default one
+     *        Indicates whether the configuration file(s) provided should be added to the default one
+     *
+     * @param configFiles
+     *        The names (and locations) of configuration files (if any), or null (means the default one)
      */
     @SuppressWarnings({"WeakerAccess", "unused"})
     public WeaverTransform(boolean debug, String applicationId, String bootClassPath,
-                           String[] configFiles, boolean addConfig) {
+                           boolean addConfig, String... configFiles) {
         mDebug              = debug;
         mApplicationId      = applicationId;
         mBootClassPath      = bootClassPath;
@@ -171,7 +171,7 @@ public class WeaverTransform extends com.android.build.api.transform.Transform {
 
                 try {
                     new Weaver().run(mDebug, mApplicationId, dest.getCanonicalPath(), classPath.toString(),
-                            mBootClassPath, mConfigFiles, mAddConfig);
+                            mBootClassPath, mAddConfig, mConfigFiles);
                 }
                 catch (CannotCompileException | NotFoundException exception) {
                     throw new com.android.build.api.transform.TransformException(exception);

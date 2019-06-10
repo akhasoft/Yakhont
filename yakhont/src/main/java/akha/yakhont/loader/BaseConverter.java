@@ -21,6 +21,7 @@ import akha.yakhont.Core.Utils.CursorHandler;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.ConverterGetter;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.ConverterHelper;
@@ -48,11 +49,16 @@ import java.util.Collections;
  */
 public class BaseConverter<D> implements Converter<D> {
 
-    private static final String                     CACHE_STRING              = "data_string";
-    private static final String                     CACHE_BYTES               = "data_bytes";
+    private static final String                     CACHE_STRING              = "yakhont_data_string";
+    private static final String                     CACHE_BYTES               = "yakhont_data_bytes";
 
-    private static final String                     CLASS_STRING              = "class_string";
-    private static final String                     CLASS_BYTES               = "class_bytes";
+    private static final String                     CLASS_STRING              = "yakhont_class_string";
+    private static final String                     CLASS_BYTES               = "yakhont_class_bytes";
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public  static final String                     PAGE_ID                   = "yakhont_page_id";
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public  static final long                       PAGE_ID_DEFAULT           = Long.MAX_VALUE;
 
     private static final byte[]                     EMPTY_BYTES               = new byte[0];
 
@@ -138,7 +144,8 @@ public class BaseConverter<D> implements Converter<D> {
      * Please refer to the base method description.
      */
     @Override
-    public Collection<ContentValues> getValues(String string, byte[] bytes, Class cls) {
+    public Collection<ContentValues> getValues(final String string, final byte[] bytes,
+                                               final Class cls, final Long pageId) {
         if (cls == null) {
             CoreLogger.logError("data class == null");
             return null;
@@ -151,6 +158,8 @@ public class BaseConverter<D> implements Converter<D> {
         contentValues.put(CLASS_BYTES , getClassBytes (cls));
         contentValues.put(CLASS_STRING, getClassString(cls));
 
+        contentValues.put(PAGE_ID     , pageId != null ? pageId: PAGE_ID_DEFAULT);
+
         return Collections.singleton(contentValues);
     }
 
@@ -158,7 +167,7 @@ public class BaseConverter<D> implements Converter<D> {
      * Please refer to the base method description.
      */
     @Override
-    public D getData(final Cursor cursor) {
+    public Object getData(final Cursor cursor, final Integer position) {
         mClass = null;
 
         if (mBaseConverterGetter == null) {
@@ -167,7 +176,8 @@ public class BaseConverter<D> implements Converter<D> {
         }
 
         final ConverterCursorHandler handler = new ConverterCursorHandler();
-        if (Utils.cursorHelper(cursor, handler, true, false, null)) {
+        final boolean onlyOne = position != null;
+        if (Utils.cursorHelper(cursor, handler, onlyOne ? position: 0, onlyOne, onlyOne ? false: null)) {
             if (handler.mData == null)
                 CoreLogger.logError("can't convert cursor to the data object");
             else
@@ -196,7 +206,7 @@ public class BaseConverter<D> implements Converter<D> {
         private D                                   mData;
 
         @Override
-        public boolean handle(Cursor cursor) {
+        public boolean handle(final Cursor cursor) {
 
             ConverterHelper<D> converterHelper = mBaseConverterGetter.get(null);
             if (converterHelper == null) {
@@ -220,7 +230,6 @@ public class BaseConverter<D> implements Converter<D> {
                 if (data == null)
                     CoreLogger.logError("converter returned null");
                 else {
-
                     if (mData == null)
                         mData = data;
                     else if (CoreReflection.isNotSingle(mData)) {
@@ -243,7 +252,15 @@ public class BaseConverter<D> implements Converter<D> {
      * Please refer to the base method description.
      */
     @Override
-    public Boolean store(Collection<ContentValues> values) {
+    public boolean isInternalCache() {
+        return true;
+    }
+
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    public Boolean store(final Collection<ContentValues> values) {
         return false;
     }
 
@@ -251,7 +268,7 @@ public class BaseConverter<D> implements Converter<D> {
      * Please refer to the base method description.
      */
     @Override
-    public Boolean clear(String tableName) {
+    public Boolean clear(final String tableName) {
         return false;
     }
 
@@ -259,7 +276,7 @@ public class BaseConverter<D> implements Converter<D> {
      * Please refer to the base method description.
      */
     @Override
-    public Cursor getCursor(String tableName) throws UnsupportedOperationException {
+    public Cursor getCursor(final String tableName, final LoadParameters parameters) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("BaseConverter.getCursor(" + tableName + ")");
     }
 }

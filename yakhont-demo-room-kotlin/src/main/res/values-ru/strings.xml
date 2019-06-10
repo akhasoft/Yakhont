@@ -19,5 +19,5 @@
     <string name="app_name"        >Яхонт: room демо на Котлин</string>
     <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
     <string name="demo_description">По умолчанию Яхонт предоставляет полностью прозрачный кеш -\n
-        но Вы можете использовать вместо него Room (или что угодно)</string>
+        но вместо него можно использовать Room (или что угодно)</string>
 </resources>

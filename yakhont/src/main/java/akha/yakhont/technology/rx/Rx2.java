@@ -181,7 +181,7 @@ public class Rx2<D> extends CommonRx<D> {
             }
 
             @Override
-            public void onError(Throwable throwable) {
+            public void onError(final Throwable throwable) {
                 subscriber.onError(throwable);
             }
 

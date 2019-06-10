@@ -165,7 +165,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      * Please refer to the base method description.
      */
     @Override
-    public void setLocationCallbacks(LocationCallbacks locationCallbacks) {
+    public void setLocationCallbacks(final LocationCallbacks locationCallbacks) {
         mLocationCallbacks = locationCallbacks;
     }
 
@@ -174,7 +174,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      */
     @CallSuper
     @Override
-    public void onSaveInstanceState(Activity activity, Bundle savedInstanceState) {
+    public void onSaveInstanceState(final Activity activity, final Bundle savedInstanceState) {
         savedInstanceState.putBoolean     (ARG_REQUEST_UPDATES,          mRequestingLocationUpdates);
 
         savedInstanceState.putInt         (ARG_REQUEST_PRIORITY             , mPriority            );
@@ -203,7 +203,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      */
     @CallSuper
     @Override
-    public void onCreate(Activity activity, Bundle savedInstanceState) {
+    public void onCreate(final Activity activity, final Bundle savedInstanceState) {
         getFromBundle(savedInstanceState);
         createClient(activity);
     }
@@ -212,14 +212,14 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      * Please refer to the base method description.
      */
     @Override
-    public void onStart(Activity activity) {
+    public void onStart(final Activity activity) {
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public void onResume(Activity activity) {
+    public void onResume(final Activity activity) {
         startLocationUpdates(activity);
     }
 
@@ -227,7 +227,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      * Please refer to the base method description.
      */
     @Override
-    public void onPause(Activity activity) {
+    public void onPause(final Activity activity) {
         stopLocationUpdates(activity);
     }
 
@@ -235,14 +235,14 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      * Please refer to the base method description.
      */
     @Override
-    public void onStop(Activity activity) {
+    public void onStop(final Activity activity) {
     }
 
     /**
      * Please refer to the base method description.
      */
     @Override
-    public void onDestroy(Activity activity) {
+    public void onDestroy(final Activity activity) {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -664,7 +664,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                 ", message: " + apiException.getMessage());
     }
 
-    private static String getStatusCodeDescription(int code) {
+    private static String getStatusCodeDescription(final int code) {
         return code == LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE ?
                 "SETTINGS_CHANGE_UNAVAILABLE" : CommonStatusCodes.getStatusCodeString(code);
     }
