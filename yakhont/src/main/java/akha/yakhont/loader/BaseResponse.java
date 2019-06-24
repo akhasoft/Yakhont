@@ -33,6 +33,7 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -71,14 +72,13 @@ public class BaseResponse<R, E, D> {
         UNKNOWN
     }
 
-    private static final String                         sNewLine          = System.getProperty("line.separator");
-
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public  static final    String[]                    MIN_COLUMNS       = new String[] {BaseColumns._ID};
-    
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public  static final    Cursor                      EMPTY_CURSOR      = new MatrixCursor(MIN_COLUMNS, 0);
+
+    private static final    String                      sNewLine          = System.getProperty("line.separator");
+    private static          int                         sBytesQtyForArray = 64;
 
     private final           LoadParameters              mParameters;
     private final           R                           mResponse;
@@ -289,18 +289,18 @@ public class BaseResponse<R, E, D> {
         final StringBuilder builder = new StringBuilder();
         final Locale locale = Utils.getLocale();
 
-        builder.append(String.format(locale, "%s, class: %s, error: %s%s",
-                mSource.name(), mData == null ? null: mData.getClass().getName(),
+        builder.append(String.format(locale, "source: %s, data class: %s, error: %s%s",
+                mSource == null ? null: mSource.name(), mData == null ? null: mData.getClass().getName(),
                 mError, sNewLine));
-        builder.append(String.format(locale, "more error info: %s%s%s", mThrowable, sNewLine, sNewLine));
+        builder.append(String.format(locale, "more error info: %s%s", mThrowable, sNewLine));
 
-        builder.append(String.format(locale, "data loading parameters: %s%s%s",
-                mParameters == null ? "null": mParameters, sNewLine, sNewLine));
+        builder.append(String.format(locale, "data loading parameters: %s%s",
+                mParameters == null ? "null": mParameters, sNewLine));
 
         if (mData == null)
             builder.append("no data").append(sNewLine);
         else {
-            if (CoreReflection.isNotSingle(mData)) {
+            if (!(mData instanceof byte[]) && CoreReflection.isNotSingle(mData)) {
                 final List<Object> data = CoreReflection.getObjects(mData, true);
                 if (data == null)
                     builder.append(String.format(locale, "data: null%s", sNewLine));
@@ -308,11 +308,12 @@ public class BaseResponse<R, E, D> {
                     builder.append(String.format(locale, "data: size %d%s", data.size(), sNewLine));
 
                     for (int i = 0; i < data.size(); i++)
-                        builder.append(String.format(locale, "[%d] %s%s", i, data.get(i), sNewLine));
+                        builder.append(String.format(locale, "[%d] %s%s", i,
+                                handleData(data.get(i), locale), sNewLine));
                 }
             }
             else
-                builder.append("data ").append(mData).append(sNewLine);
+                builder.append("data: ").append(handleData(mData, locale)).append(sNewLine);
         }
 
         if (mCursor == null)
@@ -324,6 +325,25 @@ public class BaseResponse<R, E, D> {
             builder.append("can't log cursor");
 
         return builder.toString();
+    }
+
+    /**
+     * Defines how many bytes should be printed in log for byte arrays (the default value is 64).
+     *
+     * @param bytesQtyForArray
+     *        The quantity of bytes
+     *
+     * @see CoreLogger#toHex(byte[], int, int, Locale, Charset)
+     */
+    @SuppressWarnings("unused")
+    public static void setBytesQtyForArray(final int bytesQtyForArray) {
+        if (bytesQtyForArray > 0) sBytesQtyForArray = bytesQtyForArray;
+    }
+
+    private static String handleData(final Object data, @NonNull final Locale locale) {
+        return data == null ? null: data instanceof byte[] ? (((byte[]) data).length == 0 ?
+                sNewLine + "empty byte[]": CoreLogger.toHex((byte[]) data, 0,
+                sBytesQtyForArray, locale, null)): data.toString();
     }
 
     private static class LogCursorHandler implements CursorHandler {
@@ -349,9 +369,8 @@ public class BaseResponse<R, E, D> {
         private static String getString(@NonNull final Cursor cursor, final int columnIndex,
                                         @NonNull final Locale locale) {
             final Object data = getData(cursor, columnIndex);
-            return data == null ? null: data instanceof byte[] ? String.format(locale, "[%s]",
-                    CoreLogger.toHex((byte[]) data, 0, 8, false, locale, null)):
-                    data instanceof Throwable ? "error": String.valueOf(data);
+            return data == null ? null: String.format(locale, "[%s]", data instanceof byte[] ?
+                    handleData(data, locale) + sNewLine: data instanceof Throwable ? "error": data.toString());
         }
     }
 

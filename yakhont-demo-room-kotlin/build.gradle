@@ -168,7 +168,7 @@ android.variantFilter { variant ->
     }
 }
 
-// use default config (or provide something like "projectDir.absolutePath + '/your_weaver.config'")
+// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
 String weaverConfigFiles = null
 String pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
 boolean weaverDebug = false, weaverAddConfig = true

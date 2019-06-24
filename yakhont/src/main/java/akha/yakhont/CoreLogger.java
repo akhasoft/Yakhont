@@ -17,6 +17,7 @@
 package akha.yakhont;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.loader.BaseResponse;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -60,7 +61,19 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The <code>CoreLogger</code> class is responsible for logging.
- * <br>Call {@link #setLogLevel} or {@link #setFullInfo} to set {@link Level log level}.
+ *
+ * <p>Some of available features are:
+ * <ul>
+ *   <li>No logging in release builds (except errors)</li>
+ *   <li>Stack trace support: {@link #log(Level, String, boolean)}</li>
+ *   <li>Screenshots support: {@link #getScreenshot(String)}, {@link #getScreenshot(Activity, File, String)}</li>
+ *   <li>Byte arrays logging: {@link #toHex(byte[])}, {@link #toHex(byte[], int, int, Locale, Charset)}</li>
+ *   <li>The logcat support: {@link #getLogCat(List, boolean, String)}</li>
+ *   <li>Sending error reports via e-mail: {@link #sendLogCat(Activity, String...)}, {@link #sendData sendData}</li>
+ *   <li>Sending error reports via e-mail on shaking device: {@link #registerShakeDataSender(Context, String...)}</li>
+ * </ul>
+ *
+ * <p>Call {@link #setLogLevel} or {@link #setFullInfo} to set {@link Level log level}.
  * <br>Call {@link #setShowStack} to force stack trace logging.
  * <br>Call {@link #setShowThread} to force thread info logging.
  *
@@ -606,10 +619,8 @@ public class CoreLogger {
                                      final boolean clearList) {
         if (text == null) return list;
 
-        if (list == null)
-            list = new ArrayList<>();
-        else if (clearList)
-            list.clear();
+        if (list == null)   list = new ArrayList<>();
+        else if (clearList) list.clear();
 
         for (;;) {
             String       tmp = text;
@@ -760,6 +771,22 @@ public class CoreLogger {
      * @param data
      *        The byte array to convert
      *
+     * @return  The byte array readable representation
+     */
+    @SuppressWarnings("unused")
+    public static String toHex(final byte[] data) {
+        return toHex(data, 0, data == null ? 0: data.length, true);
+    }
+
+    /**
+     * Converts byte array to string.
+     *
+     * @param data
+     *        The byte array to convert
+     *
+     * @param offset
+     *        The offset in bytes array
+     *
      * @param length
      *        The bytes quantity to convert
      *
@@ -769,8 +796,8 @@ public class CoreLogger {
      * @return  The byte array readable representation
      */
     @SuppressWarnings("unused")
-    public static String toHex(final byte[] data, final int length, final boolean bytesOnly) {
-        return toHex(data, 0, length, bytesOnly, null, null);
+    public static String toHex(final byte[] data, int offset, final int length, final boolean bytesOnly) {
+        return toHex(data, offset, length, bytesOnly, null, null);
     }
 
     /**
@@ -796,22 +823,88 @@ public class CoreLogger {
      *
      * @return  The byte array readable representation
      */
-    public static String toHex(final byte[] data, final int offset, final int length, final boolean bytesOnly,
-                               Locale locale, final Charset charset) {
+    @SuppressWarnings("WeakerAccess")
+    public static String toHex(final byte[] data, int offset, int length, final boolean bytesOnly,
+                               final Locale locale, final Charset charset) {
+        return toHex(data, offset, length, bytesOnly, locale, charset, false, true);
+    }
+
+    /**
+     * Converts byte array to string (16 bytes per line).
+     *
+     * @param data
+     *        The byte array to convert
+     *
+     * @param offset
+     *        The offset in bytes array
+     *
+     * @param length
+     *        The bytes quantity to convert
+     *
+     * @param locale
+     *        The locale (or null for default one)
+     *
+     * @param charset
+     *        The charset (or null for default one)
+     *
+     * @return  The byte array readable representation
+     *
+     * @see BaseResponse#setBytesQtyForArray
+     */
+    public static String toHex(final byte[] data, int offset, int length, final Locale locale,
+                               final Charset charset) {
+        final StringBuilder builder = new StringBuilder(sNewLine);
+        for (;; length -= BYTES_PER_LINE, offset += BYTES_PER_LINE) {
+            final boolean lastLine = length <= BYTES_PER_LINE || data.length - offset <= BYTES_PER_LINE;
+            builder.append(toHex(data, offset, BYTES_PER_LINE, false, locale, charset,
+                    true, lastLine)).append(sNewLine);
+            if (lastLine) break;
+        }
+        return builder.substring(0, builder.length() - 1);
+    }
+
+    private static final int                            BYTES_PER_LINE           = 16;
+
+    private static String toHex(final byte[] data, final int offset, int length, final boolean bytesOnly,
+                                Locale locale, final Charset charset,
+                                final boolean insertAfter4, final boolean lastLine) {
         if (data        == null) return null;
         if (data.length ==    0) return   "";
 
+        if (insertAfter4 && length != BYTES_PER_LINE) {
+            logError(String.format(locale, "wrong length %d for byte array, expected " +
+                    BYTES_PER_LINE, length));
+            return null;
+        }
         if (locale == null) locale = Utils.getLocale();
+
+        if (offset >= data.length) {
+            logError(String.format(locale, "wrong offset %d for byte array (length %d)",
+                    offset, data.length));
+            return null;
+        }
+        if (offset + length > data.length) length = data.length - offset;
 
         try {
             final StringBuilder builder = new StringBuilder(hexFormat(data[offset], locale));
-            for (int i = offset + 1; i < length; i++)
-                builder.append(" ").append(hexFormat(data[i], locale));
+            for (int i = offset + 1; i < offset + length; i++) {
+                builder.append(' ').append(hexFormat(data[i], locale));
+                if (insertAfter4 && (i == offset +  3 && length >  4 || 
+                                     i == offset +  7 && length >  8 ||
+                                     i == offset + 11 && length > 12)) builder.append(' ');
+            }
+            if (offset + length < data.length && lastLine) builder.append("  ...  ");
 
             if (!bytesOnly) {
-                builder.append(" ...");
-                builder.append("  ").append(charset == null ? new String(data, offset, length):
-                        new String(data, offset, length, charset));
+                if (insertAfter4)
+                    for (int i = builder.length(); i < 62; i++) builder.append(' ');
+
+                final byte[] buffer = new byte[length];
+                for (int i = 0; i < length; i++) {
+                    final int check = data[offset + i] & 0xFF;
+                    buffer[i] = check < 32 || check == 127 || check == 255 ? 46: data[offset + i];
+                }
+                builder.append(charset == null ? new String(buffer): new String(buffer, charset));
             }
             return builder.toString();
         }
@@ -823,6 +916,53 @@ public class CoreLogger {
 
     private static String hexFormat(final byte data, @NonNull final Locale locale) {
         return String.format(locale, "%02X", data);
+    }
+
+    /**
+     * Creates screenshot for the given Activity.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param dir
+     *        The directory to save screenshot (or null for default one)
+     *
+     * @param suffix
+     *        The screenshot filename's suffix
+     *
+     * @return  The screenshot's file
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static File getScreenshot(Activity activity, File dir, final String suffix) {
+        if (activity == null) activity = Utils.getCurrentActivity();
+        if (activity == null) logError("activity == null");
+
+        if (suffix   == null) logError("suffix == null");
+
+        if (dir == null && activity != null) dir = Utils.getTmpDir(activity);
+        if (dir == null)      logError("dir == null");
+        if (dir == null || activity == null || suffix == null) return null;
+
+        try {
+            return Sender.getScreenshotOld(activity, dir, suffix, null, null, null);
+        }
+        catch (Exception exception) {
+            Sender.handleError("failed creating screenshot", exception, null);
+            return null;
+        }
+    }
+
+    /**
+     * Creates screenshot for the current Activity.
+     *
+     * @param suffix
+     *        The screenshot filename's suffix
+     *
+     * @return  The screenshot's file
+     */
+    @SuppressWarnings("unused")
+    public static File getScreenshot(final String suffix) {
+        return getScreenshot(null, null, suffix);
     }
 
     /**
@@ -924,7 +1064,7 @@ public class CoreLogger {
      *        Indicates whether the list should be cleared before adding new records
      *
      * @param cmd
-     *        <code>logcat</code> command line, or null for the default one ("logcat -d")
+     *        <code>logcat</code> command line, or null for default one ("logcat -d")
      *
      * @return  The list with log records
      */
@@ -994,8 +1134,8 @@ public class CoreLogger {
      * @param cmd
      *        The logcat command to execute (or null to execute the default one)
      *
-     * @param hasScreenShot
-     *        {@code true} to include screen shot
+     * @param hasScreenshot
+     *        {@code true} to include screenshot
      *
      * @param hasDb
      *        {@code true} to include cache database snapshot
@@ -1010,7 +1150,7 @@ public class CoreLogger {
      *        The list of email addresses to send data
      */
     @SuppressWarnings("WeakerAccess")
-    public static void sendData(final Context context, final String cmd, final boolean hasScreenShot,
+    public static void sendData(final Context context, final String cmd, final boolean hasScreenshot,
                                 final boolean hasDb, final String[] moreFiles,
                                 final String subject, final String... addresses) {
         //noinspection Convert2Lambda
@@ -1018,7 +1158,7 @@ public class CoreLogger {
             @Override
             public void run() {
                 try {
-                    Sender.sendEmailSync(context, cmd, hasScreenShot, hasDb, moreFiles, subject, addresses);
+                    Sender.sendEmailSync(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
                 }
                 catch (Exception exception) {
                     log("failed to send CoreLogger shake debug email", exception);
@@ -1168,7 +1308,7 @@ public class CoreLogger {
         private static final String                     DEFAULT_PREFIX           = "log";
         private static final String                     DEFAULT_EXTENSION        = "txt";
 
-        private static void sendEmailSync(final Context context, final String cmd, final boolean hasScreenShot,
+        private static void sendEmailSync(final Context context, final String cmd, final boolean hasScreenshot,
                                           final boolean hasDb, final String[] moreFiles,
                                           final String subject, final String... addresses) {
             if (context == null || addresses == null || addresses.length == 0) {
@@ -1179,8 +1319,8 @@ public class CoreLogger {
             final Activity activity = Utils.getCurrentActivity();
             if (activity == null) return;
 
-            final File tmpDir    = Utils.getTmpDir(context);
-            final String suffix  = Utils.getTmpFileSuffix();
+            final File    tmpDir = Utils.getTmpDir(context);
+            final String  suffix = Utils.getTmpFileSuffix();
             final boolean hasAnr = new File(ANR_TRACES).exists();
 
             final Map<String, Exception> errors = new ArrayMap<>();
@@ -1205,7 +1345,7 @@ public class CoreLogger {
             @SuppressWarnings("ConstantConditions")
             final StringBuilder body = new StringBuilder(String.format(
                     "ANR traces %b, screenshot %b, database %b", hasAnr,
-                    hasScreenShot ? "(if no errors) " + hasScreenShot: hasScreenShot, hasDb));
+                    hasScreenshot ? "(if no errors) " + hasScreenshot: hasScreenshot, hasDb));
 
             @SuppressWarnings("Convert2Lambda")
             final Runnable runnable = new Runnable() {
@@ -1237,8 +1377,8 @@ public class CoreLogger {
                 }
             };
 
-            if (hasScreenShot)
-                getScreenShot(activity, tmpDir, suffix, errors, list, runnable);
+            if (hasScreenshot)
+                getScreenshot(activity, tmpDir, suffix, errors, list, runnable);
             else
                 complete(null, list, runnable);
         }
@@ -1307,59 +1447,63 @@ public class CoreLogger {
             if (map != null) map.put(text, exception);
         }
 
-        private static void getScreenShot(final Activity     activity, final File tmpDir,
+        private static void getScreenshot(final Activity     activity, final File tmpDir,
                                           final String       suffix,   final Map<String, Exception> errors,
                                           final List<String> list,     final Runnable runnable) {
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    getScreenShotNew(activity, tmpDir, suffix, errors, list, runnable);
+                    getScreenshotNew(activity, tmpDir, suffix, errors, list, runnable);
                 else
-                    getScreenShotOld(activity, tmpDir, suffix, errors, list, runnable);
+                    getScreenshotOld(activity, tmpDir, suffix, errors, list, runnable);
             }
             catch (Exception exception) {
                 handleError("failed creating screenshot", exception, errors);
             }
         }
 
-        @SuppressWarnings({"deprecation", "RedundantSuppression"})
-        private static void getScreenShotOld(final Activity activity, final File tmpDir,
+        @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
+        private static File getScreenshotOld(final Activity activity, final File tmpDir,
                                              final String suffix,     final Map<String, Exception> errors,
                                              final List<String> list, final Runnable runnable) {
-            final View view = activity.getWindow().getDecorView().getRootView();
+            final View    view  = activity.getWindow().getDecorView().getRootView();
             final boolean saved = view.isDrawingCacheEnabled();
             try {
                 view.setDrawingCacheEnabled(true);
-                complete(saveScreenShot(view.getDrawingCache(), tmpDir, suffix, errors), list, runnable);
+                final File screenshot = saveScreenshot(view.getDrawingCache(), tmpDir, suffix, errors);
+                if (runnable == null) return screenshot;
+
+                complete(screenshot, list, runnable);
+                return null;
             }
             finally {
                 view.setDrawingCacheEnabled(saved);
             }
         }
 
-        private static void complete(final File screenShot, final List<String> list, final Runnable runnable) {
+        private static void complete(final File screenshot, final List<String> list, final Runnable runnable) {
             try {
-                if (screenShot != null) list.add(screenShot.getAbsolutePath());
+                if (screenshot != null) list.add(screenshot.getAbsolutePath());
                 Utils.safeRun(runnable);
             }
             finally {
-                delete(screenShot);
+                delete(screenshot);
             }
         }
 
         @TargetApi  (      Build.VERSION_CODES.O)
         @RequiresApi(api = Build.VERSION_CODES.O)
-        private static void getScreenShotNew(final Activity activity, final File tmpDir,
+        private static void getScreenshotNew(final Activity activity, final File tmpDir,
                                              final String suffix,     final Map<String, Exception> errors,
                                              final List<String> list, final Runnable runnable) {
-            final DisplayMetrics dm = activity.getResources().getDisplayMetrics();
-            final Bitmap bitmap = Bitmap.createBitmap(dm.widthPixels, dm.heightPixels,
+            final DisplayMetrics dm     = activity.getResources().getDisplayMetrics();
+            final Bitmap         bitmap = Bitmap.createBitmap(dm.widthPixels, dm.heightPixels,
                     Bitmap.Config.ARGB_8888);
             //noinspection Convert2Lambda
             PixelCopy.request(activity.getWindow(), bitmap, new PixelCopy.OnPixelCopyFinishedListener() {
                 @Override
                 public void onPixelCopyFinished(int copyResult) {
                     if (copyResult == PixelCopy.SUCCESS)
-                        complete(saveScreenShot(bitmap, tmpDir, suffix, errors), list, runnable);
+                        complete(saveScreenshot(bitmap, tmpDir, suffix, errors), list, runnable);
                     else {
                         CoreLogger.logError("PixelCopy failed with copyResult " + copyResult);
                         complete(null, list, runnable);
@@ -1368,7 +1512,7 @@ public class CoreLogger {
             }, new Handler());
         }
 
-        private static File saveScreenShot(final Bitmap bitmap, final File tmpDir,
+        private static File saveScreenshot(final Bitmap bitmap, final File tmpDir,
                                            final String suffix, final Map<String, Exception> errors) {
             try {
                 final File tmpFile = getTmpFile("screen", suffix, "png", tmpDir);

@@ -23,15 +23,14 @@ import java.lang.annotation.Target;
 
 /**
  * Defines the annotation for logging arguments and return value of the annotated method
- * (by default for debug builds only). The idea of {@code LogDebug} came from the Jake Wharton's
+ * (by default for debug builds only - defined in the 'weaver.config').
+ * The idea of {@code LogDebug} came from the Jake Wharton's
  * {@link <a href="https://github.com/JakeWharton/hugo">Hugo</a>} project.
  * <br>{@code LogDebug} works via the Yakhont Weaver, the code to execute defined in the 'weaver.config'
  * (and you can redefine it whatever way you want - 'cause it's just a string which Yakhont Weaver
  * compiles just before weaving).
  * <br>Note: actual compilation performed by the
  * {@link <a href="http://jboss-javassist.github.io/javassist/">Javassist</a>} library.
- *
- * @see CoreLogger
  *
  * @author akha
  */

@@ -18,6 +18,8 @@ package akha.yakhont;
 
 import akha.yakhont.Core.Utils.DataStore;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterWrapper;
+import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.callback.BaseCallbacks;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ActivityLifecycleProceed;
@@ -28,11 +30,15 @@ import akha.yakhont.callback.lifecycle.BaseActivityLifecycleProceed.ValidateActi
 import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.ValidateFragmentCallbacks;
 import akha.yakhont.debug.BaseFragment;
+import akha.yakhont.loader.BaseLiveData;
+import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
+import akha.yakhont.loader.BaseResponse.Source;
+import akha.yakhont.loader.BaseViewModel;
+import akha.yakhont.loader.BaseViewModel.PagingViewModel;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
-import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoadExtendedBuilder;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallback;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;
 import akha.yakhont.location.LocationCallbacks;
@@ -949,14 +955,13 @@ public class Core implements DefaultLifecycleObserver {
                                     synchronized (sConnectedLock) {
                                         if (sConnected.getAndSet(isConnected) != isConnected) {
                                             CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
-                                                    "network is " + (isConnected ? "": "NOT ") +
-                                                            "available");
+                                                    "network is " + (isConnected ? "": "NOT ") + "available");
                                             onNetworkStatusChanged(isConnected);
                                         }
                                     }
                                 }
 
-                                @SuppressWarnings("deprecation")
+                                @SuppressWarnings({"deprecation", "RedundantSuppression"})
                                 private void handleConnectionOld() {
                                     @SuppressLint("MissingPermission")
                                     final android.net.NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
@@ -1148,7 +1153,7 @@ public class Core implements DefaultLifecycleObserver {
          * @param <T>
          *        The result type of method {@link Callable#call}
          *
-         * @return  The result of method {@link Callable#call} (or null)
+         * @return  The result of calling method {@link Callable#call} (or null)
          */
         public static <T> T safeRun(final Callable<T> callable) {
             if (callable == null)
@@ -1162,6 +1167,12 @@ public class Core implements DefaultLifecycleObserver {
                 }
             }
             return null;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        public static boolean safeRunBoolean(final Callable<Boolean> callable) {
+            final Boolean result = safeRun(callable);
+            return result == null ? false: result;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -1791,6 +1802,11 @@ public class Core implements DefaultLifecycleObserver {
                             activity.getString(R.string.yakhont_sending_email)));
                 }
             });
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "BooleanMethodIsAlwaysInverted"})
+        public static boolean equals(final Object object1, final Object object2) {
+            return object1 == null && object2 == null || object1 != null && object1.equals(object2);
         }
 
         private static       Boolean                    sDebug;
@@ -2503,7 +2519,7 @@ public class Core implements DefaultLifecycleObserver {
          *        The custom handler for each cursor row
          *
          * @param position
-         *        The cursor position to move, null - to work from the current one, 0 - to move to first
+         *        The cursor position to move (0 - for 1st) or null - to work from the current one
          *
          * @param onlyOne
          *        {@code true} if only one row should be handled, {@code false} otherwise
@@ -2528,7 +2544,7 @@ public class Core implements DefaultLifecycleObserver {
                 return true;
             }
             if (cursor.isClosed()) {
-                CoreLogger.logWarning("cursor closed");
+                CoreLogger.logError("cursor closed");
                 return false;
             }
 
@@ -2576,8 +2592,27 @@ public class Core implements DefaultLifecycleObserver {
                 CoreLogger.log(exception);
             }
             finally {
-                if (close) cursor.close();
+                if (close) close(cursor);
             }
+            return false;
+        }
+
+        /**
+         * Closes the given cursor.
+         *
+         * @param cursor
+         *        The {@code Cursor}
+         *
+         * @return  {@code true} if cursor was closed, {@code false} if cursor is null or already closed
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        public static boolean close(final Cursor cursor) {
+            if (cursor != null && !cursor.isClosed()) {
+                CoreLogger.log(CoreLogger.getDefaultLevel(), "about to close cursor " + cursor, true);
+                cursor.close();
+                return true;
+            }
+            CoreLogger.log("not closeable cursor " + cursor);
             return false;
         }
 
@@ -2623,7 +2658,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static class DataStore implements Serializable {
+        public static class DataStore implements Serializable /* 'cause of map */ {
 
             private final Map<String, Object>           mStore                          = newMap();
 
@@ -2695,6 +2730,12 @@ public class Core implements DefaultLifecycleObserver {
              * @param callback
              *        The {@code LoaderCallback}
              *
+             * @param callbackError
+             *        The {@code LoaderCallback} for errors handling (or null for default one)
+             *
+             * @param activity
+             *        The {@code Activity}
+             *
              * @param <E>
              *        The type of error (if any)
              *
@@ -2707,8 +2748,117 @@ public class Core implements DefaultLifecycleObserver {
              */
             @SuppressWarnings({"unused"})
             public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad<E,    D> coreLoad,
+                                                                  final LoaderCallback<D> callback,
+                                                                  final Runnable          callbackError,
+                                                                  final Activity          activity) {
+                CacheLiveData tmpData = null;
+
+                final BaseLoaderWrapper loader = getLoader(coreLoad);
+                if (loader != null) {
+                    final BaseViewModel<?> model = loader.findViewModel(activity);
+                    if (model instanceof PagingViewModel) {
+                        final BaseLiveData tmp = model.getData();
+                        if (tmp instanceof CacheLiveData)
+                            tmpData = (CacheLiveData) tmp;
+                        else
+                            CoreLogger.logError("wrong data (expected CacheLiveData): " + tmp);
+                    }
+                    else
+                        CoreLogger.logError("wrong model (expected PagingViewModel): " + model);
+                }
+                if (tmpData == null) return setPagingCallbacks(coreLoad, null);
+
+                final CacheLiveData liveData = tmpData;
+
+                return setPagingCallbacks(coreLoad, new LoaderCallbacks<E, D>() {
+                    @Override
+                    public void onLoadFinished(final D data, final Source source) {
+                        //noinspection Convert2Lambda
+                        Utils.safeRun(new Runnable() {
+                            @Override
+                            public void run() {
+                                callback.onLoadFinished(data, source);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onLoadError(final E error, final Source source) {
+                        Utils.safeRun(callbackError != null ? callbackError:
+                                getPagingDefaultErrorCallback(liveData, loader, callback));
+                    }
+                });
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public static <D> Runnable getPagingDefaultErrorCallback(
+                    final CacheLiveData liveData, final BaseLoaderWrapper loader, final LoaderCallback<D> callback) {
+
+                if (liveData == null || loader == null || callback == null) {
+                    if (liveData == null) CoreLogger.logError("liveData == null");
+                    if (loader   == null) CoreLogger.logError("loader   == null");
+                    if (callback == null) CoreLogger.logError("callback == null");
+
+                    return null;
+                }
+
+                //noinspection Convert2Lambda
+                return new Runnable() {
+                    @Override
+                    public void run() {
+                        final Cursor cursor = liveData.getCursor();
+                        Object data = null;
+                        try {
+                            final CacheAdapter adapter = loader.getAdapter();
+                            if (adapter instanceof BaseCacheAdapterWrapper)
+                                data = ((BaseCacheAdapterWrapper) adapter).getAdapter().getConverter()
+                                        .getConverter().getData(cursor, null);
+                            else
+                                CoreLogger.logError("wrong adapter (expected BaseCacheAdapterWrapper): " + adapter);
+                        }
+                        catch (Exception exception) {
+                            CoreLogger.log(exception);
+                        }
+                        Utils.close(cursor);
+
+                        @SuppressWarnings("unchecked")
+                        final D tmp         = (D) (data == null ? Collections.EMPTY_LIST: data);
+                        final Source source =      data == null ? Source.UNKNOWN : Source.CACHE;
+
+                        //noinspection Convert2Lambda
+                        Utils.safeRun(new Runnable() {
+                                          @Override
+                                          public void run() {
+                                              callback.onLoadFinished(tmp, source);
+                                          }
+                                      });
+                    }
+                };
+            }
+
+            /**
+             * Sets callback for paged loading.
+             *
+             * @param coreLoad
+             *        The {@code CoreLoad}
+             *
+             * @param callback
+             *        The {@code LoaderCallback}
+             *
+             * @param <E>
+             *        The type of error (if any)
+             *
+             * @param <D>
+             *        The type of data to load
+             *
+             * @return  The {@code CoreLoad} passed as parameter
+
+             * @see #setPagingCallbacks
+             */
+            @SuppressWarnings("unused")
+            public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad<E,    D> coreLoad,
                                                                   final LoaderCallback<D> callback) {
-                return setPagingCallbacks(coreLoad, CoreLoadExtendedBuilder.getLoaderCallbacks(callback));
+                return setPagingCallback(coreLoad, callback, null, null);
             }
 
             /**
@@ -2777,7 +2927,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  The {@code CoreLoad} passed as parameter
              */
-            @SuppressWarnings({"unused"})
+            @SuppressWarnings("WeakerAccess")
             public static <E, D> CoreLoad<E, D> invalidateDataSources(final CoreLoad<E, D> coreLoad,
                                                                       final Activity       activity) {
                 if (coreLoad == null) {
@@ -2797,6 +2947,25 @@ public class Core implements DefaultLifecycleObserver {
                     baseLoaderWrapper.invalidateDataSource(activity);
 
                 return coreLoad;
+            }
+
+            /**
+             * Invalidates all {@link DataSource DataSource} associated with the given {@code CoreLoad} component.
+             *
+             * @param coreLoad
+             *        The {@code CoreLoad}
+             *
+             * @param <E>
+             *        The type of error (if any)
+             *
+             * @param <D>
+             *        The type of data to load
+             *
+             * @return  The {@code CoreLoad} passed as parameter
+             */
+            @SuppressWarnings("unused")
+            public static <E, D> CoreLoad<E, D> invalidateDataSources(final CoreLoad<E, D> coreLoad) {
+                return invalidateDataSources(coreLoad, null);
             }
         }
     }

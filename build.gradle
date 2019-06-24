@@ -16,7 +16,7 @@
 
 buildscript {
 
-    ext.kotlinVersion       = '1.3.31'
+    ext.kotlinVersion       = '1.3.40'
 
     repositories {
         google()
@@ -98,7 +98,7 @@ ext {
     projectLibVerDefault                                        = 'default'
 
     projectLibVerGms                                            = '16.0.1'
-    projectLibVerLocation                                       = '16.0.0'
+    projectLibVerLocation                                       = '17.0.0'
 
     projectLibVerRetrofit                                       =  '1.9.0'
     projectLibVerRetrofit2                                      =  '2.5.0'
@@ -113,7 +113,7 @@ ext {
     projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.0'
-    projectLibVerRoom                                           =  '2.1.0-rc01'
+    projectLibVerRoom                                           =  '2.1.0'
 
     projectLibVerDagger                                         =  '2.22.1'
 

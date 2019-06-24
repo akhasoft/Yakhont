@@ -162,7 +162,7 @@ dependencies {
 
 // for demo simple let's build both release and debug - just to be sure the weaver is working fine
 
-// use default config (or provide something like "projectDir.absolutePath + '/your_weaver.config'")
+// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
 String weaverConfigFiles = null
 String pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true

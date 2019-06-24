@@ -47,6 +47,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.lang.Runnable;      // lint inspection bug workaround
+import java.lang.String;        // same as above
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,8 +60,43 @@ import java.util.concurrent.Callable;
 
 /**
  * The {@link ContentProvider} which does not use predefined database schema but creates tables
- * (or adds columns, if necessary) "on the fly". The supported data types are TEXT and BLOB.
- * <br>Example of declaration in the manifest file:
+ * (or adds columns, if necessary) "on the fly".
+ *
+ * <p>Some of available features are:
+ * <ul>
+ *   <li>Checking for table or column existence
+ *     <ul>
+ *       <li>Checks if table exists: {@link #isExist(SQLiteDatabase, String)}</li>
+ *       <li>Checks if column exists: {@link #isExist(SQLiteDatabase, String, String)}</li>
+ *     </ul>
+ *   </li>
+ *   <li>Database copying
+ *     <ul>
+ *       <li>Copy database: {@link #copyDb(Context)}</li>
+ *       <li>Copy database: {@link #copyDb(Context, File, File)}</li>
+ *     </ul>
+ *   </li>
+ *   <li>SQL script(s) executing
+ *     <ul>
+ *       <li>Runs SQL script(s): {@link #execSql(SQLiteDatabase, String)}</li>
+ *       <li>Runs SQL script(s): {@link #execSql(Context, SQLiteDatabase, String)}</li>
+ *       <li>Runs SQL script(s): {@link #execSql(SQLiteDatabase, String...)}</li>
+ *     </ul>
+ *   </li>
+ *   <li>Transactions support
+ *     <ul>
+ *       <li>Runs transaction: {@link #runTransaction(SQLiteDatabase, Callable)}</li>
+ *       <li>Runs transaction: {@link #runTransaction(SQLiteDatabase, Runnable)}</li>
+ *     </ul>
+ *   </li>
+ *   <li>Database clearing
+ *     <ul>
+ *       <li>Clears database: {@link #clear(SQLiteDatabase)}</li>
+ *     </ul>
+ *   </li>
+ * </ul>
+ *
+ * <p>Example of declaration in the manifest file:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
  * &lt;manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -98,14 +135,14 @@ public class BaseCacheProvider extends ContentProvider {
     private static final String         SELECTION_ID      = BaseColumns._ID + " = ?";
 
     private static final String         CREATE_INDEX      = "CREATE INDEX IF NOT EXISTS %s ON %s (%s);";
+    private static final String         NAME_INDEX        = "idx_%s_%s";
 
     private static final String         CREATE_TABLE      = "CREATE TABLE IF NOT EXISTS %s (" + BaseColumns._ID +
-                                                            " INTEGER PRIMARY KEY";     // alias for rowid
+                                                            " INTEGER PRIMARY KEY";     // alias for the rowid
 
     private static final String         ALTER_TABLE       = "ALTER TABLE %s ADD COLUMN %s %s;";
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected DbHelper                  mDbHelper;
 
     // should be SQLite 3.5.9 compatible
@@ -150,7 +187,7 @@ public class BaseCacheProvider extends ContentProvider {
      * Please refer to the base method description.
      *
      * @param method
-     *        The method name; supported are "getDbName", "getDbVersion", "close"
+     *        The method name; supported are "getDbName", "getDbVersion", "close" (to close DB)
      *
      * @param arg
      *        always null
@@ -261,7 +298,7 @@ public class BaseCacheProvider extends ContentProvider {
         boolean columnsAdded = false;
         for (final String columnName: columns.keySet())
             if (!isColumnExist(tableName, columnName))
-                columnsAdded = execSQL(db, String.format(ALTER_TABLE, tableName, columnName,
+                columnsAdded = execSql(db, String.format(ALTER_TABLE, tableName, columnName,
                         getDataType(columns, columnName).name()));
         return columnsAdded;
     }
@@ -627,9 +664,9 @@ public class BaseCacheProvider extends ContentProvider {
         return runTransaction(db, new Callable<Boolean>() {
             @Override
             public Boolean call() {
-                boolean result = execSQL(db, builder.create());
+                boolean result = execSql(db, builder.create());
                 if (addPageIndexCallable)                                   // paging support
-                    result = execSQL(db, String.format(CREATE_INDEX, String.format("idx_%s_%s",
+                    result = execSql(db, String.format(CREATE_INDEX, String.format(NAME_INDEX,
                             table, BaseConverter.PAGE_ID), table, BaseConverter.PAGE_ID));
                 return result;
             }
@@ -736,7 +773,7 @@ public class BaseCacheProvider extends ContentProvider {
             db.beginTransaction();
 
         try {
-            final Boolean result = callable.call();
+            final Boolean result = Utils.safeRun(callable);
             if (result != null && result) {
                 db.setTransactionSuccessful();
                 return true;
@@ -770,8 +807,7 @@ public class BaseCacheProvider extends ContentProvider {
         return runTransaction(db, new Callable<Boolean>() {
             @Override
             public Boolean call() {
-                runnable.run();
-                return true;
+                return Utils.safeRun(runnable);
             }
         });
     }
@@ -787,11 +823,11 @@ public class BaseCacheProvider extends ContentProvider {
      *
      * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    public static boolean execSQL(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
-        return execSQLWrapper(db, sql);
+    public static boolean execSql(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
+        return execSqlWrapper(db, sql);
     }
 
-    private static boolean execSQLWrapper(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
+    private static boolean execSqlWrapper(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
         try {
             CoreLogger.log(sql);
             db.execSQL(sql);
@@ -812,15 +848,15 @@ public class BaseCacheProvider extends ContentProvider {
      * @param db
      *        The database
      *
-     * @param scriptName
+     * @param sql
      *        The name of the asset
      *
      * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    public static boolean executeSQLScript(@NonNull final Context context, @NonNull final SQLiteDatabase db,
-                                           @NonNull final String scriptName) {
+    public static boolean execSql(@NonNull final Context context, @NonNull final SQLiteDatabase db,
+                                  @NonNull final String sql) {
         try {
-            final InputStream inputStream = context.getAssets().open(scriptName);
+            final InputStream inputStream = context.getAssets().open(sql);
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             final byte[] buffer = new byte[1024];
             int length;
@@ -829,10 +865,10 @@ public class BaseCacheProvider extends ContentProvider {
             outputStream.close();
             inputStream.close();
 
-            return executeSQLScript(db, outputStream.toString().split(";"));
+            return execSql(db, outputStream.toString().split(";"));
         }
         catch (/*IO*/Exception exception) {
-            CoreLogger.log("failed SQLScript " + scriptName, exception);
+            CoreLogger.log("failed SQLScript " + sql, exception);
             return false;
         }
     }
@@ -843,28 +879,28 @@ public class BaseCacheProvider extends ContentProvider {
      * @param db
      *        The database
      *
-     * @param script
+     * @param sql
      *        The script(s) to execute
      *
      * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    public static boolean executeSQLScript(@NonNull final SQLiteDatabase db, final String... script) {
-        if (script == null || script.length == 0) {
+    public static boolean execSql(@NonNull final SQLiteDatabase db, final String... sql) {
+        if (sql == null || sql.length == 0) {
             CoreLogger.logWarning("nothing to do");
             return false;
         }
         try {
             boolean result = true;
             //noinspection ForLoopReplaceableByForEach
-            for (int i = 0; i < script.length; i++) {
-                final String sqlStatement = script[i].trim();
+            for (int i = 0; i < sql.length; i++) {
+                final String sqlStatement = sql[i].trim();
                 if (sqlStatement.length() > 0)
-                    if (!execSQLWrapper(db, sqlStatement + ";")) result = false;
+                    if (!execSqlWrapper(db, sqlStatement + ";")) result = false;
             }
             return result;
         }
         catch (Exception exception) {
-            CoreLogger.log(Arrays.deepToString(script), exception);
+            CoreLogger.log(Arrays.deepToString(sql), exception);
             return false;
         }
     }
@@ -891,15 +927,15 @@ public class BaseCacheProvider extends ContentProvider {
 
                 for (final String view: handler.mViews) {
                     CoreLogger.log("about to drop view " + view);
-                    if (!executeSQLScript(db, "DROP VIEW IF EXISTS " + view))   result = false;
+                    if (!execSql(db, "DROP VIEW IF EXISTS " + view))   result = false;
                 }
                 for (final String table: handler.mVTables) {
                     CoreLogger.log("about to drop virtual table " + table);
-                    if (!executeSQLScript(db, "DROP TABLE IF EXISTS " + table)) result = false;
+                    if (!execSql(db, "DROP TABLE IF EXISTS " + table)) result = false;
                 }
                 for (final String table: handler.mTables) {
                     CoreLogger.log("about to drop table " + table);
-                    if (!executeSQLScript(db, "DROP TABLE IF EXISTS " + table)) result = false;
+                    if (!execSql(db, "DROP TABLE IF EXISTS " + table)) result = false;
                 }
 
                 if (result)
@@ -992,7 +1028,7 @@ public class BaseCacheProvider extends ContentProvider {
                              final int oldVersion, final int newVersion) {
         CoreLogger.log(String.format(getLocale(),
                 "on upgrade database %s from version %d to %d", DB_NAME, oldVersion, newVersion));
-        if (newVersion > 1 && oldVersion == 1)
+        if (newVersion > oldVersion)
             if (!clear(mDbHelper.getWritableDatabase()))
                 CoreLogger.logError(String.format(getLocale(), "error during clear database %s", DB_NAME));
     }

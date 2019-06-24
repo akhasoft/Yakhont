@@ -89,6 +89,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final DataStore              mStore              = new DataStore();
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected            Runnable               mOnCleared;
+
     /**
      * Initialises a newly created {@link BaseViewModel} object.
      *
@@ -334,10 +337,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Returns the {@link CoreLoad}'s collection kept in this {@link ViewModel}
+     * Returns the CoreLoads collection kept in this {@link ViewModel}
      * (mostly for screen orientation changes handling).
      *
-     * @return  The {@link CoreLoad}'s collection
+     * @return  The CoreLoads collection
      */
     public List<CoreLoad<?, ?>> getCoreLoads() {
         if (mCoreLoads == null)
@@ -368,11 +371,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Sets the {@link CoreLoad}'s collection to keep in this {@link ViewModel}
+     * Sets the CoreLoads collection to keep in this {@link ViewModel}
      * (mostly for screen orientation changes handling).
      *
      * @param coreLoads
-     *        The {@link CoreLoad}'s collection
+     *        The CoreLoads collection
      */
     @SuppressWarnings("WeakerAccess")
     public void setCoreLoads(final List<CoreLoad<?, ?>> coreLoads) {
@@ -382,11 +385,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Sets the {@link CoreLoad}'s to keep in this {@link ViewModel}
+     * Sets the CoreLoads to keep in this {@link ViewModel}
      * (mostly for screen orientation changes handling).
      *
      * @param coreLoads
-     *        The {@link CoreLoad}'s
+     *        The CoreLoads
      */
     public void setCoreLoads(final CoreLoad<?, ?>... coreLoads) {
         setCoreLoads(coreLoads == null ? null: Arrays.asList(coreLoads));
@@ -475,6 +478,16 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return get().getDataExt(key);
     }
 
+    /**
+     * Please refer to the base method description.
+     */
+    @Override
+    protected void onCleared() {
+        if (mData instanceof CacheLiveData) ((CacheLiveData) mData).closeCursor();
+        if (mOnCleared != null) Utils.safeRun(mOnCleared);
+        super.onCleared();
+    }
+
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Observer<D> updateUi(final boolean              stop,
                                               final LifecycleOwner       lifecycleOwner,
@@ -499,12 +512,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner, final Runnable callback) {
         final Observer<D> result = updateUi(stop, owner, mData, mObserver);
-        try {
-            if (callback != null) callback.run();
-        }
-        catch (Exception exception) {
-            CoreLogger.log(exception);
-        }
+        Utils.safeRun(callback);
         return result;
     }
 
@@ -1274,6 +1282,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
         protected     Callable<? extends DataSource<Key,  T>>   mDataSourceProducer;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected     PagingRecyclerViewAdapter<T, R, E>        mAdapter;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected     Runnable                                  mOnCleared;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected     BoundaryCallback         <T      >        mBoundaryCallback;
@@ -1495,6 +1505,19 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
 
         /**
+         * Sets the {@code Runnable} component to run when {@link ViewModel#onCleared()} will be called.
+         *
+         * @param onCleared
+         *        The {@link Runnable}
+         *
+         * @return  This {@code Builder} object to allow for chaining of calls to set methods
+         */
+        public Builder<S, Key, T, R, E, D> setOnCleared(final Runnable onCleared) {
+            mOnCleared              = onCleared;
+            return this;
+        }
+
+        /**
          * Sets the {@link Activity} to use as a current Activity, a {@link LifecycleOwner}
          * (and a {@link ViewModelStore} - if not yet defined).
          *
@@ -1605,6 +1628,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
                         mInitialLoadKey).get(mKey, mClass);
             }
             result.updateUi(false, mLifecycleOwner);
+
+            result.mOnCleared = mOnCleared;
 
             CoreLogger.log("created BaseViewModel " + CoreLogger.getDescription(result));
             return result;

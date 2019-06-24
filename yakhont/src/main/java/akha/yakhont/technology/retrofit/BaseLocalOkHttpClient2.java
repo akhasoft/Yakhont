@@ -16,6 +16,7 @@
 
 package akha.yakhont.technology.retrofit;
 
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
 import akha.yakhont.technology.retrofit.Retrofit2.BodySaverInterceptor;
@@ -350,12 +351,18 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
                 CoreLogger.logError("callback == null");
                 return;
             }
-            try {
-                callback.onResponse(this, execute());
-            }
-            catch (IOException exception) {
-                callback.onFailure(this, exception);
-            }
+            //noinspection Convert2Lambda
+            Utils.safeRun(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        callback.onResponse(CallI.this, execute());
+                    }
+                    catch (IOException exception) {
+                        callback.onFailure(CallI.this, exception);
+                    }
+                }
+            });
         }
 
         @NonNull

@@ -24,6 +24,7 @@ import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.adapter.BaseCacheAdapter;
+import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 // for javadoc
@@ -53,6 +54,7 @@ import androidx.annotation.Nullable;
 import androidx.annotation.WorkerThread;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStore;
 import androidx.paging.DataSource;
@@ -115,6 +117,7 @@ public abstract class BaseLoaderWrapper<D> {
     private              Callable<? extends BaseViewModel<D>>
                                                             mBaseViewModel;
     private              String                             mBaseViewModelKey;
+    private              Runnable                           mBaseViewModelOnCleared;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected            LoadParameters                     mParameters;
@@ -172,6 +175,11 @@ public abstract class BaseLoaderWrapper<D> {
     public interface Converter<D> extends CacheHelper {
 
         /**
+         * The default page ID (mostly for no paging adapter cases).
+         */
+        long DEFAULT_PAGE_ID                                                            = Long.MAX_VALUE;
+
+        /**
          * Sets {@code ConverterGetter}.
          *
          * @param getter
@@ -192,11 +200,11 @@ public abstract class BaseLoaderWrapper<D> {
          *        The type of data
          *
          * @param pageId
-         *        The page ID (in case of {@link PagingRecyclerViewAdapter}), or null
+         *        The page ID (in case of {@link PagingRecyclerViewAdapter}), or {@link #DEFAULT_PAGE_ID}
          *
          * @return  The data to store
          */
-        Collection<ContentValues> getValues(String string, byte[] bytes, Class cls, Long pageId);
+        Collection<ContentValues> getValues(String string, byte[] bytes, Class cls, long pageId);
 
         /**
          * Converts cursor to data.
@@ -405,6 +413,20 @@ public abstract class BaseLoaderWrapper<D> {
     @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
     public BaseLoaderWrapper<D> setBaseViewModelKey(final String key) {
         mBaseViewModelKey       = key;
+        return this;
+    }
+
+    /**
+     * Sets the {@code Runnable} component to run when {@link ViewModel#onCleared()} will be called.
+     *
+     * @param onCleared
+     *        The {@link Runnable}
+     *
+     * @return  This {@code BaseLoaderWrapper} object
+     */
+    @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+    public BaseLoaderWrapper<D> setBaseViewModelOnCleared(final Runnable onCleared) {
+        mBaseViewModelOnCleared = onCleared;
         return this;
     }
 
@@ -694,6 +716,14 @@ public abstract class BaseLoaderWrapper<D> {
     public abstract PagingRecyclerViewAdapter<?, ?, ?> getPagingAdapter();
 
     /**
+     * Returns the adapter component.
+     *
+     * @return  The adapter
+     */
+    @SuppressWarnings("WeakerAccess")
+    public abstract CacheAdapter<?, ?, ?> getAdapter();
+
+    /**
      * Returns the data loading progress GUI component.
      *
      * @return  The data loading progress GUI
@@ -715,13 +745,15 @@ public abstract class BaseLoaderWrapper<D> {
                                                          final String           key       ,
                                                          final String           tableName ,
                                                 @NonNull final DataLoader<D>    dataLoader,
-                                                @NonNull final Observer  <D>    observer  ) {
+                                                @NonNull final Observer  <D>    observer  ,
+                                                         final Runnable         onCleared ) {
         return new BaseViewModel.Builder<>(observer  )
                 .setViewModelStore        (store     )
                 .setActivity              (activity  )
                 .setKey                   (key       )
                 .setTableName             (tableName )
                 .setDataLoader            (dataLoader)
+                .setOnCleared             (onCleared )
                 .create();
     }
 
@@ -743,14 +775,14 @@ public abstract class BaseLoaderWrapper<D> {
 
         final RequesterHelper requesterHelper = new RequesterHelper();
 
-        @SuppressWarnings({"Convert2Lambda", "Anonymous2MethodRef"})
+        @SuppressWarnings("Convert2Lambda")
         final BaseViewModel<D> baseViewModel = getBaseViewModel(activity, mViewModelStore,
                 getKey(), getTableName(), requesterHelper, new Observer<D>() {
                     @Override
                     public void onChanged(@Nullable D data) {
-                        onLoadFinished(data);
+                        if (!Utils.equals(mData, data)) onLoadFinished(data);
                     }
-                });
+                }, mBaseViewModelOnCleared);
 
         requesterHelper.mBaseViewModel = new WeakReference<>(baseViewModel);
 
@@ -785,12 +817,11 @@ public abstract class BaseLoaderWrapper<D> {
 
         private Boolean handle(final CallableHelper callableHelper) {
             //noinspection Convert2Lambda
-            return Utils.safeRun(new Callable<Boolean>() {
+            return Utils.safeRunBoolean(new Callable<Boolean>() {
                 @Override
                 public Boolean call() {
                     final Converter<?> converter = getConverterHelper();
-                    //noinspection SimplifiableConditionalExpression
-                    return converter == null ? false: callableHelper.call(converter);
+                    return converter != null && callableHelper.call(converter);
                 }
             });
         }
@@ -801,13 +832,12 @@ public abstract class BaseLoaderWrapper<D> {
 
         @Override
         public boolean isInternalCache() {
-            final Boolean result = handle(new CallableHelper() {
+            return handle(new CallableHelper() {
                 @Override
                 protected boolean call(final Converter<?> converter) {
                     return converter.isInternalCache();
                 }
             });
-            return result == null ? false: result;
         }
 
         @Override
@@ -958,7 +988,6 @@ public abstract class BaseLoaderWrapper<D> {
                 CoreLogger.logWarning("model == null, id: " + mLoaderId);
                 break;
             }
-
         return null;
     }
 
@@ -1875,10 +1904,10 @@ public abstract class BaseLoaderWrapper<D> {
         /**
          * Gets the page ID (if paging adapter used).
          *
-         * @return  The page ID (or null)
+         * @return  The page ID
          */
-        public Long getPageId() {
-            return mPageId;
+        public long getPageId() {
+            return mPageId == null ? Converter.DEFAULT_PAGE_ID: mPageId;
         }
 
         /**

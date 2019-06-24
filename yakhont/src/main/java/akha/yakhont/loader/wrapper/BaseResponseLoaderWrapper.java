@@ -67,6 +67,7 @@ import androidx.annotation.StringRes;
 import androidx.databinding.ViewDataBinding;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStore;
 import androidx.paging.DataSource;
@@ -421,6 +422,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @return  The adapter
      */
     @SuppressWarnings("unused")
+    @Override
     public CacheAdapter<R, E, D> getAdapter() {
         return mAdapter;
     }
@@ -507,37 +509,51 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         if (mLoaderCallbacks != null || mPagingCallbacks != null) {
             if (data == null) {
-                if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(null, Source.UNKNOWN);
-                if (mPagingCallbacks != null) mPagingCallbacks.onLoadFinished(null, Source.UNKNOWN);
+                //noinspection Convert2Lambda
+                Utils.safeRun(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(null, Source.UNKNOWN);
+                        if (mPagingCallbacks != null) mPagingCallbacks.onLoadFinished(null, Source.UNKNOWN);
+                    }
+                });
             }
             else {
                 final E      error  = data.getError ();
                 final Source source = data.getSource();
 
                 if (error != null) {
-                    if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadError(error, source);
-                    if (mPagingCallbacks != null) mPagingCallbacks.onLoadError(error, source);
+                    //noinspection Convert2Lambda
+                    Utils.safeRun(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadError(error, source);
+                            if (mPagingCallbacks != null) mPagingCallbacks.onLoadError(error, source);
+                        }
+                    });
                 }
                 else {
                     final D result = data.getResult();
-                    if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(result, source);
-                    if (mPagingCallbacks != null) mPagingCallbacks.onLoadFinished(result, source);
+                    //noinspection Convert2Lambda
+                    Utils.safeRun(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(result, source);
+                            if (mPagingCallbacks != null) mPagingCallbacks.onLoadFinished(result, source);
+                        }
+                    });
                 }
             }
             if (mPagingCallbacks != null) mPagingCallbacks = null;
         }
 
         if (mPagingAdapter == null)
-            updateAdapter(data, mParameters != null && mParameters.getMerge());
+            if (mAdapter != null)
+                mAdapter.update(data, mParameters != null && mParameters.getMerge(), null);
+            else
+                CoreLogger.logWarning("adapter == null, table name: " + mTableName);
 
         if (mRx != null) mRx.onResult(data);
-    }
-
-    private void updateAdapter(final BaseResponse<R, E, D> data, final boolean isMerge) {
-        if (mAdapter != null)
-            mAdapter.update(data, isMerge, null);
-        else
-            CoreLogger.logWarning("adapter == null, table name: " + mTableName);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -548,7 +564,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                      final String                                           key       ,
                      final String                                           tableName ,
             @NonNull final DataLoader<BaseResponse<R, E, D>>                dataLoader,
-            @NonNull final Observer<BaseResponse  <R, E, D>>                observer  ) {
+            @NonNull final Observer<BaseResponse  <R, E, D>>                observer  ,
+                     final Runnable                                         onCleared ) {
 
         @SuppressWarnings("unchecked")
         final PagingRecyclerViewAdapter<Object, Object, Object>     adapter            =
@@ -566,6 +583,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 .setKey                   (key               )
                 .setTableName             (tableName         )
                 .setDataLoader            (dataLoader        )
+                .setOnCleared             (onCleared         )
 
                 .setDataSourceProducer    (dataSourceProducer)
                 .setConfig                (mPagingConfig     )
@@ -641,6 +659,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                                                                 mBaseViewModel;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       String                                  mBaseViewModelKey;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       Runnable                                mBaseViewModelOnCleared;
 
         /**
          * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
@@ -903,6 +923,21 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
+         * Sets the {@code Runnable} component to run when {@link ViewModel#onCleared()} will be called.
+         *
+         * @param onCleared
+         *        The {@link Runnable}
+         *
+         * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
+        @NonNull
+        public BaseResponseLoaderBuilder<C, R, E, D> setBaseViewModelOnCleared(final Runnable onCleared) {
+            mBaseViewModelOnCleared = onCleared;
+            return this;
+        }
+
+        /**
          * Sets the "swipe-to-refresh" callback which will be called just before data loading process if
          * it was triggered this way.
          *
@@ -934,6 +969,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             loaderWrapper.setProgress(mProgress);
             loaderWrapper.setBaseViewModel(mBaseViewModel);
             loaderWrapper.setBaseViewModelKey(mBaseViewModelKey);
+            loaderWrapper.setBaseViewModelOnCleared(mBaseViewModelOnCleared);
 
             return loaderWrapper;
         }
@@ -1001,6 +1037,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public String getBaseViewModelKeyRaw() {
             return mBaseViewModelKey;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public Runnable getBaseViewModelOnClearedRaw() {
+            return mBaseViewModelOnCleared;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -2226,6 +2267,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                                                         mBaseViewModel;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected String                                mBaseViewModelKey;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected Runnable                              mBaseViewModelOnCleared;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected Integer                               mDataBindingId;
@@ -2306,12 +2349,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Progress progress) {
             //noinspection Convert2Lambda
-            mProgress           = progress == null ? null: new Callable<Progress>() {
+            final Callable<Progress> tmp = progress == null ? null: new Callable<Progress>() {
                 @Override
                 public Progress call() {
                     return progress;
                 }
             };
+            checkData(mProgress, tmp, "progress");
+            mProgress = tmp;
             return this;
         }
 
@@ -2326,6 +2371,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Callable<Progress> progress) {
+            checkData(mProgress, progress, "progress");
             mProgress           = progress;
             return this;
         }
@@ -2342,6 +2388,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModel(
                 final Callable<? extends BaseViewModel<BaseResponse<R, E, D>>> baseViewModel) {
+            checkData(mBaseViewModel, baseViewModel, "baseViewModel");
             mBaseViewModel      = baseViewModel;
             return this;
         }
@@ -2357,7 +2404,24 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModelKey(final String key) {
+            checkData(mBaseViewModelKey, key, "baseViewModelKey");
             mBaseViewModelKey   = key;
+            return this;
+        }
+
+        /**
+         * Sets the {@code Runnable} component to run when {@link ViewModel#onCleared()} will be called.
+         *
+         * @param onCleared
+         *        The {@link Runnable}
+         *
+         * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings("unused")
+        @NonNull
+        public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModelOnCleared(final Runnable onCleared) {
+            checkData(mBaseViewModelOnCleared, onCleared, "baseViewModelOnCleared");
+            mBaseViewModelOnCleared = onCleared;
             return this;
         }
 
@@ -2372,6 +2436,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("WeakerAccess")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallbacks(final LoaderCallbacks<E, D> loaderCallbacks) {
+            checkData(mLoaderCallbacks, loaderCallbacks, "loaderCallbacks");
             mLoaderCallbacks    = loaderCallbacks;
             return this;
         }
@@ -2390,12 +2455,18 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return setLoaderCallbacks(getLoaderCallbacks(loaderCallback));
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static <E, D> LoaderCallbacks<E, D> getLoaderCallbacks(final LoaderCallback<D> loaderCallback) {
             return loaderCallback == null ? null: new LoaderCallbacks<E, D>() {
                 @Override
                 public void onLoadFinished(final D data, final Source source) {
-                    loaderCallback.onLoadFinished(data, source);
+                    //noinspection Convert2Lambda
+                    Utils.safeRun(new Runnable() {
+                        @Override
+                        public void run() {
+                            loaderCallback.onLoadFinished(data, source);
+                        }
+                    });
                 }
             };
         }
@@ -3126,6 +3197,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 builder.setLoaderId        (mLoaderId        );
             if (check(mUriResolver     , builder.getUriResolverRaw()     , "UriResolver"     ))
                 builder.setUriResolver     (mUriResolver     );
+
+            if (check(mBaseViewModelOnCleared, builder.getBaseViewModelOnClearedRaw(), "BaseViewModelOnCleared"))
+                builder.setBaseViewModelOnCleared(mBaseViewModelOnCleared);
 
             if (mDescription != null) {
                 if (check(mDescription, builder.getDescriptionRaw()      , "Description"     ))

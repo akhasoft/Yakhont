@@ -649,7 +649,7 @@ public abstract class BaseCallbacks<T> {
                     else
                         remove(callbacks, object);
 
-                if (condition != null && !condition.call()) return false;
+                if (condition != null && !Utils.safeRunBoolean(condition)) return false;
 
                 // it's possible to be registered after onCreate
                 if (!(isCreate != null &&  isCreate)) proceed = callbacks.proceed(object, callbacks);

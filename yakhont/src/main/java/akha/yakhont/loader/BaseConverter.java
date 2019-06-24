@@ -57,8 +57,6 @@ public class BaseConverter<D> implements Converter<D> {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public  static final String                     PAGE_ID                   = "yakhont_page_id";
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public  static final long                       PAGE_ID_DEFAULT           = Long.MAX_VALUE;
 
     private static final byte[]                     EMPTY_BYTES               = new byte[0];
 
@@ -145,7 +143,7 @@ public class BaseConverter<D> implements Converter<D> {
      */
     @Override
     public Collection<ContentValues> getValues(final String string, final byte[] bytes,
-                                               final Class cls, final Long pageId) {
+                                               final Class cls, final long pageId) {
         if (cls == null) {
             CoreLogger.logError("data class == null");
             return null;
@@ -158,7 +156,7 @@ public class BaseConverter<D> implements Converter<D> {
         contentValues.put(CLASS_BYTES , getClassBytes (cls));
         contentValues.put(CLASS_STRING, getClassString(cls));
 
-        contentValues.put(PAGE_ID     , pageId != null ? pageId: PAGE_ID_DEFAULT);
+        contentValues.put(PAGE_ID     , pageId);
 
         return Collections.singleton(contentValues);
     }
@@ -174,8 +172,8 @@ public class BaseConverter<D> implements Converter<D> {
             CoreLogger.logError("mBaseConverterGetter == null");
             return null;
         }
-
         final ConverterCursorHandler handler = new ConverterCursorHandler();
+
         final boolean onlyOne = position != null;
         if (Utils.cursorHelper(cursor, handler, onlyOne ? position: 0, onlyOne, onlyOne ? false: null)) {
             if (handler.mData == null)

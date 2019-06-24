@@ -16,6 +16,7 @@
 
 package akha.yakhont.technology.rx;
 
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.FlavorHelper.FlavorCommonRx;
@@ -291,7 +292,12 @@ public class Rx<D> extends CommonRx<D> {
         return new Action1<D>() {
             @Override
             public void call(final D data) {
-                callback.onResult(data);
+                Utils.safeRun(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onResult(data);
+                    }
+                });
             }
         };
     }
@@ -302,7 +308,12 @@ public class Rx<D> extends CommonRx<D> {
         return new Action1<Throwable>() {
             @Override
             public void call(final Throwable throwable) {
-                callback.onError(throwable);
+                Utils.safeRun(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onError(throwable);
+                    }
+                });
             }
         };
     }

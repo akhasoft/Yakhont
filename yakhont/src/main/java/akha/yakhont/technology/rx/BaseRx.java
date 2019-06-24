@@ -195,10 +195,16 @@ public abstract class BaseRx<D> {
                 CoreLogger.logError("callback is null");
                 continue;
             }
-            if (throwable != null)
-                callback.onError(throwable);
-            else
-                callback.onResult(result);
+            //noinspection Convert2Lambda
+            Utils.safeRun(new Runnable() {
+                @Override
+                public void run() {
+                    if (throwable != null)
+                        callback.onError(throwable);
+                    else
+                        callback.onResult(result);
+                }
+            });
         }
         if (mIsSingle) mCallbacks.clear();
     }

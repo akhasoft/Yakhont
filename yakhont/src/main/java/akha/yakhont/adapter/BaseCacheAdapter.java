@@ -167,8 +167,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *
      * <p>As Martin Fowler pointed out, {@link <a href="http://martinfowler.com/ieeeSoftware/published.pdf">"Yet there’s something
      * to be said for the public–published distinction being more important than the more common public–private distinction."</a>}
-     *
-     * @see BaseSimpleCursorAdapter
      */
     public interface BaseCursorAdapter extends ListAdapter, SpinnerAdapter, Filterable {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
@@ -308,11 +306,10 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
         mArrayAdapter   = arrayAdapter;
         mCursorAdapter  = cursorAdapter;
+        mBaseAdapter    = arrayAdapter;
+
         mConverter      = converter;
-
         mCursorAdapter.setDataConverter(converter);
-
-        setCurrentAdapter(false);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -374,9 +371,12 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                     @SuppressWarnings("unchecked")
                     final D tmp = (D) converter.getData(cursor, null);
                     result = tmp;
+
                     final LoadParameters parameters = data.getParameters();
-                    CoreLogger.log("internal cache, cursor converted to data for table "
-                            + (parameters == null ? "null": parameters.getTableName()));
+                    CoreLogger.log("internal cache, cursor converted to data"
+                            + (parameters == null ? "": " for table " + parameters.getTableName()));
+
+                    Utils.close(cursor);
                 }
 
                 if (result == null) {
@@ -414,8 +414,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             mArrayAdapter.addAll(collection);
         else
-            for (final T object: collection)
-                mArrayAdapter.add(object);
+            for (final T object: collection) mArrayAdapter.add(object);
     }
 
     /**
@@ -458,7 +457,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
         final Cursor prevCursor = mCursorAdapter.swapCursor(
                 cursor != null && cursor.getCount() > 0 ? cursor: null);
-        if (prevCursor != null && !prevCursor.isClosed()) prevCursor.close();
+        if (prevCursor != null && !Utils.equals(prevCursor, cursor) && !prevCursor.isClosed())
+            Utils.close(prevCursor);
     }
 
     /**
@@ -469,18 +469,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      */
     @SuppressWarnings("WeakerAccess")
     public void setCurrentAdapter(final boolean isArray) {
+        CoreLogger.log("set current adapter to " + (isArray ? "array": "cursor"));
         mBaseAdapter = isArray ? mArrayAdapter: (BaseAdapter) mCursorAdapter;
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected void setCurrentAdapterForInternalCache(final boolean isArray) {
-        if (isInternalCache()) {
-            setCurrentAdapter(true);
-            if (!isArray)
-                CoreLogger.log(Level.WARNING, "BaseCursorAdapter ignored", true);
-        }
-        else
-            setCurrentAdapter(isArray);
     }
 
     /**
@@ -501,9 +491,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *        The ViewBinder
      *
      * @return  This {@code BaseCacheAdapter} object
-     *
-     * @see BaseArrayAdapter#setAdapterViewBinder
-     * @see BaseCursorAdapter#setAdapterViewBinder
      */
     @SuppressWarnings({"unused", "UnusedReturnValue"})
     public BaseCacheAdapter<T, R, E, D> setAdapterViewBinder(final ViewBinder viewBinder) {
@@ -797,6 +784,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param <D>
      *        The type of data in this adapter
      */
+    @SuppressWarnings("WeakerAccess")
     @TargetApi  (      Build.VERSION_CODES.M)
     @RequiresApi(api = Build.VERSION_CODES.M)
     public static class ApiMDataBindingCacheAdapter<R, E, D> extends ApiMCacheAdapter<Object, R, E, D> {
@@ -811,17 +799,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *        The {@code DataConverter}
          */
         @SuppressWarnings("WeakerAccess")
-        public ApiMDataBindingCacheAdapter(@NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
-                                           @NonNull   final DataConverter   <Object, R, E, D>  converter) {
+        public ApiMDataBindingCacheAdapter(@NonNull final BaseArrayAdapter<Object>           arrayAdapter,
+                                           @NonNull final DataConverter   <Object, R, E, D>  converter) {
             super(new DataBindingCursorAdapter(), arrayAdapter, converter);
-        }
-
-        /**
-         * Please refer to the base method description.
-         */
-        @Override
-        public void setCurrentAdapter(final boolean isArray) {
-            setCurrentAdapterForInternalCache(isArray);
         }
     }
 
@@ -943,6 +923,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param <D>
      *        The type of data in this adapter
      */
+    @SuppressWarnings("WeakerAccess")
     public static class SupportDataBindingCacheAdapter<R, E, D> extends SupportCacheAdapter<Object, R, E, D> {
 
         /**
@@ -967,10 +948,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                                               @NonNull   final DataConverter   <Object, R, E, D>  converter) {
             super(context, layoutId, new DataBindingCursorAdapter(), arrayAdapter, converter);
         }
-
-        public void setCurrentAdapter(final boolean isArray) {
-            setCurrentAdapterForInternalCache(isArray);
-        }
     }
 
     /**
@@ -985,6 +962,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param <D>
      *        The type of data in this adapter
      */
+    @SuppressWarnings("WeakerAccess")
     public static class DataBindingCacheAdapter<R, E, D> extends BaseCacheAdapter<Object, R, E, D> {
 
         /**
@@ -997,17 +975,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *        The {@code DataConverter}
          */
         @SuppressWarnings("WeakerAccess")
-        public DataBindingCacheAdapter(@NonNull   final BaseArrayAdapter<Object>           arrayAdapter,
-                                       @NonNull   final DataConverter   <Object, R, E, D>  converter) {
+        public DataBindingCacheAdapter(@NonNull final BaseArrayAdapter<Object>           arrayAdapter,
+                                       @NonNull final DataConverter   <Object, R, E, D>  converter) {
             super(new DataBindingCursorAdapter(), arrayAdapter, converter);
-        }
-
-        /**
-         * Please refer to the base method description.
-         */
-        @Override
-        public void setCurrentAdapter(final boolean isArray) {
-            setCurrentAdapterForInternalCache(isArray);
         }
     }
 
@@ -1351,7 +1321,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /**
+     * For internal use only (please refer to comment for {@link BaseCursorAdapter}).
+     */
     public static abstract class DataBinder<T> {
 
         private   final         WeakReference<Context>          mContext;
@@ -1501,9 +1473,11 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                 return null;
             }
             if (mConverter == null) {       // should never happen
-                CoreLogger.logWarning("converter is null");
+                CoreLogger.logWarning("converter is null, the default one will be used");
                 mConverter = new BaseConverter<>();
             }
+            if (!mConverter.isInternalCache())
+                CoreLogger.logWarning("should be called for internal cache only");
 
             if (mCursorCache == null) {
                 final Object data;
@@ -1511,7 +1485,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                     data = mConverter.getData(cursor, null);
                 }
                 finally {
-                    if (!cursor.isClosed()) cursor.close();
+                    Utils.close(cursor);
                 }
                 if (data == null) {
                     CoreLogger.logError("data is null");

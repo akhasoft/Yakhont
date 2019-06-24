@@ -47,6 +47,21 @@ import java.util.Set;
 /**
  * The helper class for work with Java Reflection API.
  *
+ * <p>Some of available features are:
+ * <ul>
+ *   <li>Working with arrays, collections, SparseArrays, etc.
+ *     <ul>
+ *       <li>Checks if parameter is array, collections, etc.: {@link #isNotSingle(Object)}</li>
+ *       <li>Gets the size of parameter (if it's an array, collections, etc.): {@link #getSize(Object)}</li>
+ *       <li>Returns contained objects if parameter is array, collections, etc.: {@link #getObjects(Object, boolean)}</li>
+ *       <li>Merges data (each parameter can be array, collections, etc.): {@link #mergeObjects(Object, Object)}</li>
+ *     </ul>
+ *   <li>Finds list of the overridden methods: {@link #findOverriddenMethods(Class, Class)}</li>
+ *   <li>Compares methods: {@link #equalsMethods(Method, Method)}</li>
+ *   <li>Finds list of methods, based on selection flags: {@link #findMethods findMethods}</li>
+ *   <li>Returns object's fields: {@link #getFields getFields}</li>
+ * </ul>
+ *
  * @author akha
  */
 @SuppressWarnings("JavadocReference")
@@ -235,7 +250,7 @@ public class CoreReflection {
     }
 
     /**
-     * Finds method to invoke.
+     * Finds method to invoke (unboxing supported).
      *
      * @param object
      *        The object (or object's class) on which to find method
@@ -841,7 +856,7 @@ public class CoreReflection {
     }
 
     /**
-     * Finds list of methods of the class, based on selection flags (see below).
+     * Finds list of methods in the class, based on selection flags (see below).
      *
      * @param methodsClass
      *        The class which methods should be retrieved

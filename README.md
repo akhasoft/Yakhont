@@ -103,7 +103,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
 them from any predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 440 KB (except the _full_ version, which is about 530 KB).
+The Yakhont AAR is about 450 KB (except the _full_ version, which is about 550 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above.
 
@@ -190,7 +190,8 @@ dependencies {
 
     4.1. For Java:
 ```groovy
-// use default config (or provide something like "projectDir.absolutePath + '/your_weaver.config'")
+// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
+// or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/yourWeaver.config' /*, ...*/ }
 String weaverConfigFiles = null
 
 String pkg = android.defaultConfig.applicationId
@@ -208,7 +209,8 @@ android.applicationVariants.all { variant ->
 ```
       4.2. For Kotlin (and - optionally - Java):
 ```groovy
-// use default config (or provide something like "projectDir.absolutePath + '/your_weaver.config'")
+// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
+// or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/yourWeaver.config' /*, ...*/ }
 String weaverConfigFiles = null
 
 String pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
@@ -232,8 +234,8 @@ android.applicationVariants.all { variant ->
     to alternate classes implementation (e.g. add / modify callbacks in Activities and Fragments)
     without changing their source code.
 
-5. Finally, don't forget to add to your _AndroidManifest.xml_ something like code 
-snippet below (if you're going to use build-in cache):
+5. Finally, please add to your _AndroidManifest.xml_ something like code snippet below
+(skip it only if you're not going to use build-in Yakhont cache):
 
 ```
 <application ...>

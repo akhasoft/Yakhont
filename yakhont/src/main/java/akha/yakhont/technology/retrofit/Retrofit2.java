@@ -294,8 +294,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static <R, E, D> Rx2.Rx2Disposable getRx2DisposableHandler(final LoaderRx<R, E, D> rx) {
         checkRxComponent(rx);
-        return rx == null ? CommonRx.getRx2DisposableHandlerAnonymous():
-                rx.getRx().getRx2DisposableHandler();
+        return rx == null ? CommonRx.getRx2DisposableHandlerAnonymous(): rx.getRx().getRx2DisposableHandler();
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -322,13 +321,25 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             @SuppressWarnings("unused")
             @Override
             public void onResult(final D result) {
-                callback.onResponse(null, Response.success(result));
+                //noinspection Convert2Lambda
+                Utils.safeRun(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onResponse(null, Response.success(result));
+                    }
+                });
             }
 
             @SuppressWarnings("unused")
             @Override
             public void onError(final Throwable throwable) {
-                callback.onFailure(null, throwable);
+                //noinspection Convert2Lambda
+                Utils.safeRun(new Runnable() {
+                                  @Override
+                                  public void run() {
+                                      callback.onFailure(null, throwable);
+                                  }
+                              });
             }
         };
     }

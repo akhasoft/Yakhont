@@ -48,7 +48,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * The ContentValues-based wrapper for {@link BaseCacheAdapter}.
+ * The ContentValues-based wrapper for {@code BaseCacheAdapter}.
  *
  * @param <R>
  *        The type of network response
@@ -249,7 +249,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * The {@link ContentValues}-based implementation of the {@link BaseRecyclerViewAdapter}.
+     * The {@link ContentValues}-based implementation of the {@code BaseRecyclerViewAdapter}.
      *
      * @param <R>
      *        The type of network response
@@ -281,7 +281,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
          *        The views that should display data in the "from" parameter
          *
          * @param baseCacheAdapter
-         *        The {@link BaseCacheAdapter} to wrap
+         *        The {@code BaseCacheAdapter} to wrap
          */
         @SuppressWarnings("WeakerAccess")
         public ContentValuesRecyclerViewAdapter(@NonNull                final Context  context,
@@ -353,7 +353,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
                 }
             }
             finally {
-                if (cursor != null && !cursor.isClosed()) cursor.close();
+                Utils.close(cursor);
             }
             return result;
         }

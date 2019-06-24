@@ -72,6 +72,8 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
     private lateinit var client : LocalOkHttpClient2
     private lateinit var adapter: CustomAdapter
+
+    // cache cursor; will be closed automatically by Yakhont in ViewModel.onCleared() method
     private          var cursor : Cursor? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,7 +103,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         client = LocalOkHttpClient2(retrofit2)
         retrofit2.init(Retrofit2Api::class.java, "http://localhost/", client)
 
-        Retrofit2Loader.adjust<List<Beer>>(Retrofit2CoreLoadBuilder<List<Beer>, Retrofit2Api>(retrofit2)
+        Retrofit2Loader.adjust<List<Beer>>(Retrofit2CoreLoadBuilder(retrofit2)
                 .setRequester{it.data}
                 .setDataBinding(BR.beer)
 
@@ -117,9 +119,10 @@ class MainActivity: AppCompatActivity(), LocationListener {
         BaseViewModel.setData(ROOM_DB_KEY, adapter)
     }
 
-    override fun onDestroy() {
-        cursor?.close()         // closes the data cache cursor (if any) - see 'getCursor()' below
-        super.onDestroy()
+    private fun getItem(cursor: Cursor): Beer {
+        val beer = Beer()
+        beer.title = cursor.getString(cursor.getColumnIndex(ROOM_DB_COLUMN_NAME))
+        return beer
     }
 
     private inner class RoomConverter: BaseConverter<List<Beer>>() {
@@ -128,20 +131,9 @@ class MainActivity: AppCompatActivity(), LocationListener {
             return false
         }
 
-        private fun getDb(): AppDatabase {  // Core keeps the one and only instance of the AppDatabase
-            var db: AppDatabase? = Core.getSingleton(ROOM_DB_KEY)
-            if (db == null) {
-                db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, ROOM_DB_NAME).build()
-                Core.setSingleton(ROOM_DB_KEY, db)
-            }
-            return db
-        }
-
         override fun getData(cursor: Cursor, position: Int): Beer {
             cursor.moveToPosition(position)
-            val beer = Beer()
-            beer.title = cursor.getString(cursor.getColumnIndex(ROOM_DB_COLUMN_NAME))
-            return beer
+            return getItem(cursor)
         }
 
         override fun getValues(type: String, data: ByteArray, cls: Class<*>, pageId: Long): Collection<ContentValues> {
@@ -154,6 +146,15 @@ class MainActivity: AppCompatActivity(), LocationListener {
                 result.add(values)
             }
             return result
+        }
+
+        private fun getDb(): AppDatabase {  // Core keeps the one and only instance of the AppDatabase
+            var db: AppDatabase? = Core.getSingleton(ROOM_DB_KEY)
+            if (db == null) {
+                db = Room.databaseBuilder(applicationContext, AppDatabase::class.java, ROOM_DB_NAME).build()
+                Core.setSingleton(ROOM_DB_KEY, db)
+            }
+            return db
         }
 
         override fun store(data: Collection<ContentValues>): Boolean {
@@ -185,13 +186,21 @@ class MainActivity: AppCompatActivity(), LocationListener {
     private inner class CustomAdapter: RecyclerView.Adapter<CustomAdapter.ViewHolder>(),
             CacheAdapter<Response<List<Beer>>, Throwable, List<Beer>> {
 
-        private val data: ArrayList<Beer> = ArrayList()
+        private val list: ArrayList<Beer> = ArrayList()
 
         // Yakhont-specific - every custom adapter should implement this
         override fun update(data: BaseResponse<Response<List<Beer>>, Throwable, List<Beer>>,
                             isMerge: Boolean, onLoadFinished: Runnable?) {
-            this.data.clear()
-            if (data.result != null) this.data.addAll(data.result)
+            list.clear()
+            if (data.error == null)
+                list.addAll(data.result)
+            else {                              // gets data from cache (in case of loading error)
+                data.cursor.moveToFirst()
+                while (!data.cursor.isAfterLast) {
+                    list.add(getItem(data.cursor))
+                    data.cursor.moveToNext()
+                }
+            }
             adapter.notifyDataSetChanged()
         }
 
@@ -206,11 +215,11 @@ class MainActivity: AppCompatActivity(), LocationListener {
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            holder.title.text = data[position].title
+            holder.title.text = list[position].title
         }
 
         override fun getItemCount(): Int {
-            return data.size
+            return list.size
         }
     }
 

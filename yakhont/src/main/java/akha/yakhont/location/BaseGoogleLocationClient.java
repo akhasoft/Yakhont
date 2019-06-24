@@ -46,9 +46,6 @@ import com.google.android.gms.tasks.Task;
 /**
  * The base class for clients to work with Google Play Services Location APIs.
  *
- * @see GoogleLocationClient
- * @see GoogleLocationClientNew
- *
  * @author akha
  */
 public abstract class BaseGoogleLocationClient implements LocationClient, LocationListener {

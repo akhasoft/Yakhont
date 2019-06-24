@@ -491,8 +491,10 @@ public interface Dagger2 {
             return result;
         }
     }
+}
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+class Helper {
+
     static void onActivityResult(final Activity activity, final Intent intent,
                                  final int requestCode,   final int resultCode) {
         if (activity == null)
@@ -501,7 +503,6 @@ public interface Dagger2 {
             Utils.onActivityResult(activity, requestCode, resultCode, intent);
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
     static void checkRequestCode(final Integer requestCode) {
         if (requestCode == null)
             CoreLogger.log("requestCode == null, onActivityResult() will not be called");
@@ -543,7 +544,7 @@ class BaseSnackbar implements BaseDialog {
         mViewId      = listViewId;
         mRequestCode = requestCode;
 
-        Dagger2.checkRequestCode(requestCode);
+        Helper.checkRequestCode(requestCode);
 
         if (duration != null) {
             if (!isStandardDuration(duration) && duration <= 0) {
@@ -591,7 +592,7 @@ class BaseSnackbar implements BaseDialog {
     }
 
     private void onActivityResult(final int resultCode) {
-        Dagger2.onActivityResult(mActivity.get(), mIntent, mRequestCode, resultCode);
+        Helper.onActivityResult(mActivity.get(), mIntent, mRequestCode, resultCode);
     }
 
     @Override
@@ -818,7 +819,7 @@ class BaseToast implements BaseDialog {
         mViewId         = viewId;
         mToast          = toast;
 
-        Dagger2.checkRequestCode(requestCode);
+        Helper.checkRequestCode(requestCode);
     }
 
     @SuppressLint("ShowToast")
@@ -873,7 +874,7 @@ class BaseToast implements BaseDialog {
                     Utils.runInBackground(delay, new Runnable() {
                         @Override
                         public void run() {
-                            Dagger2.onActivityResult(activity, data, mRequestCode, Activity.RESULT_OK);
+                            Helper.onActivityResult(activity, data, mRequestCode, Activity.RESULT_OK);
                         }
                     });
                 }

@@ -16,6 +16,7 @@
 
 package akha.yakhont.technology.rx;
 
+import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
@@ -260,22 +261,34 @@ public class Rx2<D> extends CommonRx<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Consumer<D> getHandlerData(@NonNull final CallbackRx<D> callback) {
-        //noinspection Anonymous2MethodRef,Convert2Lambda
+        //noinspection Convert2Lambda
         return new Consumer<D>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull D data) {
-                callback.onResult(data);
+                //noinspection Convert2Lambda
+                Utils.safeRun(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onResult(data);
+                    }
+                });
             }
         };
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Consumer<Throwable> getHandlerError(@NonNull final CallbackRx<D> callback) {
-        //noinspection Anonymous2MethodRef,Convert2Lambda
+        //noinspection Convert2Lambda
         return new Consumer<Throwable>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull Throwable throwable) {
-                callback.onError(throwable);
+                //noinspection Convert2Lambda
+                Utils.safeRun(new Runnable() {
+                    @Override
+                    public void run() {
+                        callback.onError(throwable);
+                    }
+                });
             }
         };
     }

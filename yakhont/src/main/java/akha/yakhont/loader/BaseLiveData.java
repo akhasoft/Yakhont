@@ -26,6 +26,7 @@ import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.CacheHelper;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
@@ -104,19 +105,21 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     private static final boolean                    MAY_INTERRUPT           = true;
 
     // setProgressDelay description should be consistent
-    private static final int                        DEFAULT_PROGRESS_DELAY  = 700;      // ms
+    private static final int                        DEFAULT_GUI_DELAY       = 700;      // ms
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final DataLoader<D>              mDataLoader;
     private        final BaseDialog                 mBaseDialog;
     private        final AtomicBoolean              mLoading                = new AtomicBoolean();
     private        final AtomicBoolean              mSetValue               = new AtomicBoolean();
-    private              int                        mProgressDelay          = DEFAULT_PROGRESS_DELAY;
+    private              int                        mProgressDelay          = DEFAULT_GUI_DELAY;
 
     private              LiveDataLoadParameters     mLoadParameters;
     private        final Object                     mLockLoading            = new Object();
 
     private        final Provider<BaseDialog>       mToast;
+    private static       long                       sToastStartTime;
+    private static final Object                     sLockToast              = new Object();
 
     /**
      * The data loading helper API.
@@ -179,7 +182,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         mDataLoader             = dataLoader;
         mBaseDialog             = dialog != null ? dialog: getDefaultBaseDialog();
-        mToast                  = Core.getDagger().getToastLong();
+        // should be consistent with displayError
+        mToast                  = Core.getDagger().getToastShort();
 
         mBaseDialog.setOnCancel(new Runnable() {
             @Override
@@ -330,8 +334,17 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected void displayError(final BaseResponse baseResponse, final boolean notDisplayErrors) {
-        if (!notDisplayErrors)
+        if (notDisplayErrors) return;
+        synchronized (sLockToast) {
+            // again an ugly hack :-) - 4000 is for Toast.LENGTH_SHORT (according to Toast sources)
+            if (sToastStartTime + 4000 + DEFAULT_GUI_DELAY >= getCurrentTime()) return;
             mToast.get().start(null, makeErrorMessage(baseResponse), null);
+            sToastStartTime = getCurrentTime();
+        }
+    }
+
+    private static long getCurrentTime() {
+        return System.currentTimeMillis();
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -516,6 +529,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         private        final Uri                    mUri;
         private              Boolean                mMerge, mMergeFromParameters;
+        private              Cursor                 mCursor;
 
         /**
          * Initialises a newly created {@code CacheLiveData} object.
@@ -617,12 +631,23 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         }
 
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public Cursor getCursor() {
+            return mCursor;
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public void closeCursor() {
+            Utils.close(mCursor);
+        }
+
         private void onCompleteHelper(final boolean success, D result) {
             String selection = null;
             if (result instanceof BaseResponse) {
-                final Long pageId = ((BaseResponse) result).getParameters().getPageId();
-                selection = pageId == null || pageId == BaseConverter.PAGE_ID_DEFAULT ? null:
+                final long pageId = ((BaseResponse) result).getParameters().getPageId();
+                selection = pageId == Converter.DEFAULT_PAGE_ID ? null:
                         String.format(Utils.getLocale(), "%s = %d", BaseConverter.PAGE_ID, pageId);
+                CoreLogger.log("query selection is '" + selection + "'");
             }
             else
                 CoreLogger.logWarning("no query selection (for non-BaseResponse result)");
@@ -634,16 +659,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 CoreLogger.log("about to load data from cache, previous success flag: " + success);
                 final String tableName = Utils.getCacheTableName(mUri);
 
-                Cursor cursor;
                 try {
-                    cursor = mDataLoader.getCursor(tableName, result instanceof BaseResponse ?
+                    mCursor = mDataLoader.getCursor(tableName, result instanceof BaseResponse ?
                             ((BaseResponse) result).getParameters(): null);
                     CoreLogger.log("custom converter getCursor, table: " + tableName);
                 }
                 catch (UnsupportedOperationException exception) {
                     CoreLogger.log(CoreLogger.getDefaultLevel(),
                             "default converter getCursor, table: " + tableName, exception);
-                    cursor = query(selection);
+                    mCursor = query(selection);
                 }
                 catch (Exception exception) {
                     CoreLogger.log(exception);
@@ -651,7 +675,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     return;
                 }
 
-                if (cursor != null) result = handleCursor(result, cursor);
+                if (mCursor != null) result = handleCursor(result, mCursor);
             }
             super.onComplete(success, result);
         }
@@ -674,6 +698,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @Override
         protected void onCompleteHelper(final boolean success, final D result, final Boolean notDisplayErrors) {
             if (!success) setValue(result);
+
             super.onCompleteHelper(success, result, notDisplayErrors);
         }
 
@@ -687,7 +712,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             if (!(result instanceof BaseResponse)) return result;
 
             final BaseResponse baseResponse = (BaseResponse) result;
-            return castBaseResponse(new BaseResponse<>(null, null, null, cursor,
+            return castBaseResponse(new BaseResponse<>(baseResponse.getParameters(),
+                    baseResponse.getResult(), baseResponse.getResponse(), cursor,
                     baseResponse.getError(), Source.CACHE, baseResponse.getThrowable()));
         }
 
@@ -716,7 +742,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 CoreLogger.logError("can't store in cache, empty table name");
                 return;
             }
-
             CoreLogger.log("about to store in cache, merge " + merge);
 
             Utils.runInBackground(new Runnable() {
@@ -937,12 +962,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     @Override
                     public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
                         if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP)
-                            try {
-                                if (callback != null) return callback.call();
-                            }
-                            catch (Exception exception) {
-                                CoreLogger.log(exception);
-                            }
+                            if (callback != null) return Utils.safeRunBoolean(callback);
                         return false;
                     }
                 });

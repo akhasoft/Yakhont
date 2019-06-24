@@ -202,8 +202,7 @@ public class Weaver {
         log(false, sNewLine + "Yakhont: weaving compiled classes in [" + classesDirs + "]...");
 
         try {
-            runReal(debugBuild, debug, packageName, classesDirs,
-                    classPath, bootClassPath, configFiles, addConfig);
+            run(debugBuild, debug, packageName, classesDirs, classPath, bootClassPath, configFiles, addConfig);
         }
         catch (Exception exception) {
             exception.printStackTrace();
@@ -211,8 +210,8 @@ public class Weaver {
         }
     }
 
-    private void runReal(boolean debugBuild, boolean debug, String packageName, String classesDirs,
-                         String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
+    private void run(boolean debugBuild, boolean debug, String packageName, String classesDirs,
+                     String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
             throws NotFoundException, CannotCompileException, IOException {
 
         mUpdated    = false;
