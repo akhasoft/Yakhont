@@ -73,7 +73,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *   <li>Sending error reports via e-mail on shaking device: {@link #registerShakeDataSender(Context, String...)}</li>
  * </ul>
  *
- * <p>Call {@link #setLogLevel} or {@link #setFullInfo} to set {@link Level log level}.
+ * <p>Call {@link #setLogLevel} to set {@link Level log level}.
  * <br>Call {@link #setShowStack} to force stack trace logging.
  * <br>Call {@link #setShowThread} to force thread info logging.
  *
@@ -81,7 +81,6 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public class CoreLogger {
 
     /**
@@ -116,10 +115,10 @@ public class CoreLogger {
     private static final Level                          LEVEL_STACK              = Level.ERROR;
     private static final Level                          LEVEL_THREAD             = Level.WARNING;
 
-    /** The maximum tag length (before API 25); the value is {@value}. */
+    /** The maximum tag length (before API 25), value is {@value}. */
     @SuppressWarnings("WeakerAccess")
     public  static final int                            MAX_TAG_LENGTH           =   23;
-    /** The maximum log record length; the value is {@value}. */
+    /** The maximum log record length, value is {@value}. */
     @SuppressWarnings("WeakerAccess")
     public  static final int                            MAX_LOG_LENGTH           = 4000;
     private static final int                            MAX_LOG_LINE_LENGTH      =  128;
@@ -137,7 +136,8 @@ public class CoreLogger {
 
     private static final String                         sNewLine                 = Objects.requireNonNull( /* should always happen */ System.getProperty("line.separator"));
 
-    private static final AtomicReference<Level>         sLogLevelThreshold       = new AtomicReference<>(Level.ERROR);
+    private static final AtomicReference<Level>         sLogLevel                = new AtomicReference<>(Level.ERROR);
+    // should be consistent with javadoc below
     private static final AtomicReference<Level>         sLogLevelDefault         = new AtomicReference<>(Level.INFO);
     private static final AtomicBoolean                  sForceShowStack          = new AtomicBoolean();
     private static final AtomicBoolean                  sForceShowThread         = new AtomicBoolean();
@@ -263,25 +263,7 @@ public class CoreLogger {
      * @return  The detailed logging mode state
      */
     public static boolean isFullInfo() {
-        return isFullInfo(sLogLevelThreshold.get());
-    }
-
-    private static boolean isFullInfo(final Level level) {
-        return level.ordinal() < Level.WARNING.ordinal();
-    }
-
-    /**
-     * Sets the detailed logging mode; normally called only once from Application.onCreate()
-     * or some other starting point.
-     *
-     * @param fullInfo
-     *        The value to set
-     *
-     * @return  The previous state of the detailed logging mode
-     */
-    @SuppressWarnings("UnusedReturnValue")
-    public static boolean setFullInfo(final boolean fullInfo) {
-        return isFullInfo(setLogLevel(fullInfo ? getDefaultLevel(): Level.ERROR));
+        return getLogLevel().ordinal() <= getDefaultLevel().ordinal();
     }
 
     /**
@@ -294,7 +276,7 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static Level setLogLevel(@NonNull final Level level) {
-        return sLogLevelThreshold.getAndSet(level);
+        return sLogLevel.getAndSet(level);
     }
 
     /**
@@ -304,7 +286,7 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static Level getLogLevel() {
-        return sLogLevelThreshold.get();
+        return sLogLevel.get();
     }
 
     /**
@@ -514,7 +496,7 @@ public class CoreLogger {
     }
 
     private static boolean isLogHelper(@NonNull final Level level) {
-        return level.ordinal() >= sLogLevelThreshold.get().ordinal();
+        return level.ordinal() >= sLogLevel.get().ordinal();
     }
 
     /**
@@ -940,7 +922,7 @@ public class CoreLogger {
         if (suffix   == null) logError("suffix == null");
 
         if (dir == null && activity != null) dir = Utils.getTmpDir(activity);
-        if (dir == null)      logError("dir == null");
+        if (dir == null) logError("dir == null");
         if (dir == null || activity == null || suffix == null) return null;
 
         try {
@@ -1008,23 +990,36 @@ public class CoreLogger {
     @NonNull
     public static String getDescription(Class cls) {
         if (cls == null) return "null";
-
         final StringBuilder data = new StringBuilder();
 
         //noinspection ConditionalBreakInInfiniteLoop
         for (;;) {
-            data.append("<-").append(cls.getSimpleName());
+            String name = cls.getSimpleName();
+            if (TextUtils.isEmpty(name)) {          // anonymous
+                name = cls.getName();
+                if (Object.class.equals(cls.getSuperclass())) {
+                    final Class[] interfaces = cls.getInterfaces();
+
+                    if (interfaces.length > 0) {
+                        final StringBuilder tmp = new StringBuilder().append(name).append(" (");
+                        for (final Class c: interfaces)
+                            tmp.append(c.getSimpleName()).append(", ");
+                        name = tmp.delete(tmp.length() - 2, tmp.length()).append(")").toString();
+                    }
+                }
+            }
+            data.append("<-").append(name);
             cls = cls.getSuperclass();
             if (cls  == null || Object.class.equals(cls)) break;
         }
-
         return data.toString().substring(2);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // should be consistent with javadoc below
     private static final String                         LOGCAT_CMD               = "logcat -d";
-    private static final int                            LOGCAT_BUFFER_SIZE       = 1024;
+    private static final int                            LOGCAT_BUFFER_SIZE       =  1024;
     private static final String                         LOGCAT_DEFAULT_SUBJECT   = "logcat";
 
     private interface LogHandler {
@@ -1032,19 +1027,17 @@ public class CoreLogger {
         void handle(String line) throws IOException;
     }
 
-    private static void getLog(@NonNull final String cmd, @NonNull final LogHandler handler) {
+    private static void getLog(String cmd, @NonNull final LogHandler handler) {
         Process process = null;
         try {
-            @SuppressWarnings("ConstantConditions") final String cmdToExecute =
-                    cmd == null ? LOGCAT_CMD: cmd;
-            log("about to execute " + cmdToExecute);
-            process = Runtime.getRuntime().exec(Utils.removeExtraSpaces(cmdToExecute).split(" "));
+            if (cmd == null) cmd = LOGCAT_CMD;
+            log("about to execute " + cmd);
+            process = Runtime.getRuntime().exec(Utils.removeExtraSpaces(cmd).split(" "));
             final BufferedReader reader = new BufferedReader(new InputStreamReader(
                     process.getInputStream()), LOGCAT_BUFFER_SIZE);
 
-            String line;
-            while ((line = reader.readLine()) != null)
-                handler.handle(line);
+            while ((cmd = reader.readLine()) != null)
+                handler.handle(cmd);
         }
         catch (/*IO*/Exception exception) {
             log("failed running logcat", exception);
@@ -1158,7 +1151,7 @@ public class CoreLogger {
             @Override
             public void run() {
                 try {
-                    Sender.sendEmailSync(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
+                    Sender.sendEmail(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
                 }
                 catch (Exception exception) {
                     log("failed to send CoreLogger shake debug email", exception);
@@ -1303,13 +1296,18 @@ public class CoreLogger {
         private static final int                        SCREENSHOT_QUALITY       =  100;
 
         private static final int                        DELAY                    = 3000;
-        private static final int                        DELAY_TOAST              = 3000;
 
         private static final String                     DEFAULT_PREFIX           = "log";
         private static final String                     DEFAULT_EXTENSION        = "txt";
 
+        private static void sendEmail(final Context context, final String cmd, final boolean hasScreenshot,
+                                      final boolean hasDb,  final String[]  moreFiles,
+                                      final String subject, final String... addresses) {
+            sendEmailSync(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
+        }
+
         private static void sendEmailSync(final Context context, final String cmd, final boolean hasScreenshot,
-                                          final boolean hasDb, final String[] moreFiles,
+                                          final boolean hasDb,  final String[]  moreFiles,
                                           final String subject, final String... addresses) {
             if (context == null || addresses == null || addresses.length == 0) {
                 logError("no arguments");
@@ -1335,7 +1333,8 @@ public class CoreLogger {
             if (hasDb && db != null)    list.add(db.getAbsolutePath());
 
             if (moreFiles != null)
-                for (final String file: moreFiles) if (!TextUtils.isEmpty(file))
+                for (final String file: moreFiles)
+                    if (!TextUtils.isEmpty(file))
                                         list.add(file);
 
             final File log = getLogFile(cmd, tmpDir, suffix, errors);
@@ -1360,8 +1359,6 @@ public class CoreLogger {
                             body.append(sNewLine).append(sNewLine).append(error).append(sNewLine)
                                     .append(errors.get(error));
 
-                        Utils.showToast(activity.getString(R.string.yakhont_send_debug_email,
-                                Arrays.deepToString(addresses)), DELAY_TOAST);
                         //noinspection Convert2Lambda
                         Utils.runInBackground(DELAY, new Runnable() {
                             @Override
@@ -1406,13 +1403,7 @@ public class CoreLogger {
             for (final File file: files)
                 delete(file);
         }
-/*
-        private static File getTmpFile(final String prefix, final String suffix, final File dir)
-                throws IOException {
-            return File.createTempFile(prefix,
-                    suffix.startsWith(".") ? suffix: "." + suffix, dir);
-        }
-*/
+
         private static File getTmpFile(final String prefix, final String suffix,
                                        final String extension, final File dir) {
             return new File(dir, String.format("%s%s.%s", prefix, suffix, extension));
@@ -1469,7 +1460,13 @@ public class CoreLogger {
             final boolean saved = view.isDrawingCacheEnabled();
             try {
                 view.setDrawingCacheEnabled(true);
-                final File screenshot = saveScreenshot(view.getDrawingCache(), tmpDir, suffix, errors);
+                File screenshot = null;
+                try {
+                    screenshot = saveScreenshot(view.getDrawingCache(), tmpDir, suffix, errors);
+                }
+                catch (Exception exception) {
+                    log(exception);
+                }
                 if (runnable == null) return screenshot;
 
                 complete(screenshot, list, runnable);

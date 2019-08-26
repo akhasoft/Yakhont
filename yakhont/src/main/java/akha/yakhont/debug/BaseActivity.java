@@ -127,7 +127,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
     @CallSuper
     @Override
     public void onAttachFragment(final android.app.Fragment fragment) {
@@ -204,7 +204,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
     @CallSuper
     @Override
     protected Dialog onCreateDialog(final int id) {
@@ -216,7 +216,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
     @CallSuper
     @Override
     protected Dialog onCreateDialog(final int id, final Bundle args) {
@@ -382,7 +382,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
     @CallSuper
     @Override
     protected void onPrepareDialog(final int id, final Dialog dialog) {
@@ -394,7 +394,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
     @CallSuper
     @Override
     protected void onPrepareDialog(final int id, final Dialog dialog, final Bundle args) {
@@ -411,7 +411,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions,
                                            @NonNull final int[] grantResults) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestCode " + requestCode +
-                ", permissions " + Arrays.deepToString(permissions) +
+                ", permissions "  + Arrays.toString(permissions) +
                 ", grantResults " + Arrays.toString(grantResults), false);
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

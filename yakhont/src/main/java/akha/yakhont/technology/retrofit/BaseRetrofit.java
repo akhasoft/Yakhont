@@ -120,7 +120,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected int                                   mConnectionTimeout;
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "RedundantSuppression"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "RedundantSuppression" /* lint bug workaround */ })
     protected T                                     mOriginalApi, mWrappedApi;
 
     private final BaseHandler                       mBaseHandler    = new BaseHandler();
@@ -243,6 +243,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
         return mFindMethod;
     }
 
+    @SuppressWarnings("unused")
     private static class RawCallException extends RuntimeException {}
 
     /** @exclude */ @SuppressWarnings("JavaDoc")

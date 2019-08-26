@@ -55,7 +55,6 @@ import java.util.Locale;
 
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public class BaseResponse<R, E, D> {
 
     /**
@@ -94,11 +93,14 @@ public class BaseResponse<R, E, D> {
     /**
      * Initialises a newly created {@code BaseResponse} object.
      *
+     * @param parameters
+     *        The data loading parameters
+     *
      * @param source
      *        The source of data
      */
-    public BaseResponse(@NonNull final Source source) {
-        this(null, null, null, null, null, source, null);
+    public BaseResponse(final LoadParameters parameters, @NonNull final Source source) {
+        this(parameters, null, null, null, null, source, null);
     }
 
     /**

@@ -6,6 +6,7 @@ Barykin
 Bintray
 buildscript
 ctor
+databinding
 delegator
 demoroomkotlin
 demosimple
@@ -19,6 +20,7 @@ gmail
 gson
 javassist
 jcenter
+Jetifier
 kapt
 Kharitonov
 landroid
@@ -37,6 +39,8 @@ rootpage
 rowid
 rxjava
 snackbar
+snackbar
+snackbars
 sonatype
 sqlite
 squareup

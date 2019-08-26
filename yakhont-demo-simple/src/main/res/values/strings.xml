@@ -18,4 +18,5 @@
 <resources>
     <string name="app_name"        >Yakhont Paging Demo</string>
     <string name="list_title_beers">Working with endless adapter</string>
+    <string name="permissions_rationale_demo">Permissions rationale demo</string>
 </resources>

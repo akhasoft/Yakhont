@@ -25,6 +25,7 @@ import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
 import akha.yakhont.technology.retrofit.Retrofit2
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx
 
 import android.location.Location
 import android.os.Bundle
@@ -40,11 +41,12 @@ import java.util.Date
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
 
-    companion object {
-        private var      location: String? = null
-    }
-
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // uncomment if you're going to use Rx; for more info please refer to
+        //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
+//      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false)      // not terminate
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
@@ -65,15 +67,34 @@ class MainActivity: AppCompatActivity(), LocationListener {
 */
         if (savedInstanceState != null)                  // handling screen orientation changes
             Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>()
+
         else {
+            val rx: SubscriberRx<Array<Beer>>? = null
+/* or       val rx = object: SubscriberRx<Array<Beer>>() {
+                override fun onNext(data: Array<Beer>?) {
+                    // your code here
+                }
+
+                override fun onError(throwable: Throwable) {
+                    // your code here
+                }
+            }
+*/
             val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
 
             Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java,
                     {it.data}, BR.beer, LocalOkHttpClient2(retrofit2)
                     // just to demo the progress GUI - comment it out if not needed
                     .setEmulatedNetworkDelay(7)
-                    , retrofit2, null).start(null)
+                    , retrofit2, rx, null).start(null)
         }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // location handling
+
+    companion object {
+        private var location: String? = null
     }
 
     override fun onLocationChanged(location: Location, date: Date) {

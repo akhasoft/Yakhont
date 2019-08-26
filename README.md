@@ -21,43 +21,49 @@
     </tr></table>
 </div>         
         
-# Yakhont: high-level Android components for data loading, location, lifecycle callbacks and many more
+# Yakhont: all-in-one high-level Android library for data loading, code weaving, location and more
 
-Yakhont is an Android high-level library offering developer-defined callbacks,
-loader wrappers and adapters, fully automatic cache, location-awareness, dynamic permissions handling, 
-lifecycle debug classes, advanced logging and many more helpful developer-oriented features
-(both Java and Kotlin supported).
-
-There is also the Yakhont Weaver - a small but powerful utility which manipulates the compiled Java (and Kotlin)
-bytecode and can be used separately, without the Yakhont library (you will find more info
-[below](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)).
-
-Now you can load data in just two lines of code (please refer to the
-[simplified demo](yakhont-demo-simple-kotlin/src/main/java/akha/yakhont/demosimplekotlin/MainActivity.kt)
-for the working example):
+Yes, all in one (well, almost all :-). Data loading (including paging), Rx, progress GUI, cache, data binding,
+pull-to-refresh, configuration changing (e.g. portrait / landscape) support - in just one line of code:
 
 ```
-Retrofit2Loader.start("http://...", YourRetrofit.class, YourRetrofit::yourMethod, BR.yourDataBindingID, savedInstanceState);
+Retrofit2Loader.start("https://...", YourRetrofit.class, YourRetrofit::method, BR.yourDataBindingID, savedInstanceState);
 ```
 
-And take location in just a couple of lines (the working example is in the
-[simplified demo](yakhont-demo-simple-kotlin/src/main/java/akha/yakhont/demosimplekotlin/MainActivity.kt)
-too):
+How does it work? Easy. In the code above the Internet address and Retrofit class are provided -
+it's enough to create Retrofit client, so Yakhont does it. And runs 'method' (provided too) 
+with starting loading progress GUI (fully customizable).
 
-```
-@CallbacksInherited(LocationCallbacks.class)
-public class YourActivity extends Activity implements LocationListener {
-    @Override
-    public void onLocationChanged(Location location, Date date) {
-        // your code here
-    }
-}
-```
+By the way, Yakhont creates the adapter and connects it to your RecyclerView (just scans layout of current
+Activity to find it - but of course you can provide the ID; for pull-to-refresh it's exactly the same).
+
+Data received? Yakhont puts them in adapter (and yes, makes data binding - based on 'yourDataBindingID').
+No data 'cause of error or timeout? Yakhont takes it from cache.
+
+Well, cache. For every 'method' the new cache table is automatically created on-the-fly
+and filled with data after every successful network request.
+Data structure changed? New columns will be automatically added to the table (on-the-fly, too).
+
+And Rx. Just provide
+[onNext​](https://www.reactive-streams.org/reactive-streams-1.0.2-javadoc/org/reactivestreams/Subscriber.html#onNext-T-) and
+[onError​](https://www.reactive-streams.org/reactive-streams-1.0.2-javadoc/org/reactivestreams/Subscriber.html#onError-java.lang.Throwable-)
+callbacks - for Yakhont it's enough. Please refer to
+[demo paging](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainActivity.java),
+[demo kotlin](yakhont-demo-simple-kotlin/src/main/java/akha/yakhont/demosimplekotlin/MainActivity.kt) and
+[demo Room kotlin](yakhont-demo-room-kotlin/src/main/java/akha/yakhont/demoroomkotlin/MainActivity.kt)
+for working examples.
+
+What else? Dynamic permissions? Requested and handled fully automatically,
+you just need to provide permission-specific on-granted-callbacks (please refer to
+[dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)).
+
+So, as I told - the whole data loading in just one line of code (plus your callbacks - if any).
 
 ## Table of Contents
 
+- [Tell Me More](https://github.com/akhasoft/Yakhont#more-info)
 - [Feature List](https://github.com/akhasoft/Yakhont#feature-list)
-- [Demo and Releases](https://github.com/akhasoft/Yakhont#demo-and-releases)
+- [Demos and Releases](https://github.com/akhasoft/Yakhont#demo-and-releases)
 - [Versions](https://github.com/akhasoft/Yakhont#versions)
 - [Usage](https://github.com/akhasoft/Yakhont#usage)
 - [Weaver](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)
@@ -69,47 +75,99 @@ public class YourActivity extends Activity implements LocationListener {
 - [Bugs and Feedback](https://github.com/akhasoft/Yakhont#bugs-and-feedback)
 - [License](https://github.com/akhasoft/Yakhont#license)
 
+<a href="#more-info" name="more-info"></a>
+Some more info about Yakhont. 
+
+If you want to use your own cache (say, Room), adapter or whatever - yes, you can (please refer to 
+[demo room kotlin](yakhont-demo-room-kotlin/src/main/java/akha/yakhont/demoroomkotlin)
+for the working example).
+
+In addition, there are powerful utility classes which includes:
+- completely transparent (but fully customizable) 
+[dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)
+- extended [logger](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreLogger.html): 
+sending logcat error reports (with screenshots and DB copies) on just shaking device, stack traces, byte[] logging and more.
+- [reflection](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreReflection.html)
+with extended collections support, methods comparing and handling (say, find list of overridden methods), etc.  
+
+And weaving. Imagine, your want to add in all your Activities / Fragments something like this: 
+
+```
+public class YourActivity extends Activity {
+    @Override
+    public void onResume() {
+        super.onResume();
+        YourClass.someMethod();
+    }
+}
+```
+
+Just put such call in weaver.config - and Yakhont Weaver will add it to all classes you need
+(via changing already compiled code with [Javassist](https://www.javassist.org/)). Both Java and Kotlin supported.
+
+All-in-one magic mentioned above uses this trick extensively (please refer to
+[weaver.config](yakhont/weaver.config) for more details).
+
+**Well, now let's try to talk more officially.**
+
+Yakhont is an Android high-level library offering developer-defined callbacks,
+loader wrappers and adapters, fully transparent cache, location-awareness, dynamic permissions handling, 
+lifecycle debug classes, advanced reflection, logging and many more helpful developer-oriented features.
+
+There is also the Yakhont Weaver - a small but powerful utility which manipulates the compiled Java (and Kotlin)
+bytecode and can be used separately, without the Yakhont library (you will find more info
+[below](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)).
+
+Now you can load data in a simple but robust way (please refer to
+[demo kotlin](yakhont-demo-simple-kotlin/src/main/java/akha/yakhont/demosimplekotlin/MainActivity.kt)
+for the working example).
+
+Also, you can take location in a very simple way too (the working example is the same as above):
+
+```
+@CallbacksInherited(LocationCallbacks.class)
+public class YourActivity extends Activity implements LocationListener {
+    @Override
+    public void onLocationChanged(Location location, Date date) {
+        // your code here
+    }
+}
+```
+
 Yakhont extends the [Application.ActivityLifecycleCallbacks](https://developer.android.com/reference/android/app/Application.ActivityLifecycleCallbacks.html)
 approach to support your own callbacks creation, that allows to customize handling of
 almost every lifecycle state of your Activities and Fragments - and even without changing
-their sources (especially useful for libraries developers).
+source code (can be useful for libraries developers).
 
-The powerful loader wrappers and adapters, which (in simplest, but typical case) 
-allows loading and binding data in nearly one line of code, are abstracting you away from things like 
-loaders management, caching, progress dialogs (fully customizable), errors handling and low-level threading;
-don't miss the 'pull-to-refresh' and [RxJava](https://github.com/ReactiveX/RxJava) support too.
+The loader wrappers and adapters are abstracting you away from things like 
+loading management, caching, progress dialogs, errors handling and low-level threading;
+and don't miss the 'pull-to-refresh' and [RxJava](https://github.com/ReactiveX/RxJava) support.
 
-In short, the data loaders and adapters features are:
+In short, the data loading features are:
 - automatic (but fully customizable) data binding
-- automatic and absolutely transparent cache
-- fully asynchronous 
+- automatic and fully transparent cache
 - forced timeouts 
 - [RxJava](https://github.com/ReactiveX/RxJava) support
-- [Retrofit](http://square.github.io/retrofit/2.x/retrofit/) support
+- [Retrofit](https://square.github.io/retrofit/2.x/retrofit/) support
 - pull-to-refresh
-- device orientation changing support
-- fully customizable progress GUI (with loading cancel possibility)
+- configuration changing (e.g. portrait / landscape) support
+- progress GUI with loading cancellation possibility (yes, fully customizable too)
 
-In addition, there are the location features which includes:
-- both new ([FusedLocationProviderClient](https://developers.google.com/android/reference/com/google/android/gms/location/FusedLocationProviderClient)-based)
-and old ([GoogleApiClient](https://developers.google.com/android/reference/com/google/android/gms/common/api/GoogleApiClient)-based)
-Google Location API support (please visit [Android Developers Blog](https://android-developers.googleblog.com/2017/06/reduce-friction-with-new-location-apis.html) for more info)
-- completely auto (but fully customizable via callbacks) permission handling
-- tons of boilerplate code are not needed anymore - just annotate your Activity
-- Rx support ([RxJava](https://github.com/ReactiveX/RxJava))
+In addition, as already told above, there are powerful utility features
+(reflection, logging, dynamic permissions handling and more).
 
 For more information please refer to the [detailed feature list](https://github.com/akhasoft/Yakhont/wiki).
 
-All kinds of Activities and Fragments (Applications too) are supported: it's not necessary to derive 
-them from any predefined ones (with one exception - you will need it for lifecycle debug).
+All kinds of Activities and Fragments are supported: it's not necessary to derive 
+them from some predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 450 KB (except the _full_ version, which is about 550 KB).
+The Yakhont AAR is about 475 KB (except the _full_ version, which is about 570 KB).
 
-Yakhont supports Android 4.0 (API level 14) and above.
+Yakhont supports Android 4.0 (API level 14) and above ('cause support library requires API level 14 as a minimum).
 
 **Note:** for lower API levels support (9 and above) please use Yakhont
 [v0.9.19](https://github.com/akhasoft/Yakhont/releases/tag/v0.9.19); but the Google Location API
-requires API level 14 in any case (please refer
+requires API level 14 in any case (please refer to
 [Android Developers Blog](https://android-developers.googleblog.com/2016/11/google-play-services-and-firebase-for-android-will-support-api-level-14-at-minimum.html)
 for more information).
 
@@ -117,7 +175,7 @@ for more information).
 
 The detailed feature list is available [here](https://github.com/akhasoft/Yakhont/wiki).
 
-## Demo and Releases
+## Demos and Releases
 
 Releases are available [here](https://github.com/akhasoft/Yakhont/releases),
 demo applications can be downloaded from the
@@ -144,13 +202,13 @@ Add the following to your build.gradle (you can use **build.gradle** files from 
 and [simplified demo](yakhont-demo-simple-kotlin/build.gradle) as working examples).
 
 1. Update the **buildscript** block (the Yakhont components are available from 
-both [jcenter](http://jcenter.bintray.com/com/github/akhasoft/)
+both [jcenter](https://jcenter.bintray.com/com/github/akhasoft/)
 and [mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/)):
 
 ```groovy
 buildscript {
     repositories {
-        // your code here, usually just 'jcenter()'
+        // your code here, e.g. 'jcenter()'
     }
     dependencies {
         classpath 'com.github.akhasoft:yakhont-weaver:0.9.19'
@@ -164,7 +222,6 @@ buildscript {
 android {
     // your code here
     
-    // fixed DuplicateFileException
     packagingOptions {
         exclude 'META-INF/rxjava.properties'
     }
@@ -180,9 +237,10 @@ dependencies {
 //  implementation    'com.github.akhasoft:yakhont-full:0.9.19'
 
 //  and if you're going to customize Yakhont using build-in Dagger 2:
-    implementation      'com.google.dagger:dagger:2.x'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.x'
-//  for Kotlin please replace 'annotationProcessor' with 'kapt'
+    implementation      'com.google.dagger:dagger:2.22.1'           // (or higher)
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.22.1'  // (or higher)
+//  for Kotlin: please replace 'annotationProcessor' with 'kapt' and add
+//  kapt                'com.android.databinding:compiler:3.1.4'    // (or higher)
 }
 ```
 
@@ -207,7 +265,7 @@ android.applicationVariants.all { variant ->
     }
 }
 ```
-      4.2. For Kotlin (and - optionally - Java):
+      4.2. For Kotlin (and Java - optionally):
 ```groovy
 // use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
 // or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/yourWeaver.config' /*, ...*/ }

@@ -18,4 +18,5 @@
 <resources>
     <string name="app_name"        >Яхонт: paging демо</string>
     <string name="list_title_beers">Работа с бесконечным адаптером</string>
+    <string name="permissions_rationale_demo">Rationale для разрешений: демо</string>
 </resources>

@@ -21,13 +21,17 @@ import akha.yakhont.Core;
 import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
-import akha.yakhont.Core.Utils.ViewHelper;
+import akha.yakhont.Core.Utils.SnackbarBuilder;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.CacheHelper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
+import akha.yakhont.technology.Dagger2.UiModule;
+import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
+import akha.yakhont.technology.Dagger2.UiModule.ViewHandler;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
 
@@ -40,7 +44,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.DialogInterface.OnKeyListener;
 import android.content.Intent;
-import android.content.res.ColorStateList;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.CountDownTimer;
@@ -70,7 +73,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.inject.Provider;
 
-import com.google.android.material.snackbar.BaseTransientBottomBar;
 import com.google.android.material.snackbar.Snackbar;
 
 /**
@@ -83,7 +85,6 @@ import com.google.android.material.snackbar.Snackbar;
  *
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public class BaseLiveData<D> extends MutableLiveData<D> {
 
     private static class LiveDataLoadParameters {
@@ -99,8 +100,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
     }
 
-    private static final BaseResponse               TIMEOUT_STUB            = new BaseResponse<>(Source.TIMEOUT);
-
     // may interrupt if running
     private static final boolean                    MAY_INTERRUPT           = true;
 
@@ -110,9 +109,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final DataLoader<D>              mDataLoader;
     private        final BaseDialog                 mBaseDialog;
-    private        final AtomicBoolean              mLoading                = new AtomicBoolean();
-    private        final AtomicBoolean              mSetValue               = new AtomicBoolean();
     private              int                        mProgressDelay          = DEFAULT_GUI_DELAY;
+
+    private        final AtomicBoolean              mLoading                = new AtomicBoolean();
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected      final AtomicBoolean              mSetValue               = new AtomicBoolean();
 
     private              LiveDataLoadParameters     mLoadParameters;
     private        final Object                     mLockLoading            = new Object();
@@ -225,7 +226,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         final boolean noProgress = mLoadParameters.mParameters.getNoProgress();
         //noinspection Convert2Lambda
-        postToMainLoop(new Runnable() {
+        Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
                 if (!noProgress) mBaseDialog.stop();
@@ -272,7 +273,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         if (result == null)
             CoreLogger.logWarning("result == null");
 
-        postToMainLoop(new Runnable() {
+        Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
                 onCompleteHelper(success, result, notDisplayErrors);
@@ -335,9 +336,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected void displayError(final BaseResponse baseResponse, final boolean notDisplayErrors) {
         if (notDisplayErrors) return;
+
         synchronized (sLockToast) {
-            // again an ugly hack :-) - 4000 is for Toast.LENGTH_SHORT (according to Toast sources)
+            // again an ugly hack :-) (4000 is for Toast.LENGTH_SHORT - according to Toast sources)
             if (sToastStartTime + 4000 + DEFAULT_GUI_DELAY >= getCurrentTime()) return;
+
             mToast.get().start(null, makeErrorMessage(baseResponse), null);
             sToastStartTime = getCurrentTime();
         }
@@ -405,7 +408,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                             @Override
                             public void run() {
                                 CoreLogger.logWarning("request timeout " + mDataLoader);
-                                onComplete(false, getTimeoutStub(), true);
+                                onComplete(false, getTimeoutStub(loadParameters), true);
                             }
                         }): null, loadParameters);
             }
@@ -460,12 +463,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected D getTimeoutStub() {
-        return castBaseResponse(TIMEOUT_STUB);
-    }
-
-    private static void postToMainLoop(@NonNull final Runnable runnable) {
-        Utils.postToMainLoop(runnable);
+    protected D getTimeoutStub(final LoadParameters parameters) {
+        return castBaseResponse(new BaseResponse<>(parameters, Source.TIMEOUT));
     }
 
     private boolean isLoadingSync() {
@@ -524,8 +523,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      * @see BaseCacheProvider
      */
     public static class CacheLiveData<D> extends BaseLiveData<D> {
-
-        private static final BaseResponse           FORCE_STUB              = new BaseResponse(Source.CACHE);
 
         private        final Uri                    mUri;
         private              Boolean                mMerge, mMergeFromParameters;
@@ -605,7 +602,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             if (forceCache || !Utils.isConnected()) {
                 CoreLogger.log("request forced to cache, forceCache " + forceCache);
 
-                onComplete(false, getForceStub());
+                mSetValue.set(true);
+                onComplete(false, getForceStub(loadParameters));
             }
             else
                 super.makeRequest(activity, text, data, loadParameters);
@@ -644,7 +642,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         private void onCompleteHelper(final boolean success, D result) {
             String selection = null;
             if (result instanceof BaseResponse) {
-                final long pageId = ((BaseResponse) result).getParameters().getPageId();
+                final LoadParameters loadParameters = ((BaseResponse) result).getParameters();
+                final long pageId =  loadParameters == null ? Converter.DEFAULT_PAGE_ID: loadParameters.getPageId();
                 selection = pageId == Converter.DEFAULT_PAGE_ID ? null:
                         String.format(Utils.getLocale(), "%s = %d", BaseConverter.PAGE_ID, pageId);
                 CoreLogger.log("query selection is '" + selection + "'");
@@ -657,17 +656,17 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         mMergeFromParameters != null ? mMergeFromParameters: false);
             else {
                 CoreLogger.log("about to load data from cache, previous success flag: " + success);
-                final String tableName = Utils.getCacheTableName(mUri);
+                final String table = Utils.getCacheTableName(mUri);
 
                 try {
-                    mCursor = mDataLoader.getCursor(tableName, result instanceof BaseResponse ?
+                    mCursor = mDataLoader.getCursor(table, result instanceof BaseResponse ?
                             ((BaseResponse) result).getParameters(): null);
-                    CoreLogger.log("custom converter getCursor, table: " + tableName);
+                    CoreLogger.log("custom converter getCursor, table: " + table);
                 }
                 catch (UnsupportedOperationException exception) {
                     CoreLogger.log(CoreLogger.getDefaultLevel(),
-                            "default converter getCursor, table: " + tableName, exception);
-                    mCursor = query(selection);
+                            "default converter getCursor, table: " + table, exception);
+                    mCursor = query(selection, table);
                 }
                 catch (Exception exception) {
                     CoreLogger.log(exception);
@@ -680,9 +679,19 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             super.onComplete(success, result);
         }
 
-        private Cursor query(final String selection) {
+        private void handleCacheError(@NonNull final ContentResolver contentResolver,
+                                      @NonNull final String table) {
+            if (!mDataLoader.isInternalCache()) return;
+            CoreLogger.logWarning("about to drop cache table " + table);
+
+            contentResolver.call(mUri, BaseCacheProvider.CALL_EXEC_SQL,
+                    String.format(BaseCacheProvider.DROP_TABLE, table), null);
+        }
+
+        private Cursor query(final String selection, final String table) {
+            final ContentResolver contentResolver = getContext().getContentResolver();
             try {
-                final Cursor cursor = getContext().getContentResolver().query(mUri, null,
+                final Cursor cursor = contentResolver.query(mUri, null,
                         selection, null, null);
                 if (cursor == null)
                     CoreLogger.logError("cache cursor == null, URI: " + mUri);
@@ -690,6 +699,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
             catch (Exception exception) {
                 CoreLogger.log("cache query failed, URI: " + mUri, exception);
+
+                handleCacheError(contentResolver, table);
                 return null;
             }
         }
@@ -703,8 +714,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected D getForceStub() {
-            return castBaseResponse(FORCE_STUB);
+        protected D getForceStub(final LoadParameters parameters) {
+            return castBaseResponse(new BaseResponse<>(parameters, Source.CACHE));
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -737,8 +748,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 }
             }
 
-            final String tableName = Utils.getCacheTableName(mUri);
-            if (tableName == null) {
+            final String table = Utils.getCacheTableName(mUri);
+            if (table == null) {
                 CoreLogger.logError("can't store in cache, empty table name");
                 return;
             }
@@ -747,46 +758,51 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             Utils.runInBackground(new Runnable() {
                 @Override
                 public void run() {
+                    final ContentResolver contentResolver = getContext().getContentResolver();
                     try {
-                        final ContentResolver contentResolver = getContext().getContentResolver();
-
                         Boolean result;
                         if (!merge) {
-                            result = mDataLoader.clear(tableName);
+                            result = mDataLoader.clear(table);
                             if (result == null) {
-                                CoreLogger.logWarning("unexpected error in DataLoader.clear(), table: " + tableName);
+                                CoreLogger.logWarning("unexpected error in DataLoader.clear(), table: " + table);
                                 return;
                             }
 
                             if (result)
-                                CoreLogger.log("custom converter delete, table: " + tableName);
+                                CoreLogger.log("custom converter delete, table: " + table);
                             else {
-                                CoreLogger.log("default converter delete, table: " + tableName);
+                                CoreLogger.log("default converter delete, table: " + table);
                                 Utils.clearCache(mUri);
                             }
                         }
                         else if (selection != null && mDataLoader.isInternalCache()) {
                             final int rowsQty = contentResolver.delete(mUri, selection, null);
-                            CoreLogger.log("paging delete, table: " + tableName + ", selection: " +
+                            CoreLogger.log("paging delete, table: " + table + ", selection: " +
                                     selection + ", rows qty: " + rowsQty);
                         }
 
                         result = mDataLoader.store(values);
                         if (result == null) {
-                            CoreLogger.logWarning("unexpected error in DataLoader.store(), table: " + tableName);
+                            CoreLogger.logWarning("unexpected error in DataLoader.store(), table: " + table);
                             return;
                         }
 
                         if (result) {
-                            CoreLogger.log("custom converter store, table: " + tableName);
+                            CoreLogger.log("custom converter store, table: " + table);
                             return;
                         }
-                        CoreLogger.log("default converter store, table: " + tableName);
+                        CoreLogger.log("default converter store, table: " + table);
 
-                        contentResolver.bulkInsert(mUri, values.toArray(new ContentValues[0]));
+                        try {
+                            contentResolver.bulkInsert(mUri, values.toArray(new ContentValues[0]));
+                        }
+                        catch (Exception exception) {
+                            handleCacheError(contentResolver, table);
+                            throw exception;
+                        }
                     }
                     catch (Exception exception) {
-                        CoreLogger.log("can not store result", exception);
+                        CoreLogger.log("can not store result, table: " + table, exception);
                     }
                 }
 
@@ -852,12 +868,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @SuppressWarnings("unused")
         public static abstract class ProgressDefault implements Progress {
 
-            private              Snackbar           mSnackbar;
-            private       static Integer            sSnackbarDuration, sSnackbarColor;
-            private       static ColorStateList     sSnackbarColors;
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            protected     static Integer            sSnackbarDuration;
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            protected     static SnackbarBuilder    sSnackbarBuilder;
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-            protected     static Integer            sProgressColor;
+            @SuppressLint("StaticFieldLeak")
+            protected     static ViewHandler        sToastViewHandler;
+
+            private              Snackbar           mSnackbar;
 
             /**
              * Please refer to the base method description.
@@ -883,65 +903,112 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              */
             @Override
             public void confirm(final Activity activity, final View view) {
-                //noinspection Convert2Lambda
-                mSnackbar = Snackbar.make(view != null ? view: ViewHelper.getViewForSnackbar(activity, null),
-
-                        akha.yakhont.R.string.yakhont_loader_alert,
-
-                        sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_LONG)
-
-                        .setAction(akha.yakhont.R.string.yakhont_alert_yes, new View.OnClickListener() {
-                            @Override
-                            public void onClick(View view) {
-                                cancel(activity);
-                            }
-                        })
-
-                        .addCallback(new BaseTransientBottomBar.BaseCallback<Snackbar>() {
-                            @Override
-                            public void onDismissed(Snackbar transientBottomBar, int event) {
-                                mSnackbar = null;
-                                super.onDismissed(transientBottomBar, event);
-                            }
-                        });
-
-                if (sSnackbarColors != null) {
-                    if (sSnackbarColor != null)
-                        CoreLogger.logWarning("ColorStateList != null so Snackbar color " +
-                                "will be ignored: " + sSnackbarColor);
-                    mSnackbar.setActionTextColor(sSnackbarColors);
+                if (UiModule.hasSnackbars()) {
+                    CoreLogger.logWarning("data loading cancel confirmation Snackbar will not be shown " +
+                            "'cause some Yakhont's Snackbar is already on screen (or in queue)");
+                    return;
                 }
-                else if (sSnackbarColor != null) mSnackbar.setActionTextColor(sSnackbarColor);
 
-                mSnackbar.show();
+                if (sSnackbarBuilder != null && sSnackbarDuration != null)
+                    CoreLogger.logError("Snackbar's duration " + sSnackbarDuration +
+                            " will be ignored 'cause SnackbarBuilder is already set");
+
+                final SnackbarBuilder snackbarBuilder = sSnackbarBuilder != null ? sSnackbarBuilder:
+                        getDefaultSnackbarBuilder(activity).setView(view);
+
+                mSnackbar = snackbarBuilder.show();
+
+                mSnackbar.addCallback(new Snackbar.Callback() {
+                    @Override
+                    public void onDismissed(final Snackbar transientBottomBar, final int event) {
+                        mSnackbar = null;
+                    }
+                });
             }
 
             /**
-             * Please refer to {@link Snackbar#setDuration}.
+             * Creates default SnackbarBuilder for data loading cancel dialog.
+             *
+             * @return  The default SnackbarBuilder
+             */
+            public static SnackbarBuilder getDefaultSnackbarBuilder() {
+                return getDefaultSnackbarBuilder(null);
+            }
+
+            /**
+             * Creates default SnackbarBuilder for data loading cancel dialog.
+             *
+             * @param activity
+             *        The Activity
+             *
+             * @return  The default SnackbarBuilder
+             */
+            public static SnackbarBuilder getDefaultSnackbarBuilder(Activity activity) {
+                final Activity activityToUse = activity != null ? activity: Utils.getCurrentActivity();
+                //noinspection Convert2Lambda
+                return new SnackbarBuilder(activityToUse)
+                        .setTextId(akha.yakhont.R.string.yakhont_loader_alert)
+                        .setDuration(sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_LONG)
+
+                        .setViewHandlerChain(true)
+                        .setViewHandler(Utils.getDefaultSnackbarViewModifier())
+
+                        .setActionTextId(akha.yakhont.R.string.yakhont_alert_yes)
+                        .setActionColor(Utils.getDefaultSnackbarActionColor())
+                        .setAction(new View.OnClickListener() {
+                            @Override
+                            public void onClick(final View view) {
+                                cancel(activityToUse);
+                            }
+                        });
+            }
+
+            /**
+             * Sets the duration of {@code Snackbar} which confirms the data loading cancellation.
+             *
+             * @param duration
+             *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Snackbar.LENGTH_INDEFINITE},
+             *        {@code Snackbar.LENGTH_LONG} or {@code Snackbar.LENGTH_SHORT}, null for default value
              */
             public static void setConfirmDuration(final Integer duration) {
                 sSnackbarDuration = duration;
             }
 
             /**
-             * Please refer to {@link Snackbar#setActionTextColor}.
+             * Sets the {@code Snackbar} builder (for creating {@code Snackbar} which will confirm
+             * the data loading cancellation).
+             *
+             * @param snackbarBuilder
+             *        The {@link SnackbarBuilder}
+             *
+             * @see #getDefaultSnackbarBuilder
              */
-            public static void setConfirmTextColor(final Integer color) {
-                sSnackbarColor = color;
+            public static void setSnackbarBuilder(final SnackbarBuilder snackbarBuilder) {
+                sSnackbarBuilder = snackbarBuilder;
             }
 
             /**
-             * Please refer to {@link Snackbar#setActionTextColor(ColorStateList)}.
+             * Sets the {@code Toast} View handler (for customizing data loading progress
+             * {@code Toast}). Usage example:
+             *
+             * <p><pre style="background-color: silver; border: thin solid black;">
+             * setToastViewHandler((view, vh) -&gt; {
+             *     view.setBackgroundColor(Color.GRAY);
+             *     vh.getTextView().setTextColor(Color.YELLOW);
+             * //  vh.getToastProgressView().set...;
+             * });
+             * </pre>
+             *
+             * @param viewModifier
+             *        The Toast's view modifier
              */
-            public static void setConfirmTextColor(final ColorStateList colors) {
-                sSnackbarColors = colors;
-            }
-
-            /**
-             * Sets progress text color (please refer to {@link TextView#setTextColor}).
-             */
-            public static void setProgressTextColor(final Integer color) {
-                sProgressColor = color;
+            public static void setToastViewHandler(final ViewModifier viewModifier) {
+                sToastViewHandler = viewModifier == null ? null: new ViewHandler() {
+                    @Override
+                    public void modify(final View view, final ViewHandler viewHandler) {
+                        viewModifier.modify(view, viewHandler);
+                    }
+                };
             }
 
             /**
@@ -1148,26 +1215,35 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 final Context context = getContext();
 
                 mToast = new Toast(context);
+                View view = getView(context);
 
-                mToast.setView(LayoutInflater.from(context)
-                        .inflate(akha.yakhont.R.layout.yakhont_progress, null, false));
+                if (sToastViewHandler != null && !sToastViewHandler.wrapper(view)) {
+                    CoreLogger.logError("failed View customization for Toast: " + mToast);
+                    view = getView(context);
+                }
 
+                mToast.setView(view);
                 mToast.setGravity(Gravity.CENTER, 0, 0);
                 mToast.setDuration(Toast.LENGTH_SHORT);
             }
 
+            @SuppressLint("InflateParams")
+            private View getView(final Context context) {
+                return LayoutInflater.from(context)
+                        .inflate(akha.yakhont.R.layout.yakhont_progress, null, false);
+            }
+
+            @SuppressWarnings("unused")
             @Override
             public void setText(@NonNull final String text) {
-                final TextView view = mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text);
-                if (sProgressColor != null) view.setTextColor(sProgressColor);
-                view.setText(text);
+                ((TextView) mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text)).setText(text);
             }
 
             @Override
             public void show() {
                 mCountDownTimer = new CountDownTimer(Long.MAX_VALUE, UPDATE_INTERVAL) {
                     @Override
-                    public void onTick(long millisUntilFinished) {
+                    public void onTick(final long millisUntilFinished) {
                         mToast.show();
                     }
 
@@ -1177,11 +1253,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 }.start();
             }
 
+            @SuppressWarnings("unused")
             @Override
             public void hide() {
-                mCountDownTimer.cancel();
-                mCountDownTimer = null;
-
+                if (mCountDownTimer != null) {
+                    mCountDownTimer.cancel();
+                    mCountDownTimer = null;
+                }
                 super.hide();
 
                 mToast.cancel();
@@ -1294,7 +1372,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         /**
-         * Shows the data loading progress GUI.
+         * Shows the data loading progress GUI (it always runs in UI thread).
          *
          * @param text
          *        The text to display in data loading progress GUI
@@ -1303,21 +1381,31 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          */
         @SuppressWarnings("WeakerAccess")
         public void start(final String text) {
-            synchronized (mLock) {
-                if (mProgress == null) mProgress = ProgressDefaultImp.getInstance();
-
-                mProgress.setText(text != null ? text: getInfoText(null));
-
-                if (mIsLoading) {
-                    mCounter++;
-                    CoreLogger.log("progress counter incremented to " + mCounter);
-                    return;
+            //noinspection Convert2Lambda
+            Utils.postToMainLoop(new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (mLock) {
+                        startAsync(text);
+                    }
                 }
-                mCounter   = 1;
-                mIsLoading = true;
+            });
+        }
 
-                mProgress.show();
+        private void startAsync(final String text) {
+            if (mProgress == null) mProgress = ProgressDefaultImp.getInstance();
+
+            mProgress.setText(text != null ? text: getInfoText(null));
+
+            if (mIsLoading) {
+                mCounter++;
+                CoreLogger.log("progress counter incremented to " + mCounter);
+                return;
             }
+            mCounter   = 1;
+            mIsLoading = true;
+
+            mProgress.show();
         }
 
         /**
@@ -1331,23 +1419,30 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         /**
-         * Please refer to the base method description.
+         * Please refer to the base method description (it always runs in UI thread).
          */
         @SuppressWarnings("unused")
         @Override
-        public boolean stop() {
-            return stop(false, null);
+        public void stop() {
+            stop(false, null);
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        public boolean stop(final boolean force, final Activity activity) {
-            try {
-                return stopNotSafe(force, activity);
-            }
-            catch (Exception exception) {
-                CoreLogger.log(exception);
-                return false;
-            }
+        public void stop(final boolean force, final Activity activity) {
+            //noinspection Convert2Lambda
+            Utils.postToMainLoop(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        final boolean result = stopNotSafe(force, activity);
+                        CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.WARNING,
+                                "stop progress result: " + result);
+                    }
+                    catch (Exception exception) {
+                        CoreLogger.log(exception);
+                    }
+                }
+            });
         }
 
         private boolean stopNotSafe(final boolean force, final Activity activity) {
@@ -1428,7 +1523,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @Override
         public boolean confirm(final Activity activity, final View view) {
             //noinspection Convert2Lambda
-            postToMainLoop(new Runnable() {
+            Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
                     mProgress.confirm(activity, view);

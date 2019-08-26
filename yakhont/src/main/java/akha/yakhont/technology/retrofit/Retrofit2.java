@@ -429,6 +429,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("unused")
     @Override
     public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder,
                                 @IntRange(from = 1) final int connectTimeout,
@@ -532,10 +533,13 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
      * Returns the default {@code OkHttpClient} builder.
      *
      * @param connectTimeout
-     *        The connection timeout (in seconds)
+     *        The connection timeout in seconds (<= 5 min) or milliseconds (> 5 min)
      *
      * @param readTimeout
-     *        The read timeout (in seconds)
+     *        The read timeout in seconds (<= 5 min) or milliseconds (> 5 min)
+     *
+     * @param writeTimeout
+     *        The write timeout in seconds (<= 5 min) or milliseconds (> 5 min)
      *
      * @param headers
      *        The optional HTTP headers (or null)

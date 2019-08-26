@@ -22,6 +22,7 @@ import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.technology.Dagger2.UiModule;
 
 import android.app.Activity;
 import android.content.Context;
@@ -36,24 +37,28 @@ import android.view.View;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
+import androidx.annotation.StringRes;
 import androidx.core.app.ActivityCompat;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 import javax.inject.Provider;
 
 /**
- * The helper class for work with Android Permissions API. Usage example:
+ * The helper class for work with Android Dynamic Permissions API. Usage example:
  *
  * <p><pre style="background-color: silver; border: thin solid black;">
- * new CorePermissions.RequestBuilder(activity, android.Manifest.permission.ACCESS_FINE_LOCATION)
- *     .setOnGranted(new Runnable() {
+ * new CorePermissions.RequestBuilder(activity)
+ *     .addOnGranted(android.Manifest.permission.ACCESS_FINE_LOCATION, new Runnable() {
  *         &#064;Override
  *         public void run() {
- *             // your code here, e.g. requestLocationUpdates()
+ *             // your code here (to run after dynamic permission was granted), e.g. 'requestLocationUpdates()'
  *         }
  *     })
  *     .request();
@@ -64,32 +69,41 @@ import javax.inject.Provider;
 @SuppressWarnings("JavadocReference")
 public class CorePermissions implements ConfigurationChangedListener {
 
-    private static final String                     TAG             = Utils.getTag(CorePermissions.class);
+    private   static final String                   TAG             = Utils.getTag(CorePermissions.class);
 
-    private static final String                     ARG_PERMISSIONS = TAG + ".permissions";
-    private static final String                     ARG_VIEW_ID     = TAG + ".view_id";
+    private   static final String                   ARG_VIEW_ID     = TAG + ".view_id";
+    private   static final String                   ARG_PERMISSION  = TAG + ".permission";
+
+    private   static final String                   ID_PREFIX       = "Yakhont: ";
 
     @IdRes
-    private static final int                        ID_VIEW_IDS     = R.id.yakhont_permissions_view_ids;
+    private   static final int                      ID_VIEW_IDS     = R.id.yakhont_permissions_view_ids;
     @IdRes
-    private static final int                        ID_OBJECTS      = R.id.yakhont_permissions_object;
+    private   static final int                      ID_OBJECTS      = R.id.yakhont_permissions_objects;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected     Runnable                          mOnDenied;
+    protected        final List<Callbacks>          mCallbacks      = new ArrayList<>();
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected     Runnable                          mOnGranted;
+    protected static final Object                   sCallbacksLock  = new Object();
 
-    private final Provider<BaseDialog>              mAlertProvider, mAlertDeniedProvider;
-    private       BaseDialog                        mAlert, mAlertDenied;
+    private          final Provider<BaseDialog>     mAlertProvider, mAlertDeniedProvider;
+    private                BaseDialog               mAlert, mAlertDenied;
+
+    // for Activity.onResume() after Android App Settings
+    private                boolean                  mHandlePermissions;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected     int                               mRequestCode;
+    protected              int                      mRequestCode;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IdRes
-    protected     int                               mViewId;
+    protected              int                      mViewId;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected        final String                   mRationale;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected CorePermissions() {
+    protected CorePermissions(final String rationale) {
+        mRationale              = rationale;
+
         mAlertProvider          = Core.getDagger().getAlertPermission();
         mAlertDeniedProvider    = Core.getDagger().getAlertPermissionDenied();
     }
@@ -106,8 +120,8 @@ public class CorePermissions implements ConfigurationChangedListener {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static boolean checkData(final Context context, final String permission) {
-        if (context    == null) CoreLogger.logError("context == null");
-        if (permission == null) CoreLogger.logError("permission == null");
+        if (context    == null)            CoreLogger.logError("context == null");
+        if (TextUtils.isEmpty(permission)) CoreLogger.logError("empty permission");
 
         return context != null && permission != null;
     }
@@ -131,71 +145,85 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static String[] check(final Context context, final String... permissions) {
-        final ArrayList<String> list = new ArrayList<>();
-        for (final String permission: permissions)
-            if (!check(context, permission))
-                list.add(permission);
-
-        if (list.size() == 0)
-            CoreLogger.log("permissions" + Arrays.deepToString(permissions) +
-                    " are already granted, so nothing to do");
-
-        return list.size() == 0 ? null: list.toArray(new String[0]);
-    }
-
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "WeakerAccess", "SameReturnValue"})
-    protected boolean requestWrapper(final Activity activity, final String... permissions) {
-        CoreLogger.log("about to request permissions: " + Arrays.deepToString(permissions));
-
-        ActivityCompat.requestPermissions(activity, permissions, mRequestCode);
-        return false;
+    protected static boolean check(final Callbacks... callbacks) {
+        final boolean nOk = callbacks == null || callbacks.length == 0;
+        if (nOk) CoreLogger.logError("no permissions callbacks");
+        return !nOk;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected boolean requestHandler(final Activity activity, String rationale, final String... permissions) {
-        final ArrayList<String> rationales = new ArrayList<>();
+    protected static boolean check(final List<Callbacks> callbacks) {
+        return check(callbacks == null ? null: callbacks.toArray(new Callbacks[0]));
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "SameReturnValue"})
+    protected void requestWrapper(final Activity activity, final String... permissions) {
+        CoreLogger.log("about to request permissions: " + getPermissionsDesc(permissions));
+        ActivityCompat.requestPermissions(activity, permissions, mRequestCode);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected void requestHandler(final Activity activity, String rationale, final String... permissions) {
+        if (rationale != null) rationale = rationale.trim();
+
+        final ArrayList<String> rationalePermissions = new ArrayList<>();
         for (final String permission: permissions)
             if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission))
-                rationales.add(permission);
+                rationalePermissions.add(permission);
 
-        if (rationales.isEmpty()) {
-            // Request permission. It's possible this can be auto answered if device policy
-            // sets the permission in a given state or the user denied the permission
-            // previously and checked "Never ask again".
-
-            return requestWrapper(activity, permissions);
+        // from the official Google example:
+        //
+        // Request permission. It's possible this can be auto answered if device policy
+        // sets the permission in a given state or the user denied the permission
+        // previously and checked "Never ask again".
+        if (rationalePermissions.isEmpty()) {
+            if (!TextUtils.isEmpty(rationale)) CoreLogger.logWarning(
+                    "shouldShowRequestPermissionRationale return false for rationale " + rationale);
+            requestWrapper(activity, permissions);
+            return;
         }
+        else if (TextUtils.isEmpty(rationale)) CoreLogger.logError(
+                "shouldShowRequestPermissionRationale return true but rationale is empty");
 
+        // from the official Google example:
+        //
         // Provide an additional rationale to the user. This would happen if the user denied the
         // request previously, but didn't check the "Don't ask again" checkbox.
+        final String rationalePermissionsDesc = getPermissionsDesc(rationalePermissions.toArray(new String[0]));
 
-        final String[] tmp = new String[rationales.size()];
-        final String   rationalePermissions = Arrays.deepToString(rationales.toArray(tmp));
-
-        rationale = rationale == null ? null: rationale.trim();
         if (TextUtils.isEmpty(rationale)) {
             CoreLogger.logWarning("rationale requested but not provided for permissions " +
-                    rationalePermissions);
-
-            return requestWrapper(activity, permissions);
+                    rationalePermissionsDesc);
+            requestWrapper(activity, permissions);
+            return;
         }
 
         if (mAlert != null)
             CoreLogger.logError("permissions rationale alert dialog already exists");
 
-        mAlert = mAlertProvider.get();
+        if (permissions.length > 1)
+            CoreLogger.logWarning("permissions > 1 for rationale: " + rationale);
 
-        if (mAlert.start(activity, rationale,
-                new Intent().putExtra(ARG_PERMISSIONS, permissions).putExtra(ARG_VIEW_ID, mViewId)))
+        mAlert = mAlertProvider.get();
+        UiModule.setId(mAlert, getPermissionId(permissions[0]));
+
+        if (mAlert.start(activity, rationale, getIntent(mViewId, permissions[0])))
             CoreLogger.log("started rationale alert dialog for permissions " +
-                    rationalePermissions);
+                    rationalePermissionsDesc);
         else
             CoreLogger.logError("can't start rationale alert dialog for permissions " +
-                    rationalePermissions);
+                    rationalePermissionsDesc);
+    }
 
-        return false;
+    private static String getPermissionId(final String permission) {
+        return ID_PREFIX + permission;
+    }
+
+    private static Intent getIntent(final @IdRes int viewId, final String permission) {
+        final Intent intent = new Intent().putExtra(ARG_VIEW_ID, viewId);
+        if (!TextUtils.isEmpty(permission))
+            intent.putExtra(ARG_PERMISSION, permission);
+        return intent;
     }
 
     /**
@@ -210,11 +238,28 @@ public class CorePermissions implements ConfigurationChangedListener {
      * @return  {@code true} if permission was granted, {@code false} otherwise
      */
     public static boolean check(final Context context, final String permission) {
-        final boolean result = checkData(context, permission) &&
-                ActivityCompat.checkSelfPermission(context, permission)
-                        == PackageManager.PERMISSION_GRANTED;
+        boolean result = checkData(context, permission);
+        if (result) {
+            final int check = ActivityCompat.checkSelfPermission(context, permission);
+            if (check != PackageManager.PERMISSION_GRANTED)
+                CoreLogger.logWarning("permission " + permission + ", check result: " +
+                        getPermissionGrantResult(check));
+            result = check == PackageManager.PERMISSION_GRANTED;
+        }
         CoreLogger.log("permission " + permission + " check result: " + result);
         return result;
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static String getPermissionGrantResult(final int permissionGrantResult) {
+        switch (permissionGrantResult) {
+            case PackageManager.PERMISSION_GRANTED   :
+                return         "PERMISSION_GRANTED"  ;
+            case PackageManager.PERMISSION_DENIED    :
+                return         "PERMISSION_DENIED"   ;
+            default:        // should never happen
+                return "unknown permission grant result: " + Utils.getUnknownResult(permissionGrantResult);
+        }
     }
 
     /**
@@ -223,52 +268,113 @@ public class CorePermissions implements ConfigurationChangedListener {
     @SuppressWarnings({"UnusedParameters", "unused"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
-        Utils.onActivityResult("CorePermissions", activity, requestCode, resultCode, data);
+        final Collection<CorePermissions> collection = onActivityResultHelper(activity, requestCode, resultCode, data);
+        if (collection == null) return;
 
+        for (final CorePermissions corePermissions: collection) {
+            if (corePermissions.mAlert       != null) UiModule.releaseCountDownLatch(corePermissions.mAlert);
+            if (corePermissions.mAlertDenied != null) UiModule.releaseCountDownLatch(corePermissions.mAlertDenied);
+
+            corePermissions.mAlert       = null;
+            corePermissions.mAlertDenied = null;
+        }
+    }
+
+    private static Collection<CorePermissions> onActivityResultHelper(@NonNull final Activity activity,
+                                                                               final int      requestCode,
+                                                                               final int      resultCode,
+                                                                               final Intent   data) {
+        Utils.onActivityResult("CorePermissions", activity, requestCode, resultCode, data);
         final RequestCodes code = Utils.getRequestCode(requestCode);
 
         if (code != RequestCodes.PERMISSIONS_RATIONALE_ALERT &&
             code != RequestCodes.PERMISSIONS_DENIED_ALERT) {
 
             CoreLogger.logWarning("unknown request code " + requestCode);
-            return;
+            return null;
         }
 
         if (data == null) {
             CoreLogger.logError("permission data == null");
-            return;
+            return null;
         }
         if (!data.hasExtra(ARG_VIEW_ID)) {
             CoreLogger.logError("no view info in permission data");
-            return;
+            return null;
+        }
+        final int viewId = data.getIntExtra(ARG_VIEW_ID, Core.NOT_VALID_VIEW_ID);
+
+        final List<CorePermissions> list = getCorePermissions(activity, viewId);
+        if (list == null || list.size() == 0) {
+            CoreLogger.logWarning("onActivityResult: no CorePermissions");
+            return null;
         }
 
-        final CorePermissions corePermissions = getCorePermissions(activity,
-                data.getIntExtra(ARG_VIEW_ID, Core.NOT_VALID_VIEW_ID));
-        if (corePermissions == null) return;
-
+        List<CorePermissions> result = list;
         switch (code) {
             case PERMISSIONS_RATIONALE_ALERT:
-                corePermissions.mAlert = null;
+                CoreLogger.log("PERMISSIONS_RATIONALE_ALERT result: " + UiModule.getPermissionResult(resultCode));
 
                 switch (resultCode) {
                     case Activity.RESULT_OK:
-                        corePermissions.requestWrapper(activity, data.getStringArrayExtra(ARG_PERMISSIONS));
-                        return;
+                    case UiModule.SNACKBAR_DISMISSED_REASON_ACTION:
+                        final String permission;
+                        if (!data.hasExtra(ARG_PERMISSION)) {       // should never happen
+                            CoreLogger.logError("no permission info in permission data");
+                            permission = null;
+                        }
+                        else
+                            permission = data.getStringExtra(ARG_PERMISSION);
 
-                    default:    // fall through
-                        CoreLogger.logWarning("unknown result code " + resultCode);
+                        final List<String> permissionsNoRationale = new ArrayList<>();
+                        for (final CorePermissions corePermissions: list) {
+                            final List<String> permissions = new ArrayList<>();
 
-                    case Activity.RESULT_CANCELED:
-                    case Activity.RESULT_FIRST_USER:
-                        runOnDenied(corePermissions.mOnDenied);
+                            for (final Callbacks callbacks: corePermissions.mCallbacks)
+                                if (TextUtils.isEmpty(corePermissions.mRationale))
+                                    addPermission(permissionsNoRationale, callbacks.mPermission);
+                                else if (permission != null && permission.equals(callbacks.mPermission))
+                                    addPermission(permissions, callbacks.mPermission);
+
+                            requestPermissions(permissions, corePermissions, activity);
+                        }
+                        requestPermissions(permissionsNoRationale, list.get(0), activity);
+
+                        return null;
+
+                    case Activity.RESULT_CANCELED:                          // swipe
+                    case UiModule.SNACKBAR_DISMISSED_REASON_MANUAL:         // call to 'dismiss()'
+                        result = new ArrayList<>(list);
+
+                        for (int i = list.size() - 1; i >= 0; i--) {
+                            final CorePermissions corePermissions = list.get(i);
+
+                            if (check(corePermissions.mCallbacks))
+                                //noinspection Convert2Lambda
+                                handle(new CallableHelper() {
+                                    @Override
+                                    public void call(final String permission, final int grantResult,
+                                                     final Callbacks callbacks, final CorePermissions corePermissions,
+                                                     final List<CorePermissions> list) {
+                                        callbacks.onGrantResult(PackageManager.PERMISSION_DENIED,
+                                                corePermissions, list);
+                                    }
+                                }, corePermissions, list);
+                        }
+                        break;
+
+                    case UiModule.SNACKBAR_DISMISSED_REASON_TIMEOUT:
+                    case UiModule.SNACKBAR_DISMISSED_REASON_CONSECUTIVE:
+                    case UiModule.SNACKBAR_DISMISSED_REASON_UNKNOWN:
+                        break;      // nothing to do
+
+                    default:
+                        CoreLogger.logWarning("unknown result code: " + resultCode);
                         break;
                 }
                 break;
 
             case PERMISSIONS_DENIED_ALERT:
-                corePermissions.mAlertDenied = null;
-
                 switch (resultCode) {
                     case Activity.RESULT_OK:
                         final String applicationId = (String) Utils.getBuildConfigField(
@@ -278,24 +384,131 @@ public class CorePermissions implements ConfigurationChangedListener {
                             break;
                         }
 
-                        activity.startActivity(new Intent()
-                                .setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        final View view = ViewHelper.getView(activity, viewId);
+                        if (view != null) {
+                            setTag(view, list.toArray(new CorePermissions[0]));
+
+                            for (final CorePermissions corePermissions: list)
+                                corePermissions.mHandlePermissions = true;
+                        }
+                        else
+                            CoreLogger.logWarning("view == null");
+
+                        activity.startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                                 .setData(Uri.fromParts("package", applicationId, null))
                                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+
+                        result = null;
                         break;
 
                     case Activity.RESULT_CANCELED:
                     case Activity.RESULT_FIRST_USER:
-                        break;
-
-                    default:
-                        CoreLogger.logWarning("unknown result code " + resultCode);
-                        break;
+                        break;      // nothing to do
                 }
                 break;
         }
 
-        Core.unregister(corePermissions);
+        for (final CorePermissions corePermissions: list)
+            Core.unregister(corePermissions);
+
+        return result;
+    }
+
+    private static void addPermission(final List<String> permissions, final String permission) {
+        if (permissions.contains(permission))    // should never happen
+            CoreLogger.logWarning("duplicated permission " + permission);
+        else
+            permissions.add(permission);
+    }
+
+    private static void requestPermissions(final List<String> permissions,
+                                           final CorePermissions corePermissions, final Activity activity) {
+        if (permissions != null && permissions.size() > 0)
+            corePermissions.requestWrapper(activity, permissions.toArray(new String[0]));
+    }
+
+    private static void setTag(final View view, final CorePermissions... corePermissions) {
+        if (view == null) {
+            CoreLogger.logError("CorePermissions view == null");
+            return;
+        }
+        final Object tag = view.getTag(ID_OBJECTS);
+
+        @SuppressWarnings("unchecked")
+        final ArrayList<CorePermissions> list = tag == null ? new ArrayList<>(): (ArrayList<CorePermissions>) tag;
+        if (tag == null) {
+            CoreLogger.log("CorePermissions, about to view.setTag");
+            ViewHelper.setTag(view, ID_OBJECTS, list);
+        }
+
+        for (final CorePermissions tmpCorePermissions: corePermissions) {
+            final String tmpPermissionDesc = CorePermissions.getPermissionsDesc(tmpCorePermissions.mCallbacks);
+            boolean found = false;
+
+            if (tmpPermissionDesc == null)      // should never happen
+                CoreLogger.logError("can't find CorePermissions description for callbacks: " +
+                        tmpCorePermissions.mCallbacks);
+            else
+                for (final CorePermissions tmp: list)
+                    if (tmpPermissionDesc.equals(CorePermissions.getPermissionsDesc(tmp.mCallbacks))) {
+                        CoreLogger.logError("CorePermissions, object is already in list: " + tmp);
+                        found = true;       // should never happen
+                        break;
+                    }
+            if (!found) list.add(tmpCorePermissions);
+        }
+    }
+
+    /**
+     * Called by the Yakhont Weaver. For internal use only.
+     */
+    @SuppressWarnings("unused")
+    public static void onResume(final Activity activity) {
+        final List<CorePermissions> list = get(activity, null);
+        if (list == null) return;
+
+        for (int i = list.size() - 1; i >= 0; i--) {
+            final CorePermissions corePermissions = list.get(i);
+
+            if (!corePermissions.mHandlePermissions) continue;
+            corePermissions.mHandlePermissions = false;
+
+            if (corePermissions.mAlertDenied != null)
+                UiModule.releaseCountDownLatch(corePermissions.mAlertDenied);
+            corePermissions.mAlertDenied = null;
+
+            if (!check(corePermissions.mCallbacks)) continue;
+
+            //noinspection Convert2Lambda
+            handle(new CallableHelper() {
+                @Override
+                public void call(final String permission,   final int grantResult,
+                                 final Callbacks callbacks, final CorePermissions corePermissions,
+                                 final List<CorePermissions> list) {
+                    callbacks.onGrantResult(ActivityCompat.checkSelfPermission(activity,
+                            callbacks.mPermission), corePermissions, list);
+                }
+            }, corePermissions, list);
+        }
+    }
+
+    private static List<CorePermissions> get(final Activity activity, final Integer requestCode) {
+        final Set<Integer> viewIds = getIds(activity);
+        if (viewIds == null) {
+            CoreLogger.logWarning("failed get view IDs, set == null");
+            return null;
+        }
+        for (final int viewId: viewIds) {
+            final List<CorePermissions> list = getCorePermissions(activity, viewId);
+            if (list != null) {
+                final ArrayList<CorePermissions> result = new ArrayList<>();
+                for (final CorePermissions corePermissions: list)
+                    if (requestCode == null || corePermissions.mRequestCode == requestCode)
+                        result.add(corePermissions);
+                if (!result.isEmpty()) return result;
+            }
+        }
+        return null;
     }
 
     /**
@@ -304,45 +517,40 @@ public class CorePermissions implements ConfigurationChangedListener {
     @SuppressWarnings("unused")
     public static void onRequestPermissionsResult(final Activity activity, final int requestCode,
                                                   final String[] permissions, final int[] grantResults) {
-        final Set<Integer> viewIds = getIds(activity);
-        if (viewIds == null) {
-            CoreLogger.logError("failed get view IDs, set == null");
-            return;
-        }
+        CoreLogger.log("onRequestPermissionsResult: " + Arrays.toString(permissions) +
+                ", results: " + Arrays.toString(toString(grantResults)));
 
-        CorePermissions corePermissions = null;
-        for (final int viewId: viewIds) {
-            final CorePermissions corePermissionsTmp = getCorePermissions(activity, viewId);
-            if (corePermissionsTmp != null && corePermissionsTmp.mRequestCode == requestCode) {
-                corePermissions = corePermissionsTmp;
-                break;
-            }
-        }
-
-        if (corePermissions == null)
+        final List<CorePermissions> list = get(activity, requestCode);
+        if (list == null)
             CoreLogger.logWarning("unknown request code " + requestCode);
         else
-            onRequestHelper(activity, permissions, grantResults, corePermissions);
+            for (int i = list.size() - 1; i >= 0; i--)
+                onRequestHelper(activity, permissions, grantResults, list.get(i), list);
+    }
+
+    private static String[] toString(final int[] grantResults) {
+        if (grantResults == null) return null;
+        final String[] result = new String[grantResults.length];
+
+        for (int i = 0; i < grantResults.length; i++)
+            result[i] = getPermissionGrantResult(grantResults[i]);
+        return result;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static void onRequestHelper(final Activity activity,
                                           final String[] permissions, final int[] grantResults,
-                                          @NonNull final CorePermissions corePermissions) {
-        Boolean result = onRequestHandler(activity, permissions, grantResults, corePermissions);
-        if (result == null)
-            result = false;
-        else
+                                          @NonNull final CorePermissions corePermissions,
+                                          @NonNull final List<CorePermissions> list) {
+        if (onRequestHandler(activity, permissions, grantResults, corePermissions, list) != null)
             Core.unregister(corePermissions);
-
-        if (!result) runOnDenied(corePermissions.mOnDenied);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static CorePermissions getCorePermissions(final Activity activity, @IdRes final int viewId) {
+    protected static List<CorePermissions> getCorePermissions(final Activity activity, @IdRes final int viewId) {
         final View view = ViewHelper.getView(activity, viewId);
-        final CorePermissions result = view == null ? null:
-                (CorePermissions) view.getTag(ID_OBJECTS);
+        @SuppressWarnings("unchecked")
+        final List<CorePermissions> result = view == null ? null: (List<CorePermissions>) view.getTag(ID_OBJECTS);
 
         CoreLogger.log(result == null ? Level.ERROR: CoreLogger.getDefaultLevel(),
                 "CorePermissions == " + result);
@@ -352,44 +560,72 @@ public class CorePermissions implements ConfigurationChangedListener {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static Boolean onRequestHandler(final Activity activity,
                                               final String[] permissions, final int[] grantResults,
-                                              @NonNull final CorePermissions corePermissions) {
-        if (grantResults == null) {
+                                              @NonNull final CorePermissions corePermissions,
+                                              @NonNull final List<CorePermissions> list) {
+        // Snackbar's queue handling: remove rationale's Snackbar(s) for already granted permission(s)
+        //   and call the next Snackbar (if any) from the queue
+        if (corePermissions.mAlert != null) {
+            final ArrayList<String> grantedPermissions = new ArrayList<>();
+            if (grantResults != null && permissions != null)
+                for (int i = 0; i < grantResults.length; i++)
+                    if (grantResults[i] == PackageManager.PERMISSION_GRANTED)
+                        grantedPermissions.add(getPermissionId(permissions[i]));
+
+            UiModule.releaseCountDownLatch(corePermissions.mAlert, grantedPermissions);
+            corePermissions.mAlert = null;
+        }
+
+        if (permissions  == null) {     // should never happen
+            CoreLogger.logError("permissions == null");
+            return false;
+        }
+        if (grantResults == null) {     // should never happen
             CoreLogger.logError("grantResults == null");
             return false;
         }
-        if (!checkData(activity, permissions)) return false;
-
-        // If user interaction was interrupted, the permission request is cancelled and you receive empty arrays
+        // from the official Google example:
+        //   if user interaction was interrupted, the permission request is cancelled and you receive empty arrays
         if (grantResults.length == 0) {
             CoreLogger.logWarning("User interaction was cancelled");
             return false;
         }
+        if (!checkData(activity, permissions)) return false;
+
+        //noinspection Convert2Lambda
+        final CallableHelper callableHelper = new CallableHelper() {
+            @Override
+            public void call(final String permission, final int grantResult, final Callbacks callbacks,
+                             final CorePermissions corePermissions, final List<CorePermissions> list) {
+                if (callbacks.mPermission.equals(permission))
+                    callbacks.onGrantResult(grantResult, corePermissions, list);
+            }
+        };
 
         boolean granted = true;
         for (int i = 0; i < grantResults.length; i++)
             switch (grantResults[i]) {
                 case PackageManager.PERMISSION_GRANTED:
                     CoreLogger.log("Permission " + permissions[i] + " was granted");
+
+                    handle(callableHelper, permissions[i], grantResults[i], corePermissions, list);
                     break;
 
                 case PackageManager.PERMISSION_DENIED:
                     CoreLogger.logWarning("Permission " + permissions[i] + " was denied");
+
                     granted = false;
                     break;
 
-                default:
+                default:    // should never happen
                     CoreLogger.logWarning("Unknown grant result " + grantResults[i] +
                             " for permission " + permissions[i]);
                     granted = false;
                     break;
             }
+        if (granted) return true;
 
-        if (granted) {
-            runOnGranted(corePermissions.mOnGranted);
-            return true;
-        }
-
-        // Notify the user that they have rejected a permission (copied from the official Google resources).
+        // Notify the user that they have rejected a permission (copied from the official Google resources);
+        //   from the official Google example:
 
         // It is important to remember that a permission might have been rejected without asking
         // the user for permission (device policy or "Never ask again" prompts). Therefore, a user
@@ -403,13 +639,43 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         corePermissions.mAlertDenied = corePermissions.mAlertDeniedProvider.get();
 
+        if (UiModule.isSnackbar(corePermissions.mAlertDenied) && UiModule.hasSnackbars()) {
+            CoreLogger.logWarning("permission denied alert dialog will not be started 'cause " +
+                    "Snackbar's queue is not empty");
+
+            corePermissions.mAlertDenied = null;
+            return null;
+        }
+
         if (!corePermissions.mAlertDenied.start(activity, permissions.length == 1 ?
                         activity.getString(R.string.yakhont_permission_denied_alert):
                         activity.getString(R.string.yakhont_permissions_denied_alert),
-                new Intent().putExtra(ARG_VIEW_ID, corePermissions.mViewId)))
+                getIntent(corePermissions.mViewId, null))) {
+            // should never happen
             CoreLogger.logError("can not start permission denied alert dialog");
 
+            for (int i = 0; i < grantResults.length; i++)
+                if (grantResults[i] == PackageManager.PERMISSION_DENIED)
+                    handle(callableHelper, permissions[i], grantResults[i], corePermissions, list);
+        }
         return null;
+    }
+
+    private static void handle(@NonNull final CallableHelper callable, @NonNull final String permission,
+                               final int grantResult, @NonNull final CorePermissions corePermissions,
+                               final List<CorePermissions> list) {
+        for (int i = corePermissions.mCallbacks.size() - 1; i >= 0; i--)
+            callable.call(permission, grantResult, corePermissions.mCallbacks.get(i), corePermissions, list);
+    }
+
+    private static void handle(@NonNull final CallableHelper callable, @NonNull final CorePermissions corePermissions,
+                               final List<CorePermissions> list) {
+        handle(callable, "" /* not used */, 0 /* not used */, corePermissions, list);
+    }
+
+    private interface CallableHelper {
+        void call(String permission, int grantResult, Callbacks callbacks,
+                  CorePermissions corePermissions, List<CorePermissions> list);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -427,7 +693,7 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         final Set<Integer> set = getIdsHelper(view);
 
-        CoreLogger.log(set != null ? CoreLogger.getDefaultLevel(): Level.ERROR,
+        CoreLogger.log(set != null ? CoreLogger.getDefaultLevel(): Level.WARNING,
                 "CorePermissions set of view IDs: " + set);
         return set;
     }
@@ -437,21 +703,106 @@ public class CorePermissions implements ConfigurationChangedListener {
         return (Set<Integer>) view.getTag(ID_VIEW_IDS);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static void runOnGranted(final Runnable callback) {
-        runCallback(callback, false);
+    private static String getPermissionsDesc(final List<Callbacks> callbacks) {
+        if (callbacks == null || callbacks.isEmpty()) return null;
+
+        return getPermissionsDesc(callbacks.toArray(new Callbacks[0]));
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static void runOnDenied(final Runnable callback) {
-        runCallback(callback, true);
+    private static String getPermissionsDesc(final Callbacks... callbacks) {
+        if (callbacks == null || callbacks.length == 0) return null;
+
+        final String[] permissions = new String[callbacks.length];
+        for (int i = 0; i < callbacks.length; i++)
+            permissions[i] = callbacks[i].mPermission;
+
+        return getPermissionsDesc(permissions);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static void runCallback(final Runnable callback, final boolean denied) {
-        CoreLogger.log(!denied && callback == null ? Level.WARNING: CoreLogger.getDefaultLevel(),
-                (denied ? "onDenied": "onGranted") + " == " + callback);
-        if (callback != null) Utils.safeRun(callback);
+    private static String getPermissionsDesc(final String... permissions) {
+        if (permissions == null || permissions.length == 0) return null;
+
+        Arrays.sort(permissions);
+        return Arrays.toString(permissions);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * The callbacks to handle dynamic permissions.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public abstract static class Callbacks {
+
+        private final String                        mPermission;
+
+        /**
+         * Initialises a newly created {@code Callbacks} object.
+         *
+         * @param permission
+         *        The permission
+         */
+        @SuppressWarnings("WeakerAccess")
+        public Callbacks(final String permission) {
+            if (TextUtils.isEmpty(permission)) throw new RuntimeException("empty permission");
+            mPermission = permission;
+        }
+
+        /**
+         * Returns permission associated with given callbacks.
+         *
+         * @return  The permission
+         */
+        @SuppressWarnings("unused")
+        public String getPermission() {
+            return mPermission;
+        }
+
+        private void onGrantResult(final int grantResult, final CorePermissions corePermissions,
+                                   final List<CorePermissions> list) {
+            final boolean success = grantResult == PackageManager.PERMISSION_GRANTED;
+
+            CoreLogger.log(success ? CoreLogger.getDefaultLevel(): Level.WARNING,
+                    "permission " + mPermission + ", grant result " + grantResult);
+            try {
+                if (success) onGranted();
+                else         onDenied ();
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception);
+            }
+
+            synchronized (sCallbacksLock) {
+                if (corePermissions != null) corePermissions.mCallbacks.remove(this);
+
+                if (list != null && corePermissions != null && corePermissions.mCallbacks.isEmpty())
+                    list.remove(corePermissions);
+            }
+        }
+
+        /**
+         * Runs on permission denied callback.
+         * <p>Note: don't call this method (just override), it should be called by Yakhont only.
+         */
+        @SuppressWarnings("WeakerAccess")
+        public void onDenied() {
+            CoreLogger.logWarning("denied permission " + mPermission);
+        }
+
+        /**
+         * Runs on permission granted callback.
+         * <p>Note: don't call this method (just override), it should be called by Yakhont only.
+         */
+        @SuppressWarnings("WeakerAccess")
+        public void onGranted() {
+            CoreLogger.log("granted permission " + mPermission);
+        }
+
+        @NonNull
+        @Override
+        public String toString() {
+            return "callbacks for permission '" + mPermission + "'";
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -463,16 +814,12 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final WeakReference<Activity>     mActivity;
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final String[]                    mPermissions;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       String                      mRationale;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected       Runnable                    mOnDenied;
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected       Runnable                    mOnGranted;
+        protected final List<Callbacks>             mCallbacks      = new ArrayList<>();
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       Integer                     mRequestCode;
@@ -484,41 +831,59 @@ public class CorePermissions implements ConfigurationChangedListener {
          * Initialises a newly created {@code RequestBuilder} object.
          *
          * @param activity
-         *        The Activity
-         *
-         * @param permissions
-         *        The permissions
+         *        The Activity (or null for the current one)
          */
         @SuppressWarnings("WeakerAccess")
-        public RequestBuilder(final Activity activity, final String... permissions) {
-            mActivity    = new WeakReference<>(activity);
-            mPermissions = permissions;
+        public RequestBuilder(final Activity activity) {
+            mActivity = activity == null ? null: new WeakReference<>(activity);
         }
 
         /**
-         * Sets on permission(s) denied callback.
+         * Adds on permission(s) granted or denied callbacks.
          *
-         * @param runnable
-         *        The callback
+         * @param callbacks
+         *        The callbacks (or null to clear callbacks list)
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
-        public RequestBuilder setOnDenied(final Runnable runnable) {
-            mOnDenied = runnable;
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
+        public RequestBuilder addCallbacks(final Callbacks... callbacks) {
+            if (callbacks == null)
+                mCallbacks.clear();
+            else
+                Collections.addAll(mCallbacks, callbacks);
             return this;
         }
 
         /**
-         * Sets on permission(s) granted callback.
+         * Returns th list of already added permission's callbacks.
+         *
+         * @return  The callback's list
+         */
+        @SuppressWarnings("unused")
+        public List<Callbacks> getCallbacks() {
+            return mCallbacks;
+        }
+
+        /**
+         * Adds on permission granted callback.
          *
          * @param runnable
-         *        The callback
+         *        The callback (or null to clear callbacks list)
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
-        public RequestBuilder setOnGranted(final Runnable runnable) {
-            mOnGranted = runnable;
+        public RequestBuilder addOnGranted(final String permission, final Runnable runnable) {
+            if (permission == null)
+                CoreLogger.logError("permission == null");
+            else
+                addCallbacks(runnable == null ? null: new Callbacks(permission) {
+                    @Override
+                    public void onGranted() {
+                        super.onGranted();
+                        runnable.run();
+                    }
+                });
             return this;
         }
 
@@ -527,13 +892,30 @@ public class CorePermissions implements ConfigurationChangedListener {
          * {@link ActivityCompat#shouldShowRequestPermissionRationale} for more info.
          *
          * @param rationale
-         *        The value to use
+         *        The rationale
+         *
+         * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
+         */
+        public RequestBuilder setRationale(final String rationale) {
+            mRationale = rationale;
+            return this;
+        }
+
+        /**
+         * Sets the permission rationale. Please refer to
+         * {@link ActivityCompat#shouldShowRequestPermissionRationale} for more info.
+         *
+         * @param rationaleId
+         *        The rationale ID in resources
+         *
+         * @param args
+         *        The additional arguments (if any) to format the rationale
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
         @SuppressWarnings("unused")
-        public RequestBuilder setRationale(final String rationale) {
-            mRationale = rationale;
+        public RequestBuilder setRationale(@StringRes final int rationaleId, final Object... args) {
+            mRationale = Utils.getApplication().getString(rationaleId, args);
             return this;
         }
 
@@ -580,51 +962,65 @@ public class CorePermissions implements ConfigurationChangedListener {
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected CorePermissions createCorePermissions() {
-            return new CorePermissions();
-        }
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected boolean requestHelper() {
-            final Activity activity = mActivity.get();
-            if (activity == null) {
-                CoreLogger.logError("The activity is null");
+            if (!check(mCallbacks)) return false;
+            CoreLogger.log("callbacks " + Arrays.toString(mCallbacks.toArray(new Callbacks[0])));
 
-                runOnDenied(mOnDenied);
+            Activity tmpActivity = mActivity == null ? null: mActivity.get();
+            if (tmpActivity == null) tmpActivity = Utils.getCurrentActivity();
+            if (tmpActivity == null) {
+                CoreLogger.logError("activity is null");
                 return false;
             }
+            final Activity activity = tmpActivity;
 
-            final CorePermissions corePermissions = createCorePermissions();
-
-            corePermissions.mOnDenied                   = mOnDenied;
-            corePermissions.mOnGranted                  = mOnGranted;
-
+            final CorePermissions corePermissions       = new CorePermissions(mRationale);
             corePermissions.mViewId                     = mViewId;
+
+            for (final Callbacks callbacks: mCallbacks) {
+                boolean found = false;
+                for (final Callbacks tmp: corePermissions.mCallbacks)
+                    if (callbacks.mPermission.equals(tmp.mPermission)) {
+                        found = true;
+                        break;
+                    }
+                if (found)
+                    CoreLogger.logError("callbacks for permission '" + callbacks.mPermission +
+                            "' are already defined");
+                else
+                    corePermissions.mCallbacks.add(callbacks);
+            }
 
             if (mRequestCode == null)
                 mRequestCode = Utils.getRequestCode(RequestCodes.PERMISSIONS_ALERT, activity);
             corePermissions.mRequestCode                = mRequestCode;
 
-            CoreLogger.log("onDenied " + mOnDenied + ", onGranted " + mOnGranted);
-            if (!checkData(activity, mPermissions)) {
-                runOnDenied(mOnDenied);
-                return false;
-            }
+            final List<String> permissions = new ArrayList<>();
+            //noinspection Convert2Lambda
+            handle(new CallableHelper() {
+                @Override
+                public void call(final String permission,   final int grantResult,
+                                 final Callbacks callbacks, final CorePermissions corePermissions,
+                                 final List<CorePermissions> list) {
+                    if (check(activity, callbacks.mPermission))
+                        callbacks.onGrantResult(PackageManager.PERMISSION_GRANTED, corePermissions, list);
+                    else
+                        permissions.add(callbacks.mPermission);
+                }
+            }, corePermissions, null);
 
-            final String[] permissions = check(activity, mPermissions);
-            if (permissions == null) {          // permissions are already granted
-                runOnGranted(mOnGranted);
+            if (permissions.isEmpty()) {
+                CoreLogger.log("permissions are already granted, so nothing to do");
                 return true;
             }
-
             if (!setupView(activity, corePermissions)) {
                 CoreLogger.logError("setupView() returned false");
                 return false;
             }
-
             Core.register(corePermissions);
 
-            return corePermissions.requestHandler(activity, mRationale, permissions);
+            corePermissions.requestHandler(activity, mRationale, permissions.toArray(new String[0]));
+            return true;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -640,21 +1036,18 @@ public class CorePermissions implements ConfigurationChangedListener {
                 ViewHelper.setTag(baseView, ID_VIEW_IDS, Utils.<Integer>newSet());
 
             final Set<Integer> viewIds = getIds(activity);
-            if (viewIds == null) {
-                runOnDenied(mOnDenied);
-                return false;
-            }
+            if (viewIds == null) return false;
+
             final boolean result = viewIds.add(mViewId);
             CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR,
                     "CorePermissions add view ID: " + result);
 
-            ViewHelper.setTag(view, ID_OBJECTS, corePermissions);
+            setTag(view, corePermissions);
             return true;
         }
 
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private boolean checkView(final View view) {
-            if (view == null) runOnDenied(mOnDenied);
             return view != null;
         }
     }

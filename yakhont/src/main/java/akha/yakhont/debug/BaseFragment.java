@@ -294,7 +294,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     public void onRequestPermissionsResult(final int requestCode, @NonNull final String[] permissions,
                                            @NonNull final int[] grantResults) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", requestCode " + requestCode +
-                ", permissions "  + Arrays.deepToString(permissions) +
+                ", permissions "  + Arrays.toString(permissions) +
                 ", grantResults " + Arrays.toString(grantResults), false);
 
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);

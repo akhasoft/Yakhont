@@ -33,8 +33,10 @@ import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 // for javadoc
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
+import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
 
 import android.app.Activity;
@@ -149,6 +151,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
         //noinspection Convert2Lambda
         mConverter.setConverterGetter(new ConverterGetter<D>() {
+            @SuppressWarnings("unused")
             @Override
             public ConverterHelper<D> get(Type type) {
                 if (type == null) type = getType();
@@ -282,10 +285,12 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
         private final retrofit2.Converter<ResponseBody, D>  mConverter;
 
+        @SuppressWarnings("unused")
         private ConverterHelperRetrofit2(final retrofit2.Converter<ResponseBody, D> converter) {
             mConverter = converter;
         }
 
+        @SuppressWarnings("unused")
         @Override
         public D get(final String mediaType, final byte[] data) {
             if (data == null || data.length == 0) {
@@ -489,6 +494,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @Override
         public T getApi(final Callback<D> callback) {
             return mRetrofit.getApi(callback);
@@ -579,7 +585,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                               final Integer         dataBinding,
                                               final Bundle          savedInstanceState) {
             start(get(url, service, requester, dataBinding, null, null, null,
-                    null, savedInstanceState), savedInstanceState);
+                    null, null, savedInstanceState), savedInstanceState);
         }
 
         private static <D> void start(final CoreLoad<Throwable, D> coreLoad, final Bundle savedInstanceState) {
@@ -620,7 +626,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                               final Callable<? extends DataSource<?, ?>> dataSourceProducer,
                                               final Bundle                               savedInstanceState) {
             start(get(url, service, requester, dataBinding, null, null, null,
-                    dataSourceProducer, savedInstanceState), savedInstanceState);
+                    dataSourceProducer, null, savedInstanceState), savedInstanceState);
         }
 
         /**
@@ -662,7 +668,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                               final Bundle                               savedInstanceState) {
             start(get(url, service, requester, dataBinding, null, null,
                     pageSize == null ? null: new Config.Builder().setPageSize(pageSize).build(),
-                    dataSourceProducer, savedInstanceState), savedInstanceState);
+                    dataSourceProducer, null, savedInstanceState), savedInstanceState);
         }
 
         /**
@@ -687,6 +693,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param retrofit
          *        The {@code Retrofit2} component
          *
+         * @param rx
+         *        The {@code SubscriberRx} component
+         *
          * @param savedInstanceState
          *        Please refer to {@link Activity#onCreate(Bundle)}
          *
@@ -705,9 +714,10 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                                  final Integer               dataBinding,
                                                                  final OkHttpClient          client,
                                                                  final Retrofit2<R, D>       retrofit,
+                                                                 final SubscriberRx<D>       rx,
                                                                  final Bundle                savedInstanceState) {
             return get(url, service, requester, dataBinding, client, retrofit,
-                    null, null, savedInstanceState);
+                    null, null, rx, savedInstanceState);
         }
 
         /**
@@ -738,6 +748,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param dataSourceProducer
          *        The {@code DataSource} producer component (for paging)
          *
+         * @param rx
+         *        The {@code SubscriberRx} component
+         *
          * @param savedInstanceState
          *        Please refer to {@link Activity#onCreate(Bundle)}
          *
@@ -759,10 +772,17 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                                  final Config                pagingConfig,
                                                                  final Callable<? extends DataSource<?, ?>>
                                                                                              dataSourceProducer,
+                                                                 final SubscriberRx<D>       rx,
                                                                  final Bundle                savedInstanceState) {
-            return savedInstanceState != null ? getExistingLoader(): adjust(get(url, service, requester,
+            if (savedInstanceState != null) return getExistingLoader();
+            final View swipeView = getSwipeView();
+
+            final CoreLoad<Throwable, D> coreLoad = get(url, service, requester,
                     dataBinding, client, retrofit != null ? retrofit: new Retrofit2<>(), pagingConfig,
-                    dataSourceProducer));
+                    dataSourceProducer, rx, swipeView == null);
+
+            handleSwipeToRefresh(coreLoad, swipeView);
+            return adjust(coreLoad, false);
         }
 
         /**
@@ -777,13 +797,18 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @return  The {@code CoreLoad} instance
          */
         public static <D> CoreLoad<Throwable, D> adjust(final CoreLoad<Throwable, D> coreLoad) {
+            return adjust(coreLoad, true);
+        }
+
+        private static <D> CoreLoad<Throwable, D> adjust(final CoreLoad<Throwable, D> coreLoad,
+                                                         final boolean handleSwipeToRefresh) {
             if (coreLoad == null) {
                 CoreLogger.logError("CoreLoad == null");
                 return null;
             }
             coreLoad.start(null, LoadParameters.NO_LOAD);
 
-            handleSwipeToRefresh(coreLoad);
+            if (handleSwipeToRefresh) handleSwipeToRefresh(coreLoad);
 
             // for handling screen orientation changes
             final BaseViewModel<D> viewModel = BaseViewModel.get();
@@ -800,11 +825,16 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                          @NonNull final Retrofit2<R, D>       retrofit,
                                                                   final Config                pagingConfig,
                                                                   final Callable<? extends DataSource<?, ?>>
-                                                                                              dataSourceProducer) {
+                                                                                              dataSourceProducer,
+                                                                  final SubscriberRx<D>       rx,
+                                                                  final boolean               noSwipeToRefresh) {
             final Retrofit2CoreLoadBuilder<D, R> builder = (Retrofit2CoreLoadBuilder<D, R>)
                     new Retrofit2CoreLoadBuilder<>(client == null ?
                             retrofit.init(service, url): retrofit.init(service, url, client))
                             .setRequester(requester);
+
+            if (rx                 != null) builder.setRx(new Retrofit2Rx<D>(true,
+                    dataSourceProducer == null && noSwipeToRefresh).subscribeSimple(rx));
 
             if (dataBinding        != null) builder.setDataBinding(dataBinding);
             if (dataSourceProducer != null) builder.setPagingDataSourceProducer(dataSourceProducer);
@@ -833,19 +863,23 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @see SwipeToRefreshWrapper
          */
         public static <E, D> void handleSwipeToRefresh(final CoreLoad<E, D> coreLoad) {
-            final View root = Utils.getDefaultView(null);
-            if (root == null) return;
+            handleSwipeToRefresh(coreLoad, getSwipeView());
+        }
 
+        private static <E, D> void handleSwipeToRefresh(final CoreLoad<E, D> coreLoad, final View swipeView) {
+            if (swipeView != null) SwipeToRefreshWrapper.register((SwipeRefreshLayout) swipeView, coreLoad);
+        }
+
+        private static View getSwipeView() {
+            final View root = Utils.getDefaultView(null);
             //noinspection Convert2Lambda
-            final View swipeView = ViewHelper.findView(root, new ViewHelper.ViewVisitor() {
+            return root == null ? null: ViewHelper.findView(root, new ViewHelper.ViewVisitor() {
                 @SuppressWarnings("unused")
                 @Override
                 public boolean handle(final View view) {
                     return view instanceof SwipeRefreshLayout;
                 }
             }, CoreLogger.getDefaultLevel());
-
-            if (swipeView != null) SwipeToRefreshWrapper.register((SwipeRefreshLayout) swipeView, coreLoad);
         }
 
         /**

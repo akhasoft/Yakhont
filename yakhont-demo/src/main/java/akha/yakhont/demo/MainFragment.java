@@ -81,6 +81,8 @@ import com.google.gson.reflect.TypeToken;
 
 public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
+    private static final int                                     EMULATED_NETWORK_DELAY     = 7;
+
     private       CoreLoad<? extends Throwable, ?>               mCoreLoad;
     @SuppressWarnings("unused")
     private       boolean                                        mNotDisplayLoadingErrors;
@@ -90,6 +92,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     private       Retrofit <RetrofitApi,  List<BeerDefault>>     mRetrofit;
     private       Retrofit2<Retrofit2Api, List<Beer>>            mRetrofit2;
+
+    public MainFragment() {
+        mGuiHelper = new DemoGuiHelper();
+
+        setRetainInstance(true);
+    }
 
     // every loader should have unique Retrofit object; don't share it with other loaders
     private void createRetrofit(Context context) {
@@ -121,15 +129,15 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        initGui();
+        mGuiHelper.initGui();
 
         if (mCoreLoad != null)               // handling screen orientation changes
-            mGridView.setAdapter(CoreLoadHelper.getLoader(mCoreLoad).getListAdapter());
+            mGuiHelper.mGridView.setAdapter(CoreLoadHelper.getLoader(mCoreLoad).getListAdapter());
         else
             init();
 
         // Swipe-To-Refresh handling (optional, remove here and in xml layout if not needed)
-        registerSwipeToRefresh();
+        mGuiHelper.registerSwipeToRefresh();
     }
 
     private void init() {
@@ -149,14 +157,14 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         startLoading(false);
 
         // emulates network delay to demonstrate progress customization
-        mGridView.postDelayed(this::setEmulatedNetworkDelay, 500);
+        mGuiHelper.mGridView.postDelayed(this::setEmulatedNetworkDelay, 500);
     }
 
     private void startLoading(boolean byUserRequest) {
-        updateGuiAndSetPartToLoad(byUserRequest);
+        mGuiHelper.updateGuiAndSetPartToLoad(byUserRequest);
 
-        mCoreLoad.start(getActivity(), getLoadParameters(
-                mCheckBoxForce.isChecked(), !byUserRequest, mCheckBoxMerge.isChecked()));
+        mCoreLoad.start(getActivity(), getLoadParameters(mGuiHelper.mCheckBoxForce.isChecked(),
+                !byUserRequest, mGuiHelper.mCheckBoxMerge.isChecked()));
     }
 
     private LoadParameters getLoadParameters(boolean forceCache, boolean noProgress, boolean merge) {
@@ -273,16 +281,17 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     private void onLoadFinished(List<?> data, Source source) {
-        setBubblesState(false);
+        mGuiHelper.setBubblesState(false);
 
-        if (data != null) mGridView.startLayoutAnimation();
+        if (data != null) mGuiHelper.mGridView.startLayoutAnimation();
 
-        mLastSource = source;
+        mGuiHelper.mLastSource = source;
     }
 
     private void onLoadFinishedDataBinding(List<Beer> data, Source source) {
-        for (Beer beer: data)
-            beer.setCacheInfo(getVisibility());
+        if (data != null)
+            for (Beer beer: data)
+                beer.setCacheInfo(getVisibility());
 
         onLoadFinished(data, source);
     }
@@ -304,7 +313,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     private int getVisibility() {
-        return mCheckBoxForce.isChecked() ? View.VISIBLE: View.INVISIBLE;
+        return mGuiHelper.mCheckBoxForce.isChecked() ? View.VISIBLE: View.INVISIBLE;
     }
 
     @SuppressWarnings("WeakerAccess")
@@ -332,7 +341,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     // unsubscribe goes automatically
     @SuppressWarnings("ConstantConditions")
     private void initRx() {
-        boolean singleRx = false;     // don't change
+        boolean singleRx = false;
 
         if (getMainActivity().isRetrofit2()) {
             mRxRetrofit2 = new Retrofit2Rx<>(getMainActivity().isRxJava2(), singleRx);
@@ -376,132 +385,136 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // below is GUI stuff only
+    // below is demo GUI stuff only
 
-    private static final int            EMULATED_NETWORK_DELAY          = 7;
-
-    private              AbsListView    mGridView;
-    private              CheckBox       mCheckBoxForce, mCheckBoxMerge;
-
-    private        final SlideShow      mSlideShow                      = new SlideShow();
-
-    private              Source         mLastSource;
-
-    private              Rect           mSlideRect;
-
-    public MainFragment() {
-        setRetainInstance(true);
-    }
+    private        final DemoGuiHelper  mGuiHelper;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return initGui(inflater, container);
-    }
-
-    private final View.OnClickListener  mListener                       = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-            registerSwipeToRefresh();
-
-            mCheckBoxForce.setEnabled(!mCheckBoxMerge.isChecked());
-            mCheckBoxMerge.setEnabled(!mCheckBoxForce.isChecked());
-        }
-    };
-
-    private void registerSwipeToRefresh() {
-        SwipeToRefreshWrapper.register(getActivity(), R.id.swipeContainer, mCoreLoad.getLoaders(),
-                getLoadParameters(
-                        mCheckBoxForce.isChecked(), false, mCheckBoxMerge.isChecked()));
-    }
-
-    // just a boilerplate code
-    private View initGui(LayoutInflater inflater, ViewGroup container) {
-        View mainView       = inflater.inflate(R.layout.fragment_main, container, false);
-
-        mGridView           = mainView.findViewById(R.id.grid);
-
-        mCheckBoxMerge      = mainView.findViewById(R.id.flag_merge);
-        mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
-
-        mainView.findViewById(R.id.btn_load).setOnClickListener(
-                view -> startLoading(true));
-
-        mCheckBoxForce.setOnClickListener(mListener);
-        mCheckBoxMerge.setOnClickListener(mListener);
-
-        Utils.onAdjustMeasuredView(this, mainView.findViewById(R.id.container));
-
-        mSlideShow.init(mainView);
-
-        return mainView;
-    }
-
-    private void initGui() {
-        mSlideShow.init(this);
-
-        Bubbles.init(getMainActivity());
-    }
-
-    private void updateGuiAndSetPartToLoad(boolean byUserRequest) {
-        if (byUserRequest)
-            setBubblesState(true);
-        else
-            mLastSource  = Source.NETWORK;      // even if mCheckBoxForce.isChecked()
-
-        if (mLastSource == Source.NETWORK) {
-            ListAdapter adapter = mGridView.getAdapter();
-            int size = adapter.getCount();
-
-            int partCounter = 0;
-            if (size > 0) {
-                Object item = adapter.getItem(size - 1);
-                String img = item instanceof Beer ? ((Beer) item).getImage():
-                        // 'cause of default binding (reflection based) in non-Retrofit2 demo
-                        (String) ((ContentValues) item).get("image");
-                int pos = img.indexOf("img_");
-                switch (img.substring(pos + 4, pos + 6)) {
-                    case "05":
-                        partCounter = 1;
-                        break;
-                    case "11":
-                        partCounter = 2;
-                        break;
-                }
-            }
-            String scenario = "part" + partCounter;
-
-            if (getMainActivity().isRetrofit2())
-                mOkHttpClient2.getLocalOkHttpClientHelper().setScenario(scenario);
-            else
-                mOkHttpClient .getLocalOkHttpClientHelper().setScenario(scenario);
-        }
+        return mGuiHelper.initGui(inflater, container);
     }
 
     @Override
     public void onDestroyView() {
-        mSlideShow.cleanUp();
+        mGuiHelper.mSlideShow.cleanUp();
         Bubbles.cleanUp();
 
         super.onDestroyView();
-    }
-    
-    public void onSlideShow(boolean isStarted) {
-        getMainActivity().setSlideShow(isStarted ? mSlideShow: null);
-        setBubblesState(isStarted);
-    }
-
-    private void setBubblesState(boolean cancel) {
-        Bubbles.setState(cancel, false);
     }
 
     @SuppressWarnings("unused")
     @Override
     public void adjustMeasuredView(View view) {
-        mSlideRect = new Rect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+        mGuiHelper.mSlideRect = new Rect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
     }
 
-    public Rect getSlideRect() {
-        return mSlideRect;
+    public DemoGuiHelper getDemoGuiHelper() {
+        return mGuiHelper;
+    }
+
+    public class DemoGuiHelper {
+
+        private          AbsListView    mGridView;
+        private          CheckBox       mCheckBoxForce, mCheckBoxMerge;
+
+        private    final SlideShow      mSlideShow                      = new SlideShow();
+
+        private          Source         mLastSource;
+
+        private          Rect           mSlideRect;
+
+        private    final View.OnClickListener
+                                        mListener                       = new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                registerSwipeToRefresh();
+
+                mCheckBoxForce.setEnabled(!mCheckBoxMerge.isChecked());
+                mCheckBoxMerge.setEnabled(!mCheckBoxForce.isChecked());
+            }
+        };
+
+        private void registerSwipeToRefresh() {
+            SwipeToRefreshWrapper.register(getActivity(), R.id.swipeContainer, mCoreLoad.getLoaders(),
+                    getLoadParameters(
+                            mCheckBoxForce.isChecked(), false, mCheckBoxMerge.isChecked()));
+        }
+
+        // just a boilerplate code
+        private View initGui(LayoutInflater inflater, ViewGroup container) {
+            View mainView       = inflater.inflate(R.layout.fragment_main, container, false);
+
+            mGridView           = mainView.findViewById(R.id.grid);
+
+            mCheckBoxMerge      = mainView.findViewById(R.id.flag_merge);
+            mCheckBoxForce      = mainView.findViewById(R.id.flag_force);
+
+            mainView.findViewById(R.id.btn_load).setOnClickListener(
+                    view -> startLoading(true));
+
+            mCheckBoxForce.setOnClickListener(mListener);
+            mCheckBoxMerge.setOnClickListener(mListener);
+
+            Utils.onAdjustMeasuredView(MainFragment.this, mainView.findViewById(R.id.container));
+
+            mSlideShow.init(mainView);
+
+            return mainView;
+        }
+
+        private void initGui() {
+            mSlideShow.init(MainFragment.this);
+
+            Bubbles.init(getMainActivity());
+        }
+
+        private void updateGuiAndSetPartToLoad(boolean byUserRequest) {
+            if (byUserRequest)
+                setBubblesState(true);
+            else
+                mLastSource  = Source.NETWORK;      // even if mCheckBoxForce.isChecked()
+
+            if (mLastSource == Source.NETWORK) {
+                ListAdapter adapter = mGridView.getAdapter();
+                int size = adapter.getCount();
+
+                int partCounter = 0;
+                if (size > 0) {
+                    Object item = adapter.getItem(size - 1);
+                    String img = item instanceof Beer ? ((Beer) item).getImage():
+                            // 'cause of default binding (reflection based) in non-Retrofit2 demo
+                            (String) ((ContentValues) item).get("image");
+                    int pos = img.indexOf("img_");
+                    switch (img.substring(pos + 4, pos + 6)) {
+                        case "05":
+                            partCounter = 1;
+                            break;
+                        case "11":
+                            partCounter = 2;
+                            break;
+                    }
+                }
+                String scenario = "part" + partCounter;
+
+                if (getMainActivity().isRetrofit2())
+                    mOkHttpClient2.getLocalOkHttpClientHelper().setScenario(scenario);
+                else
+                    mOkHttpClient .getLocalOkHttpClientHelper().setScenario(scenario);
+            }
+        }
+
+        public void onSlideShow(boolean isStarted) {
+            getMainActivity().setSlideShow(isStarted ? mSlideShow: null);
+            setBubblesState(isStarted);
+        }
+
+        private void setBubblesState(boolean cancel) {
+            Bubbles.setState(cancel, false);
+        }
+
+        public Rect getSlideRect() {
+            return mSlideRect;
+        }
     }
 
     // we need such class only to handle the 'confirm' flag - otherwise use 'ProgressDefaultDialog'

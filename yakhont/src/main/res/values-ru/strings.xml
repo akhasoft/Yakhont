@@ -25,7 +25,6 @@
     <string name="yakhont_loader_error"                 >Ошибка загрузки данных</string>
 
     <string name="yakhont_sending_email"                >Отправка debug email</string>
-    <string name="yakhont_send_debug_email"             >Кому собираемся отправить e-mail с debug информацией: %s</string>
 
     <string name="yakhont_alert_ok"                     >ОК</string>
     <string name="yakhont_alert_cancel"                 >Отмена</string>
@@ -35,6 +34,8 @@
 
     <string name="yakhont_permission_denied_alert"      >В разрешении отказано, нажмите OK для проверки настроек приложения.</string>
     <string name="yakhont_permissions_denied_alert"     >В разрешениях отказано, нажмите OK для проверки настроек приложения.</string>
+
+    <string name="yakhont_permission_storage"           >Для копирования cache БД\nнеобходимо разрешение Storage.</string>
 
     <string name="yakhont_location_error"               >Ошибка при определении местоположения</string>
     <string name="yakhont_location_error_connection"    >@string/yakhont_location_error</string>

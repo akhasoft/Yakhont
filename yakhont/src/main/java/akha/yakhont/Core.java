@@ -45,10 +45,12 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.Dagger2.Parameters;
 import akha.yakhont.technology.Dagger2.UiModule;
+import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
+import akha.yakhont.technology.Dagger2.UiModule.ViewHandler;
+import akha.yakhont.technology.Dagger2.UiModule.ViewHandlerSnackbar;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.Rx2;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -60,6 +62,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.Cursor;
@@ -69,6 +72,7 @@ import android.net.Network;
 import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Build.VERSION_CODES;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
@@ -79,10 +83,13 @@ import android.view.ViewGroup;
 import android.view.ViewStub;
 import android.view.ViewTreeObserver;
 import android.view.Window;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.AnyRes;
 import androidx.annotation.CallSuper;
+import androidx.annotation.ColorInt;
+import androidx.annotation.ColorRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.LayoutRes;
@@ -122,18 +129,21 @@ import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.snackbar.Snackbar.Callback;   // for javadoc
 
 /**
  * The base class for the Yakhont library. Normally initialized automatically, via Yakhont Weaver,
@@ -176,26 +186,21 @@ public class Core implements DefaultLifecycleObserver {
     /** Not valid View ID (the value is {@value}). */
     @IdRes  public static final int                     NOT_VALID_VIEW_ID           = View.NO_ID;
 
+    /** Not valid color (the value is {@value}). */
+    @IdRes  public static final int                     NOT_VALID_COLOR             = Integer.MAX_VALUE;
+
     private static final String                         BASE_URI                    = "content://%s.provider";
     @SuppressWarnings("unused")
     private static final String                         LOG_TAG_FORMAT              = "v.%s-%d-%s";
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    @IntRange(from = 1) public  static final int        TIMEOUT_CONNECTION          = 20;   // seconds
-    @IntRange(from = 0) private static final int        TIMEOUT_NETWORK_MONITOR     =  3;   // seconds
+    public  static final int                            TIMEOUT_CONNECTION          =  20;  // seconds
+    // should be consistent with setRunNetworkMonitorInterval description
+    private static final int                            TIMEOUT_NETWORK_MONITOR     = 300;  // 5 minutes
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static int adjustTimeout(int timeout) {
-        if (timeout <= 0) {
-            CoreLogger.logError("wrong timeout " + timeout);
-            timeout = TIMEOUT_CONNECTION;
-        }
-        final int result = timeout < 256 ? timeout * 1000: timeout;
-        CoreLogger.log("accepted timeout (ms): " + result);
-        return result;
-    }
+    private static final int                            ADJUST_TIMEOUT_THRESHOLD    = 300;
 
-    // use my birthday as the offset... why not?
+    // use my birthday as the unique offset... why not?
     private static final int                            REQUEST_CODES_OFFSET        = 19631201;
     private static final short                          REQUEST_CODES_OFFSET_SHORT  = 11263;
 
@@ -256,11 +261,9 @@ public class Core implements DefaultLifecycleObserver {
 
         /**
          * Stops data load dialog.
-         *
-         * @return  {@code true} if dialog was stopped successfully, {@code false} otherwise
          */
         @SuppressWarnings("UnusedReturnValue")
-        boolean stop();
+        void stop();
 
         /**
          * Confirms data load canceling.
@@ -464,8 +467,8 @@ public class Core implements DefaultLifecycleObserver {
      *     static class YourUiModule extends UiModule {
      *
      *         &#064;Override
-     *         protected BaseDialog getPermissionAlert(int requestCode) {
-     *             return super.getPermissionAlert(requestCode);
+     *         protected BaseDialog getPermissionAlert(Integer requestCode, Integer duration) {
+     *             return super.getPermissionAlert(requestCode, duration);
      *         }
      *
      *         &#064;Override
@@ -527,7 +530,7 @@ public class Core implements DefaultLifecycleObserver {
         initDagger(dagger, byUser);
 
         Init.logging(application, fullInfo != null ? fullInfo:
-                Utils.isDebugMode(application.getPackageName()));
+                Utils.isDebugMode(application.getPackageName()), false);
         Init.allRemaining(application);
 
         CoreLogger.log("uri "         + Utils.getBaseUri());
@@ -546,7 +549,7 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings("unused")
     public static void setFullLoggingInfo(final boolean fullInfo) {
-        Init.logging(sApplication.get(), fullInfo);
+        Init.logging(sApplication.get(), fullInfo, true);
     }
 
     /**
@@ -626,9 +629,19 @@ public class Core implements DefaultLifecycleObserver {
      * @see ProcessLifecycleOwner
      */
     @Override
+    public void onCreate(@NonNull LifecycleOwner owner) {
+        logLifecycle("onCreate");
+    }
+
+    /**
+     * Please refer to the base method description.
+     *
+     * @see ProcessLifecycleOwner
+     */
+    @Override
     public void onStart(@NonNull LifecycleOwner owner) {
         sStarted.set(true);
-        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+        logLifecycle("onStart");
     }
 
     /**
@@ -639,7 +652,7 @@ public class Core implements DefaultLifecycleObserver {
     @Override
     public void onResume(@NonNull LifecycleOwner owner) {
         sResumed.set(true);
-        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+        logLifecycle("onResume");
     }
 
     /**
@@ -650,7 +663,7 @@ public class Core implements DefaultLifecycleObserver {
     @Override
     public void onPause(@NonNull LifecycleOwner owner) {
         sResumed.set(false);
-        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+        logLifecycle("onPause");
     }
 
     /**
@@ -661,16 +674,12 @@ public class Core implements DefaultLifecycleObserver {
     @Override
     public void onStop(@NonNull LifecycleOwner owner) {
         sStarted.set(false);
-        CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
+        logLifecycle("onStop");
     }
 
-    @SuppressWarnings("SameReturnValue")
-    private Level getDebugLevel() {
-        return CoreLogger.getDefaultLevel();
-    }
-
-    private String getDebugMessage() {
-        return "application " + CoreLogger.getDescription(Utils.getApplication());
+    private void logLifecycle(final String info) {
+        CoreLogger.log(CoreLogger.getDefaultLevel(), info +
+                ", application " + CoreLogger.getDescription(Utils.getApplication()), false);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -793,10 +802,18 @@ public class Core implements DefaultLifecycleObserver {
     @SuppressWarnings("unused")
     private static class Init extends BaseListeners {
 
+        private static String                           sBaseUri;
+
+        private static       boolean                    sLogLevelSet;
+        private static final Object                     sLogLevelSetLock                = new Object();
+
         private static final AtomicBoolean              sConnected                      = new AtomicBoolean(true);
         private static final Object                     sConnectedLock                  = new Object();
-        private static boolean                          sRunNetworkMonitor;
-        private static String                           sBaseUri;
+        private static final AtomicBoolean              sRunNetworkMonitor              = new AtomicBoolean(true);
+        private static final AtomicInteger              sConnectionCheckInterval        = new AtomicInteger(TIMEOUT_NETWORK_MONITOR);
+
+        private static ConnectivityManager.NetworkCallback
+                                                        sNetworkCallback;
 
         private static ActivityLifecycleProceed         sActivityLifecycleProceed;
         private static ApplicationCallbacks.ApplicationCallbacks2
@@ -881,7 +898,8 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
-        private static void logging(@NonNull final Application application, final boolean fullInfo) {
+        private static void logging(@NonNull final Application application, final boolean fullInfo,
+                                    final boolean forceSet) {
             final String  pkgName = application.getPackageName();
 
             if (!Utils.isDebugMode(pkgName)) {
@@ -902,124 +920,150 @@ public class Core implements DefaultLifecycleObserver {
                         akha.yakhont.BuildConfig.VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
             }
 
-            CoreLogger.setFullInfo(fullInfo);
-
+            synchronized (sLogLevelSetLock) {
+                if (forceSet || !sLogLevelSet) {
+                    CoreLogger.setLogLevel(fullInfo ? CoreLogger.getDefaultLevel(): Level.ERROR);
+                    sLogLevelSet = true;
+                }
+            }
             BaseFragment.enableFragmentManagerDebugLogging(fullInfo);
         }
 
-        @SuppressWarnings({"deprecation", "RedundantSuppression"})
+        @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
         private static int getVersionOld(@NonNull final PackageInfo packageInfo) {
             return packageInfo.versionCode;
         }
 
+        @SuppressLint("MissingPermission")
+        @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+        private static void handleConnectionNew(final ConnectivityManager connectivityManager,
+                                                final boolean start) {
+            if (start) {
+                if (sNetworkCallback != null) {
+                    CoreLogger.logWarning("already registered " + sNetworkCallback);
+                    return;
+                }
+                sNetworkCallback = new ConnectivityManager.NetworkCallback() {
+                    @Override
+                    public void onAvailable(@NonNull final Network network) {
+                        CoreLogger.log(Level.DEBUG, "NetworkCallback.onAvailable()");
+                        setConnected(true);
+                    }
+
+                    @Override
+                    public void onBlockedStatusChanged(@NonNull final Network network,
+                                                       final boolean blocked) {
+                        CoreLogger.log(blocked ? Level.WARNING : Level.DEBUG,
+                                "NetworkCallback.onBlockedStatusChanged() " + blocked);
+                        setConnected(!blocked);
+                    }
+
+                    @Override
+                    public void onLosing(@NonNull final Network network, final int maxMsToLive) {
+                        CoreLogger.log(Level.WARNING, "NetworkCallback.onLosing()");
+                        setConnected(false);
+                    }
+
+                    @Override
+                    public void onLost(@NonNull final Network network) {
+                        CoreLogger.log(Level.WARNING, "NetworkCallback.onLost()");
+                        setConnected(false);
+                    }
+
+                    @Override
+                    public void onUnavailable() {
+                        CoreLogger.log(Level.WARNING, "NetworkCallback.onUnavailable()");
+                        setConnected(false);
+                    }
+                };
+                connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(), sNetworkCallback);
+            }
+            else {
+                if (sNetworkCallback == null) {
+                    CoreLogger.logWarning("already unregistered");
+                    return;
+                }
+                connectivityManager.unregisterNetworkCallback(sNetworkCallback);
+                sNetworkCallback = null;
+            }
+        }
+
+        private static void setConnected(final boolean isConnected) {
+            synchronized (sConnectedLock) {
+                if (sConnected.getAndSet(isConnected) != isConnected) {
+                    CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
+                            "network is " + (isConnected ? "": "NOT ") + "available");
+                    onNetworkStatusChanged(isConnected);
+                }
+            }
+        }
+
+        private static void handleConnectionOld(final ConnectivityManager connectivityManager,
+                                                final boolean start) {
+            if (start) {
+                if (Utils.sExecutorHelperConnection != null) {
+                    CoreLogger.logWarning("network monitor already running");
+                    return;
+                }
+                final long period = adjustTimeout(sConnectionCheckInterval.get());
+
+                Utils.sExecutorHelperConnection = new Utils.ExecutorHelper();
+                if (Utils.sExecutorHelperConnection.runInBackground(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (isVisible() && isInForeground()) handleConnectionOld();
+                    }
+
+                    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */})
+                    private void handleConnectionOld() {
+                        @SuppressLint("MissingPermission")
+                        final android.net.NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
+                        setConnected(activeInfo != null && activeInfo.isConnected());
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "timer for network monitoring, period (ms) is " + period;
+                    }
+                }, 0, period, false) == null)   // should never happen
+                    CoreLogger.logError("can't run network monitoring");
+            }
+            else {
+                if (Utils.sExecutorHelperConnection == null) {
+                    CoreLogger.logWarning("network monitor already stopped");
+                    return;
+                }
+                CoreLogger.log("about to cancel network monitoring");
+                Utils.sExecutorHelperConnection.cancel();
+                Utils.sExecutorHelperConnection = null;
+            }
+        }
+
+        private static void handleConnection(@NonNull final Application application, Boolean start,
+                                             final boolean forceOld) {
+            final ConnectivityManager connectivityManager =
+                    (ConnectivityManager) application.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (connectivityManager == null) {
+                CoreLogger.logWarning(Context.CONNECTIVITY_SERVICE + ": connectivityManager == null");
+                return;
+            }
+            if (start == null) start = sRunNetworkMonitor.get();
+
+            CoreLogger.log(start ? CoreLogger.getDefaultLevel(): Level.WARNING,
+                    "run network monitor == " + start);
+
+            if (!forceOld && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+                handleConnectionNew(connectivityManager, start);
+            else
+                handleConnectionOld(connectivityManager, start);
+        }
+
         @SuppressWarnings("UnusedReturnValue")
         private static void allRemaining(@NonNull final Application application) {
-
             sBaseUri = String.format(BASE_URI, application.getPackageName());
-
-            if (!sRunNetworkMonitor) return;
-
-            Utils.sExecutorHelper.runInBackground(new Runnable() {
-
-                private static final String PERMISSION = Manifest.permission.ACCESS_NETWORK_STATE;
-
-                @Override
-                public void run() {
-                    if (!isVisible() || !isInForeground()) return;
-
-                    final ConnectivityManager connectivityManager =
-                            (ConnectivityManager) application.getSystemService(Context.CONNECTIVITY_SERVICE);
-                    if (connectivityManager == null) {
-                        CoreLogger.logWarning(Context.CONNECTIVITY_SERVICE +
-                                ": connectivityManager == null");
-                        return;
-                    }
-
-                    final Activity activity = Utils.getCurrentActivity();
-                    if (activity == null) {
-                        CoreLogger.logWarning("network monitoring: activity == null");
-                        return;
-                    }
-
-                    final boolean result = new CorePermissions.RequestBuilder(activity, PERMISSION)
-                            .setOnGranted(new Runnable() {
-                                @Override
-                                public void run() {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-                                        handleConnectionNew();
-                                    else
-                                        handleConnectionOld();
-                                }
-
-                                private void setConnected(final boolean isConnected) {
-                                    synchronized (sConnectedLock) {
-                                        if (sConnected.getAndSet(isConnected) != isConnected) {
-                                            CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
-                                                    "network is " + (isConnected ? "": "NOT ") + "available");
-                                            onNetworkStatusChanged(isConnected);
-                                        }
-                                    }
-                                }
-
-                                @SuppressWarnings({"deprecation", "RedundantSuppression"})
-                                private void handleConnectionOld() {
-                                    @SuppressLint("MissingPermission")
-                                    final android.net.NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
-                                    setConnected(activeInfo != null && activeInfo.isConnected());
-                                }
-
-                                @SuppressLint("MissingPermission")
-                                @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
-                                @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-                                private void handleConnectionNew() {
-                                    connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(),
-                                            new ConnectivityManager.NetworkCallback() {
-                                                @Override
-                                                public void onAvailable(@NonNull final Network network) {
-                                                    CoreLogger.log(Level.DEBUG, "NetworkCallback.onAvailable()");
-                                                    setConnected( true);
-                                                }
-
-                                                @Override
-                                                public void onBlockedStatusChanged(@NonNull final Network network,
-                                                                                   final boolean blocked) {
-                                                    CoreLogger.log(blocked? Level.WARNING: Level.DEBUG,
-                                                            "NetworkCallback.onBlockedStatusChanged() " + blocked);
-                                                    setConnected(!blocked);
-                                                }
-
-                                                @Override
-                                                public void onLosing(@NonNull final Network network, final int maxMsToLive) {
-                                                    CoreLogger.log(Level.WARNING, "NetworkCallback.onLosing()");
-                                                    setConnected(false);
-                                                }
-
-                                                @Override
-                                                public void onLost(@NonNull final Network network) {
-                                                    CoreLogger.log(Level.WARNING, "NetworkCallback.onLost()");
-                                                    setConnected(false);
-                                                }
-
-                                                @Override
-                                                public void onUnavailable() {
-                                                    CoreLogger.log(Level.WARNING, "NetworkCallback.onUnavailable()");
-                                                    setConnected(false);
-                                                }
-                                            });
-                                }
-                            })
-                            .request();
-
-                    CoreLogger.log(PERMISSION + " request result: " +
-                            (result ? "already granted": "not granted yet"));
-                }
-
-                @NonNull
-                @Override
-                public String toString() {
-                    return "timer for network monitoring";
-                }
-            }, 0, adjustTimeout(TIMEOUT_NETWORK_MONITOR), false);
+            handleConnection(application, null, false);
         }
 
         private static void onNetworkStatusChanged(final boolean isConnected) {
@@ -1034,12 +1078,39 @@ public class Core implements DefaultLifecycleObserver {
         }
     }
 
-    // Don't forget to call some init(...) method after this call.
-
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void setRunNetworkMonitor(final boolean runNetworkMonitor) {
-        Init.sRunNetworkMonitor = runNetworkMonitor;
+        if (Init.sRunNetworkMonitor.compareAndSet(!runNetworkMonitor, runNetworkMonitor))
+            Init.handleConnection(sApplication.get(), null, false);
+    }
+
+    /**
+     * Sets the network monitor update interval and forces to use network polling on devices with
+     * API level >= {@link VERSION_CODES#LOLLIPOP} (normally such devices uses
+     * {@link <a href="https://developer.android.com/reference/android/net/ConnectivityManager.NetworkCallback">ConnectivityManager.NetworkCallback</a>}.
+     *
+     * @param interval
+     *        The update interval in seconds (<= 5 min) or milliseconds (> 5 min). The default value is 5 min.
+     *
+     * @return  The previous interval
+     */
+    @SuppressWarnings("unused")
+    public static int setRunNetworkMonitorInterval(final int interval) {
+//      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) return -1;
+        synchronized (Init.sConnectedLock) {
+            if (Init.sConnectionCheckInterval.get() == interval) return interval;
+            if (interval <= 0) {
+                CoreLogger.logError("wrong network monitor interval " + interval);
+                return Init.sConnectionCheckInterval.get();
+            }
+            final Application application = sApplication.get();
+
+            Init.handleConnection(application, false, false);
+            final int previous = Init.sConnectionCheckInterval.getAndSet(interval);
+            Init.handleConnection(application, true, true);
+
+            return previous;
+        }
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1049,16 +1120,33 @@ public class Core implements DefaultLifecycleObserver {
 
     private static final Set<NetworkStatusListener>     sNetworkStatusListeners         = Utils.newSet();
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean register(@NonNull final NetworkStatusListener listener) {
         return sNetworkStatusListeners.add(listener);
     }
 
-    /** @exclude */
-    @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean unregister(@NonNull final NetworkStatusListener listener) {
         return sNetworkStatusListeners.remove(listener);
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static long adjustTimeout(Long timeout) {
+        if (timeout == null || timeout <= 0) {
+            if (timeout == null) CoreLogger.log("time interval == null, default value will be used");
+            else                 CoreLogger.logError("wrong time interval " + timeout);
+            timeout = (long) TIMEOUT_CONNECTION;
+        }
+        if (timeout <= ADJUST_TIMEOUT_THRESHOLD) timeout *= 1000;
+
+        CoreLogger.log("accepted time interval (ms): " + timeout);
+        return timeout;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static int adjustTimeout(final Integer timeout) {
+        final Long tmp = timeout == null ? null: Long.valueOf(timeout);
+        return (int) adjustTimeout(tmp);
     }
 
     /**
@@ -1116,6 +1204,7 @@ public class Core implements DefaultLifecycleObserver {
         };
 
         private static final ExecutorHelper             sExecutorHelper                 = new ExecutorHelper();
+        private static       ExecutorHelper             sExecutorHelperConnection;
 
         private Utils() {
         }
@@ -1226,96 +1315,6 @@ public class Core implements DefaultLifecycleObserver {
         @SuppressWarnings("unused")
         public static View getDefaultView(final Activity activity) {
             return ViewHelper.getView(activity);
-        }
-
-        /**
-         * Shows {@link Toast}.
-         *
-         * @param text
-         *        The text to show in {@code Toast}
-         *
-         * @param duration
-         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
-         *        {@code Toast.LENGTH_SHORT}), null for default value
-         */
-        @SuppressWarnings("unused")
-        public static void showToast(final String text, final Integer duration) {
-            UiModule.showToast(text, duration);
-        }
-
-        /**
-         * Shows {@link Toast}.
-         *
-         * @param resId
-         *        The string ID to show in {@code Toast}
-         *
-         * @param duration
-         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
-         *        {@code Toast.LENGTH_SHORT}), null for default value
-         */
-        @SuppressWarnings("unused")
-        public static void showToast(@StringRes final int resId, final Integer duration) {
-            UiModule.showToast(resId, duration);
-        }
-
-        /**
-         * Shows {@link Toast}.
-         *
-         * @param toast
-         *        The {@code Toast} to show
-         *
-         * @param duration
-         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
-         *        {@code Toast.LENGTH_SHORT}), null for default value
-         */
-        @SuppressWarnings("unused")
-        public static void showToastExt(final Toast toast, final Integer duration) {
-            UiModule.showToastExt(toast, duration);
-        }
-
-        /**
-         * Shows {@link Toast}.
-         *
-         * @param viewId
-         *        The layout ID to show in {@code Toast}
-         *
-         * @param duration
-         *        duration in seconds or milliseconds (or {@code Toast.LENGTH_LONG},
-         *        {@code Toast.LENGTH_SHORT}), null for default value
-         */
-        @SuppressWarnings("unused")
-        public static void showToastExt(@LayoutRes final int viewId, final Integer duration) {
-            UiModule.showToastExt(viewId, duration);
-        }
-
-        /**
-         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
-         *
-         * @param text
-         *        The text to show in {@code Snackbar}
-         *
-         * @param duration
-         *        duration in seconds or milliseconds (or {@code Snackbar.LENGTH_INDEFINITE},
-         *        {@code Snackbar.LENGTH_LONG}, {@code Snackbar.LENGTH_SHORT}), null for default value
-         */
-        @SuppressWarnings("unused")
-        public static void showSnackbar(final String text, final Integer duration) {
-            UiModule.showSnackbar(text, duration);
-        }
-
-        /**
-         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
-         *
-         * @param resId
-         *        The string ID to show in {@code Snackbar}
-         *
-         * @param duration
-         *        duration in seconds or milliseconds (or {@code Snackbar.LENGTH_INDEFINITE},
-         *        {@code Snackbar.LENGTH_LONG}, {@code Snackbar.LENGTH_SHORT}), null for default value
-         */
-        @SuppressWarnings("unused")
-        public static void showSnackbar(@StringRes final int resId, final Integer duration) {
-            UiModule.showSnackbar(resId, duration);
         }
 
         /**
@@ -1545,83 +1544,93 @@ public class Core implements DefaultLifecycleObserver {
                         Orientation.UNSPECIFIED: Orientation.LANDSCAPE;
         }
 
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static String getUnknownResult(final int result) {
+            CoreLogger.log(Level.WARNING, "unknown result " + result, true);
+            return String.valueOf(result);
+        }
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public static String getDialogInterfaceString(final int which) {
             switch (which) {
-                case        DialogInterface.BUTTON_POSITIVE                   :
-                    return "DialogInterface.BUTTON_POSITIVE"                  ;
-                case        DialogInterface.BUTTON_NEGATIVE                   :
-                    return "DialogInterface.BUTTON_NEGATIVE"                  ;
-                case        DialogInterface.BUTTON_NEUTRAL                    :
-                    return "DialogInterface.BUTTON_NEUTRAL"                   ;
-                default                                                       :
-                    return "unknown DialogInterface result: " + which         ;
+                case        DialogInterface.BUTTON_POSITIVE                                 :
+                    return "DialogInterface.BUTTON_POSITIVE"                                ;
+                case        DialogInterface.BUTTON_NEGATIVE                                 :
+                    return "DialogInterface.BUTTON_NEGATIVE"                                ;
+                case        DialogInterface.BUTTON_NEUTRAL                                  :
+                    return "DialogInterface.BUTTON_NEUTRAL"                                 ;
+                default                                                                     :
+                    return "unknown DialogInterface result: " + getUnknownResult(which)     ;
             }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getActivityResultString(final int result) {
             switch (result) {
-                case        Activity.RESULT_OK                                :
-                    return "Activity.RESULT_OK"                               ;
-                case        Activity.RESULT_CANCELED                          :
-                    return "Activity.RESULT_CANCELED"                         ;
-                case        Activity.RESULT_FIRST_USER                        :
-                    return "Activity.RESULT_FIRST_USER"                       ;
-                default                                                       :
-                    return "unknown Activity result: " + result               ;
+                case        Activity.RESULT_OK                                              :
+                    return "Activity.RESULT_OK"                                             ;
+                case        Activity.RESULT_CANCELED                                        :
+                    return "Activity.RESULT_CANCELED"                                       ;
+                case        Activity.RESULT_FIRST_USER                                      :
+                    return "Activity.RESULT_FIRST_USER"                                     ;
+                default                                                                     :
+                    return "unknown Activity result: " + getUnknownResult(result)           ;
             }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static String getOnTrimMemoryLevelString(final int level) {
             switch (level) {
-                case        ComponentCallbacks2.TRIM_MEMORY_COMPLETE          :
-                    return "ComponentCallbacks2.TRIM_MEMORY_COMPLETE"         ;
-                case        ComponentCallbacks2.TRIM_MEMORY_MODERATE          :
-                    return "ComponentCallbacks2.TRIM_MEMORY_MODERATE"         ;
-                case        ComponentCallbacks2.TRIM_MEMORY_BACKGROUND        :
-                    return "ComponentCallbacks2.TRIM_MEMORY_BACKGROUND"       ;
-                case        ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN         :
-                    return "ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN"        ;
-                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL  :
-                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL" ;
-                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW       :
-                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW"      ;
-                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE  :
-                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE" ;
-                default                                                       :
-                    return "unknown OnTrimMemory() level: " + level           ;
+                case        ComponentCallbacks2.TRIM_MEMORY_COMPLETE                        :
+                    return "ComponentCallbacks2.TRIM_MEMORY_COMPLETE"                       ;
+                case        ComponentCallbacks2.TRIM_MEMORY_MODERATE                        :
+                    return "ComponentCallbacks2.TRIM_MEMORY_MODERATE"                       ;
+                case        ComponentCallbacks2.TRIM_MEMORY_BACKGROUND                      :
+                    return "ComponentCallbacks2.TRIM_MEMORY_BACKGROUND"                     ;
+                case        ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN                       :
+                    return "ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN"                      ;
+                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL                :
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL"               ;
+                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW                     :
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW"                    ;
+                case        ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE                :
+                    return "ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE"               ;
+                default                                                                     :
+                    return "unknown OnTrimMemory() level: " + getUnknownResult(level)       ;
             }
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static Level getOnTrimMemoryLevel(final int level) {
             switch (level) {
-                case ComponentCallbacks2.TRIM_MEMORY_COMPLETE                 :
-                    return Level.ERROR                                        ;
-                case ComponentCallbacks2.TRIM_MEMORY_MODERATE                 :
-                    return Level.WARNING                                      ;
-                case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND               :
-                case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN                :
-                    return Level.INFO                                         ;
+                case ComponentCallbacks2.TRIM_MEMORY_COMPLETE                               :
+                    return Level.ERROR                                                      ;
+                case ComponentCallbacks2.TRIM_MEMORY_MODERATE                               :
+                    return Level.WARNING                                                    ;
+                case ComponentCallbacks2.TRIM_MEMORY_BACKGROUND                             :
+                case ComponentCallbacks2.TRIM_MEMORY_UI_HIDDEN                              :
+                    return Level.INFO                                                       ;
 
-                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL         :
-                    return Level.ERROR                                        ;
-                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW              :
-                    return Level.WARNING                                      ;
-                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE         :
-                    return Level.INFO                                         ;
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL                       :
+                    //noinspection DuplicateBranchesInSwitch
+                    return Level.ERROR                                                      ;
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW                            :
+                    //noinspection DuplicateBranchesInSwitch
+                    return Level.WARNING                                                    ;
+                case ComponentCallbacks2.TRIM_MEMORY_RUNNING_MODERATE                       :
+                    //noinspection DuplicateBranchesInSwitch
+                    return Level.INFO                                                       ;
 
                 // unknown level
-                default                                                       :
-                    return Level.ERROR                                        ;
+                default                                                                     :
+                    CoreLogger.log(Level.WARNING, "unknown level " + level, true);
+                    return Level.ERROR                                                      ;
             }
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "SameReturnValue"})
         public static Level getOnLowMemoryLevel() {
-            return Level.WARNING                                              ;
+            return Level.WARNING                                                            ;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1870,6 +1879,679 @@ public class Core implements DefaultLifecycleObserver {
             return Collections.synchronizedMap(new LinkedHashMap<>());
         }
 
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param text
+         *        The text to show in {@code Toast}
+         *
+         * @param duration
+         *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
+         *        {@code Toast.LENGTH_SHORT}, null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showToast(final String text, final Integer duration) {
+            UiModule.showToast(text, duration);
+        }
+
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param resId
+         *        The string ID to show in {@code Toast}
+         *
+         * @param duration
+         *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
+         *        {@code Toast.LENGTH_SHORT}, null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showToast(@StringRes final int resId, final Integer duration) {
+            UiModule.showToast(resId, duration);
+        }
+
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param toast
+         *        The {@code Toast} to show
+         *
+         * @param duration
+         *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
+         *        {@code Toast.LENGTH_SHORT}, null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showToastExt(final Toast toast, final Integer duration) {
+            UiModule.showToastExt(toast, duration);
+        }
+
+        /**
+         * Shows {@link Toast}.
+         *
+         * @param viewId
+         *        The layout ID to show in {@code Toast}
+         *
+         * @param duration
+         *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
+         *        {@code Toast.LENGTH_SHORT}, null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showToastExt(@LayoutRes final int viewId, final Integer duration) {
+            UiModule.showToastExt(viewId, duration);
+        }
+
+        /**
+         * Builds and shows {@link Toast} with custom duration (please refer to {@link #setDuration}).
+         *
+         * <p>Can call {@link Activity#onActivityResult} (see {@link #setRequestCode}).
+         */
+        public static class ToastBuilder {
+
+            private final      WeakReference<Context>   mContext;
+            @LayoutRes
+            private            int                      mViewId                         = Core.NOT_VALID_RES_ID;
+            private            WeakReference<View>      mView;
+            @StringRes
+            private            int                      mTextId                         = Core.NOT_VALID_RES_ID;
+            private            String                   mText;
+            private            Integer                  mDuration, mRequestCode;
+            private            Intent                   mData;
+
+            private            Integer                  mGravity;
+            private            int                      mXOffset;
+            private            int                      mYOffset;
+
+            private            Float                    mHorizontalMargin;
+            private            float                    mVerticalMargin;
+
+            /**
+             * Initialises a newly created {@code ToastBuilder} object.
+             *
+             * @param context
+             *        The Context (or null for the default one)
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder(final Context context) {
+                mContext = context == null ? null: new WeakReference<>(context);
+            }
+
+            /**
+             * Sets the Toast's {@link View}.
+             *
+             * @param viewId
+             *        The View ID
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setViewId(@LayoutRes final int viewId) {
+                mViewId           = viewId;
+                return this;
+            }
+
+            /**
+             * Sets the Toast's {@link View}.
+             *
+             * @param view
+             *        The View
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setView(final View view) {
+                mView             = view == null ? null: new WeakReference<>(view);
+                return this;
+            }
+
+            /**
+             * Sets the Toast's text.
+             *
+             * @param textId
+             *        The {@code String} ID in resources
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setTextId(@StringRes final int textId) {
+                mTextId           = textId;
+                return this;
+            }
+
+            /**
+             * Sets the Toast's text.
+             *
+             * @param text
+             *        The {@code String}
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setText(final String text) {
+                mText             = text;
+                return this;
+            }
+
+            /**
+             * Sets the Toast's duration.
+             *
+             * @param duration
+             *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
+             *        {@code Toast.LENGTH_SHORT}, null for default value
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setDuration(final Integer duration) {
+                mDuration         = duration;
+                return this;
+            }
+
+            /**
+             * Sets the Toast's request code. If not null, on dismissing {@link Toast} will call
+             * {@link Activity#onActivityResult}.
+             *
+             * @param requestCode
+             *        The request code
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setRequestCode(@IntRange(from = 0) final Integer requestCode) {
+                mRequestCode      = requestCode;
+                return this;
+            }
+
+
+            /**
+             * Sets the data for {@link Activity#onActivityResult} (please refer to {@link #setRequestCode}).
+             *
+             * @param data
+             *        The Intent
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setData(final Intent data) {
+                mData             = data;
+                return this;
+            }
+
+            /**
+             * Please refer to {@link Toast#setGravity}.
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setGravity(final Integer gravity, final int xOffset, final int yOffset) {
+                mGravity          = gravity;
+                mXOffset          = xOffset;
+                mYOffset          = yOffset;
+                return this;
+            }
+
+            /**
+             * Please refer to {@link Toast#setMargin}.
+             *
+             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public ToastBuilder setMargin(final Float horizontalMargin, final float verticalMargin) {
+                mHorizontalMargin = horizontalMargin;
+                mVerticalMargin   = verticalMargin;
+                return this;
+            }
+
+            private Toast run(final boolean show) {
+                return UiModule.showToast(mContext == null ? null: mContext.get(), mViewId,
+                        mView == null ? null: mView.get(), mTextId, mText, mDuration,
+                        mRequestCode, mData, mGravity, mXOffset, mYOffset,
+                        mHorizontalMargin, mVerticalMargin, show);
+            }
+
+            /**
+             * Just creates the {@link Toast} (without showing).
+             *
+             * @return  The created (but not shown) {@link Toast} (or null)
+             */
+            @SuppressWarnings("unused")
+            public Toast create() {
+                return run(false);
+            }
+
+            /**
+             * Creates and shows the {@link Toast}.
+             *
+             * @return  The created and shown {@link Toast} (or null)
+             */
+            @SuppressWarnings("unused")
+            public Toast show() {
+                return run(true);
+            }
+        }
+
+        /**
+         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
+         *
+         * @param text
+         *        The text to show in {@code Snackbar}
+         *
+         * @param duration
+         *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Snackbar.LENGTH_INDEFINITE},
+         *        {@code Snackbar.LENGTH_LONG} or {@code Snackbar.LENGTH_SHORT}, null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showSnackbar(final String text, final Integer duration) {
+            UiModule.showSnackbar(text, duration);
+        }
+
+        /**
+         * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
+         *
+         * @param resId
+         *        The string ID to show in {@code Snackbar}
+         *
+         * @param duration
+         *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Snackbar.LENGTH_INDEFINITE},
+         *        {@code Snackbar.LENGTH_LONG} or {@code Snackbar.LENGTH_SHORT}, null for default value
+         */
+        @SuppressWarnings("unused")
+        public static void showSnackbar(@StringRes final int resId, final Integer duration) {
+            UiModule.showSnackbar(resId, duration);
+        }
+
+        /**
+         * Adds Snackbar to Snackbar's queue.
+         *
+         * @param snackbar
+         *        The Snackbar
+         *
+         * @return  {@code true} if added successfully, {@code false} otherwise
+         */
+        @SuppressWarnings("unused")
+        public static boolean addToSnackbarsQueue(final Snackbar snackbar) {
+            return UiModule.addToSnackbarsQueue(snackbar, null, null,
+                    null, true, null, null, null);
+        }
+
+        /**
+         * Adds Snackbar to Snackbar's queue.
+         *
+         * @param snackbar
+         *        The Snackbar
+         *
+         * @param requestCode
+         *        The request code to call {@link Activity#onActivityResult} (or null for no call)
+         *
+         * @param intent
+         *        The intent to pass to {@link Activity#onActivityResult} (or null)
+         *
+         * @param activity
+         *        The Activity (or null for default one)
+         *
+         * @param actionNoDefaultHandler
+         *        {@code false} to call {@link Activity#onActivityResult} in case of
+         *        {@link Callback#DISMISS_EVENT_ACTION}, {@code true} otherwise
+         *
+         * @param countDownLatch
+         *        The {@link CountDownLatch} (if any) to wait until run the next {@link Snackbar} from queue
+         *
+         * @param countDownLatchTimeout
+         *        The {@link CountDownLatch} timeout (or null)
+         *
+         * @param id
+         *        The Snackbar's ID (or null)
+         *
+         * @return  {@code true} if added successfully, {@code false} otherwise
+         */
+        @SuppressWarnings("unused")
+        public static boolean addToSnackbarsQueue(
+                final Snackbar snackbar, final Integer requestCode, final Intent intent, final Activity activity,
+                final boolean actionNoDefaultHandler, final CountDownLatch countDownLatch,
+                final Long countDownLatchTimeout, final String id) {
+            return UiModule.addToSnackbarsQueue(snackbar, requestCode, intent, activity,
+                    actionNoDefaultHandler, countDownLatch, countDownLatchTimeout, id);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        public static int getColor(@ColorRes final int id) {
+            return getColor(id, null);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "deprecation", "WeakerAccess"})
+        public static int getColor(@ColorRes final int id, final Resources.Theme theme) {
+            final Resources resources = getApplication().getResources();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
+                return resources.getColor(id, theme);
+            else
+                return resources.getColor(id);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static int getDefaultSnackbarActionColor() {
+            return getColor(R.color.yakhont_color_snackbar_action);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static ViewModifier getDefaultSnackbarViewModifier() {
+            //noinspection Convert2Lambda
+            return new ViewModifier() {
+                @SuppressWarnings("unused")
+                @Override
+                public void modify(View view, ViewHandler viewHandler) {
+                    view.setBackgroundResource(R.drawable.yakhont_snackbar_background);
+                    viewHandler.getTextView().setTextColor(getColor(R.color.yakhont_color_snackbar_text));
+                }
+            };
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static ViewHandlerSnackbar getSnackbarViewHandler(
+                final ViewModifier viewModifier, final ViewHandlerSnackbar previous, final boolean chain) {
+            return viewModifier == null ? null: new ViewHandlerSnackbar() {
+                @SuppressWarnings("unused")
+                @Override
+                public void modify(final View view, final ViewHandler viewHandler) {
+                    if (chain && previous != null) previous.modify(view, viewHandler);
+                    viewModifier.modify(view, viewHandler);
+                }
+            };
+        }
+
+        /**
+         * Builds and shows {@link Snackbar} with Views customization possibilities (please refer to
+         * {@link #setViewHandler}).
+         *
+         * <p>Sequential Snackbar's calls are queued.
+         *
+         * <p>By default calls {@link Activity#onActivityResult} (see {@link #setRequestCode}).
+         */
+        public static class SnackbarBuilder {
+
+            private final      WeakReference<Activity>  mActivity;
+            @IdRes
+            private            int                      mViewId                         = Core.NOT_VALID_VIEW_ID;
+            private            WeakReference<View>      mView;
+            @StringRes
+            private            int                      mTextId                         = Core.NOT_VALID_RES_ID;
+            private            String                   mText;
+            private            Integer                  mDuration, mRequestCode;
+            private            Intent                   mData;
+            @StringRes
+            private            int                      mActionTextId                   = Core.NOT_VALID_RES_ID;
+            private            String                   mActionText;
+            private            View.OnClickListener     mAction;
+            private            Integer                  mMaxLines;
+            private            ColorStateList           mActionColors;
+            @ColorRes
+            private            int                      mActionColorId                  = Core.NOT_VALID_RES_ID;
+            @ColorInt
+            private            int                      mActionColor                    = Core.NOT_VALID_COLOR;
+
+            private            ViewHandlerSnackbar      mViewHandler;
+            private            boolean                  mViewHandlerChain;
+
+            /**
+             * Initialises a newly created {@code SnackbarBuilder} object.
+             *
+             * @param activity
+             *        The Activity (or null for the current one)
+             */
+            public SnackbarBuilder(final Activity activity) {
+                mActivity = activity == null ? null: new WeakReference<>(activity);
+            }
+
+            /**
+             * Sets the {@link View} for {@link Snackbar#make}.
+             *
+             * @param viewId
+             *        The View ID
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setViewId(@IdRes final int viewId) {
+                mViewId          = viewId;
+                return this;
+            }
+
+            /**
+             * Sets the {@link View} for {@link Snackbar#make}.
+             *
+             * @param view
+             *        The View
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            public SnackbarBuilder setView(final View view) {
+                mView            = view == null ? null: new WeakReference<>(view);
+                return this;
+            }
+
+            /**
+             * Sets the Snackbar's text.
+             *
+             * @param textId
+             *        The {@code String} ID in resources
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            public SnackbarBuilder setTextId(@StringRes final int textId) {
+                mTextId          = textId;
+                return this;
+            }
+
+            /**
+             * Sets the Snackbar's text.
+             *
+             * @param text
+             *        The {@code String}
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setText(final String text) {
+                mText            = text;
+                return this;
+            }
+
+            /**
+             * Sets the Snackbar's duration.
+             *
+             * @param duration
+             *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Snackbar.LENGTH_INDEFINITE},
+             *        {@code Snackbar.LENGTH_LONG} or {@code Snackbar.LENGTH_SHORT}, null for default value
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            public SnackbarBuilder setDuration(final Integer duration) {
+                mDuration        = duration;
+                return this;
+            }
+
+            /**
+             * Sets the Snackbar's request code. If not null, on dismissing {@link Snackbar} will call
+             * action listener (see {@link #setAction}).
+             *
+             * @param requestCode
+             *        The request code
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setRequestCode(@IntRange(from = 0) final Integer requestCode) {
+                mRequestCode     = requestCode;
+                return this;
+            }
+
+            /**
+             * Sets the data for {@link Activity#onActivityResult} (please refer to {@link #setAction}).
+             *
+             * @param data
+             *        The Intent
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setData(final Intent data) {
+                mData            = data;
+                return this;
+            }
+
+            /**
+             * Sets the Snackbar's action. If not null (or {@link #setRequestCode} set non-null value),
+             * on dismissing {@link Snackbar} will call it, (default action is {@link Activity#onActivityResult}).
+             *
+             * @param action
+             *        The Snackbar's action
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            public SnackbarBuilder setAction(final View.OnClickListener action) {
+                mAction          = action;
+                return this;
+            }
+
+            /**
+             * Sets the Snackbar's action text.
+             *
+             * @param actionTextId
+             *        The {@code String} ID in resources
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            public SnackbarBuilder setActionTextId(@StringRes final int actionTextId) {
+                mActionTextId    = actionTextId;
+                return this;
+            }
+
+            /**
+             * Sets the Snackbar's action text.
+             *
+             * @param actionText
+             *        The {@code String}
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setActionText(final String actionText) {
+                mActionText      = actionText;
+                return this;
+            }
+
+            /**
+             * Sets the 'max lines' value for Snackbar's text
+             * (please refer to {@link TextView#setMaxLines} for more info).
+             *
+             * @param maxLines
+             *        The 'max lines' value
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setMaxLines(final Integer maxLines) {
+                mMaxLines        = maxLines;
+                return this;
+            }
+
+            /**
+             * Sets the colors for the Snackbar's action text (please refer to
+             * {@link Snackbar#setActionTextColor(ColorStateList) setActionTextColor} for more info).
+             *
+             * @param actionColors
+             *        The colors
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setActionColors(final ColorStateList actionColors) {
+                mActionColors    = actionColors;
+                return this;
+            }
+
+            /**
+             * Sets the color for the Snackbar's action text (please refer to
+             * {@link Snackbar#setActionTextColor(int)} setActionTextColor} for more info).
+             *
+             * @param actionColorId
+             *        The color ID in resources
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setActionColorId(@ColorRes final int actionColorId) {
+                mActionColorId   = actionColorId;
+                return this;
+            }
+
+            /**
+             * Sets the color for the Snackbar's action text (please refer to
+             * {@link Snackbar#setActionTextColor(int)} setActionTextColor} for more info).
+             *
+             * @param actionColor
+             *        The color
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setActionColor(@ColorInt final int actionColor) {
+                mActionColor     = actionColor;
+                return this;
+            }
+
+            /**
+             * Sets the View handler for the Snackbar's view. Usage example:
+             *
+             * <p><pre style="background-color: silver; border: thin solid black;">
+             * setToastViewHandler((view, vh) -&gt; {
+             *     view.setBackgroundColor(Color.BLUE);
+             *     vh.getTextView().setTextColor(Color.GREEN);
+             * });
+             * </pre>
+             *
+             * @param viewModifier
+             *        The Snackbar's view modifier
+             *
+             * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
+             */
+            @SuppressWarnings("unused")
+            public SnackbarBuilder setViewHandler(final ViewModifier viewModifier) {
+                mViewHandler = viewModifier == null ? null: getSnackbarViewHandler(viewModifier,
+                        mViewHandler, mViewHandlerChain);
+                return this;
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            public SnackbarBuilder setViewHandlerChain(final boolean viewHandlerChain) {
+                mViewHandlerChain = viewHandlerChain;
+                return this;
+            }
+
+            private Snackbar run(final boolean show) {
+                return UiModule.showSnackbar(mActivity == null ? null: mActivity.get(), mViewId,
+                        mView == null ? null: mView.get(), mTextId, mText, mMaxLines, mDuration,
+                        mRequestCode, mData, mActionTextId, mActionText, mAction, mActionColors,
+                        mActionColorId, mActionColor, mViewHandler, show);
+            }
+
+            /**
+             * Just creates the {@link Snackbar} (without showing).
+             *
+             * @return  The created (but not shown) {@link Snackbar} (or null)
+             */
+            @SuppressWarnings("unused")
+            public Snackbar create() {
+                return run(false);
+            }
+
+            /**
+             * Creates and shows the {@link Snackbar}.
+             *
+             * @return  The created and shown {@link Snackbar} (or null)
+             */
+            public Snackbar show() {
+                return run(true);
+            }
+        }
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static class RequestCodesHandler {
 
@@ -1945,6 +2627,8 @@ public class Core implements DefaultLifecycleObserver {
 
             private final List<Future<?>>               mTasks                          = new ArrayList<>();
 
+            private       boolean                       mCancelled;
+
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public ExecutorHelper() {
                 this(THREAD_POOL_SIZE, null);
@@ -2019,18 +2703,26 @@ public class Core implements DefaultLifecycleObserver {
                 return result;
             }
 
-            private static Future<?> submit(@NonNull final ScheduledExecutorService service,
-                                            @NonNull final Runnable runnable,
-                                            final long delay, final long period) {
-                try {
-                    return period > 0 ? service.scheduleAtFixedRate(runnable, delay, period,
-                            TimeUnit.MILLISECONDS): delay > 0 ? service.schedule(runnable, delay,
-                            TimeUnit.MILLISECONDS): service.submit(runnable);
-                }
-                catch (Exception exception) {
-                    CoreLogger.log("submit failed: " + runnable, exception);
-                    return null;
-                }
+            private Future<?> submit(@NonNull final ScheduledExecutorService service,
+                                     @NonNull final Runnable runnable,
+                                     final long delay, final long period) {
+                if (mCancelled)
+                    CoreLogger.logError("cancelled; can't run " + runnable);
+                else
+                    try {
+                        return period > 0 ? service.scheduleAtFixedRate(runnable, delay, period,
+                                TimeUnit.MILLISECONDS): delay > 0 ? service.schedule(runnable, delay,
+                                TimeUnit.MILLISECONDS): service.submit(runnable);
+                    }
+                    catch (Exception exception) {
+                        CoreLogger.log("submit failed: " + runnable, exception);
+                    }
+                return null;
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+            public boolean isCancelled() {
+                return mCancelled;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -2040,6 +2732,9 @@ public class Core implements DefaultLifecycleObserver {
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "SameParameterValue", "WeakerAccess"})
             public void cancel(final boolean forceStopTasks) {
+                if (mCancelled) return;
+                mCancelled = true;
+
                 CoreLogger.log("about to cancel executor " + this + ", forceStopTasks " + forceStopTasks);
 
                 if (!forceStopTasks) {
@@ -2254,7 +2949,7 @@ public class Core implements DefaultLifecycleObserver {
                                 }
                             }
 
-                            @SuppressWarnings({"deprecation", "RedundantSuppression"})
+                            @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
                             private void removeListener() {
                                 view.getViewTreeObserver().removeGlobalOnLayoutListener(this);
                             }
@@ -2364,7 +3059,13 @@ public class Core implements DefaultLifecycleObserver {
                 final String defaultViewDescription = CoreLogger.getResourceDescription(defaultViewId);
                 CoreLogger.log("default view is " + defaultViewDescription);
 
-                View view = activity.findViewById(defaultViewId);
+                View view = null;
+                try {
+                    view = activity.findViewById(defaultViewId);
+                }
+                catch (Exception exception) {
+                    CoreLogger.log(exception);
+                }
                 if (view == null) {
                     CoreLogger.logWarning(defaultViewDescription +
                             " not found, getWindow().getDecorView() will be used");
@@ -2609,11 +3310,53 @@ public class Core implements DefaultLifecycleObserver {
         public static boolean close(final Cursor cursor) {
             if (cursor != null && !cursor.isClosed()) {
                 CoreLogger.log(CoreLogger.getDefaultLevel(), "about to close cursor " + cursor, true);
-                cursor.close();
-                return true;
+                try {
+                    cursor.close();
+                    return true;
+                }
+                catch (Exception exception) {
+                    CoreLogger.log(exception);
+                }
             }
-            CoreLogger.log("not closeable cursor " + cursor);
+            else
+                CoreLogger.log("not closeable cursor " + cursor);
             return false;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
+        public static boolean await(final CountDownLatch countDownLatch, final long timeout) {
+            return handle(countDownLatch, timeout);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
+        public static boolean cancel(final CountDownLatch countDownLatch) {
+            return handle(countDownLatch, null);
+        }
+
+        private static boolean handle(final CountDownLatch countDownLatch, final Long timeout) {
+            boolean result = false;
+
+            if (countDownLatch == null)
+                CoreLogger.logWarning("countDownLatch == null");
+            else
+                try {
+                    if (timeout == null)
+                        while (countDownLatch.getCount() > 0)
+                            countDownLatch.countDown();
+
+                    else if (timeout <= 0) countDownLatch.await();
+                    else {
+                        final long tmp = adjustTimeout(timeout);
+                        if (!              countDownLatch.await(tmp, TimeUnit.MILLISECONDS))
+                            CoreLogger.logWarning(tmp + " (ms) timeout for CountDownLatch " + countDownLatch);
+                    }
+                    result = true;
+                }
+                catch (/*Interrupted*/Exception exception) {
+                    CoreLogger.log(exception);
+                }
+
+            return result;
         }
 
         /**
@@ -2827,11 +3570,11 @@ public class Core implements DefaultLifecycleObserver {
 
                         //noinspection Convert2Lambda
                         Utils.safeRun(new Runnable() {
-                                          @Override
-                                          public void run() {
-                                              callback.onLoadFinished(tmp, source);
-                                          }
-                                      });
+                            @Override
+                            public void run() {
+                                callback.onLoadFinished(tmp, source);
+                            }
+                        });
                     }
                 };
             }

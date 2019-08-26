@@ -57,7 +57,7 @@ import java.util.Collection;
  *
  * @author akha
  */
-@SuppressWarnings({"JavadocReference", "WeakerAccess"})
+@SuppressWarnings("WeakerAccess")
 public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")

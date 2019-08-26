@@ -52,8 +52,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.room.Room
 
-import java.util.Date
 import java.lang.reflect.Type
+import java.util.Date
 
 import com.google.gson.reflect.TypeToken
 import org.json.JSONArray
@@ -73,16 +73,21 @@ class MainActivity: AppCompatActivity(), LocationListener {
     private lateinit var client : LocalOkHttpClient2
     private lateinit var adapter: CustomAdapter
 
-    // cache cursor; will be closed automatically by Yakhont in ViewModel.onCleared() method
+    // cache cursor; will be closed automatically by Yakhont
     private          var cursor : Cursor? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+
+        // uncomment if you're going to use Rx; for more info please refer to
+        //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
+//      Core.setRxUncaughtExceptionBehavior(false)      // not terminate
+
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7)
 
-//      akha.yakhont.Core.setFullLoggingInfo(true)      // for debug
+//      Core.setFullLoggingInfo(true)      // for debug
 
         setLocation()
 
@@ -114,6 +119,18 @@ class MainActivity: AppCompatActivity(), LocationListener {
                 // custom-adapter-specific (not related to Room - just custom adapter demo)
                 .setAdapter(adapter)
 
+                // uncomment for Rx-specific settings (not related to Room or custom adapter - just Rx demo)
+/*              .setRx(Retrofit2.Retrofit2Rx<List<Beer>>().subscribeSimple(
+                        object: akha.yakhont.technology.rx.BaseRx.SubscriberRx<List<Beer>>() {
+                            override fun onNext(data: List<Beer>?) {
+                                // your code here
+                            }
+
+                            override fun onError(throwable: Throwable) {
+                                // your code here
+                            }
+                        }))
+*/
                 .create()).start(null)
 
         BaseViewModel.setData(ROOM_DB_KEY, adapter)
@@ -188,7 +205,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
         private val list: ArrayList<Beer> = ArrayList()
 
-        // Yakhont-specific - every custom adapter should implement this
+        // Yakhont-specific (every custom adapter should implement this)
         override fun update(data: BaseResponse<Response<List<Beer>>, Throwable, List<Beer>>,
                             isMerge: Boolean, onLoadFinished: Runnable?) {
             list.clear()
@@ -224,6 +241,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    // location handling
 
     companion object {
         private var location: String? = null

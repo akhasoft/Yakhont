@@ -21,11 +21,8 @@ import groovy.transform.Field
 @Field final boolean addDebugActivities               = true  // auto generate additional debug Activities
 @Field final boolean addDebugFragments                = true  // auto generate additional debug Fragments
 
-@Field final String  corePath                         = 'src/main/java/akha/yakhont'
-@Field final String  corePathDebug                    = corePath + '/debug'
-
-@Field final String  fullPath                         = 'src/full/java/akha/yakhont'
-@Field final String  fullPathDebug                    = fullPath + '/debug'
+@Field final String  corePathDebug                    = 'src/main/java/akha/yakhont/debug'
+@Field final String  fullPathDebug                    = 'src/full/java/akha/yakhont/debug'
 
 @Field final String  preprocessorAddToGenerated       = '//YakhontPreprocessor:addToGenerated'
 @Field final String  preprocessorRemoveInFlavor       = '//YakhontPreprocessor:removeInFlavor'

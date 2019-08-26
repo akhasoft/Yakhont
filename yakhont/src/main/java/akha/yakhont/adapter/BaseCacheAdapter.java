@@ -1256,6 +1256,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @Override
         public ViewBinder getAdapterViewBinder() {
             return mDataBinder.getAdapterViewBinder();
@@ -1750,6 +1751,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @Override
         public ViewBinder getAdapterViewBinder() {
             return null;

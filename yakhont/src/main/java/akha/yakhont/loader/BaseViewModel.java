@@ -73,7 +73,6 @@ import java.util.concurrent.Executor;
  *
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public class BaseViewModel<D> extends AndroidViewModel {
 
     private static final String                 DEFAULT_KEY         = "yakhont-default-viewmodel-key";
@@ -90,7 +89,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     protected      final DataStore              mStore              = new DataStore();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected            Runnable               mOnCleared;
+    protected            Runnable               mOnClearedCallback;
 
     /**
      * Initialises a newly created {@link BaseViewModel} object.
@@ -484,7 +483,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     @Override
     protected void onCleared() {
         if (mData instanceof CacheLiveData) ((CacheLiveData) mData).closeCursor();
-        if (mOnCleared != null) Utils.safeRun(mOnCleared);
+        if (mOnClearedCallback != null) Utils.safeRun(mOnClearedCallback);
         super.onCleared();
     }
 
@@ -1629,7 +1628,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             }
             result.updateUi(false, mLifecycleOwner);
 
-            result.mOnCleared = mOnCleared;
+            result.mOnClearedCallback = mOnCleared;
 
             CoreLogger.log("created BaseViewModel " + CoreLogger.getDescription(result));
             return result;

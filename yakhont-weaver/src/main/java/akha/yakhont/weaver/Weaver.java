@@ -293,8 +293,13 @@ public class Weaver {
     protected void parseConfig(Map<String, Map<String   , List<String>>> mapM,
                                Map<String, Map<Condition, List<String>>> mapA,
                                String line) throws CannotCompileException {
+        if (line          == null) return;      // should never happen
+        line = line.trim();
+        if (line.length() ==    0) return;
+
         int idx = line.indexOf(COMMENT);
-        if (idx >= 0) line = line.substring(0, idx);
+        if (idx == 0) return;
+        if (idx >  0) line = line.substring(0, idx);
 
         List<String> tokens = new LinkedList<>();
         for (Matcher m = Pattern.compile("[^\\s\"']+|\"[^\"]*\"|'[^']*'").matcher(line.trim()); m.find();)

@@ -142,7 +142,6 @@ import java.util.concurrent.Callable;
  *
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public abstract class BaseCallbacks<T> {
 
     private static final String                             FORMAT                      = "-%s (%s)";

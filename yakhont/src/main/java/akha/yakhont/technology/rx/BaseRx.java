@@ -52,7 +52,6 @@ import java.util.Set;
  *
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public abstract class BaseRx<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -84,6 +83,8 @@ public abstract class BaseRx<D> {
             mCommonRx.mBaseRx = this;
         else
             throw new IllegalStateException("this instance of CommonRx is already in use");
+
+        CoreLogger.log(mIsSingle ? Level.WARNING: CoreLogger.getDefaultLevel(), "Rx single is " + mIsSingle);
     }
 
     /**
@@ -612,6 +613,7 @@ public abstract class BaseRx<D> {
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @Override
         public LocationRx subscribe(final SubscriberRx<Location> subscriber) {
             return (LocationRx) super.subscribe(subscriber);
@@ -701,7 +703,7 @@ public abstract class BaseRx<D> {
      */
     public static class LoaderRx<R, E, D> extends BaseRx<BaseResponse<R, E, D>> {
 
-        private static final boolean            DEFAULT_MODE_SINGLE = true;
+        private static final boolean            DEFAULT_MODE_SINGLE = false;
 
         private BaseResponse<R, E, D>           mCached;
 

@@ -283,7 +283,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                         "permissions rationale is already defined as 'parameters'");
             if (parameters.length != 1)
                 CoreLogger.logWarning("only first parameter accepted, all others are ignored: " +
-                        Arrays.deepToString(parameters));
+                        Arrays.toString(parameters));
 
             mPermissionsRationale = parameters[0];
         }
@@ -299,7 +299,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                 for (int i = 0; i < properties.length; i++)
                     tmp[i] = properties[i];
                 CoreLogger.logWarning("only first 2 parameter accepted, all others are ignored: " +
-                        Arrays.deepToString(tmp));
+                        Arrays.toString(tmp));
             }
             if (properties.length > 1) {
                 mPermissionsRequestCode = properties[1];
@@ -407,10 +407,10 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         final boolean fromDialogFinal = fromDialog;
 
         @SuppressWarnings("Convert2Lambda")
-        final boolean result = new RequestBuilder(activity, permission)
+        final boolean result = new RequestBuilder(activity)
                 .setRationale  (mPermissionsRationale  )
                 .setRequestCode(mPermissionsRequestCode)
-                .setOnGranted  (new Runnable() {
+                .addOnGranted  (permission, new Runnable() {
                     @Override
                     public void run() {
                         CoreLogger.log("LocationClient.onCreate()");

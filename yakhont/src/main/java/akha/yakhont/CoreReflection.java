@@ -51,20 +51,19 @@ import java.util.Set;
  * <ul>
  *   <li>Working with arrays, collections, SparseArrays, etc.
  *     <ul>
- *       <li>Checks if parameter is array, collections, etc.: {@link #isNotSingle(Object)}</li>
- *       <li>Gets the size of parameter (if it's an array, collections, etc.): {@link #getSize(Object)}</li>
- *       <li>Returns contained objects if parameter is array, collections, etc.: {@link #getObjects(Object, boolean)}</li>
- *       <li>Merges data (each parameter can be array, collections, etc.): {@link #mergeObjects(Object, Object)}</li>
+ *       <li>Checks if parameter is array, collections, etc. {@link #isNotSingle(Object)}</li>
+ *       <li>Gets the size of parameter (if it's an array, collections, etc.) {@link #getSize(Object)}</li>
+ *       <li>Returns contained objects if parameter is array, collections, etc. {@link #getObjects(Object, boolean)}</li>
+ *       <li>Merges data (each parameter can be array, collections, etc.) {@link #mergeObjects(Object, Object)}</li>
  *     </ul>
- *   <li>Finds list of the overridden methods: {@link #findOverriddenMethods(Class, Class)}</li>
- *   <li>Compares methods: {@link #equalsMethods(Method, Method)}</li>
- *   <li>Finds list of methods, based on selection flags: {@link #findMethods findMethods}</li>
- *   <li>Returns object's fields: {@link #getFields getFields}</li>
+ *   <li>Finds list of the overridden methods {@link #findOverriddenMethods(Class, Class)}</li>
+ *   <li>Compares methods {@link #equalsMethods(Method, Method)}</li>
+ *   <li>Finds list of methods, based on selection flags {@link #findMethods findMethods}</li>
+ *   <li>Returns object's fields {@link #getFields getFields}</li>
  * </ul>
  *
  * @author akha
  */
-@SuppressWarnings("JavadocReference")
 public class CoreReflection {
 
     private static final Map<Class, Class>                  UNBOXING;
@@ -162,7 +161,7 @@ public class CoreReflection {
      * @throws  ExceptionInInitializerError
      *          please refer to the error description
      */
-    @SuppressWarnings({"WeakerAccess", "JavaDoc"})
+    @SuppressWarnings("WeakerAccess")
     public static <T> T invoke(@NonNull final Object object, @NonNull final String methodName, final Object... args)
             throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
 
@@ -201,7 +200,7 @@ public class CoreReflection {
      * @throws  ExceptionInInitializerError
      *          please refer to the error description
      */
-    @SuppressWarnings({"WeakerAccess", "JavaDoc"})
+    @SuppressWarnings("WeakerAccess")
     public static <T> T invoke(final Object object, final Method method, final Object... args)
             throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
         checkForNull(method, "method == null");
@@ -693,7 +692,14 @@ public class CoreReflection {
             if (!isNotSingle(object2)) size2 = 1;
 
             final int     size1 = Array.getLength(object1);
-            final Object result = Array.newInstance(cls1.getComponentType(), size1 + size2);
+            final Class   type1 = cls1.getComponentType();
+
+            if (type1 == null) {        // should never happen
+                CoreLogger.logError("can't find component type for " +
+                        CoreLogger.getDescription(cls1));
+                return null;
+            }
+            final Object result = Array.newInstance(type1, size1 + size2);
 
             for (int i = 0; i < size1; i++)
                 Array.set(result, i, Array.get(object1, i));

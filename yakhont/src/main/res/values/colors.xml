@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="yakhont_color_snackbar_text"  >@android:color/darker_gray</color>
+    <color name="yakhont_color_snackbar_action">@android:color/white</color>
+</resources>

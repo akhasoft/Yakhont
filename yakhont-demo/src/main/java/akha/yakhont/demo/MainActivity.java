@@ -78,12 +78,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         Core.config(false, true, true);
 
         boolean debug = BuildConfig.DEBUG;
+        Core.setFullLoggingInfo(debug);
+/*
         if (debug) {
-            Core.setFullLoggingInfo(true);
             // optional; on shaking device email with logs will be sent to the address below
-            CoreLogger.registerShakeDataSender(this, "address@company.com");
+//          CoreLogger.registerShakeDataSender(this, "address@company.com");
+            // or something like this:
+//          CoreLogger.registerShakeDataSender(this, "logcat -d", true, true, null, "subj", "address@company.com");
         }
-
+*/
         if (savedInstanceState == null)
             Core.init(getApplication(), debug, DaggerMainActivity_DemoDagger    // deep customization
                     .builder()
@@ -232,8 +235,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     static class DemoUiModule extends UiModule {
         @SuppressWarnings("EmptyMethod")
         @Override
-        protected BaseDialog getPermissionAlert(int requestCode) {
-            return super.getPermissionAlert(requestCode);
+        protected BaseDialog getPermissionAlert(Integer requestCode, Integer duration) {
+            return super.getPermissionAlert(requestCode, duration);
         }
 
         @SuppressWarnings("EmptyMethod")

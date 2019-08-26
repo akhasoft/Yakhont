@@ -22,7 +22,9 @@ import akha.yakhont.Core.Utils.CursorHandler;
 import akha.yakhont.loader.BaseConverter;
 import akha.yakhont.loader.BaseResponse;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
@@ -78,7 +80,6 @@ import java.util.concurrent.Callable;
  *   </li>
  *   <li>SQL script(s) executing
  *     <ul>
- *       <li>Runs SQL script(s): {@link #execSql(SQLiteDatabase, String)}</li>
  *       <li>Runs SQL script(s): {@link #execSql(Context, SQLiteDatabase, String)}</li>
  *       <li>Runs SQL script(s): {@link #execSql(SQLiteDatabase, String...)}</li>
  *     </ul>
@@ -123,7 +124,7 @@ import java.util.concurrent.Callable;
  */
 @SuppressLint("Registered")
 @SuppressWarnings("unused")
-public class BaseCacheProvider extends ContentProvider {
+public class BaseCacheProvider extends ContentProvider {    // should be SQLite 3.5.9 compatible
 
     private static final String         DB_NAME           = "cache.db";
     private static final int            DB_VERSION        = 3;
@@ -143,14 +144,112 @@ public class BaseCacheProvider extends ContentProvider {
     private static final String         ALTER_TABLE       = "ALTER TABLE %s ADD COLUMN %s %s;";
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected DbHelper                  mDbHelper;
+    public  static final String         DROP_TABLE        = "DROP TABLE IF EXISTS %s;";
+    private static final String         DROP_VIEW         = "DROP VIEW  IF EXISTS %s;";
 
-    // should be SQLite 3.5.9 compatible
+    // the action's names below should be consistent with 'call' javadoc
+    /** The method name for DB clear (used by {@link #call}), value is {@value}. */
+    public  static final String         CALL_CLEAR        = "clear";
+    /** The method name for DB close (used by {@link #call}), value is {@value}. */
+    public  static final String         CALL_CLOSE        = "close";
+    /** The method name for DB copy (used by {@link #call}), value is {@value}. */
+    public  static final String         CALL_COPY         = "copy";
+    /** The method name for executing SQL script (used by {@link #call}), value is {@value}. */
+    public  static final String         CALL_EXEC_SQL     = "execSql";
+    /** The method name for get DB file one (used by {@link #call}), value is {@value}. */
+    public  static final String         CALL_GET_DB_NAME  = "getDbName";
+    /** The method name for get DB file version (used by {@link #call}), value is {@value}. */
+    public  static final String         CALL_GET_DB_VER   = "getDbVersion";
+    /** The method name for checking table or column existence in DB (used by {@link #call}), value is {@value}. */
+    public  static final String         CALL_IS_EXIST     = "isExist";
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected DbHelper                  mDbHelper;
 
     /**
      * Initialises a newly created {@code BaseCacheProvider} object.
      */
     public BaseCacheProvider() {
+    }
+
+    // the action's names description below should be consistent with CALL_* constants above
+    /**
+     * Please refer to the base method description.
+     *
+     * @param action
+     *        The action's name, could be {@link #clear "clear"}, {@link #close "close"},
+     *        {@link #copyDb(Context, File, File) "copy"}, {@link #execSql(SQLiteDatabase, String[]) "execSql"},
+     *        {@link #getDbName "getDbName"}, {@link #getDbVersion "getDbVersion"} or
+     *        {@link #isExist(SQLiteDatabase, String) "isExist"} (please use CALL_* definitions provided)
+     *
+     * @param arg
+     *        Please refer to supported methods descriptions
+     *
+     * @param extras
+     *        Column name for {@link #isExist(SQLiteDatabase, String, String) "isExist"} (or null),
+     *        use the action name as a key
+     *
+     * @return  Bundle with key equals to the action name (or null)
+     */
+    @CallSuper
+    @Nullable
+    @Override
+    public Bundle call(@NonNull final String action, @Nullable final String arg, @Nullable final Bundle extras) {
+        switch (action) {
+            case CALL_CLEAR:
+                return callHelper(action, clear(mDbHelper.getWritableDatabase()), null, null);
+
+            case CALL_CLOSE:
+                close();
+                break;
+
+            case CALL_COPY:
+                if (arg == null)
+                    CoreLogger.logError("destination for DB copy == null");
+                else
+                    copyDb(null, getSrcDb(null, null), new File(arg));
+                break;
+
+            case CALL_EXEC_SQL:
+                if (arg == null)
+                    CoreLogger.logError("SQL script for executing == null");
+                else
+                    return callHelper(action, execSql(mDbHelper.getWritableDatabase(), arg), null, null);
+                break;
+
+            case CALL_GET_DB_NAME:
+                return callHelper(action, null, null, getDbName());
+
+            case CALL_GET_DB_VER:
+                return callHelper(action, null, getDbVersion(), null);
+
+            case CALL_IS_EXIST:
+                if (arg == null)
+                    CoreLogger.logError("table name for isExist == null");
+                else if (extras == null)
+                    return callHelper(action, isExist(mDbHelper.getWritableDatabase(), arg), null, null);
+                else {
+                    final String column = extras.getString(action);
+                    if (column == null)
+                        CoreLogger.logError("column name for isExist == null, table name " + arg);
+                    else
+                        return callHelper(action, isExist(mDbHelper.getWritableDatabase(), arg, column), null, null);
+                }
+                break;
+
+            default:
+                CoreLogger.logError("unknown action: " + action);
+                break;
+        }
+        return null;
+    }
+
+    private Bundle callHelper(@NonNull final String method, final Boolean b, final Integer i, final String s) {
+        final Bundle bundle = new Bundle();
+        if (b != null) bundle.putBoolean(method, b);
+        if (i != null) bundle.putInt    (method, i);
+        if (s != null) bundle.putString (method, s);
+        return bundle;
     }
 
     /**
@@ -184,47 +283,6 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     /**
-     * Please refer to the base method description.
-     *
-     * @param method
-     *        The method name; supported are "getDbName", "getDbVersion", "close" (to close DB)
-     *
-     * @param arg
-     *        always null
-     *
-     * @param extras
-     *        always null
-     *
-     * @return  Bundle with key equals to method name - or null
-     */
-    @CallSuper
-    @Nullable
-    @Override
-    public Bundle call(@NonNull final String method, @Nullable final String arg, @Nullable final Bundle extras) {
-        final Bundle bundle;
-        switch (method) {
-            case "getDbName":
-                bundle = new Bundle();
-                bundle.putString(method, getDbName());
-                return bundle;
-
-            case "getDbVersion":
-                bundle = new Bundle();
-                bundle.putInt(method, getDbVersion());
-                return bundle;
-
-            case "close":
-                close();
-                break;
-
-            default:
-                CoreLogger.logError("unknown method " + method);
-                break;
-        }
-        return null;
-    }
-
-    /**
      * @see SQLiteOpenHelper#close
      */
     public void close() {
@@ -241,18 +299,17 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @Override
     public Uri insert(@NonNull final Uri uri, final ContentValues values) {
-        return insert(uri, values, false, null);
+        return insert(getDbForIsExist(), uri, values, false, null);
     }
 
-    private Uri insert(@NonNull final Uri uri, @NonNull final ContentValues values, final boolean silent,
+    private Uri insert(@NonNull final SQLiteDatabase db, @NonNull final Uri uri,
+                       @NonNull final ContentValues values, final boolean silent,
                        final ContentValues[] bulkValues) {
         final String tableName = Utils.getCacheTableName(uri);
         if (tableName == null) {
             CoreLogger.logError("insert failed");
             return null;
         }
-
-        final SQLiteDatabase db = mDbHelper.getWritableDatabase();
         long id = insert(db, tableName, values);
 
         if (!silent) CoreLogger.log(String.format(getLocale(), "table %s, id %d", tableName, id));
@@ -275,7 +332,7 @@ public class BaseCacheProvider extends ContentProvider {
     private boolean isMissedColumnsOrTable(@NonNull final SQLiteDatabase db, @NonNull final String tableName,
                                            @NonNull final ContentValues[] bulkValues) {
         final Map<String, CreateTableScriptBuilder.DataType> columns = getColumns(tableName, bulkValues);
-        return isTableExist(tableName) ?
+        return isExist(db, tableName) ?
                 addColumns(db, tableName, columns): createTable(db, tableName, columns);
     }
 
@@ -297,7 +354,7 @@ public class BaseCacheProvider extends ContentProvider {
                                  @NonNull final Map<String, CreateTableScriptBuilder.DataType> columns) {
         boolean columnsAdded = false;
         for (final String columnName: columns.keySet())
-            if (!isColumnExist(tableName, columnName))
+            if (!isExist(db, tableName, columnName))
                 columnsAdded = execSql(db, String.format(ALTER_TABLE, tableName, columnName,
                         getDataType(columns, columnName).name()));
         return columnsAdded;
@@ -368,9 +425,8 @@ public class BaseCacheProvider extends ContentProvider {
         CoreLogger.log(String.format(getLocale(), "table: %s, number of rows to add: %d",
                 tableName, bulkValues.length));
 
-        final SQLiteDatabase db = mDbHelper.getWritableDatabase();
-        if (!isTableExist(tableName) &&
-                !createTable(db, tableName, getColumns(tableName, bulkValues)))
+        final SQLiteDatabase db = getDbForIsExist();
+        if (!isExist(db, tableName) && !createTable(db, tableName, getColumns(tableName, bulkValues)))
             return 0;
 
         int result = 0;
@@ -381,7 +437,7 @@ public class BaseCacheProvider extends ContentProvider {
                     @Override
                     public void run() {
                         for (final ContentValues values: bulkValues)
-                            insert(uri, values, true, bulkValues);
+                            insert(db, uri, values, true, bulkValues);
                         CoreLogger.log("bulkInsert completed, number of added rows: " + bulkValues.length);
                     }
                 });
@@ -401,19 +457,23 @@ public class BaseCacheProvider extends ContentProvider {
     }
 
     private interface CallableHelper<V> {
-        V call(String table, String condition, String[] args, String[] columns, String order, ContentValues data);
+        V call(SQLiteDatabase db, String table, String condition, String[] args, String[] columns, String order, ContentValues data);
     }
 
     private static String[] getSelectionIdArgs(@NonNull final Uri uri) {
         return new String[] {uri.getLastPathSegment()};
     }
 
-    private <V> V handle(@NonNull final CallableHelper<V> callable, final V defValue, @NonNull final Uri uri,
-                         String condition, String[] args, final String[] columns, final String order,
-                         final ContentValues data) {
+    private <V> V handle(@NonNull final CallableHelper<V> callable, @NonNull final SQLiteDatabase db,
+                         final V defValue, @NonNull final Uri uri, String condition, String[] args,
+                         final String[] columns, final String order, final ContentValues data) {
         final String table = Utils.getCacheTableName(uri);
         if (table == null) {
-            CoreLogger.logError("handle data failed");
+            CoreLogger.logError("table == null");
+            return defValue;
+        }
+        if (!isExist(db, table)) {
+            CoreLogger.logWarning("no such table " + table);
             return defValue;
         }
 
@@ -428,11 +488,11 @@ public class BaseCacheProvider extends ContentProvider {
 
             case ALL:
                 try {
-                    return callable.call(table, condition, args, columns, order, data);
+                    return callable.call(db, table, condition, args, columns, order, data);
                 }
                 catch (Exception exception) {
                     CoreLogger.log(String.format("uri %s, selection %s, selection args %s",
-                            uri.toString(), condition, Arrays.deepToString(args)), exception);
+                            uri.toString(), condition, Arrays.toString(args)), exception);
                     return defValue;
                 }
 
@@ -447,16 +507,16 @@ public class BaseCacheProvider extends ContentProvider {
      */
     @Override
     public Cursor query(@NonNull final Uri uri, final String[] projection, final String selection,
-                        final String[] selectionArgs, final String sortOrder) {
+                        final String[] args, final String sortOrder) {
         //noinspection Convert2Lambda
         return handle(new CallableHelper<Cursor>() {
             @Override
-            public Cursor call(final String table, final String condition, final String[] args,
-                               final String[] columns, final String order, final ContentValues data) {
-                return mDbHelper.getReadableDatabase().query(table, columns, condition, args,
-                        null, null, order);
+            public Cursor call(final SQLiteDatabase db, final String table, final String condition,
+                               final String[] args, final String[] columns, final String order,
+                               final ContentValues data) {
+                return db.query(table, columns, condition, args, null, null, order);
             }
-        }, BaseResponse.EMPTY_CURSOR, uri, selection, selectionArgs, projection, sortOrder, null);
+        }, getDbForIsExist(), BaseResponse.EMPTY_CURSOR, uri, selection, args, projection, sortOrder, null);
     }
 
     /**
@@ -467,21 +527,18 @@ public class BaseCacheProvider extends ContentProvider {
         //noinspection Convert2Lambda
         return handle(new CallableHelper<Integer>() {
             @Override
-            public Integer call(final String table, String condition, final String[] args,
-                                final String[] columns, final String order, final ContentValues data) {
-                if (!isTableExist(table)) {
-                    CoreLogger.logWarning("tried to remove rows from not existing table " + table);
-                    return 0;
-                }
+            public Integer call(final SQLiteDatabase db, final String table, String condition,
+                                final String[] args, final String[] columns, final String order,
+                                final ContentValues data) {
                 // from docs: To remove all rows and get a count pass "1" as the whereClause
                 if (condition == null) condition = "1";
-                final int rows = mDbHelper.getWritableDatabase().delete(table, condition, args);
+                final int rows = db.delete(table, condition, args);
 
                 CoreLogger.log(String.format(getLocale(),
                         "table: %s, number of deleted rows: %d", table, rows));
                 return rows;
             }
-        }, 0, uri, selection, selectionArgs, null, null, null);
+        }, getDbForIsExist(), 0, uri, selection, selectionArgs, null, null, null);
     }
 
     /**
@@ -493,15 +550,16 @@ public class BaseCacheProvider extends ContentProvider {
         //noinspection Convert2Lambda
         return handle(new CallableHelper<Integer>() {
             @Override
-            public Integer call(final String table, final String condition, final String[] args,
-                                final String[] columns, final String order, final ContentValues data) {
-                final int rows = mDbHelper.getWritableDatabase().update(table, data, condition, args);
+            public Integer call(final SQLiteDatabase db, final String table, final String condition,
+                                final String[] args, final String[] columns, final String order,
+                                final ContentValues data) {
+                final int rows = db.update(table, data, condition, args);
 
                 CoreLogger.log(String.format(getLocale(),
                         "table: %s, number of updated rows: %d", table, rows));
                 return rows;
             }
-        }, 0, uri, selection, selectionArgs, null, null, values);
+        }, getDbForIsExist(), 0, uri, selection, selectionArgs, null, null, values);
     }
 
     /**
@@ -525,15 +583,6 @@ public class BaseCacheProvider extends ContentProvider {
                 CoreLogger.logError("wrong uri " + uri);
                 return null;
         }
-    }
-
-    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
-    private boolean isTableExist(@NonNull final String table) {
-        return isExist(getDbForIsExist(), table /*, BaseColumns._ID */ );
-    }
-
-    private boolean isColumnExist(@NonNull final String table, @NonNull final String column) {
-        return isExist(getDbForIsExist(), table, column);
     }
 
     private SQLiteDatabase getDbForIsExist() {
@@ -812,24 +861,10 @@ public class BaseCacheProvider extends ContentProvider {
         });
     }
 
-    /**
-     * Executes SQL.
-     *
-     * @param db
-     *        The database
-     *
-     * @param sql
-     *        The SQL statement(s) to execute
-     *
-     * @return  {@code true} if script was executed successfully, {@code false} otherwise
-     */
-    public static boolean execSql(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
-        return execSqlWrapper(db, sql);
-    }
-
-    private static boolean execSqlWrapper(@NonNull final SQLiteDatabase db, @NonNull final String sql) {
+    private static boolean execSqlWrapper(@NonNull final SQLiteDatabase db, @NonNull String sql) {
         try {
-            CoreLogger.log(sql);
+            if (!sql.endsWith(";")) sql += ";";
+            CoreLogger.log("about to execute '" + sql + "'");
             db.execSQL(sql);
             return true;
         }
@@ -839,26 +874,33 @@ public class BaseCacheProvider extends ContentProvider {
         }
     }
 
+    private static Context fixContext(final Context context) {
+        return context != null ? context: Utils.getApplication().getApplicationContext();
+    }
+
+    private static final int        BUFFER_SIZE         = 1024;
+
     /**
      * Executes SQL from the Android's asset.
      *
      * @param context
-     *        The context
+     *        The context (or null for default one)
      *
      * @param db
      *        The database
      *
      * @param sql
-     *        The name of the asset
+     *        The name of the asset containing SQL statement(s) to execute
      *
      * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
-    public static boolean execSql(@NonNull final Context context, @NonNull final SQLiteDatabase db,
+    public static boolean execSql(Context context, @NonNull final SQLiteDatabase db,
                                   @NonNull final String sql) {
+        context = fixContext(context);
         try {
             final InputStream inputStream = context.getAssets().open(sql);
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            final byte[] buffer = new byte[1024];
+            final byte[] buffer = new byte[BUFFER_SIZE];
             int length;
             while ((length = inputStream.read(buffer)) != -1)
                 outputStream.write(buffer, 0, length);
@@ -868,7 +910,7 @@ public class BaseCacheProvider extends ContentProvider {
             return execSql(db, outputStream.toString().split(";"));
         }
         catch (/*IO*/Exception exception) {
-            CoreLogger.log("failed SQLScript " + sql, exception);
+            CoreLogger.log("failed SQL script " + sql, exception);
             return false;
         }
     }
@@ -895,18 +937,18 @@ public class BaseCacheProvider extends ContentProvider {
             for (int i = 0; i < sql.length; i++) {
                 final String sqlStatement = sql[i].trim();
                 if (sqlStatement.length() > 0)
-                    if (!execSqlWrapper(db, sqlStatement + ";")) result = false;
+                    if (!execSqlWrapper(db, sqlStatement)) result = false;
             }
             return result;
         }
         catch (Exception exception) {
-            CoreLogger.log(Arrays.deepToString(sql), exception);
+            CoreLogger.log(Arrays.toString(sql), exception);
             return false;
         }
     }
 
     /**
-     * Clears (drops) tables, virtual tables and views based on information from sqlite_master.
+     * Clears (drops) tables, virtual tables and views based on information from the 'sqlite_master'.
      *
      * @param db
      *        The database
@@ -927,15 +969,15 @@ public class BaseCacheProvider extends ContentProvider {
 
                 for (final String view: handler.mViews) {
                     CoreLogger.log("about to drop view " + view);
-                    if (!execSql(db, "DROP VIEW IF EXISTS " + view))   result = false;
+                    if (!execSql(db, String.format(DROP_VIEW,  view ))) result = false;
                 }
                 for (final String table: handler.mVTables) {
                     CoreLogger.log("about to drop virtual table " + table);
-                    if (!execSql(db, "DROP TABLE IF EXISTS " + table)) result = false;
+                    if (!execSql(db, String.format(DROP_TABLE, table))) result = false;
                 }
                 for (final String table: handler.mTables) {
                     CoreLogger.log("about to drop table " + table);
-                    if (!execSql(db, "DROP TABLE IF EXISTS " + table)) result = false;
+                    if (!execSql(db, String.format(DROP_TABLE, table))) result = false;
                 }
 
                 if (result)
@@ -1084,7 +1126,7 @@ public class BaseCacheProvider extends ContentProvider {
             final List<String> pathSegments     = uri.getPathSegments();
             final int pathSegmentsSize          = pathSegments.size();
 
-            if (pathSegmentsSize == 1)
+            if      (pathSegmentsSize == 1)
                 return Match.ALL;
             else if (pathSegmentsSize == 2 && TextUtils.isDigitsOnly(pathSegments.get(1)))
                 return Match.ID;
@@ -1105,10 +1147,10 @@ public class BaseCacheProvider extends ContentProvider {
      * see {@link Utils#isDebugMode}).
      *
      * @param context
-     *        The context
+     *        The context (or null for default one)
      */
     @SuppressWarnings("WeakerAccess")
-    public static void copyDb(@NonNull final Context context) {
+    public static void copyDb(final Context context) {
         copyDb(context, null, null);
     }
 
@@ -1117,41 +1159,50 @@ public class BaseCacheProvider extends ContentProvider {
      * see {@link Utils#isDebugMode}).
      *
      * @param context
-     *        The context
+     *        The context (or null for default one)
      *
      * @param srcDb
-     *        The database to copy, or null (means default one: {@code cache.db})
+     *        The database to copy, or null (for default one: {@code cache.db})
      *
      * @param dstDb
-     *        The file to copy database to, or null (means default backup directory and file name)
+     *        The file to copy database to, or null (for default backup directory and file name)
      */
-    public static void copyDb(@NonNull final Context context, final File srcDb, final File dstDb) {
-        if (!Utils.isDebugMode(context.getPackageName())) {
+    public static void copyDb(Context context, final File srcDb, final File dstDb) {
+        context = fixContext(context);
+
+        if (Utils.isDebugMode(context.getPackageName()))
+            copyFile(context, getSrcDb(context, srcDb), dstDb);
+        else
             CoreLogger.logWarning("db copying is available in debug builds only; " +
                     "please consider to use CoreLogger.registerShakeDataSender()");
-            return;
-        }
-        copyFile(context, getSrcDb(context, srcDb), dstDb);
     }
 
     private static void copyFile(@NonNull final Context context, @NonNull final File srcFile,
-                                 final File dstFileOrg) {
+                                 final File dstFile) {
+        final String  permission = Manifest.permission.WRITE_EXTERNAL_STORAGE;
         //noinspection Convert2Lambda
-        Utils.runInBackground(new Runnable() {
-            @Override
-            public void run() {
-                copyFileSync(context, srcFile, dstFileOrg, null);
-            }
-        });
+        final boolean result     = new CorePermissions.RequestBuilder(
+                    context instanceof Activity ? (Activity) context: null)
+                .addOnGranted(permission, new Runnable() {
+                    @Override
+                    public void run() {
+                        copyFileSync(context, srcFile, dstFile, null);
+                    }
+                })
+                .setRationale(R.string.yakhont_permission_storage)
+                .request();
+        CoreLogger.log(permission + " request result: " + (result ? "already granted": "not granted yet"));
     }
 
-    private static File getSrcDb(@NonNull final Context context, final File srcDb) {
+    private static File getSrcDb(Context context, final File srcDb) {
+        context = fixContext(context);
         return srcDb != null ? srcDb: context.getDatabasePath(DB_NAME);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static File copyDbSync(@NonNull final Context context, final File srcDb, final File dstDb,
+    public static File copyDbSync(Context context, final File srcDb, final File dstDb,
                                   final Map<String, Exception> errors) {
+        context = fixContext(context);
         return copyFileSync(context, getSrcDb(context, srcDb), dstDb, errors);
     }
 

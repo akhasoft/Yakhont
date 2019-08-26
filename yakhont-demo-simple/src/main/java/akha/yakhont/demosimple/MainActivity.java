@@ -28,7 +28,6 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.retrofit.BaseLocalOkHttpClient2;
 import akha.yakhont.technology.retrofit.Retrofit2;
-import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader;
 
 import android.location.Location;
@@ -47,7 +46,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-@CallbacksInherited( /* value = */ LocationCallbacks.class /* , parameters = "permissions rationale demo" */ )
+@CallbacksInherited(value = LocationCallbacks.class, properties = R.string.permissions_rationale_demo)
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
     private        CoreLoad<Throwable, List<Data>>      mLoader;
@@ -56,14 +55,24 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
-        // uncomment if you're using Rx; for more info please refer to
+        // uncomment if you're going to use Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
-//      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false);
+//      Core.setRxUncaughtExceptionBehavior(false);     // not terminate
 /*
-        // customize default progress here
-        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setProgressTextColor(...);
-        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setConfirmTextColor(...);
-        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setConfirmDuration(...);
+        // customize default progress here (and uncomment setEmulatedNetworkDelay() below to see results)
+        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setToastViewHandler((view, vh) -> {
+            view.setBackgroundColor(android.graphics.Color.GRAY);
+            vh.getTextView().setTextColor(android.graphics.Color.YELLOW);
+//          vh.getToastProgressView().set...;
+        });
+
+        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setSnackbarBuilder(
+                akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.getDefaultSnackbarBuilder()
+                        .setDuration(3)                 // just for demo
+                        .setViewHandler((view, vh) -> {
+                            view.setBackgroundColor(android.graphics.Color.BLUE);
+                            vh.getTextView().setTextColor(android.graphics.Color.GREEN);
+                        }));
 */
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -89,21 +98,32 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
         mOkHttpClient2 = new LocalOkHttpClient2(retrofit2);
-        retrofit2.init(Retrofit2Api.class, "http://localhost/", mOkHttpClient2);
 
-        mLoader = Retrofit2Loader.adjust(new Retrofit2CoreLoadBuilder<>(retrofit2)
-                .setRequester(Retrofit2Api::getData)
-// or           .setRequester(retrofit2Api -> retrofit2Api.getData(some parameter(s)))
-                .setDataBinding(BR.data)
+        mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class,
+                Retrofit2Api::getData, BR.data, mOkHttpClient2, retrofit2,
 
                 // paging-specific settings
-                .setPagingConfig(new PagedList.Config.Builder()
+                new PagedList.Config.Builder()
                         .setPageSize(LocalOkHttpClient2.PAGE_SIZE)
                         .setEnablePlaceholders(false)
-                        .build())
-                .setPagingDataSourceProducer((Callable<DemoDataSource>) DemoDataSource::new)
+                        .build(),
+                (Callable<DemoDataSource>) DemoDataSource::new,
 
-                .create());
+                // Rx-specific settings (if any)
+                null,
+/* or           new akha.yakhont.technology.rx.BaseRx.SubscriberRx<List<Data>>() {
+                    @Override
+                    public void onNext(List<Data> data) {
+                        // your code here
+                    }
+
+                    @Override
+                    public void onError(Throwable throwable) {
+                        // your code here
+                    }
+                },
+*/
+                null);
     }
 
     private class DemoDataSource extends PositionalDataSource<Data> {
@@ -133,6 +153,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         private LocalOkHttpClient2(Retrofit2 retrofit2) {
             super(retrofit2);
+//          setEmulatedNetworkDelay(7);     // just to demo the progress GUI
         }
 
         @Override

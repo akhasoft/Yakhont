@@ -165,7 +165,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *
      * @param <D>
      *        The type of data
-     *
      */
     @SuppressWarnings("WeakerAccess")
     public interface LoaderCallback<D> {
@@ -430,6 +429,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("unused")
     @Override
     public BaseCacheAdapter<?, R, E, D> getListAdapter() {
         if (mAdapter instanceof BaseCacheAdapterWrapper)
@@ -442,6 +442,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("unused")
     @Override
     public BaseRecyclerViewAdapter<?, R, E, D> getRecyclerViewAdapter() {
         if (mAdapter instanceof BaseCacheAdapterWrapper)
@@ -459,6 +460,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("unused")
     @Override
     public PagingRecyclerViewAdapter<?, R, E> getPagingAdapter() {
         return mPagingAdapter;
@@ -2458,6 +2460,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static <E, D> LoaderCallbacks<E, D> getLoaderCallbacks(final LoaderCallback<D> loaderCallback) {
             return loaderCallback == null ? null: new LoaderCallbacks<E, D>() {
+                @SuppressWarnings("unused")
                 @Override
                 public void onLoadFinished(final D data, final Source source) {
                     //noinspection Convert2Lambda
@@ -2633,6 +2636,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setViewBinder(final ViewBinder viewBinder) {
@@ -2643,6 +2647,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setViewHolderCreator(final ViewHolderCreator viewHolderCreator) {
@@ -2653,6 +2658,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setListView(final int listViewId) {
@@ -2663,6 +2669,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setListItem(final int layoutItemId) {
@@ -2673,6 +2680,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setNoBinding(final boolean noBinding) {
@@ -2688,6 +2696,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public <S> CoreLoadExtendedBuilder<C, R, E, D, T> setAdapterWrapper(
@@ -2704,6 +2713,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setAdapter(final CacheAdapter<R, E, D> adapter) {
@@ -2735,6 +2745,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingBoundaryCallback(
@@ -2751,6 +2762,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingFetchExecutor(final Executor fetchExecutor) {
@@ -2766,6 +2778,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingInitialLoadKey(final Object initialLoadKey) {
@@ -2796,6 +2809,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setOnItemClickListener(final OnItemClickListener listener) {
             super.setOnItemClickListener(listener);
             return this;
@@ -2810,6 +2824,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setSwipeToRefreshCallback(final Runnable callback) {
@@ -2825,6 +2840,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPageSize(final Integer pageSize) {
             super.setPageSize(pageSize);
             return this;
@@ -2838,6 +2854,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
+        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingItemCallback(
@@ -3001,6 +3018,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @see     #setRequesterRaw
          * @see     Requester#makeRequest(Object)
          */
+        @SuppressWarnings("unused")
         @Override
         public void makeRequest(@NonNull final C callback) {
             if (mRequesterRaw != null) {

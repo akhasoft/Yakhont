@@ -860,6 +860,7 @@ public abstract class BaseLoaderWrapper<D> {
             });
         }
 
+        @SuppressWarnings("unused")
         @Override
         public Cursor getCursor(final String tableName, final LoadParameters parameters) throws UnsupportedOperationException {
             final Converter<?> converter = getConverterHelper();
@@ -929,8 +930,7 @@ public abstract class BaseLoaderWrapper<D> {
      */
     @SuppressWarnings("WeakerAccess")
     protected void onLoadFinished(final D data) {
-        if (CoreLogger.isFullInfo())
-            CoreLogger.log("loader ID: " + mLoaderId + ", data: " + data);
+        CoreLogger.log("loader ID: " + mLoaderId + ", data: " + data);
 
         mData = data;
 
@@ -1217,7 +1217,7 @@ public abstract class BaseLoaderWrapper<D> {
             }
         });
 
-        await(countDownLatch);
+        Utils.await(countDownLatch, 0);
 
         for (final BaseLoaderWrapper loader: loaders)
             if (checkId(parameters, loader.mLoaderId))
@@ -1231,16 +1231,6 @@ public abstract class BaseLoaderWrapper<D> {
         if (parameters == null) return true;
         final String idParam = parameters.getLoaderId();
         return idParam == null || id.equals(idParam);
-    }
-
-    private static void await(final CountDownLatch countDownLatch) {
-        if (countDownLatch == null) return;
-        try {
-            countDownLatch.await();
-        }
-        catch (InterruptedException exception) {
-            CoreLogger.log(exception);
-        }
     }
 
     @SuppressWarnings("UnusedReturnValue")
@@ -1867,7 +1857,7 @@ public abstract class BaseLoaderWrapper<D> {
             mNoLoad         = noLoad;
             mPageId         = pageId;
 
-            mTimeout        = Core.adjustTimeout(timeout != null ? timeout: Core.TIMEOUT_CONNECTION);
+            mTimeout        = Core.adjustTimeout(timeout);
 
             CoreLogger.log("new LoadParameters - loader ID: " + loaderId +
                     ", force cache: " + forceCache + ", no progress: " + noProgress +
@@ -2115,7 +2105,7 @@ public abstract class BaseLoaderWrapper<D> {
              * Sets the data loading timeout.
              *
              * @param timeout
-             *        The timeout (ms)
+             *        The timeout in seconds (<= 5 min) or milliseconds (> 5 min)
              *
              * @return  This {@code Builder} object to allow for chaining of calls to set methods
              */

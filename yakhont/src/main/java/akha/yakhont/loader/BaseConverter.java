@@ -273,6 +273,7 @@ public class BaseConverter<D> implements Converter<D> {
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("unused")
     @Override
     public Cursor getCursor(final String tableName, final LoadParameters parameters) throws UnsupportedOperationException {
         throw new UnsupportedOperationException("BaseConverter.getCursor(" + tableName + ")");

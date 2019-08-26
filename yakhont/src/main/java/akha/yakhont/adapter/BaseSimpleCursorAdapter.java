@@ -71,7 +71,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
         init();
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "deprecation", "unused", "UnusedParameters", "RedundantSuppression"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "deprecation", "unused", "UnusedParameters", "RedundantSuppression" /* lint bug workaround */ })
     public BaseSimpleCursorAdapter(@NonNull final Context context, @LayoutRes final int layoutId,
                                    @NonNull @Size(min = 1) final String[] from,
                                    @NonNull @Size(min = 1) final    int[] to  , final int ignored) {

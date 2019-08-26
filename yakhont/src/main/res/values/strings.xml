@@ -26,7 +26,6 @@
     <string name="yakhont_loader_error"                 >Data loading error</string>
 
     <string name="yakhont_sending_email"                >Sending debug email</string>
-    <string name="yakhont_send_debug_email"             >About to send debug e-mail to %s</string>
 
     <string name="yakhont_alert_ok"         tools:keep="@string/yakhont_alert_ok"
                                                         >OK</string>
@@ -39,6 +38,8 @@
 
     <string name="yakhont_permission_denied_alert"      >Permission was denied, press OK to check application settings.</string>
     <string name="yakhont_permissions_denied_alert"     >Permissions were denied, press OK to check application settings.</string>
+
+    <string name="yakhont_permission_storage"           >Storage permission is necessary\nfor cache DB copying.</string>
 
     <string name="yakhont_location_error"               >Your location could not be determined</string>
     <string name="yakhont_location_error_connection"    >@string/yakhont_location_error</string>

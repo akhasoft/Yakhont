@@ -145,6 +145,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("unused")
     @Override
     public Location getCurrentLocation() {
         return mCurrentLocation;
@@ -153,6 +154,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("unused")
     @Override
     public Date getLastUpdateTime() {
         return mLastUpdateTime;
@@ -531,7 +533,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
             case LocationRequest.PRIORITY_NO_POWER:
                 return "PRIORITY_NO_POWER";
             default:
-                return "unknown priority " + priority;
+                return "unknown priority " + Utils.getUnknownResult(priority);
         }
     }
 

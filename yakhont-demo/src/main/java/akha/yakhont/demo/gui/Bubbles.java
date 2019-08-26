@@ -275,7 +275,7 @@ public class Bubbles {
         }, textView);
     }
 
-    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
     private static void setBackgroundDrawable(View view, Drawable background) {
         view.setBackgroundDrawable(background);
     }
@@ -288,9 +288,7 @@ public class Bubbles {
         //noinspection SuspiciousNameCombination
         textView.getLayoutParams().height = viewWidth;
 
-        //noinspection IntegerDivisionInFloatingPointContext
         textView.setPivotX(viewWidth  / 2);
-        //noinspection IntegerDivisionInFloatingPointContext
         textView.setPivotY(viewHeight / 2);
 
         textView.setLeft(0);
@@ -402,7 +400,7 @@ public class Bubbles {
         }
     }
 
-    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
     private static void viewSetText(TextView view, String text) {
         view.setText(Html.fromHtml(text));
     }
@@ -411,7 +409,6 @@ public class Bubbles {
 
         private final ArrayList<Integer>    mList                   = new ArrayList<>();
         private final int                   mSize;
-        private int                         mLastValue;
 
         private OrderHelper(int size) {
             mSize = size;
@@ -426,13 +423,13 @@ public class Bubbles {
 
         @SuppressWarnings("WeakerAccess")
         public int get() {
-            mLastValue = mList.get(0);
+            final int lastValue = mList.get(0);
             mList.remove(0);
             if (mList.isEmpty()) {
                 fillList();
-                if (mLastValue == mList.get(0)) Collections.swap(mList, 0, 1);
+                if (lastValue == mList.get(0)) Collections.swap(mList, 0, 1);
             }
-            return mLastValue;
+            return lastValue;
         }
     }
 
