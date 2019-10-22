@@ -1981,7 +1981,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             if (viewDataBinding == null) {      // should never happen
                 CoreLogger.logError("ViewDataBinding == null");
 
-                return new View(Utils.getApplication().getApplicationContext());
+                return new View(Utils.getApplication());
             }
 
             bindHelper(getData(baseCacheAdapter, position), position, dataBindingId, viewDataBinding);

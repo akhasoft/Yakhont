@@ -291,7 +291,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static final String                             PREFIX                      = "subject to call by weaver - ";
+    private static final String                             PREFIX                      = "subject to call by the Yakhont Weaver - ";
 
     private static boolean                                  sActive;
 

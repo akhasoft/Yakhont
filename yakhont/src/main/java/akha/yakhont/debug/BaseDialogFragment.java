@@ -110,7 +110,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onAttach(final Activity activity) {
+    public void onAttach(@NonNull final Activity activity) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(activity);
@@ -121,7 +121,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onAttach(final Context context) {
+    public void onAttach(@NonNull final Context context) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(context);
@@ -140,7 +140,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onCancel(final DialogInterface dialog) {
+    public void onCancel(@NonNull final DialogInterface dialog) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onCancel(dialog);
@@ -159,7 +159,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onConfigurationChanged(final Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull final Configuration newConfig) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", newConfig " + newConfig, false);
 
         super.onConfigurationChanged(newConfig);
@@ -256,7 +256,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onDismiss(final DialogInterface dialog) {
+    public void onDismiss(@NonNull final DialogInterface dialog) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onDismiss(dialog);
@@ -268,7 +268,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onInflate(final Activity activity, final AttributeSet attrs, final Bundle savedInstanceState) {
+    public void onInflate(@NonNull final Activity activity, @NonNull final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(activity, attrs, savedInstanceState);
@@ -279,7 +279,7 @@ public class BaseDialogFragment extends DialogFragment {        // don't modify 
      */
     @CallSuper
     @Override
-    public void onInflate(final Context context, final AttributeSet attrs, final Bundle savedInstanceState) {
+    public void onInflate(@NonNull final Context context, @NonNull final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(context, attrs, savedInstanceState);

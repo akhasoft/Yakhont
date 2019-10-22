@@ -37,8 +37,8 @@ with starting loading progress GUI (fully customizable).
 By the way, Yakhont creates the adapter and connects it to your RecyclerView (just scans layout of current
 Activity to find it - but of course you can provide the ID; for pull-to-refresh it's exactly the same).
 
-Data received? Yakhont puts them in adapter (and yes, makes data binding - based on 'yourDataBindingID').
-No data 'cause of error or timeout? Yakhont takes it from cache.
+Data received? Yakhont puts it in adapter (and yes, makes data binding - based on 'yourDataBindingID').
+No data 'cause of error or timeout? No problem - Yakhont takes it from cache.
 
 Well, cache. For every 'method' the new cache table is automatically created on-the-fly
 and filled with data after every successful network request.
@@ -54,7 +54,7 @@ callbacks - for Yakhont it's enough. Please refer to
 for working examples.
 
 What else? Dynamic permissions? Requested and handled fully automatically,
-you just need to provide permission-specific on-granted-callbacks (please refer to
+all you need is just to provide permission-specific on-granted-callbacks (please refer to
 [dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)).
 
 So, as I told - the whole data loading in just one line of code (plus your callbacks - if any).

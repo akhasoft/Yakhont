@@ -16,30 +16,59 @@
 
 package akha.yakhont;
 
+import akha.yakhont.Core.RequestCodes;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.loader.BaseResponse;
+import akha.yakhont.technology.Dagger2.UiModule;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.gesture.Gesture;
+import android.gesture.GestureLibraries;
+import android.gesture.GestureLibrary;
+import android.gesture.GesturePoint;
+import android.gesture.GestureStroke;
+
+import android.gesture.Prediction;
 import android.graphics.Bitmap;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
+import android.media.AudioFormat;
+import android.media.AudioRecord;
+import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaFormat;
+import android.media.MediaMuxer;
+import android.media.MediaRecorder;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Handler;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.PixelCopy;
+import android.view.Surface;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.annotation.AnyRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
+import androidx.annotation.StringRes;
 import androidx.collection.ArrayMap;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -48,6 +77,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,6 +85,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -70,7 +102,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *   <li>Byte arrays logging: {@link #toHex(byte[])}, {@link #toHex(byte[], int, int, Locale, Charset)}</li>
  *   <li>The logcat support: {@link #getLogCat(List, boolean, String)}</li>
  *   <li>Sending error reports via e-mail: {@link #sendLogCat(Activity, String...)}, {@link #sendData sendData}</li>
- *   <li>Sending error reports via e-mail on shaking device: {@link #registerShakeDataSender(Context, String...)}</li>
+ *   <li>Sending error reports via e-mail on shaking device: {@link #registerDataSender(Context, String...)}</li>
  * </ul>
  *
  * <p>Call {@link #setLogLevel} to set {@link Level log level}.
@@ -957,11 +989,15 @@ public class CoreLogger {
      */
     @SuppressWarnings("WeakerAccess")
     public static String getResourceName(@AnyRes final int id) {
+        if (id == Core.NOT_VALID_RES_ID) {
+            logWarning("getResourceName(): not valid resource ID " + id);
+            return null;
+        }
         try {
             return Utils.getApplication().getResources().getResourceName(id);
         }
         catch (Exception exception) {
-            CoreLogger.log(exception);
+            log(exception);
             return null;
         }
     }
@@ -1002,8 +1038,8 @@ public class CoreLogger {
 
                     if (interfaces.length > 0) {
                         final StringBuilder tmp = new StringBuilder().append(name).append(" (");
-                        for (final Class c: interfaces)
-                            tmp.append(c.getSimpleName()).append(", ");
+                        for (final Class clsInterface: interfaces)
+                            tmp.append(clsInterface.getSimpleName()).append(", ");
                         name = tmp.delete(tmp.length() - 2, tmp.length()).append(")").toString();
                     }
                 }
@@ -1146,24 +1182,13 @@ public class CoreLogger {
     public static void sendData(final Context context, final String cmd, final boolean hasScreenshot,
                                 final boolean hasDb, final String[] moreFiles,
                                 final String subject, final String... addresses) {
-        //noinspection Convert2Lambda
-        Utils.runInBackground(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Sender.sendEmail(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
-                }
-                catch (Exception exception) {
-                    log("failed to send CoreLogger shake debug email", exception);
-                }
-            }
-        });
+        Sender.sendEmail(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Registers email addresses to which on shaking device to send email with log records
+     * Registers email addresses to which send email with log records
      * and some additional info (if any). The ANR traces are always added (if available).
      *
      * @param context
@@ -1173,13 +1198,13 @@ public class CoreLogger {
      *        The email addresses to send data
      */
     @SuppressWarnings("unused")
-    public static void registerShakeDataSender(final Context context, final String... addresses) {
-        registerShakeDataSender(context, null,
-                true, true, null, null, addresses);
+    public static void registerDataSender(final Context context, final String... addresses) {
+        registerDataSender(context, null, true, true, null,
+                null, addresses);
     }
 
     /**
-     * Registers email addresses to which on shaking device to send email with log records
+     * Registers email addresses to which send email with log records
      * and some additional info (if any). The ANR traces are always added (if available).
      *
      * @param context
@@ -1203,29 +1228,274 @@ public class CoreLogger {
      * @param addresses
      *        The list of email addresses to send data
      */
-    @SuppressWarnings("WeakerAccess")
-    public static void registerShakeDataSender(
-            final Context context,
-            @SuppressWarnings("SameParameterValue") final String   cmd,
-            @SuppressWarnings("SameParameterValue") final boolean  hasScreenShot,
-            @SuppressWarnings("SameParameterValue") final boolean  hasDb,
-            @SuppressWarnings("SameParameterValue") final String[] moreFiles,
-            @SuppressWarnings("SameParameterValue") final String   subject,
-            final String... addresses) {
-        if (context == null || addresses == null || addresses.length == 0) {
-            logError("no arguments");
-            return;
-        }
-        final Context contextToUse = context.getApplicationContext();
+    @SuppressWarnings({"WeakerAccess", "SameParameterValue"})
+    public static void registerDataSender(final Context   context,
+                                          final String    cmd,
+                                          final boolean   hasScreenShot,
+                                          final boolean   hasDb,
+                                          final String[]  moreFiles,
+                                          final String    subject,
+                                          final String... addresses) {
+        sCmd            = cmd;
+        sHasScreenShot  = hasScreenShot;
+        sHasDb          = hasDb;
+        sMoreFiles      = moreFiles;
+        sSubject        = subject;
+        sAddresses      = addresses;
+
+        if (context == null)
+            logError("registerDataSender: context == null");
+        else if (addresses != null && addresses.length > 0)
+            new ShakeEventListener(createDataSenderHandler(context)).register();
+    }
+
+    private static       String                         sCmd;
+    private static       boolean                        sHasScreenShot;
+    private static       boolean                        sHasDb;
+    private static       String[]                       sMoreFiles;
+    private static       String                         sSubject;
+    private static       String[]                       sAddresses;
+
+    private static File getTmpDir(final Context context) {
+        return Utils.getTmpDir(context);
+    }
+
+    private static Runnable createDataSenderHandler(final Context context) {
+        final Context  contextToUse = context.getApplicationContext();
+        final Activity activity     = context instanceof Activity ? (Activity) context: Utils.getCurrentActivity();
 
         //noinspection Convert2Lambda
-        new ShakeEventListener(contextToUse, new Runnable() {
+        return new Runnable() {
             @Override
             public void run() {
-                sendData(contextToUse, cmd, hasScreenShot, hasDb, moreFiles, subject, addresses);
+                //noinspection Convert2Lambda
+                final Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        sendData(contextToUse, sCmd, sHasScreenShot, sHasDb, sMoreFiles, sSubject, sAddresses);
+                    }
+                };
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ||
+                        VideoRecorder.isRunning() || UiModule.hasSnackbars()) {
+                    runnable.run();
+                    return;
+                }
+                final File tmpDir = getTmpDir(contextToUse);
+                if (tmpDir == null) return;             // should never happen
+
+                VideoRecorder.setHandler(runnable);
+
+                //noinspection Convert2Lambda
+                new Utils.SnackbarBuilder(activity)
+                        .setTextId(akha.yakhont.R.string.yakhont_record_video)
+                        .setDuration(Snackbar.LENGTH_INDEFINITE)
+                        .setRequestCode(Utils.getRequestCode(RequestCodes.LOGGER_VIDEO))
+
+                        .setViewHandlerChain(true)
+                        .setViewHandler(Utils.getDefaultSnackbarViewModifier())
+
+                        .setActionTextId(akha.yakhont.R.string.yakhont_record_video_ok)
+                        .setActionColor(Utils.getDefaultSnackbarActionColor())
+                        .setAction(new View.OnClickListener() {
+                            @SuppressLint("NewApi")
+                            @Override
+                            public void onClick(final View view) {
+                                VideoRecorder.start(activity, new File(tmpDir, String.format("%s%s.%s",
+                                        VideoRecorder.sFileNamePrefix, Utils.getTmpFileSuffix(),
+                                        VideoRecorder.sFileNameExtension)).getAbsolutePath());
+                            }
+                        }).show();
             }
-        }).register();
+        };
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /**
+     * Very simple gesture handler: allows to set the gestures recognition threshold and
+     * doesn't consume unrecognized gestures. Usage example:
+     *
+     * <p><pre style="background-color: silver; border: thin solid black;">
+     * import android.view.MotionEvent;
+     *
+     * public class YourActivity extends Activity {
+     *
+     *     private GestureHandler yourGestureHandler;
+     *
+     *     &#064;Override
+     *     protected void onCreate(Bundle savedInstanceState) {
+     *         super.onCreate(savedInstanceState);
+     *
+     *         yourGestureHandler = new GestureHandler(new Runnable() {
+     *             &#064;Override
+     *             public void run() {
+     *                 // your code here (to handle gestures)
+     *             }
+     *         }, yourGestureLibrary);
+     *     }
+     *
+     *     &#064;Override
+     *     public boolean dispatchTouchEvent(MotionEvent event) {
+     *         yourGestureHandler.handle(event);
+     *         return super.dispatchTouchEvent(event);
+     *     }
+     * }
+     * </pre>
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static class GestureHandler {
+
+        private static final double                     THRESHOLD                = 2.5;
+
+        private        final Runnable                   mRunnable;
+        private        final GestureLibrary             mLibrary;
+        private static final ArrayList<GesturePoint>    sStrokeBuffer            = new ArrayList<>();
+
+        /**
+         * Initialises a newly created {@code GestureHandler} object.
+         *
+         * @param runnable
+         *        The {@code Runnable} to handle gestures
+         *
+         * @param library
+         *        The {@code GestureLibrary}
+         */
+        public GestureHandler(@NonNull final Runnable runnable, @NonNull final GestureLibrary library) {
+            this(runnable, library, true);
+        }
+
+        /**
+         * Initialises a newly created {@code GestureHandler} object.
+         *
+         * @param runnable
+         *        The {@code Runnable} to handle gestures
+         *
+         * @param library
+         *        The {@code GestureLibrary}
+         *
+         * @param load
+         *        {@code true} to call {@link GestureLibrary#load}, {@code false} otherwise
+         */
+        public GestureHandler(@NonNull final Runnable runnable, @NonNull final GestureLibrary library,
+                              final boolean load) {
+            mLibrary  = load ? loadLibrary(library): library;
+            mRunnable = runnable;
+        }
+
+        private static GestureLibrary loadLibrary(@NonNull final GestureLibrary library) {
+            try {
+                final boolean result = library.load();
+                if (!result) logError("can't load gesture library: " + library);
+                return result ? library: null;
+            }
+            catch (Exception exception) {
+                log("failed to load gesture library: " + library, exception);
+                return null;
+            }
+        }
+
+        /**
+         * Handles {@code MotionEvent} to recognize gestures.
+         *
+         * @param event
+         *        The event to handle
+         *
+         * @param threshold
+         *        The gestures recognition threshold (default value is 2.5)
+         *
+         * @return  {@code true} if this event was consumed, {@code false} otherwise
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        public boolean handle(@NonNull final MotionEvent event, final double threshold) {
+            if (mLibrary == null || mRunnable == null) return false;
+
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:           // fall through
+                    sStrokeBuffer.clear();
+
+                case MotionEvent.ACTION_MOVE:
+                    sStrokeBuffer.add(new GesturePoint(event.getX(), event.getY(), event.getEventTime()));
+                    break;
+
+                case MotionEvent.ACTION_UP:
+                    try {
+                        final Gesture gesture = new Gesture();
+                        gesture.addStroke(new GestureStroke(sStrokeBuffer));
+                        final ArrayList<Prediction> predictions = mLibrary.recognize(gesture);
+
+                        if (predictions.size() > 0) {
+                            final Prediction prediction = predictions.get(0);
+                            if (prediction.score >= threshold)
+                                return Utils.safeRun(mRunnable);
+                            else
+                                log("gesture prediction.score " + prediction.score +
+                                        " < threshold " + threshold);
+                        }
+                        else
+                            logError("gesture predictions.size() == 0");
+                    }
+                    catch (Exception exception) {
+                        log(exception);
+                    }
+
+                    sStrokeBuffer.clear();
+                    break;
+            }
+            return false;
+        }
+
+        /**
+         * Handles {@code MotionEvent} to recognize gestures.
+         *
+         * @param event
+         *        The event to handle
+         *
+         * @return  {@code true} if this event was consumed, {@code false} otherwise
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        public boolean handle(@NonNull final MotionEvent event) {
+            return handle(event, THRESHOLD);
+        }
+    }
+
+    private static class GestureHandlerZ extends GestureHandler {
+
+        private static       GestureLibrary             sGestureLibrary;
+        private static final Object                     sGestureLibraryLock      = new Object();
+
+        private GestureHandlerZ(@NonNull final Runnable runnable) {
+            super(runnable, getLibraryHelper());
+        }
+
+        private static GestureLibrary getLibraryHelper() {
+            synchronized (sGestureLibraryLock) {
+                if (sGestureLibrary == null) sGestureLibrary = getLibraryZ();
+                if (sGestureLibrary == null) logError("can't load Yakhont gestures library");
+                return sGestureLibrary;
+            }
+        }
+
+        private static GestureLibrary getLibraryZ() {
+            try {
+                return GestureLibraries.fromRawResource(Utils.getApplication(),
+                        akha.yakhont.R.raw.yakhont_gestures);
+            }
+            catch (Exception exception) {
+                log("GestureLibraryZ failed", exception);
+                return null;
+            }
+        }
+    }
+
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static void handleGesture(@NonNull final Activity activity, @NonNull final MotionEvent event) {
+        if (sAddresses == null || sAddresses.length == 0) return;
+        log("about to run GesturesHandler");
+        new GestureHandlerZ(createDataSenderHandler(activity)).handle(event);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static class ShakeEventListener implements SensorEventListener {
 
@@ -1237,9 +1507,8 @@ public class CoreLogger {
         private              Sensor                     mSensor;
         private              long                       mLastShakeTime;
 
-        @SuppressWarnings("WeakerAccess")
-        public ShakeEventListener(@NonNull final Context context, @NonNull final Runnable handler) {
-            mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+        private ShakeEventListener(@NonNull final Runnable handler) {
+            mSensorManager = (SensorManager) Utils.getApplication().getSystemService(Context.SENSOR_SERVICE);
             if (mSensorManager != null)
                 mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             else
@@ -1247,18 +1516,17 @@ public class CoreLogger {
             mHandler = handler;
         }
 
-        @SuppressWarnings("WeakerAccess")
-        public void register() {
+        private void register() {
             if (mSensorManager == null) return;
             mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
-            logWarning("shake event listener registered");
+            log("shake event listener registered");
         }
 
         @SuppressWarnings("unused")
-        public void unregister() {
+        private void unregister() {
             if (mSensorManager == null) return;
             mSensorManager.unregisterListener(this, mSensor);
-            logWarning("shake event listener unregistered");
+            log("shake event listener unregistered");
         }
 
         @Override
@@ -1291,24 +1559,38 @@ public class CoreLogger {
     private static class Sender {
 
         private static final String                     ANR_TRACES               = "/data/anr/traces.txt";
-        private static final String                     ZIP_PREFIX               = "data_yakhont";
+        private static final String                     ZIP_PREFIX               = "yakhont_data";
 
         private static final int                        SCREENSHOT_QUALITY       =  100;
 
         private static final int                        DELAY                    = 3000;
 
-        private static final String                     DEFAULT_PREFIX           = "log";
+        private static final String                     DEFAULT_PREFIX           = "yakhont_log";
         private static final String                     DEFAULT_EXTENSION        = "txt";
+
+        private static final String                     SCREENSHOT_PREFIX        = "yakhont_screenshot";
+        private static final String                     SCREENSHOT_EXTENSION     = "png";
 
         private static void sendEmail(final Context context, final String cmd, final boolean hasScreenshot,
                                       final boolean hasDb,  final String[]  moreFiles,
                                       final String subject, final String... addresses) {
-            sendEmailSync(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
+            //noinspection Convert2Lambda
+            Utils.runInBackground(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        Sender.sendEmailHelper(context, cmd, hasScreenshot, hasDb, moreFiles, subject, addresses);
+                    }
+                    catch (Exception exception) {
+                        log("failed to send email", exception);
+                    }
+                }
+            });
         }
 
-        private static void sendEmailSync(final Context context, final String cmd, final boolean hasScreenshot,
-                                          final boolean hasDb,  final String[]  moreFiles,
-                                          final String subject, final String... addresses) {
+        private static void sendEmailHelper(final Context context, final String cmd, boolean hasScreenshot,
+                                            final boolean hasDb,  final String[]  moreFiles,
+                                            final String subject, final String... addresses) {
             if (context == null || addresses == null || addresses.length == 0) {
                 logError("no arguments");
                 return;
@@ -1317,34 +1599,52 @@ public class CoreLogger {
             final Activity activity = Utils.getCurrentActivity();
             if (activity == null) return;
 
-            final File    tmpDir = Utils.getTmpDir(context);
+            final File tmpDir = getTmpDir(context);
+            if (tmpDir == null) return;
+
             final String  suffix = Utils.getTmpFileSuffix();
             final boolean hasAnr = new File(ANR_TRACES).exists();
 
             final Map<String, Exception> errors = new ArrayMap<>();
 
-            removePreviousZipFiles(tmpDir);
+            removePreviousFiles(tmpDir);
 
-            final ArrayList<String>     list = new ArrayList<>();
-            if (hasAnr)                 list.add(ANR_TRACES);
+            final ArrayList<String>  list = new ArrayList<>();
+            if (hasAnr)              list.add(ANR_TRACES);
 
             final File db = hasDb ?
                     BaseCacheProvider.copyDbSync(context, null, null, errors): null;
-            if (hasDb && db != null)    list.add(db.getAbsolutePath());
+            if (hasDb && db != null) list.add(db.getAbsolutePath());
 
             if (moreFiles != null)
-                for (final String file: moreFiles)
-                    if (!TextUtils.isEmpty(file))
-                                        list.add(file);
+                for (final String file: moreFiles) if (!TextUtils.isEmpty(file))
+                                     list.add(file);
 
             final File log = getLogFile(cmd, tmpDir, suffix, errors);
-            if (log != null)            list.add(log.getAbsolutePath());
+            if (log != null)         list.add(log.getAbsolutePath());
 
             final String subjectToSend = subject == null ? DEFAULT_PREFIX + suffix: subject;
-            @SuppressWarnings("ConstantConditions")
+
+            String videoPath = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP && VideoRecorder.isRunning()) {
+                log("sendEmail: video recording is running");
+
+                videoPath = VideoRecorder.stop();
+                if (videoPath == null)
+                    log("sendEmail: no video available");
+                else {
+                                     list.add(videoPath);
+                    if (hasScreenshot) {
+                        logWarning("video recording is running, so no screenshots");
+                        hasScreenshot = false;
+                    }
+                }
+            }
+            final File video = videoPath == null ? null: new File(videoPath);
+
             final StringBuilder body = new StringBuilder(String.format(
-                    "ANR traces %b, screenshot %b, database %b", hasAnr,
-                    hasScreenshot ? "(if no errors) " + hasScreenshot: hasScreenshot, hasDb));
+                    "ANR traces: %s, screenshot: %s, video: %s, database: %s", isAdded(hasAnr),
+                    isAdded(hasScreenshot), isAdded(videoPath != null), isAdded(hasDb)));
 
             @SuppressWarnings("Convert2Lambda")
             final Runnable runnable = new Runnable() {
@@ -1368,6 +1668,7 @@ public class CoreLogger {
                         });
                     }
                     finally {
+                        delete(video);
                         delete(db);
                         delete(log);
                     }
@@ -1380,28 +1681,34 @@ public class CoreLogger {
                 complete(null, list, runnable);
         }
 
+        private static String isAdded(final boolean added) {
+            return (added ? "": "not ") + "added";
+        }
+
         private static void delete(final File file) {
-            if (file == null) return;
+            if (file == null || !file.exists()) return;
             log("about to delete " + file);
 
             final boolean result = file.delete();
             if (!result) logWarning("can not delete " + file);
         }
 
-        private static void removePreviousZipFiles(final File dir) {
-            if (dir == null) return;
+        private static void removePreviousFiles(final File dir) {
+            if (dir == null || !dir.exists()) return;
 
             @SuppressWarnings("Convert2Lambda")
             final File[] files = dir.listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(final File dir, final String name) {
-                    return name.startsWith(ZIP_PREFIX);
+                    return name.startsWith(ZIP_PREFIX) || name.endsWith(".zip");
                 }
             });
             if (files == null) return;
 
-            for (final File file: files)
+            for (final File file: files) {
+                log("about to delete temp file: " + file.getAbsolutePath());
                 delete(file);
+            }
         }
 
         private static File getTmpFile(final String prefix, final String suffix,
@@ -1502,7 +1809,7 @@ public class CoreLogger {
                     if (copyResult == PixelCopy.SUCCESS)
                         complete(saveScreenshot(bitmap, tmpDir, suffix, errors), list, runnable);
                     else {
-                        CoreLogger.logError("PixelCopy failed with copyResult " + copyResult);
+                        logError("PixelCopy failed with copyResult " + copyResult);
                         complete(null, list, runnable);
                     }
                 }
@@ -1512,7 +1819,7 @@ public class CoreLogger {
         private static File saveScreenshot(final Bitmap bitmap, final File tmpDir,
                                            final String suffix, final Map<String, Exception> errors) {
             try {
-                final File tmpFile = getTmpFile("screen", suffix, "png", tmpDir);
+                final File tmpFile = getTmpFile(SCREENSHOT_PREFIX, suffix, SCREENSHOT_EXTENSION, tmpDir);
                 final FileOutputStream outputStream = new FileOutputStream(tmpFile);
                 //noinspection TryFinallyCanBeTryWithResources
                 try {
@@ -1531,7 +1838,841 @@ public class CoreLogger {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    // based on https://github.com/google/grafika and https://github.com/saki4510t/AudioVideoRecordingSample
 
+    /**
+     * Component to record video / audio. This is simplified version, intended for applications debug only;
+     * don't use for professional audio / video recording). Usage example:
+     *
+     * <p><pre style="background-color: silver; border: thin solid black;">
+     * VideoRecorder.start(activity, outputFile);
+     * ...
+     * VideoRecorder.stop();
+     * </pre>
+     */
+    @SuppressWarnings("WeakerAccess")
+    @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public static class VideoRecorder {
+
+        private static final int                        NO_TRACK                 = -1;
+        private static final int                        INDEX_AUDIO              =  0;
+        private static final int                        INDEX_VIDEO              =  1;
+
+        private static       String                     sDisplayName             = "Yakhont's Virtual Display";
+        private static       String                     sFileNamePrefix          = "yakhont_record";
+        private static       String                     sFileNameExtension       = "mp4";
+
+        private static       int                        sAudioSampleRate         = 44100;
+        private static       int                        sAudioSamplesPerFrame    = 1024;
+        private static       int                        sAudioFramesPerBuffer    = 25;
+        private static       int                        sAudioBitRate            = 64000;
+        private static       int                        sAudioTimeout            = 10 * 1000;
+        private static       int                        sAudioQualityRepeat      = 1;
+        private static       int                        sAudioChannelMask        = AudioFormat.CHANNEL_IN_MONO;
+        private static       int                        sAudioFormat             = AudioFormat.ENCODING_PCM_16BIT;
+        private static       String                     sAudioMimeType           = "audio/mp4a-latm";
+
+        private static       int                        sVideoFrameRate          = 30;
+        private static       int                        sVideoBitRate            = 6 * 1000 * 1000;
+        private static       String                     sVideoMimeType           = "video/avc";
+
+        private static       boolean                    sWarnings                = true;
+
+        private static       MediaProjectionManager     sMediaProjectionManager;
+        private static       MediaProjection            sMediaProjection;
+        private static       MediaMuxer                 sMediaMuxer;
+        private static final Object                     sMediaMuxerLock          = new Object();
+        private static final MediaCodec[]               sEncoders                = new MediaCodec[2];
+        private static       VirtualDisplay             sVirtualDisplay;
+        private static       Surface                    sInputSurface;
+        private static       long                       sPrevAudioTime;
+        private static final int[]                      sTrackIndexes            = new int[2];
+        private static       CyclicBarrier              sCyclicBarrier;
+
+        private static       Runnable                   sHandler;
+        private static       String                     sOutputFile;
+        private static       boolean                    sIsOk;
+        private static final Object                     sIsOkLock                = new Object();
+
+        private VideoRecorder() {
+        }
+
+        private static boolean isOk() {
+            synchronized (sIsOkLock) {
+                return sIsOk;
+            }
+        }
+
+        private static void setOk(final boolean ok) {
+            synchronized (sIsOkLock) {
+                sIsOk = ok;
+            }
+        }
+
+        private static void setHandler(final Runnable handler) {
+            sHandler = handler;
+        }
+
+        /**
+         * Starts audio / video recording.
+         *
+         * @param activity
+         *        The Activity
+         *
+         * @param outputFile
+         *        The output file
+         *
+         * @return  {@code true} if recording started successfully, {@code false} otherwise
+         */
+        @SuppressWarnings("UnusedReturnValue")
+        public static boolean start(@NonNull final Activity activity, @NonNull final String outputFile) {
+            sOutputFile             = outputFile;
+            final String permission = Manifest.permission.RECORD_AUDIO;
+
+            final boolean result = new CorePermissions.RequestBuilder(activity)
+                    .setNotRunAppSettings(true)
+                    .setRationale("")           // suppress log error message
+                    .addCallbacks(new CorePermissions.Callbacks(permission) {
+                        @Override
+                        public void onDenied() {
+                            super.onDenied();
+                            startWrapper(activity, outputFile, false);
+                        }
+
+                        @Override
+                        public void onGranted() {
+                            super.onGranted();
+                            startWrapper(activity, outputFile, true);
+                        }
+                    })
+                    .request();
+
+            log(permission + " request result: " + (result ? "already granted": "not granted yet"));
+            return result;
+        }
+
+        private static void startWrapper(@NonNull final Activity activity, @NonNull final String outputFile,
+                                         final boolean useAudio) {
+            //noinspection Convert2Lambda
+            Utils.postToMainLoop(new Runnable() {
+                @Override
+                public void run() {
+                    final boolean result = start(activity, outputFile, useAudio);
+                    log(result ? getDefaultLevel(): Level.WARNING, "recording starting result: " + result);
+
+                    if (result) return;
+                    runHandler();
+                    stop();
+                }
+            });
+        }
+
+        private static void runHandler() {
+            if (sHandler == null) return;
+
+            Utils.safeRun(sHandler);
+            sHandler = null;
+        }
+
+        private static boolean start(@NonNull final Activity activity, @NonNull final String outputFile,
+                                     final boolean useAudio) {
+            setOk(false);
+
+            if (isRunning()) {
+                logWarning("recording already started");
+                return false;
+            }
+
+            sMediaProjectionManager = (MediaProjectionManager) activity.getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+            if (sMediaProjectionManager == null) {      // should never happen
+                logError("can't get MediaProjectionManager");
+                return false;
+            }
+            log("about to prepare video recording, audio: " + useAudio + ", output file: " + outputFile);
+
+            activity.startActivityForResult(sMediaProjectionManager.createScreenCaptureIntent(),
+                    Utils.getRequestCode(useAudio ? RequestCodes.LOGGER_VIDEO_AUDIO_SYSTEM:
+                            RequestCodes.LOGGER_VIDEO_SYSTEM, activity));
+            return true;
+        }
+
+        /**
+         * Checks if recording is in progress.
+         *
+         * @return  {@code true} if recording is in progress, {@code false} otherwise
+         */
+        public static boolean isRunning() {
+            return sMediaProjectionManager != null;
+        }
+
+        private static void stop(final Level level, final MediaCodec codec) {
+            if (codec == null) return;
+            try {
+                codec.stop();
+            }
+            catch (Exception exception) {
+                log(level, "MediaCodec stop failed, "    + getDescription(codec), exception);
+            }
+            try {
+                codec.release();
+            }
+            catch (Exception exception) {
+                log(level, "MediaCodec release failed, " + getDescription(codec), exception);
+            }
+        }
+
+        private static String getDescription(final MediaCodec codec) {
+            try {
+                return "codec: " + (codec == null ? "null": codec.getName());
+            }
+            catch (/*IllegalState*/Exception exception) {
+                log(Level.WARNING, exception);
+                return "codec: description is N/A";
+            }
+        }
+
+        /**
+         * Stops audio / video recording.
+         *
+         * @return  The output file name
+         */
+        public static String stop() {
+            if (!isRunning()) return null;
+
+            final boolean ok = isOk();
+            if (ok)  showToast(Utils.getCurrentActivity(), R.string.yakhont_record_video_stop);
+            log(ok ? getDefaultLevel(): Level.WARNING, "about to stop video recording, result: " + ok);
+
+            final Level level = getDefaultLevel();
+
+            stop(level, sEncoders[INDEX_AUDIO]);
+            stop(level, sEncoders[INDEX_VIDEO]);
+
+            if (sMediaMuxer != null) {
+                try {
+                    if (ok) sMediaMuxer.stop();
+                }
+                catch (Exception exception) {
+                    log(level, "MediaMuxer stop failed", exception);
+                }
+                try {
+                    sMediaMuxer.release();
+                }
+                catch (Exception exception) {
+                    log(level, "MediaMuxer release failed", exception);
+                }
+            }
+
+            if (sInputSurface != null)
+                try {
+                    sInputSurface.release();
+                }
+                catch (Exception exception) {
+                    log(level, "InputSurface release failed", exception);
+                }
+
+            if (sMediaProjection != null)
+                try {
+                    sMediaProjection.stop();
+                }
+                catch (Exception exception) {
+                    log(level, "MediaProjection stop failed", exception);
+                }
+
+            if (sVirtualDisplay != null)
+                try {
+                    sVirtualDisplay.release();
+                }
+                catch (Exception exception) {
+                    log(level, "VirtualDisplay release failed", exception);
+                }
+
+            sMediaProjectionManager    = null;
+            sMediaProjection           = null;
+            sMediaMuxer                = null;
+            sCyclicBarrier             = null;
+            sInputSurface              = null;
+            sEncoders    [INDEX_AUDIO] = null;
+            sEncoders    [INDEX_VIDEO] = null;
+            sVirtualDisplay            = null;
+            sTrackIndexes[INDEX_AUDIO] = NO_TRACK;
+            sTrackIndexes[INDEX_VIDEO] = NO_TRACK;
+
+            final String result        = ok ? sOutputFile: null;
+            sOutputFile                = null;
+
+            setOk(false);
+            return result;
+        }
+
+        private static void onActivityResult(@NonNull final Activity activity, final int requestCode,
+                                             final int resultCode, final Intent data) {
+            Utils.onActivityResult("CoreLogger", activity, requestCode, resultCode, data);
+            final RequestCodes code = Utils.getRequestCode(requestCode);
+
+            if (code != RequestCodes.LOGGER_VIDEO                   &&
+                code != RequestCodes.LOGGER_VIDEO_SYSTEM            &&
+                code != RequestCodes.LOGGER_VIDEO_AUDIO_SYSTEM) {
+
+                log("CoreLogger: unknown request code " + requestCode);
+                return;
+            }
+            final boolean useAudio = code == RequestCodes.LOGGER_VIDEO_AUDIO_SYSTEM;
+
+            switch (code) {
+                case LOGGER_VIDEO:
+                    runHandler();
+                    break;
+
+                case LOGGER_VIDEO_SYSTEM:
+                case LOGGER_VIDEO_AUDIO_SYSTEM:
+                    if (resultCode != Activity.RESULT_OK) {
+                        logError("createScreenCaptureIntent() failed, result code: " + resultCode);
+                        break;
+                    }
+                    try {
+                        sMediaProjection = sMediaProjectionManager.getMediaProjection(resultCode, data);
+                        startRecording(activity, useAudio);
+
+                        showToast(activity, R.string.yakhont_record_video_info);
+                        log("starting video recording...");
+                    }
+                    catch (Exception exception) {
+                        log("start video recording failed", exception);
+
+                        stop();
+                        runHandler();
+                    }
+                    break;
+            }
+        }
+
+        private static void showToast(@NonNull final Activity activity, @StringRes final int textId) {
+            if (sWarnings) new Utils.ToastBuilder(activity)
+                    .setTextId(textId)
+                    .setDuration(Toast.LENGTH_SHORT)
+                    .show();
+        }
+
+        private static void startRecording(@NonNull final Activity activity, final boolean useAudio) throws IOException {
+            sMediaMuxer    = new MediaMuxer(sOutputFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            sCyclicBarrier = new CyclicBarrier(2, null);
+
+            try {
+                if (useAudio) setupAudio();
+                if (sEncoders[INDEX_AUDIO] != null) {
+                    sEncoders[INDEX_AUDIO].start();
+
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            try {
+                                runAudio();
+                            }
+                            catch (Exception exception) {
+                                log("audio record failed", exception);
+                            }
+                        }
+                    }.start();
+                }
+            }
+            catch (Exception exception) {
+                log("start audio recording failed", exception);
+                sEncoders[INDEX_AUDIO]  = null;
+            }
+
+            final DisplayMetrics displayMetrics = activity.getResources().getDisplayMetrics();
+            setupVideo(displayMetrics.widthPixels, displayMetrics.heightPixels);
+
+            sMediaProjection.createVirtualDisplay(sDisplayName, displayMetrics.widthPixels,
+                    displayMetrics.heightPixels, displayMetrics.densityDpi,
+                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, sInputSurface, null, null);
+
+            if (sEncoders[INDEX_VIDEO] != null) sEncoders[INDEX_VIDEO].start();
+        }
+
+        private static void setupAudio() throws IOException {
+            final MediaFormat mediaFormat = MediaFormat.createAudioFormat(sAudioMimeType,
+                    sAudioSampleRate, 1);
+
+            mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE,  MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+            mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_MASK, sAudioChannelMask);
+            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE,     sAudioBitRate);
+
+            sEncoders[INDEX_AUDIO] = MediaCodec.createEncoderByType(sAudioMimeType);
+            sEncoders[INDEX_AUDIO].configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+        }
+
+        private static void runAudio() {
+            sTrackIndexes[INDEX_AUDIO] = NO_TRACK;
+
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_AUDIO);
+
+            final int minBufferSize = AudioRecord.getMinBufferSize(
+                    sAudioSampleRate, sAudioChannelMask, sAudioFormat);
+            int bufferSize = sAudioSamplesPerFrame * sAudioFramesPerBuffer;
+            if (bufferSize <  minBufferSize)
+                bufferSize = (minBufferSize / sAudioSamplesPerFrame + 1) * sAudioSamplesPerFrame * 2;
+
+            AudioRecord audioRecord;
+            try {
+                audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sAudioSampleRate,
+                        sAudioChannelMask, sAudioFormat, bufferSize);
+                if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
+                    audioRecord = null;
+                    logError("AudioRecord failed");
+                }
+            }
+            catch (Exception exception) {
+                audioRecord = null;
+                log("AudioRecord failed", exception);
+            }
+            if (audioRecord == null) return;
+
+            try {
+                log("start audio recording");
+                final ByteBuffer buffer = ByteBuffer.allocateDirect(sAudioSamplesPerFrame);
+
+                audioRecord.startRecording();
+                try {
+                    for (;;) {
+                        buffer.clear();
+                        final int bytesQty = audioRecord.read(buffer, sAudioSamplesPerFrame);
+                        if (bytesQty <= 0) continue;
+
+                        buffer.position(bytesQty);
+                        buffer.flip();
+
+                        encodeAudio(buffer, bytesQty, getAudioTime());
+                        if (!saveAudio()) break;
+                    }
+                }
+                finally {
+                    log("about tot call AudioRecord.stop()");
+                    audioRecord.stop();
+                }
+            }
+            finally {
+                log("about tot call AudioRecord.release()");
+                audioRecord.release();
+            }
+        }
+
+        private static long getAudioTime() {
+            final long result = System.nanoTime() / 1000;
+            return result < sPrevAudioTime ? sPrevAudioTime: result;
+        }
+
+        private static void encodeAudio(final ByteBuffer buffer, final int length, final long time) {
+            while (isOk()) {
+                final int bufferId;
+                try {
+                    bufferId = sEncoders[INDEX_AUDIO].dequeueInputBuffer(sAudioTimeout);
+                }
+                catch (IllegalStateException exception) {
+                    log(getDefaultLevel(), "audio record", exception);
+                    return;
+                }
+                if (bufferId < 0) continue;
+
+                final ByteBuffer inputBuffer = sEncoders[INDEX_AUDIO].getInputBuffer(bufferId);
+                if (inputBuffer == null) {
+                    logError("audio record: null input buffer, " + getDescription(sEncoders[INDEX_AUDIO]));
+                    continue;
+                }
+                inputBuffer.clear();
+                if (buffer != null) inputBuffer.put(buffer);
+
+                if (length <= 0) {
+                    log("audio record: send MediaCodec.BUFFER_FLAG_END_OF_STREAM");
+                    sEncoders[INDEX_AUDIO].queueInputBuffer(bufferId, 0, 0,
+                            time, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                }
+                else
+                    sEncoders[INDEX_AUDIO].queueInputBuffer(bufferId, 0, length,
+                            time, 0);
+                break;
+            }
+        }
+
+        private static boolean saveAudio() {
+            boolean isContinue = isOk();
+
+            final MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
+
+            int status = 0;
+            for (int i = 0; i < sAudioQualityRepeat; i++) {
+                try {
+                    status = sEncoders[INDEX_AUDIO].dequeueOutputBuffer(info, sAudioTimeout);
+                }
+                catch (IllegalStateException exception) {
+                    log(getDefaultLevel(), "audio record: stop", exception);
+                    return false;
+                }
+                if (status != MediaCodec.INFO_TRY_AGAIN_LATER) break;
+            }
+            if (status == MediaCodec.INFO_TRY_AGAIN_LATER) {
+                logWarning("audio record: wrong status MediaCodec.INFO_TRY_AGAIN_LATER");
+                return isContinue;
+            }
+
+            //noinspection SwitchStatementWithTooFewBranches
+            switch (status) {
+/*              case MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED:
+                    logError("audio record: MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED");
+                    break;
+*/
+                case MediaCodec.INFO_OUTPUT_FORMAT_CHANGED:
+                    sTrackIndexes[INDEX_AUDIO] = sMediaMuxer.addTrack(sEncoders[INDEX_AUDIO].getOutputFormat());
+                    log("audio track index: " + sTrackIndexes[INDEX_AUDIO] + ", " +
+                            getDescription(sEncoders[INDEX_AUDIO]));
+
+                    startMediaMuxer(sEncoders[INDEX_VIDEO] != null);
+                    isContinue = true;
+                    break;
+
+                default:
+                    if (status < 0) {
+                        logError("unknown result from audioEncoder.dequeueOutputBuffer(): " + status);
+                        break;
+                    }
+                    final ByteBuffer buffer = sEncoders[INDEX_AUDIO].getOutputBuffer(status);
+
+                    if (buffer == null)                             // should never happen
+                        logError("audio record: output buffer is null, status " + status);
+                    else {
+                        if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) info.size = 0;
+
+                        if (info.size != 0) {
+                            info.presentationTimeUs = getAudioTime();
+                            synchronized (sMediaMuxerLock) {
+                                sMediaMuxer.writeSampleData(sTrackIndexes[INDEX_AUDIO], buffer, info);
+                            }
+                            sPrevAudioTime = info.presentationTimeUs;
+                        }
+                    }
+                    sEncoders[INDEX_AUDIO].releaseOutputBuffer(status, false);
+
+                    break;
+            }
+
+            return isContinue;
+        }
+
+        private static void setupVideo(final int width, final int height) throws IOException {
+            final MediaFormat mediaFormat = MediaFormat.createVideoFormat(sVideoMimeType, width, height);
+
+            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
+                    MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE,     sVideoBitRate);
+            mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE,   sVideoFrameRate);
+            mediaFormat.setInteger(MediaFormat.KEY_CAPTURE_RATE, sVideoFrameRate);
+            mediaFormat.setInteger(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 1000 * 1000 / sVideoFrameRate);
+            mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_COUNT, 1);
+            mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+
+            sEncoders[INDEX_VIDEO] = MediaCodec.createEncoderByType(sVideoMimeType);
+            sEncoders[INDEX_VIDEO].setCallback(getVideoCallback());
+
+            sEncoders[INDEX_VIDEO].configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
+            sInputSurface = sEncoders[INDEX_VIDEO].createInputSurface();
+        }
+
+        private static MediaCodec.Callback getVideoCallback() {
+            sTrackIndexes[INDEX_VIDEO] = NO_TRACK;
+
+            return new MediaCodec.Callback() {
+                @Override
+                public void onInputBufferAvailable(final @NonNull MediaCodec codec, final int index) {
+                    log("video record: onInputBufferAvailable(), " + getDescription(codec) +
+                            ", index: " + index);
+                }
+
+                @Override
+                public void onOutputBufferAvailable(final @NonNull MediaCodec codec, final int index,
+                                                    final @NonNull MediaCodec.BufferInfo info) {
+                    try {
+                        outputBufferAvailable(codec, index, info);
+                    }
+                    catch (Exception exception) {
+                        log("video record", exception);
+                    }
+                }
+
+                private void outputBufferAvailable(final @NonNull MediaCodec codec, final int index,
+                                                   final @NonNull MediaCodec.BufferInfo info) {
+                    final ByteBuffer encodedData;
+                    try {
+                        encodedData = codec.getOutputBuffer(index);
+                    }
+                    catch (IllegalStateException exception) {
+                        log(getDefaultLevel(), "video record", exception);
+                        return;
+                    }
+                    if (encodedData == null) {
+                        logError("video record: couldn't fetch MediaCodec buffer at index " +
+                                index + ", " + getDescription(codec));
+                        return;
+                    }
+                    if ((info.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) info.size = 0;
+
+                    if (info.size != 0 && isOk()) {
+                        encodedData.position(info.offset);
+                        encodedData.limit(info.offset + info.size);
+                        synchronized (sMediaMuxerLock) {
+                            sMediaMuxer.writeSampleData(sTrackIndexes[INDEX_VIDEO], encodedData, info);
+                        }
+                    }
+                    codec.releaseOutputBuffer(index, false);
+                }
+
+                @Override
+                public void onError(final @NonNull MediaCodec codec,
+                                    final @NonNull MediaCodec.CodecException exception) {
+                    log("video record: error, " + getDescription(codec), exception);
+                }
+
+                @Override
+                public void onOutputFormatChanged(final @NonNull MediaCodec  codec,
+                                                  final @NonNull MediaFormat format) {
+                    try {
+                        outputFormatChanged(codec, format);
+                    }
+                    catch (Exception exception) {
+                        log("video record", exception);
+                    }
+                }
+
+                private void outputFormatChanged(final @NonNull MediaCodec  codec,
+                                                 final @NonNull MediaFormat format) {
+                    log("video record: output format changed, " + format);
+                    if (sTrackIndexes[INDEX_VIDEO] >= 0) {
+                        logError("video record: format changed twice " + format);
+                        return;
+                    }
+                    sTrackIndexes[INDEX_VIDEO] = sMediaMuxer.addTrack(codec.getOutputFormat());
+                    log("video track index: " + sTrackIndexes[INDEX_VIDEO] + ", " + getDescription(codec));
+
+                    startMediaMuxer(sEncoders[INDEX_AUDIO] != null);
+                }
+            };
+        }
+
+        private static void startMediaMuxer(final boolean wait) {
+            String                              info = "audio / video";
+            if (sTrackIndexes[INDEX_VIDEO] < 0) info = "audio";
+            if (sTrackIndexes[INDEX_AUDIO] < 0) info = "video";
+
+            if (wait) {
+                log(info + " record: wait");
+                try {
+                    sCyclicBarrier.await(3, TimeUnit.SECONDS);
+                }
+                catch (Exception exception) {
+                    log(info + " record: failed", exception);
+                    return;
+                }
+            }
+
+            synchronized (sIsOkLock) {
+                if (!isOk() &&
+                        (sTrackIndexes[INDEX_VIDEO] >= 0 || sTrackIndexes[INDEX_AUDIO] >= 0)) {
+                    sMediaMuxer.start();
+
+                    log(info + " record: started");
+                    setOk(true);
+                }
+            }
+        }
+
+        /**
+         * Indicates whether {@link Toast} alerts about start / stop recording should be displayed.
+         *
+         * @param value
+         *        {@code true} to display alerts, {@code false} otherwise
+         */
+        @SuppressWarnings("unused")
+        public static void setWarnings(final boolean value) {
+            sWarnings = value;
+        }
+
+        /**
+         * Sets virtual display name. Please refer to {@link MediaProjection#createVirtualDisplay} for more info.
+         *
+         * @param value
+         *        The virtual display name
+         */
+        @SuppressWarnings("unused")
+        public static void setDisplayName(final String value) {
+            sDisplayName = value;
+        }
+
+        /**
+         * Sets output file name prefix.
+         *
+         * @param value
+         *        The output file name prefix
+         */
+        @SuppressWarnings("unused")
+        public static void setFileNamePrefix(final String value) {
+            sFileNamePrefix = value;
+        }
+
+        /**
+         * Sets output file name extension; the default value is "mp4".
+         *
+         * @param value
+         *        The output file name extension
+         */
+        @SuppressWarnings("unused")
+        public static void setFileNameExtension(final String value) {
+            sFileNameExtension = value;
+        }
+
+        /**
+         * Sets audio sample rate; the default value is 44100.
+         *
+         * @param value
+         *        The audio sample rate
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioSampleRate(final int value) {
+            sAudioSampleRate = value;
+        }
+
+        /**
+         * Sets audio samples per frame; the default value is 1024.
+         *
+         * @param value
+         *        The audio samples per frame
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioSamplesPerFrame(final int value) {
+            sAudioSamplesPerFrame = value;
+        }
+
+        /**
+         * Sets audio frames per buffer; the default value is 25.
+         *
+         * @param value
+         *        The audio frames per buffer
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioFramesPerBuffer(final int value) {
+            sAudioFramesPerBuffer = value;
+        }
+
+        /**
+         * Sets audio bitrate; the default value is 64000.
+         *
+         * @param value
+         *        The audio bitrate
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioBitRate(final int value) {
+            sAudioBitRate = value;
+        }
+
+        /**
+         * Sets audio channel mask; the default value is {@link AudioFormat#CHANNEL_IN_MONO}.
+         *
+         * @param value
+         *        The audio channel mask
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioChannelMask(final int value) {
+            sAudioChannelMask = value;
+        }
+
+        /**
+         * Sets audio format; the default value is {@link AudioFormat#ENCODING_PCM_16BIT}.
+         *
+         * @param value
+         *        The audio format
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioFormat(final int value) {
+            sAudioFormat = value;
+        }
+
+        /**
+         * Sets audio mime type; the default value is "audio/mp4a-latm".
+         *
+         * @param value
+         *        The audio mime type
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioMimeType(final String value) {
+            sAudioMimeType = value;
+        }
+
+        /**
+         * Sets audio quality; the default value is 1.
+         *
+         * @param value
+         *        The audio quality
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioQuality(final int value) {
+            sAudioQualityRepeat = value;
+        }
+
+        /**
+         * Sets audio timeout; the default value is 10000. Please refer to
+         * {@link MediaCodec#dequeueInputBuffer} and {@link MediaCodec#dequeueOutputBuffer} for more info.
+         *
+         * @param value
+         *        The audio timeout
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioTimeout(final int value) {
+            sAudioTimeout = value;
+        }
+
+        /**
+         * Sets video mime type; the default value is "video/avc".
+         *
+         * @param value
+         *        The video mime type
+         */
+        @SuppressWarnings("unused")
+        public static void setVideoMimeType(final String value) {
+            sVideoMimeType = value;
+        }
+
+        /**
+         * Sets video bitrate; the default value is 6000000.
+         *
+         * @param value
+         *        The video bitrate
+         */
+        @SuppressWarnings("unused")
+        public static void setVideoBitRate(final int value) {
+            sVideoBitRate = value;
+        }
+
+        /**
+         * Sets video frame rate; the default value is 30.
+         *
+         * @param value
+         *        The video frame rate
+         */
+        @SuppressWarnings("unused")
+        public static void setVideoFrameRate(final int value) {
+            sVideoFrameRate = value;
+        }
+    }
+
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
+                                        final int resultCode, final Intent data) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            VideoRecorder.onActivityResult(activity, requestCode, resultCode, data);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     // @LogDebug support
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})

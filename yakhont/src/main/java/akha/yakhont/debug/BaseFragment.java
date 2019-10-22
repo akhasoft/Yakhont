@@ -121,7 +121,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onAttach(final Activity activity) {
+    public void onAttach(@NonNull final Activity activity) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(activity);
@@ -132,7 +132,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onAttach(final Context context) {
+    public void onAttach(@NonNull final Context context) {
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         super.onAttach(context);
@@ -141,7 +141,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     /** Please refer to the base method description. */                                                 //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
     @CallSuper                                                                                          //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
     @Override                                                                                           //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
-    public void onAttachFragment(final Fragment childFragment) {                                        //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
+    public void onAttachFragment(@NonNull final Fragment childFragment) {                               //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", childFragment " + childFragment, false); //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
 
         super.onAttachFragment(childFragment);                                                          //YakhontPreprocessor:removeInGenerated-LeanbackListPreferenceDialogFragment,LeanbackPreferenceDialogFragment
@@ -152,7 +152,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onConfigurationChanged(final Configuration newConfig) {
+    public void onConfigurationChanged(@NonNull final Configuration newConfig) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", newConfig " + newConfig, false);
 
         super.onConfigurationChanged(newConfig);
@@ -229,7 +229,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
     @CallSuper
     @Override
     @SuppressWarnings("deprecation")
-    public void onInflate(final Activity activity, final AttributeSet attrs, final Bundle savedInstanceState) {
+    public void onInflate(@NonNull final Activity activity, @NonNull final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(activity, attrs, savedInstanceState);
@@ -240,7 +240,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      */
     @CallSuper
     @Override
-    public void onInflate(final Context context, final AttributeSet attrs, final Bundle savedInstanceState) {
+    public void onInflate(@NonNull final Context context, @NonNull final AttributeSet attrs, final Bundle savedInstanceState) {
         CoreLogger.log(getDebugLevel(), getDebugMessage() + ", attrs " + attrs + ", savedInstanceState " + savedInstanceState, false);
 
         super.onInflate(context, attrs, savedInstanceState);

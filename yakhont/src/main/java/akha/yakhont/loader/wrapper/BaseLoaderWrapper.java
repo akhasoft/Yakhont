@@ -1639,7 +1639,7 @@ public abstract class BaseLoaderWrapper<D> {
             return result;
         }
 
-        // subject to call from weaver
+        // subject to call by the Yakhont Weaver
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         public static void onPauseOrResume(@NonNull final Activity activity, final boolean resume) {
             for (final View view: findViews(activity)) {

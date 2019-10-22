@@ -82,9 +82,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 /*
         if (debug) {
             // optional; on shaking device email with logs will be sent to the address below
-//          CoreLogger.registerShakeDataSender(this, "address@company.com");
+//          CoreLogger.registerDataSender(this, "address@company.com");
             // or something like this:
-//          CoreLogger.registerShakeDataSender(this, "logcat -d", true, true, null, "subj", "address@company.com");
+//          CoreLogger.registerDataSender(this, "logcat -d", true, true, null, "subj", "address@company.com");
         }
 */
         if (savedInstanceState == null)

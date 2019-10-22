@@ -32,7 +32,6 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.FragmentActivity;
-import androidx.fragment.app.FragmentManager;
 
 import java.lang.ref.WeakReference;
 
@@ -284,7 +283,6 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
     }
 
     private static void showLocationErrorDialog(@NonNull final Activity activity, final int errorCode) {
-
         final LocationErrorDialogFragment errorDialogFragment = new LocationErrorDialogFragment();
 
         final Bundle args = new Bundle();
@@ -292,16 +290,10 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         errorDialogFragment.setArguments(args);
 
         if (activity instanceof FragmentActivity) {
-
-            final FragmentManager fragmentManager = ((FragmentActivity) activity).getSupportFragmentManager();
-            if (fragmentManager == null) {
-                CoreLogger.logError("no ErrorDialogFragment: fragmentManager == null");
-                return;
-            }
-
             errorDialogFragment.setCurrentActivity(activity);
 
-            errorDialogFragment.show(fragmentManager, LocationErrorDialogFragment.TAG);
+            errorDialogFragment.show(((FragmentActivity) activity).getSupportFragmentManager(),
+                    LocationErrorDialogFragment.TAG);
         }
         else {
             final Dialog dialog = getErrorDialog(activity, errorCode, REQUEST_CODE_ERROR);
@@ -365,7 +357,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         }
 
         @Override
-        public void onDismiss(final DialogInterface dialog) {
+        public void onDismiss(@NonNull final DialogInterface dialog) {
             super.onDismiss(dialog);
 
             onDismiss(getCurrentActivity());

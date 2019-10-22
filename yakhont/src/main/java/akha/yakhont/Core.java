@@ -45,9 +45,9 @@ import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.Dagger2.Parameters;
 import akha.yakhont.technology.Dagger2.UiModule;
-import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
 import akha.yakhont.technology.Dagger2.UiModule.ViewHandler;
 import akha.yakhont.technology.Dagger2.UiModule.ViewHandlerSnackbar;
+import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.Rx2;
 
@@ -213,7 +213,10 @@ public class Core implements DefaultLifecycleObserver {
         LOCATION_INTENT,
         PERMISSIONS_ALERT,
         PERMISSIONS_RATIONALE_ALERT,
-        PERMISSIONS_DENIED_ALERT
+        PERMISSIONS_DENIED_ALERT,
+        LOGGER_VIDEO,
+        LOGGER_VIDEO_SYSTEM,
+        LOGGER_VIDEO_AUDIO_SYSTEM
     }
 
     /**
@@ -730,12 +733,10 @@ public class Core implements DefaultLifecycleObserver {
         return result;
     }
 
+    // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void onApplicationConfigurationChanged(final Configuration newConfig) {
         if (sAppCallbacks == null) return;
-
-        CoreLogger.log("subject to call by weaver");
-
         sAppCallbacks.onConfigurationChanged(newConfig);
     }
 
@@ -802,7 +803,7 @@ public class Core implements DefaultLifecycleObserver {
     @SuppressWarnings("unused")
     private static class Init extends BaseListeners {
 
-        private static String                           sBaseUri;
+        private static       String                     sBaseUri;
 
         private static       boolean                    sLogLevelSet;
         private static final Object                     sLogLevelSetLock                = new Object();
@@ -812,15 +813,15 @@ public class Core implements DefaultLifecycleObserver {
         private static final AtomicBoolean              sRunNetworkMonitor              = new AtomicBoolean(true);
         private static final AtomicInteger              sConnectionCheckInterval        = new AtomicInteger(TIMEOUT_NETWORK_MONITOR);
 
-        private static ConnectivityManager.NetworkCallback
+        private static       ConnectivityManager.NetworkCallback
                                                         sNetworkCallback;
 
-        private static ActivityLifecycleProceed         sActivityLifecycleProceed;
-        private static ApplicationCallbacks.ApplicationCallbacks2
+        private static       ActivityLifecycleProceed   sActivityLifecycleProceed;
+        private static       ApplicationCallbacks.ApplicationCallbacks2
                                                         sApplicationCallbacks2;
 
-        private static HideKeyboardCallbacks            sHideKeyboardCallbacks;
-        private static OrientationCallbacks             sOrientationCallbacks;
+        private static       HideKeyboardCallbacks      sHideKeyboardCallbacks;
+        private static       OrientationCallbacks       sOrientationCallbacks;
 
         public static void registerCallbacks(@NonNull final Application application, final boolean firstInit) {
             if (firstInit) registerCallbacks(application);
@@ -947,14 +948,14 @@ public class Core implements DefaultLifecycleObserver {
                 sNetworkCallback = new ConnectivityManager.NetworkCallback() {
                     @Override
                     public void onAvailable(@NonNull final Network network) {
-                        CoreLogger.log(Level.DEBUG, "NetworkCallback.onAvailable()");
+                        CoreLogger.log(CoreLogger.getDefaultLevel(), "NetworkCallback.onAvailable()");
                         setConnected(true);
                     }
 
                     @Override
                     public void onBlockedStatusChanged(@NonNull final Network network,
                                                        final boolean blocked) {
-                        CoreLogger.log(blocked ? Level.WARNING : Level.DEBUG,
+                        CoreLogger.log(blocked ? Level.WARNING: CoreLogger.getDefaultLevel(),
                                 "NetworkCallback.onBlockedStatusChanged() " + blocked);
                         setConnected(!blocked);
                     }
@@ -1637,7 +1638,7 @@ public class Core implements DefaultLifecycleObserver {
         public static void onActivityResult(@NonNull final String prefix, @NonNull final Activity activity,
                                             final int requestCode, final int resultCode, final Intent data) {
             CoreLogger.log((prefix.isEmpty() ? "": prefix + ".") + "onActivityResult" +
-                    (prefix.isEmpty() ? "": ": subject to call by weaver"));
+                    (prefix.isEmpty() ? "": ": subject to call by the Yakhont Weaver"));
             CoreLogger.log("activity   : " + CoreLogger.getDescription(activity));
             CoreLogger.log("requestCode: " + requestCode + " " + getRequestCode(requestCode).name());
             CoreLogger.log("resultCode : " + resultCode  + " " + getActivityResultString(resultCode));
@@ -1654,8 +1655,7 @@ public class Core implements DefaultLifecycleObserver {
                 return;
             }
 */
-            CoreReflection.invokeSafe(activity, "onActivityResult",
-                    requestCode, resultCode, data);
+            CoreReflection.invokeSafe(activity, "onActivityResult", requestCode, resultCode, data);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1690,10 +1690,12 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static File getTmpDir(@NonNull final Context context) {
+        public static File getTmpDir(Context context) {
+            if (context == null) context = getApplication();
+
             File dir;
-            if (checkTmpDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)))                    return dir;
-            if (checkTmpDir(dir = context.getExternalCacheDir()))                                                  return dir;
+            if (checkTmpDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES))) return dir;
+            if (checkTmpDir(dir = context.getExternalCacheDir()))                               return dir;
 
             CoreLogger.logError("can not find tmp directory");
             return null;
@@ -1804,8 +1806,7 @@ public class Core implements DefaultLifecycleObserver {
                     intent.putExtra(Intent.EXTRA_TEXT,      text);
 
                     if (attachment != null)
-                        intent.putExtra(Intent.EXTRA_STREAM,
-                                Uri.parse( "file://" + attachment.getAbsolutePath()));
+                        intent.putExtra(Intent.EXTRA_STREAM, Uri.parse( "file://" + attachment.getAbsolutePath()));
 
                     activity.startActivity(Intent.createChooser(intent,
                             activity.getString(R.string.yakhont_sending_email)));
@@ -1947,12 +1948,15 @@ public class Core implements DefaultLifecycleObserver {
         public static class ToastBuilder {
 
             private final      WeakReference<Context>   mContext;
+
             @LayoutRes
             private            int                      mViewId                         = Core.NOT_VALID_RES_ID;
             private            WeakReference<View>      mView;
+
             @StringRes
             private            int                      mTextId                         = Core.NOT_VALID_RES_ID;
             private            String                   mText;
+
             private            Integer                  mDuration, mRequestCode;
             private            Intent                   mData;
 
@@ -1971,7 +1975,7 @@ public class Core implements DefaultLifecycleObserver {
              */
             @SuppressWarnings("unused")
             public ToastBuilder(final Context context) {
-                mContext = context == null ? null: new WeakReference<>(context);
+                mContext          = context == null ? null: new WeakReference<>(context);
             }
 
             /**
@@ -2236,7 +2240,7 @@ public class Core implements DefaultLifecycleObserver {
             return new ViewModifier() {
                 @SuppressWarnings("unused")
                 @Override
-                public void modify(View view, ViewHandler viewHandler) {
+                public void modify(final View view, final ViewHandler viewHandler) {
                     view.setBackgroundResource(R.drawable.yakhont_snackbar_background);
                     viewHandler.getTextView().setTextColor(getColor(R.color.yakhont_color_snackbar_text));
                 }
@@ -2267,19 +2271,25 @@ public class Core implements DefaultLifecycleObserver {
         public static class SnackbarBuilder {
 
             private final      WeakReference<Activity>  mActivity;
+
             @IdRes
             private            int                      mViewId                         = Core.NOT_VALID_VIEW_ID;
             private            WeakReference<View>      mView;
+
             @StringRes
             private            int                      mTextId                         = Core.NOT_VALID_RES_ID;
             private            String                   mText;
+
             private            Integer                  mDuration, mRequestCode;
             private            Intent                   mData;
+
+            private            View.OnClickListener     mAction;
+            private            Integer                  mMaxLines;
+
             @StringRes
             private            int                      mActionTextId                   = Core.NOT_VALID_RES_ID;
             private            String                   mActionText;
-            private            View.OnClickListener     mAction;
-            private            Integer                  mMaxLines;
+
             private            ColorStateList           mActionColors;
             @ColorRes
             private            int                      mActionColorId                  = Core.NOT_VALID_RES_ID;
@@ -2296,7 +2306,7 @@ public class Core implements DefaultLifecycleObserver {
              *        The Activity (or null for the current one)
              */
             public SnackbarBuilder(final Activity activity) {
-                mActivity = activity == null ? null: new WeakReference<>(activity);
+                mActivity        = activity == null ? null: new WeakReference<>(activity);
             }
 
             /**
@@ -2585,26 +2595,24 @@ public class Core implements DefaultLifecycleObserver {
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static int getRequestCode(@NonNull final RequestCodes requestCode,
                                              @NonNull final Activity     activity) {
-                int result = getRequestCode(requestCode);
-
                 final Method method = CoreReflection.findMethod(activity,
                         "validateRequestPermissionsRequestCode", int.class);
-                if (method                                           == null) return result;
-                if (checkRequestCode(result, activity, method, null) == null) return result;
-
-                result     = getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
+                if (method != null) {
+                    int result = getRequestCode(requestCode);
+                    if (checkRequestCode(result, activity, method, null) == null) return result;
+                }
+                int result = getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
                 final Throwable throwable = checkRequestCode(result, activity, method, Level.ERROR);
-                if (throwable                                        == null) return result;
 
-                CoreLogger.log("getRequestCode failed", throwable);
+                if (throwable != null) CoreLogger.log("getRequestCode failed", throwable);
                 return result;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static RequestCodes getRequestCode(final int requestCode) {
                 final RequestCodes code = getRequestCode(requestCode, REQUEST_CODES_OFFSET);
-                return !code.equals(RequestCodes.UNKNOWN) ? code:
-                        getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
+                return code.equals(RequestCodes.UNKNOWN) ? getRequestCode(requestCode,
+                        REQUEST_CODES_OFFSET_SHORT): code;
             }
 
             private static RequestCodes getRequestCode(int requestCode, final int offset) {
@@ -3319,7 +3327,8 @@ public class Core implements DefaultLifecycleObserver {
                 }
             }
             else
-                CoreLogger.log("not closeable cursor " + cursor);
+                CoreLogger.logWarning("not closeable cursor " + cursor);
+
             return false;
         }
 

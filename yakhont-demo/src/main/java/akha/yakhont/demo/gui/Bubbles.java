@@ -423,7 +423,7 @@ public class Bubbles {
 
         @SuppressWarnings("WeakerAccess")
         public int get() {
-            final int lastValue = mList.get(0);
+            int lastValue = mList.get(0);
             mList.remove(0);
             if (mList.isEmpty()) {
                 fillList();

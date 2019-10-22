@@ -365,7 +365,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
             });
         }
 
-        @NonNull
+        @NonNull  @SuppressWarnings("MethodDoesntCallSuperMethod")
         @Override public Call    clone     () { return new CallI(mRequest); }
         @Override public void    cancel    () {                             }
         @Override public boolean isCanceled() { return               false; }

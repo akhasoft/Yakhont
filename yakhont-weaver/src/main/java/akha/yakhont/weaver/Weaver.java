@@ -63,8 +63,8 @@ public class Weaver {
 
     private static final String DEF_CONFIG          = "weaver.config";
 
-    private static final String ERROR               = "  *** Yakhont weaver error - ";
-    private static final String WARNING             = "  *** Yakhont weaver warning - ";
+    private static final String ERROR               = "  *** Yakhont weaver error: ";
+    private static final String WARNING             = "  *** Yakhont weaver warning: ";
 
     private static final String sNewLine            = System.getProperty("line.separator");
 
@@ -199,7 +199,7 @@ public class Weaver {
                     String classPath, String bootClassPath, boolean addConfig, String... configFiles)
             throws NotFoundException, CannotCompileException, IOException {
 
-        log(false, sNewLine + "Yakhont: weaving compiled classes in [" + classesDirs + "]...");
+        log(false, sNewLine + "Yakhont: weaving classes in [" + classesDirs + "]...");
 
         try {
             run(debugBuild, debug, packageName, classesDirs, classPath, bootClassPath, configFiles, addConfig);
@@ -246,7 +246,7 @@ public class Weaver {
         validateAnnotations();
 
         for (String classesDir: classesDirs.split(File.pathSeparator)) {
-            log(sNewLine + sNewLine + "-- about to weave compiled classes in " + classesDir + sNewLine);
+            log(sNewLine + sNewLine + "-- about to weave classes in [" + classesDir + "]" + sNewLine);
             searchClasses(new File(classesDir).listFiles());
         }
 
@@ -423,7 +423,7 @@ public class Weaver {
         if (idx < 0) return;
 
         destClassName  = path.substring(idx).replace(File.separator, ".")
-                .substring(0, path.length() - idx - 6);     // remove .class
+                .substring(0, path.length() - idx - 6);     // remove '.class'
         String rootDir = path.substring(0, idx);
 
         // ClassPool.getDefault() returns singleton but we need new instance
@@ -547,7 +547,7 @@ public class Weaver {
                 log(false, ERROR + "duplicated entries for " + name + ": " + getCode(data));
     }
 
-    private void weave(CtMethod method, String methodData, ClassPool pool, boolean before)
+    private void weave(CtMethod method, String methodData, ClassPool classPool, boolean before)
             throws NotFoundException, CannotCompileException {
         Action action = getAction(methodData);
         if (!before && action == Action.INSERT_BEFORE ||
@@ -569,7 +569,7 @@ public class Weaver {
                 break;
             case CATCH:
                 method.addCatch(getCode(methodData),
-                        pool.get(getActionDescriptionRaw(methodData)),
+                        classPool.get(getActionDescriptionRaw(methodData)),
                         "$" + EXCEPTION_NAME);
                 break;
             default:        // should never happen
@@ -589,7 +589,7 @@ public class Weaver {
     }
 
     private void insertMethods(CtClass clsDest, CtClass clsSrc, String methodName,
-                               ClassPool pool, String methodData, boolean before)
+                               ClassPool classPool, String methodData, boolean before)
             throws NotFoundException, CannotCompileException {
 
         int idx = methodName.indexOf('(');
@@ -613,9 +613,9 @@ public class Weaver {
             }
 
             if (methodDest != null)
-                weave(methodDest, methodData, pool, before);
+                weave(methodDest, methodData, classPool, before);
             else {
-                String newMethod = newMethod(methodSrc, methodData, clsDest);
+                String newMethod = getNewMethod(classPool, methodSrc, methodData, clsDest);
                 log(sNewLine + "about to add method " + methodName + sNewLine +
                         " method body: " + newMethod);
                 clsDest.addMethod(CtNewMethod.make(newMethod, clsDest));
@@ -625,6 +625,9 @@ public class Weaver {
 
     /**
      * Creates a new overriding method in the destination class.
+     *
+     * @param classPool
+     *        The ClassPool
      *
      * @param methodSrc
      *        The method to override
@@ -643,14 +646,17 @@ public class Weaver {
      *          please refer to the exception description
      */
     @SuppressWarnings({"WeakerAccess", "UnusedParameters"})
-    protected String newMethod(CtMethod methodSrc, String data, CtClass clsDest)
+    protected String getNewMethod(ClassPool classPool, CtMethod methodSrc, String data, CtClass clsDest)
             throws NotFoundException, CannotCompileException {
         // it seems CtNewMethod.delegator(...) is not applicable here
 
         int modifiers = methodSrc.getModifiers();
         if (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers) || Modifier.isPrivate(modifiers))
             throw new CannotCompileException("error - can not override " + methodSrc.getName() +
-                    " 'cause it's static (or final or private)");
+                    " 'cause it's static (or final / private)");
+        String modifiersList = "";
+        if (Modifier.isSynchronized(modifiers)) modifiersList += "synchronized ";
+        if (Modifier.isStrict      (modifiers)) modifiersList += "strictfp";
 
         CtClass[] paramTypes = methodSrc.getParameterTypes(), exceptionTypes = methodSrc.getExceptionTypes();
         if (paramTypes == null) paramTypes = new CtClass[] {};
@@ -669,12 +675,13 @@ public class Weaver {
                     ", ", paramTypes[i].getName().replace('$', '.'), argPrefix, i + 1));
         for (int i = paramTypes.length; i > 0; i--)
             code = code.replace("$" + i, argPrefix + i);
+
         for (int i = 0; i < exceptionTypes.length; i++)
             eArgs.append(String.format(Locale.getDefault(), "%s %s", i == 0 ? "throws": ",",
                     exceptionTypes[i].getName().replace('$', '.')));
 
-        return removeExtraSpaces(String.format("public %s %s(%s) %s { %s %s %s super.%s($$); %s %s %s }",
-                returnName, methodSrc.getName(), pArgs, eArgs, isTry ? "try { ": "",
+        return removeExtraSpaces(String.format("public %s %s %s(%s) %s { %s %s %s super.%s($$); %s %s %s }",
+                modifiersList, returnName, methodSrc.getName(), pArgs, eArgs, isTry ? "try { ": "",
                 action.equals(Action.INSERT_BEFORE) ? code: "", isVoid ? "": String.format(
                         "%s result =", returnName), methodSrc.getName(),
                 action.equals(Action.INSERT_AFTER)  ? code: "", isVoid ? "": "return result;",

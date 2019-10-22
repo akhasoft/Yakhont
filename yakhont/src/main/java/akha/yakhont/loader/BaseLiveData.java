@@ -30,8 +30,8 @@ import akha.yakhont.loader.wrapper.BaseLoaderWrapper.CacheHelper;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.Converter;
 import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
 import akha.yakhont.technology.Dagger2.UiModule;
-import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
 import akha.yakhont.technology.Dagger2.UiModule.ViewHandler;
+import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
 
@@ -202,7 +202,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     private static Context getContext() {
-        return Utils.getApplication().getApplicationContext();
+        return Utils.getApplication();
     }
 
     private Boolean onCompleteAsync(final boolean cancel) {
@@ -1229,8 +1229,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             @SuppressLint("InflateParams")
             private View getView(final Context context) {
-                return LayoutInflater.from(context)
-                        .inflate(akha.yakhont.R.layout.yakhont_progress, null, false);
+                return LayoutInflater.from(context).inflate(
+                        akha.yakhont.R.layout.yakhont_progress, null, false);
             }
 
             @SuppressWarnings("unused")

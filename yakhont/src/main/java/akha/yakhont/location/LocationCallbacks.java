@@ -400,8 +400,8 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
 
     private void onCreatedHelper(@NonNull final Activity activity, final Bundle savedInstanceState,
                                  @SuppressWarnings("SameParameterValue") boolean fromDialog) {
-        final String          permission        = Manifest.permission.ACCESS_FINE_LOCATION;
-        final boolean         granted           = CorePermissions.check(activity, permission);
+        final String  permission      = Manifest.permission.ACCESS_FINE_LOCATION;
+        final boolean granted         = CorePermissions.check(activity, permission);
 
         if (!fromDialog) fromDialog   = !granted;
         final boolean fromDialogFinal = fromDialog;
@@ -787,10 +787,8 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                                 context.getString(akha.yakhont.R.string.yakhont_location_msg_na));
     }
 
-    /**
-     * Called by the Yakhont Weaver. See {@link Activity#onActivityResult Activity.onActivityResult()}.
-     */
-    @SuppressWarnings({"UnusedParameters", "unused"})
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "unused"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
         Utils.onActivityResult("LocationCallbacks", activity, requestCode, resultCode, data);
@@ -809,7 +807,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         final RequestCodes code = Utils.getRequestCode(requestCode);
         if (locationClient.onActivityResult(activity, code, resultCode, data)) return;
 
-        CoreLogger.logWarning("unknown request code " + code);
+        CoreLogger.log("LocationCallbacks: unknown request code " + code);
     }
 
     /**

@@ -15,7 +15,6 @@
  */
 
 buildscript {
-
     ext.kotlinVersion       = '1.3.50'
 
     repositories {
@@ -24,19 +23,22 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:3.5.0"
+        classpath "com.android.tools.build:gradle:3.5.1"
+
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
-        classpath "com.github.dcendents:android-maven-gradle-plugin:2.0"
+        classpath "com.github.dcendents:android-maven-gradle-plugin:2.1"
         classpath "com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7.3"
     }
 }
 
-String debugBuild = System.getenv('YAKHONT_DEBUG')
-if (debugBuild == null) debugBuild = '0'
+String yakhontConfig = System.getenv('YAKHONT_CONFIG')
+if (yakhontConfig == null) yakhontConfig = '0'
 
 ext {
-    projectDebug            = debugBuild
+    projectConfig           = yakhontConfig
+    projectDebug            = '1'
+    projectNoObfuscate      = '2'
 
     developerId             = 'akha'
     developerName           = 'Alexander Kharitonov'
@@ -90,8 +92,8 @@ ext {
     projectVerSdk                                               =  29
     projectVerBuildTools                                        = '29.0.2'
 
-    projectVerName                                              = '0.9.19'
-    projectVerCode                                              =    901901
+    projectVerName                                              = '0.9.20'
+    projectVerCode                                              =    902001
     projectVerNameDemo                                          = '1.1'
     projectVerCodeDemo                                          =  10101
 
@@ -113,16 +115,16 @@ ext {
     projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.0'
-    projectLibVerRoom                                           =  '2.1.0'
+    projectLibVerRoom                                           =  '2.2.0'
 
     projectLibVerDagger                                         =  '2.22.1'
 
     projectLibVerJavassist                                      =  '3.25.0-GA'
 
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
-    projectLibVerAppcompatAppcompat                             =  '1.0.2'
-    projectLibVerCoreCore                                       =  '1.0.2'
-    projectLibVerFragmentFragment                               =  '1.0.0'
+    projectLibVerAppcompatAppcompat                             =  '1.1.0'
+    projectLibVerCoreCore                                       =  '1.1.0'
+    projectLibVerFragmentFragment                               =  '1.1.0'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
     projectLibVerLegacyLegacyPreferenceV14                      =  '1.0.0'
@@ -130,18 +132,18 @@ ext {
     projectLibVerLegacyLegacySupportCoreUtils                   =  '1.0.0'
     projectLibVerLegacyLegacySupportV13                         =  '1.0.0'
     projectLibVerLifecycleLifecycleCommonJava8                  =  '2.0.0'
-    projectLibVerLifecycleLifecycleExtensions                   =  '2.0.0'
-    projectLibVerMediaMedia                                     =  '1.0.1'
+    projectLibVerLifecycleLifecycleExtensions                   =  '2.1.0'
+    projectLibVerMediaMedia                                     =  '1.1.0'
     projectLibVerMediaRouterMediaRouter                         =  '1.0.0'
     projectLibVerPreferencePreference                           =  '1.1.0-beta01'
     projectLibVerRecyclerViewRecyclerView                       =  '1.0.0'
 
     projectLibVerNotxMaterialMaterial                           =  '1.0.0'
 
-    projectLibVerKotlinCoreCore                                 =  '1.0.2'
+    projectLibVerKotlinCoreCore                                 =  '1.1.0'
     projectLibVerKotlinDatabindingCompiler                      =  '3.1.4'
-    projectLibVerKotlinLifecycleLifecycleViewmodel              =  '2.0.0'
-    projectLibVerKotlinLifecycleLifecycleReactiveStreams        =  '2.0.0'
+    projectLibVerKotlinLifecycleLifecycleViewmodel              =  '2.1.0'
+    projectLibVerKotlinLifecycleLifecycleReactiveStreams        =  '2.1.0'
 }
 
 allprojects {

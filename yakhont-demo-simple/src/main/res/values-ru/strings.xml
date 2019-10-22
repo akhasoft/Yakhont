@@ -15,8 +15,9 @@
      limitations under the License.
 -->
 
-<resources>
-    <string name="app_name"        >Яхонт: paging демо</string>
-    <string name="list_title_beers">Работа с бесконечным адаптером</string>
-    <string name="permissions_rationale_demo">Rationale для разрешений: демо</string>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name"         >Яхонт: paging демо</string>
+    <string name="list_title_beers" >Работа с бесконечным адаптером</string>
+    <string name="permissions_rationale_demo" tools:keep="@string/permissions_rationale_demo"
+                                    >Rationale для разрешений: демо</string>
 </resources>

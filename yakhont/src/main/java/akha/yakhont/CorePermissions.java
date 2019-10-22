@@ -58,7 +58,7 @@ import javax.inject.Provider;
  *     .addOnGranted(android.Manifest.permission.ACCESS_FINE_LOCATION, new Runnable() {
  *         &#064;Override
  *         public void run() {
- *             // your code here (to run after dynamic permission was granted), e.g. 'requestLocationUpdates()'
+ *             // your code here (to run after granting dynamic permission), e.g. 'requestLocationUpdates()'
  *         }
  *     })
  *     .request();
@@ -91,18 +91,21 @@ public class CorePermissions implements ConfigurationChangedListener {
 
     // for Activity.onResume() after Android App Settings
     private                boolean                  mHandlePermissions;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected        final boolean                  mNotRunAppSettings;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected              int                      mRequestCode;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected        final String                   mRationale;
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @IdRes
     protected              int                      mViewId;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected        final String                   mRationale;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected CorePermissions(final String rationale) {
-        mRationale              = rationale;
+    protected CorePermissions(final String rationale, final boolean notRunAppSettings) {
+        mRationale              = rationale == null ? null: rationale.trim();
+        mNotRunAppSettings      = notRunAppSettings;
 
         mAlertProvider          = Core.getDagger().getAlertPermission();
         mAlertDeniedProvider    = Core.getDagger().getAlertPermissionDenied();
@@ -163,9 +166,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected void requestHandler(final Activity activity, String rationale, final String... permissions) {
-        if (rationale != null) rationale = rationale.trim();
-
+    protected void requestHandler(final Activity activity, final String... permissions) {
         final ArrayList<String> rationalePermissions = new ArrayList<>();
         for (final String permission: permissions)
             if (ActivityCompat.shouldShowRequestPermissionRationale(activity, permission))
@@ -177,12 +178,10 @@ public class CorePermissions implements ConfigurationChangedListener {
         // sets the permission in a given state or the user denied the permission
         // previously and checked "Never ask again".
         if (rationalePermissions.isEmpty()) {
-            if (!TextUtils.isEmpty(rationale)) CoreLogger.logWarning(
-                    "shouldShowRequestPermissionRationale return false for rationale " + rationale);
             requestWrapper(activity, permissions);
             return;
         }
-        else if (TextUtils.isEmpty(rationale)) CoreLogger.logError(
+        else if (mRationale == null) CoreLogger.logError(
                 "shouldShowRequestPermissionRationale return true but rationale is empty");
 
         // from the official Google example:
@@ -191,7 +190,7 @@ public class CorePermissions implements ConfigurationChangedListener {
         // request previously, but didn't check the "Don't ask again" checkbox.
         final String rationalePermissionsDesc = getPermissionsDesc(rationalePermissions.toArray(new String[0]));
 
-        if (TextUtils.isEmpty(rationale)) {
+        if (TextUtils.isEmpty(mRationale)) {
             CoreLogger.logWarning("rationale requested but not provided for permissions " +
                     rationalePermissionsDesc);
             requestWrapper(activity, permissions);
@@ -202,12 +201,13 @@ public class CorePermissions implements ConfigurationChangedListener {
             CoreLogger.logError("permissions rationale alert dialog already exists");
 
         if (permissions.length > 1)
-            CoreLogger.logWarning("permissions > 1 for rationale: " + rationale);
+            CoreLogger.logWarning("more than 1 permissions for rationale: " + mRationale + ", " +
+                    Arrays.toString(permissions));
 
         mAlert = mAlertProvider.get();
         UiModule.setId(mAlert, getPermissionId(permissions[0]));
 
-        if (mAlert.start(activity, rationale, getIntent(mViewId, permissions[0])))
+        if (mAlert.start(activity, mRationale, getIntent(mViewId, permissions[0])))
             CoreLogger.log("started rationale alert dialog for permissions " +
                     rationalePermissionsDesc);
         else
@@ -262,10 +262,8 @@ public class CorePermissions implements ConfigurationChangedListener {
         }
     }
 
-    /**
-     * Called by the Yakhont Weaver. Please refer to {@link Activity#onActivityResult}.
-     */
-    @SuppressWarnings({"UnusedParameters", "unused"})
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "unused"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
         final Collection<CorePermissions> collection = onActivityResultHelper(activity, requestCode, resultCode, data);
@@ -290,7 +288,7 @@ public class CorePermissions implements ConfigurationChangedListener {
         if (code != RequestCodes.PERMISSIONS_RATIONALE_ALERT &&
             code != RequestCodes.PERMISSIONS_DENIED_ALERT) {
 
-            CoreLogger.logWarning("unknown request code " + requestCode);
+            CoreLogger.log("CorePermissions: unknown request code " + requestCode);
             return null;
         }
 
@@ -459,10 +457,8 @@ public class CorePermissions implements ConfigurationChangedListener {
         }
     }
 
-    /**
-     * Called by the Yakhont Weaver. For internal use only.
-     */
-    @SuppressWarnings("unused")
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void onResume(final Activity activity) {
         final List<CorePermissions> list = get(activity, null);
         if (list == null) return;
@@ -511,18 +507,16 @@ public class CorePermissions implements ConfigurationChangedListener {
         return null;
     }
 
-    /**
-     * Called by the Yakhont Weaver. Please refer to {@link Activity#onRequestPermissionsResult}.
-     */
-    @SuppressWarnings("unused")
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void onRequestPermissionsResult(final Activity activity, final int requestCode,
                                                   final String[] permissions, final int[] grantResults) {
-        CoreLogger.log("onRequestPermissionsResult: " + Arrays.toString(permissions) +
+        CoreLogger.log("CorePermissions.onRequestPermissionsResult: " + Arrays.toString(permissions) +
                 ", results: " + Arrays.toString(toString(grantResults)));
 
         final List<CorePermissions> list = get(activity, requestCode);
         if (list == null)
-            CoreLogger.logWarning("unknown request code " + requestCode);
+            CoreLogger.log("CorePermissions: unknown request code " + requestCode);
         else
             for (int i = list.size() - 1; i >= 0; i--)
                 onRequestHelper(activity, permissions, grantResults, list.get(i), list);
@@ -632,7 +626,14 @@ public class CorePermissions implements ConfigurationChangedListener {
         // interface 'affordance' is typically implemented when permissions are denied. Otherwise,
         // your app could appear unresponsive to touches or interactions which have required permissions.
 
-        CoreLogger.logWarning("Permission denied");
+        CoreLogger.logWarning("Permission denied, mNotRunAppSettings: " + corePermissions.mNotRunAppSettings);
+
+        if (corePermissions.mNotRunAppSettings) {
+            for (int i = 0; i < grantResults.length; i++)
+                if (grantResults[i] == PackageManager.PERMISSION_DENIED)
+                    handle(callableHelper, permissions[i], grantResults[i], corePermissions, list);
+            return null;
+        }
 
         if (corePermissions.mAlertDenied != null)
             CoreLogger.logError("permissions denied alert dialog is already exists");
@@ -817,6 +818,8 @@ public class CorePermissions implements ConfigurationChangedListener {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected       String                      mRationale;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected       boolean                     mNotRunAppSettings;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final List<Callbacks>             mCallbacks      = new ArrayList<>();
@@ -888,11 +891,24 @@ public class CorePermissions implements ConfigurationChangedListener {
         }
 
         /**
+         * Set to {@code true} to prevent showing Android Application Settings.
+         *
+         * @param notRunAppSettings
+         *        The value to set
+         *
+         * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
+         */
+        public RequestBuilder setNotRunAppSettings(final boolean notRunAppSettings) {
+            mNotRunAppSettings = notRunAppSettings;
+            return this;
+        }
+
+        /**
          * Sets the permission rationale. Please refer to
          * {@link ActivityCompat#shouldShowRequestPermissionRationale} for more info.
          *
          * @param rationale
-         *        The rationale
+         *        The rationale (provide "" to suppress log error message concerning 'shouldShowRequestPermissionRationale')
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
@@ -974,7 +990,7 @@ public class CorePermissions implements ConfigurationChangedListener {
             }
             final Activity activity = tmpActivity;
 
-            final CorePermissions corePermissions       = new CorePermissions(mRationale);
+            final CorePermissions corePermissions       = new CorePermissions(mRationale, mNotRunAppSettings);
             corePermissions.mViewId                     = mViewId;
 
             for (final Callbacks callbacks: mCallbacks) {
@@ -1019,7 +1035,7 @@ public class CorePermissions implements ConfigurationChangedListener {
             }
             Core.register(corePermissions);
 
-            corePermissions.requestHandler(activity, mRationale, permissions.toArray(new String[0]));
+            corePermissions.requestHandler(activity, permissions.toArray(new String[0]));
             return true;
         }
 

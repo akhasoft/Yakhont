@@ -86,6 +86,7 @@ import java.util.concurrent.Callable;
  *   </li>
  *   <li>Transactions support
  *     <ul>
+ *       <li>Runs transaction: {@link #runTransactionBoolean(SQLiteDatabase, Callable)}</li>
  *       <li>Runs transaction: {@link #runTransaction(SQLiteDatabase, Callable)}</li>
  *       <li>Runs transaction: {@link #runTransaction(SQLiteDatabase, Runnable)}</li>
  *     </ul>
@@ -145,7 +146,8 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public  static final String         DROP_TABLE        = "DROP TABLE IF EXISTS %s;";
-    private static final String         DROP_VIEW         = "DROP VIEW  IF EXISTS %s;";
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public  static final String         DROP_VIEW         = "DROP VIEW  IF EXISTS %s;";
 
     // the action's names below should be consistent with 'call' javadoc
     /** The method name for DB clear (used by {@link #call}), value is {@value}. */
@@ -710,7 +712,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
         final boolean addPageIndexCallable = addPageIndex;
 
         //noinspection Convert2Lambda
-        return runTransaction(db, new Callable<Boolean>() {
+        return runTransactionBoolean(db, new Callable<Boolean>() {
             @Override
             public Boolean call() {
                 boolean result = execSql(db, builder.create());
@@ -808,24 +810,81 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      * @param db
      *        The database
      *
+     * @param runnable
+     *        The transaction to execute
+     *
+     * @return  {@code true} if transaction completed successfully, {@code false} otherwise
+     */
+    public static boolean runTransaction(@NonNull final SQLiteDatabase db,
+                                         @NonNull final Runnable       runnable) {
+        //noinspection Convert2Lambda
+        return runTransactionBoolean(db, new Callable<Boolean>() {
+            @Override
+            public Boolean call() {
+                return Utils.safeRun(runnable);
+            }
+        });
+    }
+
+    /**
+     * Executes transaction.
+     *
+     * @param db
+     *        The database
+     *
      * @param callable
      *        The transaction to execute, should return {@code true} if successful
      *
      * @return  {@code true} if transaction completed successfully, {@code false} otherwise
      */
+    public static boolean runTransactionBoolean(final SQLiteDatabase db, final Callable<Boolean> callable) {
+        final Boolean result = runTransactionHelper(db, callable, false, false);
+        return result == null ? false: result;
+    }
+
+    /**
+     * Executes transaction.
+     *
+     * @param db
+     *        The database
+     *
+     * @param callable
+     *        The transaction to execute
+     *
+     * @param <T>
+     *        The type of data for {@code Callable}
+     *
+     * @return  {@code T} if transaction completed successfully, null otherwise
+     */
     @SuppressLint("ObsoleteSdkInt")
-    public static boolean runTransaction(@NonNull final SQLiteDatabase    db,
-                                         @NonNull final Callable<Boolean> callable) {
+    public static <T> T runTransaction(final SQLiteDatabase db, final Callable<T> callable) {
+        return runTransactionHelper(db, callable, true, true);
+    }
+
+    @SuppressLint("ObsoleteSdkInt")
+    private static <T> T runTransactionHelper(final SQLiteDatabase db, final Callable<T> callable,
+                                              final boolean ignoreBoolean, final boolean ignoreNull) {
+        if (db == null) {
+            CoreLogger.logError("failed transaction, DB == null");
+            return null;
+        }
+        if (callable == null) {
+            CoreLogger.logError("failed transaction, callable == null");
+            return null;
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             db.beginTransactionNonExclusive();
         else
             db.beginTransaction();
 
+        T result = null;
         try {
-            final Boolean result = Utils.safeRun(callable);
-            if (result != null && result) {
+            result = Utils.safeRun(callable);
+            if ((result != null || ignoreNull) &&
+                    (ignoreBoolean || (result instanceof Boolean ? (Boolean) result: true))) {
                 db.setTransactionSuccessful();
-                return true;
+                return result;
             }
         }
         catch (Exception exception) {
@@ -836,32 +895,15 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
         }
 
         CoreLogger.logError("failed transaction, callable " + callable);
-        return false;
+        return ignoreBoolean ? null: (result instanceof Boolean ? result: null);
     }
 
-    /**
-     * Executes transaction.
-     *
-     * @param db
-     *        The database
-     *
-     * @param runnable
-     *        The transaction to execute
-     *
-     * @return  {@code true} if transaction completed successfully, {@code false} otherwise
-     */
-    public static boolean runTransaction(@NonNull final SQLiteDatabase db,
-                                         @NonNull final Runnable       runnable) {
-        //noinspection Convert2Lambda
-        return runTransaction(db, new Callable<Boolean>() {
-            @Override
-            public Boolean call() {
-                return Utils.safeRun(runnable);
-            }
-        });
-    }
-
-    private static boolean execSqlWrapper(@NonNull final SQLiteDatabase db, @NonNull String sql) {
+    private static boolean execSqlWrapper(@NonNull final SQLiteDatabase db, String sql) {
+        if (!TextUtils.isEmpty(sql)) sql = sql.trim();
+        if ( TextUtils.isEmpty(sql)) {
+            CoreLogger.logWarning("empty SQL, nothing to execute");
+            return false;
+        }
         try {
             if (!sql.endsWith(";")) sql += ";";
             CoreLogger.log("about to execute '" + sql + "'");
@@ -875,7 +917,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
     }
 
     private static Context fixContext(final Context context) {
-        return context != null ? context: Utils.getApplication().getApplicationContext();
+        return context != null ? context: Utils.getApplication();
     }
 
     private static final int        BUFFER_SIZE         = 1024;
@@ -935,8 +977,8 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
             boolean result = true;
             //noinspection ForLoopReplaceableByForEach
             for (int i = 0; i < sql.length; i++) {
-                final String sqlStatement = sql[i].trim();
-                if (sqlStatement.length() > 0)
+                final String sqlStatement = sql[i] == null ? null: sql[i].trim();
+                if (!TextUtils.isEmpty(sqlStatement))
                     if (!execSqlWrapper(db, sqlStatement)) result = false;
             }
             return result;
@@ -981,19 +1023,19 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
                 }
 
                 if (result)
-                    CoreLogger.log("db clear completed successfully");
+                    CoreLogger.log("DB clear completed successfully");
                 else
-                    CoreLogger.logWarning("there's some issues during db clear");
+                    CoreLogger.logWarning("there's some issues during DB clear");
 
                 return result;
             }
             catch (Exception exception) {
-                CoreLogger.log("db clear failed", exception);
+                CoreLogger.log("DB clear failed", exception);
                 return false;
             }
         }
         else {
-            CoreLogger.logError("db clear failed");
+            CoreLogger.logError("DB clear failed");
             return false;
         }
     }
@@ -1174,7 +1216,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
             copyFile(context, getSrcDb(context, srcDb), dstDb);
         else
             CoreLogger.logWarning("db copying is available in debug builds only; " +
-                    "please consider to use CoreLogger.registerShakeDataSender()");
+                    "please consider to use CoreLogger.registerDataSender()");
     }
 
     private static void copyFile(@NonNull final Context context, @NonNull final File srcFile,

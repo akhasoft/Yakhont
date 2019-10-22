@@ -84,8 +84,10 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
             Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java,
                     {it.data}, BR.beer, LocalOkHttpClient2(retrofit2)
+
                     // just to demo the progress GUI - comment it out if not needed
                     .setEmulatedNetworkDelay(7)
+
                     , retrofit2, rx, null).start(null)
         }
     }

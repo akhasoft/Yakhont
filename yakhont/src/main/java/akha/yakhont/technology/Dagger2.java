@@ -157,7 +157,7 @@ import dagger.Provides;
  *         }
  *
  *         &#064;Override
- *         protected BaseDialog getToast(final boolean useSnackbarIsoToast, final Integer duration) {
+ *         protected BaseDialog getToast(boolean useSnackbarIsoToast, Integer duration) {
  *             return super.getToast(useSnackbarIsoToast, duration);
  *         }
  *     }
@@ -340,7 +340,7 @@ public interface Dagger2 {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides
-        public LocationClient provideLocationClient(Parameters parameters) {
+        public LocationClient provideLocationClient(final Parameters parameters) {
             return getLocationClient(getFlagLocation(parameters));
         }
 
@@ -366,8 +366,8 @@ public interface Dagger2 {
     /**
      * The user interface component.
      */
-    @Module
     @SuppressWarnings({"JavadocReference", "unused"})
+    @dagger.Module // strange bug
     class UiModule {
 
         /** Return code for {@link Callback#DISMISS_EVENT_TIMEOUT} (the value is {@value}). */
@@ -453,7 +453,7 @@ public interface Dagger2 {
          * @return  {@code true} if some Snackbar (from queue) is in screen (or still in queue), {@code false} otherwise
          */
         public static boolean hasSnackbars() {
-            return getSnackbarText() != null || !isSnackbarsQueueEmpty();
+            return BaseSnackbar.hasSnackbars();
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -552,6 +552,7 @@ public interface Dagger2 {
             else if (baseDialog instanceof BaseSnackbar) {
                 final BaseSnackbar baseSnackbar = (BaseSnackbar) baseDialog;
                 result = true;
+
                 if (release)
                     baseSnackbar.removeAndRelease(ids);
                 else
@@ -1038,6 +1039,12 @@ class BaseSnackbar implements BaseDialog {
         }
     }
 
+    static boolean hasSnackbars() {
+        synchronized (sQueueLock) {
+            return getText() != null || !isQueueEmpty();
+        }
+    }
+
     BaseSnackbar setView(final View view) {
         mView               = view;
         return this;
@@ -1270,19 +1277,14 @@ class BaseSnackbar implements BaseDialog {
             return false;
         }
 
-        if (mRequestCode != null) {
-            if (mListener != null)
-                CoreLogger.logError("listener is already defined, request code will be ignored " +
-                        "for Snackbar with text: " + mText);
-            else
-                //noinspection Convert2Lambda
-                mListener = new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        onActivityResult(Activity.RESULT_OK);
-                    }
-                };
-        }
+        if (mRequestCode != null && mListener == null)
+            //noinspection Convert2Lambda
+            mListener = new View.OnClickListener() {
+                @Override
+                public void onClick(final View view) {
+                    onActivityResult(Activity.RESULT_OK);
+                }
+            };
 
         if (mDuration == null) {
             if (mListener != null)
@@ -1364,10 +1366,10 @@ class BaseSnackbar implements BaseDialog {
         });
 
         if (show) synchronized (sQueueLock) {
-            if (sQueue.isEmpty() && sText == null)
-                show(snackbar[0], text);
-            else
+            if (hasSnackbars())
                 addNotSync(snackbar[0], mText, mCountDownLatch, mId);
+            else
+                show(snackbar[0], text);
         }
 
         return true;
@@ -1390,7 +1392,7 @@ class BaseSnackbar implements BaseDialog {
             CoreLogger.log(text == null ? Level.WARNING : CoreLogger.getDefaultLevel(),
                     "Snackbar added to queue, text: " + text);
         else
-            CoreLogger.logError("can't add Snackbar to the queue, text: " + text);
+            CoreLogger.logError("can't add Snackbar to queue, text: " + text);
 
         return true;
     }
@@ -1693,25 +1695,23 @@ class BaseToast implements BaseDialog {
 
         try {
             if (mToast == null) {
-                if (mView != null || mViewId != Core.NOT_VALID_RES_ID) {
-                    if (mView != null && mViewId != Core.NOT_VALID_RES_ID)
-                        CoreLogger.logError("View for Toast is already defined, so View ID " +
-                                CoreLogger.getResourceDescription(mViewId) +
-                                " will be ignored for Toast with text: " + text);
-                    mToast = new Toast(context);
-                    mToast.setView(mView != null ? mView: LayoutInflater.from(context)
-                            .inflate(mViewId, null, false));
-                    mToast.setDuration(getDuration());
+                if (Utils.isCurrentThreadMain())
+                    makeToast(context, text);
+                else {
+                    final Context        contextFinal   = context;
+                    final String         textFinal      = text;
+                    final CountDownLatch countDownLatch = new CountDownLatch(1);
+                    //noinspection Convert2Lambda
+                    Utils.postToMainLoop(new Runnable() {
+                        @Override
+                        public void run() {
+                            makeToast(contextFinal, textFinal);
+                            countDownLatch.countDown();
+                        }
+                    });
+                    Utils.await(countDownLatch, 0);
                 }
-                else
-                    try {
-                        mToast = Toast.makeText(context, text, getDuration());
-                    }
-                    catch (Exception exception) {
-                        CoreLogger.log("looks like a Toast.makeText() bug for Toast with text: " +
-                                text + ", context: " + CoreLogger.getDescription(context), exception);
-                        return false;
-                    }
+                if (mToast == null) return false;
 
                 try {
                     if (mGravity          != null)
@@ -1772,6 +1772,28 @@ class BaseToast implements BaseDialog {
             CoreLogger.log("failed Toast with text: " + text, exception);
             return false;
         }
+    }
+
+    @SuppressLint("ShowToast")
+    private void makeToast(final Context context, final String text) {
+        if (mView != null || mViewId != Core.NOT_VALID_RES_ID) {
+            if (mView != null && mViewId != Core.NOT_VALID_RES_ID)
+                CoreLogger.logError("View for Toast is already defined, so View ID " +
+                        CoreLogger.getResourceDescription(mViewId) +
+                        " will be ignored for Toast with text: " + text);
+            mToast = new Toast(context);
+            mToast.setView(mView != null ? mView: LayoutInflater.from(context)
+                    .inflate(mViewId, null, false));
+            mToast.setDuration(getDuration());
+        }
+        else
+            try {
+                mToast = Toast.makeText(context, text, getDuration());
+            }
+            catch (Exception exception) {
+                CoreLogger.log("looks like a Toast.makeText() bug for Toast with text: " +
+                        text + ", context: " + CoreLogger.getDescription(context), exception);
+            }
     }
 
     private static boolean isStandardDuration(final int duration) {

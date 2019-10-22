@@ -201,7 +201,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                 .addOnCompleteListener(activity, new OnCompleteListener<LocationSettingsResponse>() {
                     @Override
                     public void onComplete(@NonNull final Task<LocationSettingsResponse> task) {
-                        log(task);
+                        log(task, "checkLocationSettings");
                         if (!task.isSuccessful()) {
                             taskOnFailure(task.getException());
                             return;
@@ -494,12 +494,12 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         CoreLogger.log("requestLocationUpdates for pendingIntent, LocationRequest: " + locationRequest);
 
         try {
-            //noinspection Anonymous2MethodRef,Convert2Lambda
+            //noinspection Convert2Lambda
             mFusedLocationClient.requestLocationUpdates(locationRequest, pendingIntent)
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            log(task);
+                            log(task, "requestLocationUpdates");
                         }
                     })
                     .addOnFailureListener(activity, new OnFailureListener() {
@@ -523,12 +523,12 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         if (mPendingIntent != null) {
             CoreLogger.log("stopLocationUpdates for pendingIntent");
 
-            //noinspection Anonymous2MethodRef,Convert2Lambda
+            //noinspection Convert2Lambda
             mFusedLocationClient.removeLocationUpdates(mPendingIntent)
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            log(task);
+                            log(task, "removeLocationUpdates");
                         }
                     });
         }

@@ -46,7 +46,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-@CallbacksInherited(value = LocationCallbacks.class, properties = R.string.permissions_rationale_demo)
+@CallbacksInherited( /* value = */ LocationCallbacks.class /* , properties = R.string.permissions_rationale_demo */ )
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
     private        CoreLoad<Throwable, List<Data>>      mLoader;
@@ -65,7 +65,6 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
             vh.getTextView().setTextColor(android.graphics.Color.YELLOW);
 //          vh.getToastProgressView().set...;
         });
-
         akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setSnackbarBuilder(
                 akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.getDefaultSnackbarBuilder()
                         .setDuration(3)                 // just for demo
@@ -79,7 +78,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
 //      setDebugLogging(BuildConfig.DEBUG);         // optional
 
-        setLocation();
+        setLocation();                              // device orientation changing support
 
         ((RecyclerView) findViewById(R.id.recycler)).setLayoutManager(new LinearLayoutManager(this));
 /*
@@ -172,11 +171,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     @SuppressWarnings({"SameParameterValue", "unused"})
     private void setDebugLogging(boolean debug) {
         if (!debug) return;
-
         Core.setFullLoggingInfo(true);
-
-        // optional; on shaking device email with logs will be sent to the address below
-        CoreLogger.registerShakeDataSender(this, "address@company.com");
+        // optional; on shaking device (or make gesture Z) email with logs will be sent to the address below
+        CoreLogger.registerDataSender(this, "address@company.com");
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

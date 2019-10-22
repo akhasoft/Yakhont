@@ -31,6 +31,7 @@ apply plugin: 'kotlin-android-extensions'
 apply plugin: 'kotlin-kapt'
 
 def dependenciesStrategy = { DependencyResolveDetails details ->
+    // comment out if you don't need Location API
     if     (details.requested.group == 'com.google.android.gms') {
         if (details.requested.name  == 'play-services-location' ||
             details.requested.name  == 'play-services-places-placereport')
@@ -83,7 +84,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled       projectDebug != '2'
+            minifyEnabled       projectConfig != projectNoObfuscate
 
             projectProGuardFiles.each {
                 //noinspection GroovyAssignabilityCheck
@@ -98,7 +99,6 @@ android {
         }
     }
 
-    // workaround for the local Yakhont aar
     repositories {
         flatDir dirs: '../yakhont/build/outputs/aar'
     }
@@ -124,30 +124,25 @@ dependencies {
     implementation      "androidx.core:core-ktx:$projectLibVerKotlinCoreCore"
     kapt                "com.android.databinding:compiler:$projectLibVerKotlinDatabindingCompiler"
 
+    implementation      "com.google.dagger:dagger:$projectLibVerDefault"
+    kapt                "com.google.dagger:dagger-compiler:$projectLibVerDagger"
+
     implementation      "androidx.appcompat:appcompat:$projectLibVerAppcompatAppcompat"
     implementation      "androidx.recyclerview:recyclerview:$projectLibVerRecyclerViewRecyclerView"
 
-    implementation      "androidx.annotation:annotation:$projectLibVerAnnotationAnnotation"
     implementation      "androidx.lifecycle:lifecycle-common-java8:$projectLibVerLifecycleLifecycleCommonJava8"
     implementation      "androidx.lifecycle:lifecycle-extensions:$projectLibVerLifecycleLifecycleExtensions"
     implementation      "androidx.lifecycle:lifecycle-viewmodel-ktx:$projectLibVerKotlinLifecycleLifecycleViewmodel"
     implementation      "androidx.lifecycle:lifecycle-reactivestreams-ktx:$projectLibVerKotlinLifecycleLifecycleReactiveStreams"
+
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
     implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
     implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
-    implementation      "androidx.room:room-runtime:$projectLibVerRoom"
-    kapt                "androidx.room:room-compiler:$projectLibVerRoom"
-    implementation      "androidx.room:room-ktx:$projectLibVerRoom"
-    implementation      "androidx.room:room-rxjava2:$projectLibVerRoom"
+    implementation      "com.google.code.gson:gson:$projectLibVerGson"
 
-    implementation      "com.google.dagger:dagger:$projectLibVerDefault"            // Dagger 2
-    kapt                "com.google.dagger:dagger-compiler:$projectLibVerDagger"
-
-    implementation      "com.google.code.gson:gson:$projectLibVerGson"              // Gson
-
-    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {  // Retrofit
+    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
     implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerDefault") {
@@ -156,14 +151,19 @@ dependencies {
     implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
     implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
-    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"         // Rx
+    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
 
-    implementation      name:'yakhont', ext:'aar'
+    implementation      "androidx.room:room-runtime:$projectLibVerRoom"
+    kapt                "androidx.room:room-compiler:$projectLibVerRoom"
+    implementation      "androidx.room:room-ktx:$projectLibVerRoom"
+    implementation      "androidx.room:room-rxjava2:$projectLibVerRoom"
+
+    implementation      "com.github.akhasoft:yakhont:$projectVerName@aar"
 }
 
 // let's build release (or debug) only - just to reduce building time
 android.variantFilter { variant ->
-    if (variant.buildType.name == (projectDebug == '1' ? 'release': 'debug')) {
+    if (variant.buildType.name == (projectConfig == projectDebug ? 'release': 'debug')) {
         variant.setIgnore(true)
     }
 }
@@ -179,7 +179,7 @@ android.applicationVariants.all { variant ->
         //noinspection UnnecessaryQualifiedReference
         new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
                 javaCompile.destinationDir.toString() + File.pathSeparator + buildDir.toString() + 
-                    kotlinDir.replace('/', File.separator) + (projectDebug == '1' ? 'debug': 'release'),
+                    kotlinDir.replace('/', File.separator) + (projectConfig == projectDebug ? 'debug': 'release'),
                 javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
                 weaverAddConfig, weaverConfigFiles)
     }

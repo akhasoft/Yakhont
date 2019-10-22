@@ -26,6 +26,12 @@
 
     <string name="yakhont_sending_email"                >Отправка debug email</string>
 
+    <string name="yakhont_record_video"                 >Нажмите OK для начала записи видео\nлибо смахните (для снимка экрана)</string>
+    <string name="yakhont_record_video_ok"              >@string/yakhont_alert_ok</string>
+    <string name="yakhont_record_video_info"            >Чтобы остановить запись встряхните устройство либо сделайте жест Z</string>
+    <string name="yakhont_record_video_stop" tools:ignore="TypographyEllipsis"
+                                                        >Останавливаем запись...</string>
+
     <string name="yakhont_alert_ok"                     >ОК</string>
     <string name="yakhont_alert_cancel"                 >Отмена</string>
 

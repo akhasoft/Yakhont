@@ -531,6 +531,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             model.updateUi(stop, fragment);
     }
 
+    // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void updateUiActivityForWeaver(final boolean stop, @NonNull final Activity activity) {
         final Collection<BaseViewModel<?>> models = getViewModels(activity, false,
@@ -679,6 +680,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return false;
     }
 
+    // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isLoadingForWeaver(@NonNull final Activity activity) {
         final Collection<BaseViewModel<?>> models = getViewModels(activity, true,

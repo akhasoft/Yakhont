@@ -509,7 +509,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
         }
 
         CoreLogger.log("createNewLocationRequest, priority            : " + getPriorityDescription(
-                                                                            locationRequest.getPriority            ()));
+                                                                                locationRequest.getPriority            ()));
         CoreLogger.log("createNewLocationRequest, interval            : " + locationRequest.getInterval            () );
         CoreLogger.log("createNewLocationRequest, fastestInterval     : " + locationRequest.getFastestInterval     () );
 
@@ -573,14 +573,14 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
         CoreLogger.log("requestLocationUpdates, LocationRequest: " + locationRequest);
 
         try {
-            //noinspection Anonymous2MethodRef,Convert2Lambda
+            //noinspection Convert2Lambda
             mFusedLocationClient.requestLocationUpdates(locationRequest,
                     mLocationCallback, activity.getMainLooper())
 
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            log(task);
+                            log(task, "requestLocationUpdates");
                         }
                     })
                     .addOnFailureListener(activity, new OnFailureListener() {
@@ -609,12 +609,12 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
         // happens when system permissions dialog pops up
         if (mFusedLocationClient == null) return;
 
-        //noinspection Anonymous2MethodRef,Convert2Lambda
+        //noinspection Convert2Lambda
         mFusedLocationClient.removeLocationUpdates(mLocationCallback)
                 .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
-                        log(task);
+                        log(task, "removeLocationUpdates");
                     }
                 });
     }
@@ -628,7 +628,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                     .addOnCompleteListener(activity, new OnCompleteListener<Location>() {
                         @Override
                         public void onComplete(@NonNull Task<Location> task) {
-                            log(task);
+                            log(task, "getLastLocation");
                             if (task.isSuccessful())
                                 onLocationChanged(task.getResult());
                             else
@@ -655,12 +655,22 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static void logException(final Exception exception) {
+        logException(exception, null);
+    }
+
+    private static void logException(final Exception exception, final String caller) {
         if (!(exception instanceof ApiException)) return;
 
         final ApiException apiException = (ApiException) exception;
         final int code = apiException.getStatusCode();
-        CoreLogger.logError("ApiException - code: " + code + " " + getStatusCodeDescription(code) +
-                ", message: " + apiException.getMessage());
+
+        // another one ugly hack :-)
+        final String message = apiException.getMessage();
+        final boolean alreadyUnregistered = message != null && message.contains("listener already unregistered");
+
+        CoreLogger.log(alreadyUnregistered ? CoreLogger.getDefaultLevel(): CoreLogger.Level.ERROR,
+                "ApiException - code: " + code + " " + getStatusCodeDescription(code) +
+                        ", message: " + apiException.getMessage() + (caller == null ? "": caller));
     }
 
     private static String getStatusCodeDescription(final int code) {
@@ -669,21 +679,22 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected void log(final Task task) {
+    protected void log(final Task task, final String caller) {
+        final String callerTxt = ", called from: " + caller;
         if (task == null) {
-            CoreLogger.logError("task == null");
+            CoreLogger.logError("task == null" + callerTxt);
             return;
         }
         CoreLogger.log("task.isSuccessful() " + task.isSuccessful() +
-                "task.isComplete() " + task.isComplete());
+                "task.isComplete() " + task.isComplete() + callerTxt);
         if (task.isSuccessful()) return;
 
         final Exception exception = task.getException();
         if (exception == null) {
-            CoreLogger.log("task.getException() == null");
+            CoreLogger.log("task.getException() == null" + callerTxt);
             return;
         }
-        CoreLogger.log("task.getException()", exception);
-        logException(exception);
+        CoreLogger.log("task.getException()" + callerTxt, exception);
+        logException(exception, callerTxt);
     }
 }
