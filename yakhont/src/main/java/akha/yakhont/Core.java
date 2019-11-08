@@ -68,6 +68,7 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
+import android.net.ConnectivityManager.NetworkCallback;     // for javadoc
 import android.net.Network;
 import android.net.NetworkRequest;
 import android.net.Uri;
@@ -232,7 +233,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     private static       Core                           sInstance;
-    private static       boolean                        sbyUser, sSupport, sSetOrientation, sHideKeyboard;
+    private static       boolean                        sbyUser, sSupport, sSetOrientation, sHideKeyboard, sOldConnection;
     private static       WeakReference<Application>     sApplication;
     private static       Dagger2                        sDagger;
 
@@ -352,7 +353,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Sets configuration for the Yakhont library.
+     * Sets configuration for the Yakhont library; provide null for default (or already set) values.
      *
      * @param supportMode
      *        Forces working in support mode (by using weaving for calling application callbacks
@@ -366,12 +367,18 @@ public class Core implements DefaultLifecycleObserver {
      *
      * @param hideKeyboard
      *        Switches ON / OFF the virtual keyboard callback (please refer to {@link HideKeyboardCallbacks})
+     *
+     * @param oldConnectionCheck
+     *        {@code true} to force using {@link ConnectivityManager#getActiveNetworkInfo()}
+     *        for checking network connection (by default Yakhont uses {@link NetworkCallback})
      */
     @SuppressWarnings("unused")
-    public static void config(final boolean supportMode, final boolean setOrientation, final boolean hideKeyboard) {
-        sSupport            = supportMode;
-        sSetOrientation     = setOrientation;
-        sHideKeyboard       = hideKeyboard;
+    public static void config(final Boolean supportMode, final Boolean setOrientation, final Boolean hideKeyboard,
+                              final Boolean oldConnectionCheck) {
+        if (supportMode         != null) sSupport            = supportMode;
+        if (setOrientation      != null) sSetOrientation     = setOrientation;
+        if (hideKeyboard        != null) sHideKeyboard       = hideKeyboard;
+        if (oldConnectionCheck  != null) sOldConnection      = oldConnectionCheck;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -750,7 +757,6 @@ public class Core implements DefaultLifecycleObserver {
             CoreLogger.logWarning("newConfig " + newConfig);
 
             for (final ConfigurationChangedListener listener: sAppCallbacksListeners)
-                //noinspection Convert2Lambda
                 notifyListener(new Runnable() {
                     @Override
                     public void run() {
@@ -761,6 +767,12 @@ public class Core implements DefaultLifecycleObserver {
                             CoreLogger.log("onConfigurationChanged failed, listener: " +
                                     listener, exception);
                         }
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "ConfigurationChangedListener.onChangedConfiguration()";
                     }
                 });
         }
@@ -948,7 +960,7 @@ public class Core implements DefaultLifecycleObserver {
                 sNetworkCallback = new ConnectivityManager.NetworkCallback() {
                     @Override
                     public void onAvailable(@NonNull final Network network) {
-                        CoreLogger.log(CoreLogger.getDefaultLevel(), "NetworkCallback.onAvailable()");
+                        CoreLogger.log("NetworkCallback.onAvailable()");
                         setConnected(true);
                     }
 
@@ -1064,16 +1076,21 @@ public class Core implements DefaultLifecycleObserver {
         @SuppressWarnings("UnusedReturnValue")
         private static void allRemaining(@NonNull final Application application) {
             sBaseUri = String.format(BASE_URI, application.getPackageName());
-            handleConnection(application, null, false);
+            handleConnection(application, null, sOldConnection);
         }
 
         private static void onNetworkStatusChanged(final boolean isConnected) {
             for (final NetworkStatusListener listener: sNetworkStatusListeners)
-                //noinspection Convert2Lambda
                 notifyListener(new Runnable() {
                     @Override
                     public void run() {
                         listener.onNetworkStatusChanged(isConnected);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "NetworkStatusListener.onNetworkStatusChanged()";
                     }
                 });
         }
@@ -1228,7 +1245,7 @@ public class Core implements DefaultLifecycleObserver {
                     return true;
                 }
                 catch (Exception exception) {
-                    CoreLogger.log("failed runnable " + runnable, exception);
+                    CoreLogger.log("failed runnable: " + runnable, exception);
                 }
             }
             return false;
@@ -1253,7 +1270,7 @@ public class Core implements DefaultLifecycleObserver {
                     return callable.call();
                 }
                 catch (Exception exception) {
-                    CoreLogger.log("failed callable " + callable, exception);
+                    CoreLogger.log("failed callable: " + callable, exception);
                 }
             }
             return null;
@@ -1794,7 +1811,6 @@ public class Core implements DefaultLifecycleObserver {
                 CoreLogger.logError("no arguments");
                 return;
             }
-            //noinspection Convert2Lambda
             runInBackground(new Runnable() {
                 @Override
                 public void run() {
@@ -1810,6 +1826,12 @@ public class Core implements DefaultLifecycleObserver {
 
                     activity.startActivity(Intent.createChooser(intent,
                             activity.getString(R.string.yakhont_sending_email)));
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "Sending debug email";
                 }
             });
         }
@@ -3525,11 +3547,16 @@ public class Core implements DefaultLifecycleObserver {
                 return setPagingCallbacks(coreLoad, new LoaderCallbacks<E, D>() {
                     @Override
                     public void onLoadFinished(final D data, final Source source) {
-                        //noinspection Convert2Lambda
                         Utils.safeRun(new Runnable() {
                             @Override
                             public void run() {
                                 callback.onLoadFinished(data, source);
+                            }
+
+                            @NonNull
+                            @Override
+                            public String toString() {
+                                return "setPagingCallbacks - LoaderCallback.onLoadFinished()";
                             }
                         });
                     }
@@ -3554,7 +3581,6 @@ public class Core implements DefaultLifecycleObserver {
                     return null;
                 }
 
-                //noinspection Convert2Lambda
                 return new Runnable() {
                     @Override
                     public void run() {
@@ -3577,13 +3603,24 @@ public class Core implements DefaultLifecycleObserver {
                         final D tmp         = (D) (data == null ? Collections.EMPTY_LIST: data);
                         final Source source =      data == null ? Source.UNKNOWN : Source.CACHE;
 
-                        //noinspection Convert2Lambda
                         Utils.safeRun(new Runnable() {
                             @Override
                             public void run() {
                                 callback.onLoadFinished(tmp, source);
                             }
+
+                            @NonNull
+                            @Override
+                            public String toString() {
+                                return "getPagingDefaultErrorCallback - LoaderCallback.onLoadFinished()";
+                            }
                         });
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "getPagingDefaultErrorCallback";
                     }
                 };
             }

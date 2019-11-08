@@ -328,7 +328,6 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
 
         @Override
         public void enqueue(final Callback callback) {
-            @SuppressWarnings("Convert2Lambda")
             final Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
@@ -338,6 +337,12 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
                             enqueueWrapper(callback);
                         }
                     }.start();
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "BaseLocalOkHttpClient2 - Call.enqueueWrapper()";
                 }
             };
             if (mEmulatedNetworkDelay <= 0)
@@ -351,7 +356,6 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
                 CoreLogger.logError("callback == null");
                 return;
             }
-            //noinspection Convert2Lambda
             Utils.safeRun(new Runnable() {
                 @Override
                 public void run() {
@@ -361,6 +365,12 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
                     catch (IOException exception) {
                         callback.onFailure(CallI.this, exception);
                     }
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "BaseLocalOkHttpClient2 - Callback.onResponse()";
                 }
             });
         }

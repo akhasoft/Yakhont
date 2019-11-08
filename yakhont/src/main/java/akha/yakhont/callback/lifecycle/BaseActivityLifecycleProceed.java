@@ -259,11 +259,16 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         }
 
         for (final BaseActivityCallbacks callbacks: sCallbacks.keySet())
-            //noinspection Convert2Lambda
             apply(sCallbacks, callbacks, created, lifeCycle, activity, new Runnable() {
                 @Override
                 public void run() {
                     apply(callbacks, lifeCycle, activity, state);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "apply(BaseActivityCallbacks)";
                 }
             });
     }

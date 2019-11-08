@@ -172,6 +172,9 @@ dependencies {
     fullApi             "androidx.mediarouter:mediarouter:$projectLibVerMediaRouterMediaRouter"
     fullApi             "androidx.preference:preference:$projectLibVerPreferencePreference"
 
+    api                 "com.github.bumptech.glide:glide:$projectLibVerGlide"
+    annotationProcessor "com.github.bumptech.glide:compiler:$projectLibVerGlide"
+
     api                 "com.squareup.picasso:picasso:$projectLibVerPicasso"
 
     api                 "androidx.paging:paging-runtime:$projectLibVerPaging"

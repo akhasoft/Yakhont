@@ -237,11 +237,16 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 final Call<D> call = CoreReflection.invoke(proxy, method, args);
                 if (call == null) throw new Exception("Call == null");
 
-                // noinspection Convert2Lambda,Anonymous2MethodRef
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
                         call.cancel();
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Retrofit2 - Call.cancel()";
                     }
                 });
 
@@ -254,11 +259,16 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             final Object resultRx2 = Rx2.handle(proxy, method, args, callbackRx);
             if (resultRx2 != null) {
 
-                //noinspection Convert2Lambda
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
                         Rx2.cancel(resultRx2);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Retrofit2 - Rx2.cancel()";
                     }
                 });
 
@@ -269,11 +279,16 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             final Object resultRx = FlavorHelper.handleRx(proxy, method, args, callbackRx);
             if (resultRx != null) {
 
-                //noinspection Convert2Lambda
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
                         FlavorHelper.cancelRx(resultRx);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Retrofit2 - FlavorHelper.cancelRx()";
                     }
                 });
 
@@ -321,11 +336,16 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             @SuppressWarnings("unused")
             @Override
             public void onResult(final D result) {
-                //noinspection Convert2Lambda
                 Utils.safeRun(new Runnable() {
                     @Override
                     public void run() {
                         callback.onResponse(null, Response.success(result));
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Retrofit2 - Callback.onResponse()";
                     }
                 });
             }
@@ -333,13 +353,18 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             @SuppressWarnings("unused")
             @Override
             public void onError(final Throwable throwable) {
-                //noinspection Convert2Lambda
                 Utils.safeRun(new Runnable() {
                                   @Override
                                   public void run() {
                                       callback.onFailure(null, throwable);
                                   }
-                              });
+
+                                  @NonNull
+                                  @Override
+                                  public String toString() {
+                                      return "Retrofit2 - Callback.onFailure()";
+                                  }
+                });
             }
         };
     }

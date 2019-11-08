@@ -196,7 +196,6 @@ public abstract class BaseRx<D> {
                 CoreLogger.logError("callback is null");
                 continue;
             }
-            //noinspection Convert2Lambda
             Utils.safeRun(new Runnable() {
                 @Override
                 public void run() {
@@ -204,6 +203,12 @@ public abstract class BaseRx<D> {
                         callback.onError(throwable);
                     else
                         callback.onResult(result);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "BaseRx - callback onError / onResult";
                 }
             });
         }

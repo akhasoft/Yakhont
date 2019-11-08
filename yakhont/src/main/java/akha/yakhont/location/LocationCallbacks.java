@@ -406,7 +406,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         if (!fromDialog) fromDialog   = !granted;
         final boolean fromDialogFinal = fromDialog;
 
-        @SuppressWarnings("Convert2Lambda")
         final boolean result = new RequestBuilder(activity)
                 .setRationale  (mPermissionsRationale  )
                 .setRequestCode(mPermissionsRequestCode)
@@ -423,6 +422,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
 
                         onActivityStarted(activity);
                         onActivityResumed(activity);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "location - onGranted";
                     }
                 })
                 .request();
@@ -449,7 +454,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     @Override
     public void onActivityStarted(@NonNull final Activity activity) {
-        //noinspection Convert2Lambda
         handle(activity, ActivityLifecycle.STARTED, mStartStopCounter, new Runnable() {
             @Override
             public void run() {
@@ -460,6 +464,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                     locationClient.onStart(activity);
                 }
             }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "LocationClient.onStart()";
+            }
         });
     }
 
@@ -468,7 +478,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     @Override
     public void onActivityResumed(@NonNull final Activity activity) {
-        //noinspection Convert2Lambda
         handle(activity, ActivityLifecycle.RESUMED, mPauseResumeCounter, new Runnable() {
             @Override
             public void run() {
@@ -478,6 +487,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                     CoreLogger.log("LocationClient.onResume()");
                     locationClient.onResume(activity);
                 }
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "LocationClient.onResume()";
             }
         });
     }
@@ -492,7 +507,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     @Override
     public void onActivityPaused(@NonNull final Activity activity) {
-        //noinspection Convert2Lambda
         handle(ActivityLifecycle.PAUSED, mPauseResumeCounter, new Runnable() {
             @Override
             public void run() {
@@ -503,6 +517,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                     locationClient.onPause(activity);
                 }
             }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "LocationClient.onPause()";
+            }
         });
     }
 
@@ -511,7 +531,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     @Override
     public void onActivityStopped(@NonNull final Activity activity) {
-        //noinspection Convert2Lambda
         handle(ActivityLifecycle.STOPPED, mStartStopCounter, new Runnable() {
             @Override
             public void run() {
@@ -521,6 +540,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                     CoreLogger.log("LocationClient.onStop()");
                     locationClient.onStop(activity);
                 }
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "LocationClient.onStop()";
             }
         });
     }
@@ -533,8 +558,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
         sActivity.clear(activity);
 
         if (getProceeded().size() == 0)
-
-            //noinspection Convert2Lambda
             addTask(ActivityLifecycle.DESTROYED, new Runnable() {
                 @Override
                 public void run() {
@@ -546,6 +569,12 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
 
                         clearLocationClient();
                     }
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "LocationClient.onDestroy()";
                 }
             });
 

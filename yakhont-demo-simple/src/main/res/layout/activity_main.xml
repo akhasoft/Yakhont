@@ -42,6 +42,8 @@
             android:layout_gravity="center"
             android:text="@string/list_title_beers" />
 
+        <!-- for default Yakhont data binding, list ID should be consistent with list item layout name;
+             please refer to BaseResponseLoaderWrapper.CoreLoadBuilder.setListItem() for more info -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recycler"
             android:layout_width="match_parent"

@@ -72,6 +72,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.bumptech.glide.Glide;
 import com.squareup.picasso.Picasso;
 
 /**
@@ -96,11 +97,26 @@ import com.squareup.picasso.Picasso;
  */
 public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter, Filterable {
 
-    private             BaseAdapter                         mBaseAdapter;
-    private final       BaseArrayAdapter<T>                 mArrayAdapter;
-    private final       BaseCursorAdapter                   mCursorAdapter;
+    private static       boolean                             sUseGlide                  = true;
 
-    private final       DataConverter<T, R, E, D>           mConverter;
+    private              BaseAdapter                         mBaseAdapter;
+    private        final BaseArrayAdapter<T>                 mArrayAdapter;
+    private        final BaseCursorAdapter                   mCursorAdapter;
+
+    private        final DataConverter<T, R, E, D>           mConverter;
+
+    /**
+     * Sets default library for images loading.
+     *
+     * @param value
+     *        {@code true} for {@link <a href="https://github.com/bumptech/glide">Glide</a>},
+     *        {@code false} for {@link <a href="https://square.github.io/picasso/">Picasso</a>},
+     *        default value is {@code true}
+     */
+    @SuppressWarnings("unused")
+    public static void useGlide(final boolean value) {
+        sUseGlide = value;
+    }
 
     /**
      * The API to convert a {@code BaseResponse} to collection.
@@ -414,7 +430,8 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
             mArrayAdapter.addAll(collection);
         else
-            for (final T object: collection) mArrayAdapter.add(object);
+            for (final T object: collection)
+                mArrayAdapter.add(object);
     }
 
     /**
@@ -454,7 +471,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     @SuppressWarnings("WeakerAccess")
     public void updateCursor(final Cursor cursor) {
         setCurrentAdapter(false);
-
         final Cursor prevCursor = mCursorAdapter.swapCursor(
                 cursor != null && cursor.getCount() > 0 ? cursor: null);
         if (prevCursor != null && !Utils.equals(prevCursor, cursor) && !prevCursor.isClosed())
@@ -1158,13 +1174,20 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static void bindImageView(@SuppressWarnings("unused") final Context context,
-                                     @NonNull final ImageView imageView, final Object value) {
+    public static void bindImageView(Context context, @NonNull final ImageView imageView, final Object value) {
         final String strValue = getString(value);
         try {
             imageView.setImageResource(Integer.parseInt(strValue));
         }
         catch (NumberFormatException exception) {
+            if (sUseGlide) {
+                if (context == null) context = Utils.getCurrentActivity();
+                if (context != null) {
+                    Glide.with(context).load(strValue).into(imageView);
+                    return;
+                }
+                CoreLogger.logWarning("about to use Picasso 'cause of null Context");
+            }
             Picasso.get().load(strValue).into(imageView);
         }
     }

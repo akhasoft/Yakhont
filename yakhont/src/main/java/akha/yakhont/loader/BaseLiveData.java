@@ -225,11 +225,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         final boolean noProgress = mLoadParameters.mParameters.getNoProgress();
-        //noinspection Convert2Lambda
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
                 if (!noProgress) mBaseDialog.stop();
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "BaseDialog.stop()";
             }
         });
 
@@ -372,11 +377,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      */
     public void makeRequest(final Activity activity, final String text, final Intent data,
                             final LoadParameters loadParameters) {
-        //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 makeRequestHandler(activity, text, data, loadParameters);
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "BaseLiveData.makeRequestHandler()";
             }
         });
     }
@@ -401,7 +411,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     CoreLogger.logWarning("Yakhont delegates timeout handling to loader; " +
                             "if you're not agree just set 'handleTimeout' in LoadParameters to true");
 
-                //noinspection Convert2Lambda,ConstantConditions
+                //noinspection ConstantConditions
                 mLoadParameters = new LiveDataLoadParameters(handleTimeout ?
                         Utils.runInBackground(loadParameters == null ? getDefaultTimeout():
                                 loadParameters.getTimeout(), new Runnable() {
@@ -410,10 +420,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                                 CoreLogger.logWarning("request timeout " + mDataLoader);
                                 onComplete(false, getTimeoutStub(loadParameters), true);
                             }
+
+                            @NonNull
+                            @Override
+                            public String toString() {
+                                return "BaseLiveData.onComplete()";
+                            }
                         }): null, loadParameters);
             }
 
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(mProgressDelay, new Runnable() {
                 @Override
                 public void run() {
@@ -421,6 +436,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         if (mLoading.get() && !mLoadParameters.mParameters.getNoProgress())
                             mBaseDialog.start(activity, text, data);
                     }
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "BaseDialog.start()";
                 }
             });
 
@@ -1103,11 +1124,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 if (baseViewModel == null)
                     CoreLogger.logWarning("can't create Callable dor Dialog handling");
 
-                //noinspection Convert2Lambda
                 return baseViewModel == null ? null: new Callable<Boolean>() {
                     @Override
                     public Boolean call() {
                         return baseViewModel.getData().confirm(activity, view);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "BaseViewModel.getData().confirm()";
                     }
                 };
             }
@@ -1381,13 +1407,18 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          */
         @SuppressWarnings("WeakerAccess")
         public void start(final String text) {
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
                     synchronized (mLock) {
                         startAsync(text);
                     }
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "LiveDataDialog.startAsync()";
                 }
             });
         }
@@ -1429,7 +1460,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public void stop(final boolean force, final Activity activity) {
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
@@ -1441,6 +1471,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     catch (Exception exception) {
                         CoreLogger.log(exception);
                     }
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "LiveDataDialog.stopNotSafe()";
                 }
             });
         }
@@ -1501,6 +1537,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                             }
                         }
                     }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "LiveDataDialog.cancel()";
+                    }
                 });
                 return true;
             }
@@ -1522,11 +1564,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          */
         @Override
         public boolean confirm(final Activity activity, final View view) {
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
                     mProgress.confirm(activity, view);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "Progress.confirm()";
                 }
             });
             return true;

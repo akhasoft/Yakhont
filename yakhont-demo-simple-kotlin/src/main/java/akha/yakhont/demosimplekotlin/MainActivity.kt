@@ -20,6 +20,9 @@ import akha.yakhont.demosimplekotlin.model.Beer
 import akha.yakhont.demosimplekotlin.retrofit.LocalOkHttpClient2
 import akha.yakhont.demosimplekotlin.retrofit.Retrofit2Api
 
+import kotlinx.android.synthetic.main.activity_main.locationView
+import kotlinx.android.synthetic.main.activity_main.recyclerView
+
 import akha.yakhont.callback.annotation.CallbacksInherited
 import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
@@ -29,12 +32,9 @@ import akha.yakhont.technology.rx.BaseRx.SubscriberRx
 
 import android.location.Location
 import android.os.Bundle
-import android.view.View
-import android.widget.TextView
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
 
 import java.util.Date
 
@@ -54,8 +54,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
         setLocation()
 
-        (findViewById<View>(R.id.recycler) as RecyclerView)
-                .layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = LinearLayoutManager(this)
 /*
         ////////
         // normally it should be enough - but here we have the local client, so see below...
@@ -88,7 +87,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
                     // just to demo the progress GUI - comment it out if not needed
                     .setEmulatedNetworkDelay(7)
 
-                    , retrofit2, rx, null).start(null)
+                    ,retrofit2, rx, null).start(null)
         }
     }
 
@@ -99,12 +98,12 @@ class MainActivity: AppCompatActivity(), LocationListener {
         private var location: String? = null
     }
 
-    override fun onLocationChanged(location: Location, date: Date) {
-        MainActivity.location = LocationCallbacks.toDms(location, this)
+    override fun onLocationChanged(newLocation: Location, newDate: Date) {
+        location = LocationCallbacks.toDms(newLocation, this)
         setLocation()
     }
 
     private fun setLocation() {
-        if (location != null) (findViewById<View>(R.id.location) as TextView).text = location
+        if (location != null) locationView.text = location
     }
 }

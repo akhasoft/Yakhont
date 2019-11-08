@@ -1073,11 +1073,16 @@ public class BaseViewModel<D> extends AndroidViewModel {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @Override
         protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner) {
-            //noinspection Convert2Lambda
             return super.updateUi(stop, owner, new Runnable() {
                 @Override
                 public void run() {
                     updateUi(stop, owner, mDataPaged, mObserverPaged);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "PagingViewModel.updateUi()";
                 }
             });
         }

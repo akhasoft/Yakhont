@@ -511,12 +511,17 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         if (mLoaderCallbacks != null || mPagingCallbacks != null) {
             if (data == null) {
-                //noinspection Convert2Lambda
                 Utils.safeRun(new Runnable() {
                     @Override
                     public void run() {
                         if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(null, Source.UNKNOWN);
                         if (mPagingCallbacks != null) mPagingCallbacks.onLoadFinished(null, Source.UNKNOWN);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "loader and paging callbacks - onLoadFinished(null, Source.UNKNOWN)";
                     }
                 });
             }
@@ -525,23 +530,33 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 final Source source = data.getSource();
 
                 if (error != null) {
-                    //noinspection Convert2Lambda
                     Utils.safeRun(new Runnable() {
                         @Override
                         public void run() {
                             if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadError(error, source);
                             if (mPagingCallbacks != null) mPagingCallbacks.onLoadError(error, source);
                         }
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "loader and paging callbacks - onLoadError()";
+                        }
                     });
                 }
                 else {
                     final D result = data.getResult();
-                    //noinspection Convert2Lambda
                     Utils.safeRun(new Runnable() {
                         @Override
                         public void run() {
                             if (mLoaderCallbacks != null) mLoaderCallbacks.onLoadFinished(result, source);
                             if (mPagingCallbacks != null) mPagingCallbacks.onLoadFinished(result, source);
+                        }
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "loader and paging callbacks - onLoadFinished()";
                         }
                     });
                 }
@@ -1975,8 +1990,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *   <li>find name of the list, which is the string representation of the list ID;
          *     if the ID was not defined, "list", "grid" or "recycler" will be used
          *   </li>
-         *   <li>look for the layout with ID == name + "_item";
-         *     if not found, look for the layout with ID == name
+         *   <li>look for the layout with ID equals name + "_item";
+         *     if not found, look for the layout with ID equals name
+         *   </li>
+         *   <li>if not found and name ends with "View", removes that suffix;
+         *     then goes to the previous step
          *   </li>
          * </ul>
          *
@@ -2013,10 +2031,19 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("SameParameterValue")
         private int getItemLayout(@NonNull final Resources resources, @NonNull final View   list,
                                   @NonNull final String defType,      @NonNull final String defPackage) {
-
             final String name = list.getId() != Core.NOT_VALID_VIEW_ID ? resources.getResourceEntryName(list.getId()):
                     list instanceof RecyclerView ? "recycler": list instanceof GridView ? "grid": "list";
 
+            @LayoutRes int id = getItemLayout(resources, name, defType, defPackage);
+            if (id == Core.NOT_VALID_RES_ID && name.endsWith("View"))
+                id = getItemLayout(resources, name.substring(0, name.length() - 4), defType, defPackage);
+
+            return id;
+        }
+
+        @LayoutRes
+        private int getItemLayout(@NonNull final Resources resources, @NonNull final String name,
+                                  @NonNull final String defType,      @NonNull final String defPackage) {
             @LayoutRes final int id = resources.getIdentifier(name + "_item", defType, defPackage);
             return id != Core.NOT_VALID_RES_ID ? id: resources.getIdentifier(name, defType, defPackage);
         }
@@ -2350,11 +2377,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         @SuppressWarnings("unused")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Progress progress) {
-            //noinspection Convert2Lambda
             final Callable<Progress> tmp = progress == null ? null: new Callable<Progress>() {
                 @Override
                 public Progress call() {
                     return progress;
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "Progress.call()";
                 }
             };
             checkData(mProgress, tmp, "progress");
@@ -2463,11 +2495,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 @SuppressWarnings("unused")
                 @Override
                 public void onLoadFinished(final D data, final Source source) {
-                    //noinspection Convert2Lambda
                     Utils.safeRun(new Runnable() {
                         @Override
                         public void run() {
                             loaderCallback.onLoadFinished(data, source);
+                        }
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "getLoaderCallbacks - LoaderCallback.onLoadFinished()";
                         }
                     });
                 }

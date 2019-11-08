@@ -265,11 +265,16 @@ public class Rx2<D> extends CommonRx<D> {
         return new Consumer<D>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull D data) {
-                //noinspection Convert2Lambda
                 Utils.safeRun(new Runnable() {
                     @Override
                     public void run() {
                         callback.onResult(data);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Rx2 - CallbackRx.onResult()";
                     }
                 });
             }
@@ -282,11 +287,16 @@ public class Rx2<D> extends CommonRx<D> {
         return new Consumer<Throwable>() {
             @Override
             public void accept(@io.reactivex.annotations.NonNull Throwable throwable) {
-                //noinspection Convert2Lambda
                 Utils.safeRun(new Runnable() {
                     @Override
                     public void run() {
                         callback.onError(throwable);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Rx2 - CallbackRx.onError()";
                     }
                 });
             }

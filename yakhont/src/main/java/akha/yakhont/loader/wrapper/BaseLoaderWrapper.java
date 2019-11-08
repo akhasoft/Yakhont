@@ -816,12 +816,17 @@ public abstract class BaseLoaderWrapper<D> {
         }
 
         private Boolean handle(final CallableHelper callableHelper) {
-            //noinspection Convert2Lambda
             return Utils.safeRunBoolean(new Callable<Boolean>() {
                 @Override
                 public Boolean call() {
                     final Converter<?> converter = getConverterHelper();
                     return converter != null && callableHelper.call(converter);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "BaseLoaderWrapper - CallableHelper.call()";
                 }
             });
         }
@@ -1207,13 +1212,18 @@ public abstract class BaseLoaderWrapper<D> {
                 loader.setCountDownLatch(countDownLatch);
 
         final boolean[] result = new boolean[] {true};
-        //noinspection Convert2Lambda
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
                 for (final BaseLoaderWrapper loader: loaders)
                     if (checkId(parameters, loader.mLoaderId))
                         if (!loader.start(activity, parameters)) result[0] = false;
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "BaseLoaderWrapper.start()";
             }
         });
 
@@ -1476,12 +1486,17 @@ public abstract class BaseLoaderWrapper<D> {
         public static <D> boolean register(final Activity activity, final SwipeRefreshLayout swipeRefreshLayout,
                                            final BaseLoaderWrapper<D>                        baseLoaderWrapper,
                                            final LoadParameters                              parameters) {
-            //noinspection Convert2Lambda
             return register(activity, swipeRefreshLayout, baseLoaderWrapper,
                     parameters == null ? null: new Callable<LoadParameters>() {
                         @Override
                         public LoadParameters call() {
                             return parameters;
+                        }
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "BaseLoaderWrapper - call()";
                         }
                     });
         }
@@ -1550,11 +1565,16 @@ public abstract class BaseLoaderWrapper<D> {
 
             final BaseViewModel<?> baseViewModel = baseLoaderWrapper.findViewModel(activity);
             if (baseViewModel instanceof PagingViewModel)
-                //noinspection Convert2Lambda
                 ((PagingViewModel) baseViewModel).setOnSwipeToRefresh(new Runnable() {
                     @Override
                     public void run() {
                         stopRefreshing(swipeRefreshLayout);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "stopRefreshing(swipeRefreshLayout)";
                     }
                 });
             return true;

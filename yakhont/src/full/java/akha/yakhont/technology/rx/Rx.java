@@ -297,6 +297,12 @@ public class Rx<D> extends CommonRx<D> {
                     public void run() {
                         callback.onResult(data);
                     }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Rx - CallbackRx.onResult()";
+                    }
                 });
             }
         };
@@ -312,6 +318,12 @@ public class Rx<D> extends CommonRx<D> {
                     @Override
                     public void run() {
                         callback.onError(throwable);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "Rx - CallbackRx.onError()";
                     }
                 });
             }

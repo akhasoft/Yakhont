@@ -1222,11 +1222,16 @@ class BaseSnackbar implements BaseDialog {
         private              GestureDetector            mGestureDetector;
 
         private SwipeToDismissHandler(final Context context) {
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
                     mGestureDetector = new GestureDetector(context, SwipeToDismissHandler.this);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "new GestureDetector()";
                 }
             });
         }
@@ -1345,7 +1350,6 @@ class BaseSnackbar implements BaseDialog {
 
         setColors(activity);
 
-        //noinspection Convert2Lambda
         snackbar[0].addCallback(new BaseCallback(mRequestCode, mIntent, mCountDownLatchTimeout,
                 mActivity, actionSet, new Callable<Collection<String>>() {
             @Override
@@ -1355,6 +1359,12 @@ class BaseSnackbar implements BaseDialog {
                     sStopList = null;
                     return tmp;
                 }
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "clear snackbar StopList";
             }
         }) {
             @SuppressLint("SwitchIntDef")
@@ -1494,7 +1504,6 @@ class BaseSnackbar implements BaseDialog {
 
             if (code == UiModule.SNACKBAR_DISMISSED_REASON_CONSECUTIVE) return;
 
-            //noinspection Convert2Lambda
             Utils.runInBackground(new Runnable() {
                 @Override
                 public void run() {
@@ -1530,6 +1539,12 @@ class BaseSnackbar implements BaseDialog {
                     show(entry.mSnackbar, text);
 
                     CoreLogger.log("Snackbar shown from queue, text: " + text);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "show(Snackbar)";
                 }
             });
         }
@@ -1701,12 +1716,18 @@ class BaseToast implements BaseDialog {
                     final Context        contextFinal   = context;
                     final String         textFinal      = text;
                     final CountDownLatch countDownLatch = new CountDownLatch(1);
-                    //noinspection Convert2Lambda
+
                     Utils.postToMainLoop(new Runnable() {
                         @Override
                         public void run() {
                             makeToast(contextFinal, textFinal);
                             countDownLatch.countDown();
+                        }
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "makeToast";
                         }
                     });
                     Utils.await(countDownLatch, 0);
@@ -1754,11 +1775,16 @@ class BaseToast implements BaseDialog {
                     CoreLogger.log("BaseToast onActivityResult() delay " + delay +
                             " for Toast with text: " + text);
 
-                    //noinspection Convert2Lambda
                     Utils.runInBackground(delay, new Runnable() {
                         @Override
                         public void run() {
                             Helper.onActivityResult(activity, data, mRequestCode, Activity.RESULT_OK);
+                        }
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "Toast - onActivityResult()";
                         }
                     });
                 }

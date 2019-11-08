@@ -22,6 +22,7 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.technology.Dagger2.UiModule;
 
 import android.Manifest;
+import android.Manifest.permission;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -32,7 +33,6 @@ import android.gesture.GestureLibraries;
 import android.gesture.GestureLibrary;
 import android.gesture.GesturePoint;
 import android.gesture.GestureStroke;
-
 import android.gesture.Prediction;
 import android.graphics.Bitmap;
 import android.hardware.Sensor;
@@ -51,22 +51,28 @@ import android.media.MediaRecorder;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
+import android.os.Build.VERSION_CODES;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.PixelCopy;
+import android.view.PixelCopy.OnPixelCopyFinishedListener;      // for javadoc
 import android.view.Surface;
 import android.view.View;
+import android.view.Window;                                     // for javadoc
 import android.widget.Toast;
 
 import androidx.annotation.AnyRes;
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
+import androidx.annotation.RawRes;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.StringRes;
 import androidx.collection.ArrayMap;
+import androidx.recyclerview.widget.RecyclerView;               // for javadoc
 
 import com.google.android.material.snackbar.Snackbar;
 
@@ -85,6 +91,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -92,17 +99,25 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * The <code>CoreLogger</code> class is responsible for logging.
+ * The <code>CoreLogger</code> class is responsible for logging. It also contains some additional components:
  *
- * <p>Some of available features are:
+ * <p><ul>
+ *   <li>for recording audio / video: {@link VideoRecorder VideoRecorder}</li>
+ *   <li>for making screenshots: {@link #getScreenshot(String)}</li>
+ *   <li>for detecting (and handling) shaking device: {@link ShakeEventListener ShakeEventListener}</li>
+ *   <li>for gestures recognition (and handling too): {@link GestureHandler GestureHandler}</li>
+ * </ul>
+ *
+ * <p>And all these components could be used independently, i.e. not for logging only but for any purpose you need.
+ *
+ * <p>Some of available logging features are:
  * <ul>
  *   <li>No logging in release builds (except errors)</li>
  *   <li>Stack trace support: {@link #log(Level, String, boolean)}</li>
- *   <li>Screenshots support: {@link #getScreenshot(String)}, {@link #getScreenshot(Activity, File, String)}</li>
  *   <li>Byte arrays logging: {@link #toHex(byte[])}, {@link #toHex(byte[], int, int, Locale, Charset)}</li>
  *   <li>The logcat support: {@link #getLogCat(List, boolean, String)}</li>
  *   <li>Sending error reports via e-mail: {@link #sendLogCat(Activity, String...)}, {@link #sendData sendData}</li>
- *   <li>Sending error reports via e-mail on shaking device: {@link #registerDataSender(Context, String...)}</li>
+ *   <li>Sending error reports via e-mail on shaking device (or making Z-gesture): {@link #registerDataSender(Context, String...)}</li>
  * </ul>
  *
  * <p>Call {@link #setLogLevel} to set {@link Level log level}.
@@ -944,21 +959,62 @@ public class CoreLogger {
      * @param suffix
      *        The screenshot filename's suffix
      *
+     * @param format
+     *        The screenshot format (or null for default one)
+     *
+     * @param quality
+     *        The screenshot quality (0 - 100), null for default value (100)
+     *
+     * @param oldScreenshot
+     *        {@code true} to force using {@link View#getDrawingCache()} for making screenshot, null
+     *        for default value (by default Yakhont uses {@link PixelCopy#request(Window, Bitmap,
+     *        OnPixelCopyFinishedListener, Handler)} - if available)
+     *
      * @return  The screenshot's file
      */
     @SuppressWarnings("WeakerAccess")
-    public static File getScreenshot(Activity activity, File dir, final String suffix) {
-        if (activity == null) activity = Utils.getCurrentActivity();
-        if (activity == null) logError("activity == null");
+    public static File getScreenshot(Activity activity, File dir, final String suffix,
+                                     final Bitmap.CompressFormat format, final Integer quality,
+                                     Boolean oldScreenshot) {
+        if (activity      == null) activity = Utils.getCurrentActivity();
+        if (activity      == null) logError("activity == null");
 
-        if (suffix   == null) logError("suffix == null");
+        if (suffix        == null) logError("suffix == null");
+        if (oldScreenshot == null) oldScreenshot = false;
 
         if (dir == null && activity != null) dir = Utils.getTmpDir(activity);
         if (dir == null) logError("dir == null");
         if (dir == null || activity == null || suffix == null) return null;
 
         try {
-            return Sender.getScreenshotOld(activity, dir, suffix, null, null, null);
+            if (!Utils.isCurrentThreadMain())
+                return Sender.getScreenshot(activity, dir, suffix, null, format, quality,
+                        null, null, oldScreenshot);
+
+            final Activity activityFinal        = activity;
+            final File     dirFinal             = dir;
+            final boolean  oldScreenshotFinal   = oldScreenshot;
+
+            final File[]         screenshot     = new File[1];
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
+
+            Utils.runInBackground(new Runnable() {
+                @Override
+                public void run() {
+                    screenshot[0] = Sender.getScreenshot(activityFinal, dirFinal, suffix, null,
+                            format, quality, null, null, oldScreenshotFinal);
+                    countDownLatch.countDown();
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "getScreenshot";
+                }
+            });
+            Utils.await(countDownLatch, 0);
+
+            return screenshot[0];
         }
         catch (Exception exception) {
             Sender.handleError("failed creating screenshot", exception, null);
@@ -976,7 +1032,7 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static File getScreenshot(final String suffix) {
-        return getScreenshot(null, null, suffix);
+        return getScreenshot(null, null, suffix, Sender.SCREENSHOT_FORMAT, null, false);
     }
 
     /**
@@ -1199,16 +1255,20 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static void registerDataSender(final Context context, final String... addresses) {
-        registerDataSender(context, null, true, true, null,
-                null, addresses);
+        registerDataSender(context, null, null, true, true,
+                null, null, addresses);
     }
 
     /**
-     * Registers email addresses to which send email with log records
-     * and some additional info (if any). The ANR traces are always added (if available).
+     * Registers email addresses to which send debug email with log records and some additional info (if any).
+     * The ANR traces are always added (if available).
      *
      * @param context
      *        The Context
+     *
+     * @param useShake
+     *        {@code true} to trigger on shaking device, {@code false} to trigger on gestures,
+     *        null to trigger on both
      *
      * @param cmd
      *        The logcat command to execute (or null to execute the default one)
@@ -1230,12 +1290,14 @@ public class CoreLogger {
      */
     @SuppressWarnings({"WeakerAccess", "SameParameterValue"})
     public static void registerDataSender(final Context   context,
+                                          final Boolean   useShake,
                                           final String    cmd,
                                           final boolean   hasScreenShot,
                                           final boolean   hasDb,
                                           final String[]  moreFiles,
                                           final String    subject,
                                           final String... addresses) {
+        sUseShake       = useShake;
         sCmd            = cmd;
         sHasScreenShot  = hasScreenShot;
         sHasDb          = hasDb;
@@ -1245,8 +1307,14 @@ public class CoreLogger {
 
         if (context == null)
             logError("registerDataSender: context == null");
-        else if (addresses != null && addresses.length > 0)
-            new ShakeEventListener(createDataSenderHandler(context)).register();
+        else if ((sUseShake == null || sUseShake) && addresses != null && addresses.length > 0) {
+            log("about to create ShakeEventListener");
+            final ShakeEventListener shakeEventListener = new ShakeEventListener(createDataSenderHandler(context));
+            synchronized (sShakeLock) {
+                shakeEventListener.setThreshold(sShakeThreshold).setDelay(sShakeDelay);
+            }
+            shakeEventListener.register();
+        }
     }
 
     private static       String                         sCmd;
@@ -1255,6 +1323,7 @@ public class CoreLogger {
     private static       String[]                       sMoreFiles;
     private static       String                         sSubject;
     private static       String[]                       sAddresses;
+    private static       Boolean                        sUseShake;
 
     private static File getTmpDir(final Context context) {
         return Utils.getTmpDir(context);
@@ -1264,26 +1333,51 @@ public class CoreLogger {
         final Context  contextToUse = context.getApplicationContext();
         final Activity activity     = context instanceof Activity ? (Activity) context: Utils.getCurrentActivity();
 
-        //noinspection Convert2Lambda
         return new Runnable() {
             @Override
             public void run() {
-                //noinspection Convert2Lambda
                 final Runnable runnable = new Runnable() {
                     @Override
                     public void run() {
                         sendData(contextToUse, sCmd, sHasScreenShot, sHasDb, sMoreFiles, sSubject, sAddresses);
                     }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "sendData";
+                    }
                 };
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP ||
-                        VideoRecorder.isRunning() || UiModule.hasSnackbars()) {
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || VideoRecorder.isRunning()) {
                     runnable.run();
                     return;
                 }
+
                 final File tmpDir = getTmpDir(contextToUse);
                 if (tmpDir == null) return;             // should never happen
 
                 VideoRecorder.setHandler(runnable);
+
+                final Runnable startVideo = new Runnable() {
+                    @SuppressLint("NewApi")
+                    @Override
+                    public void run() {
+                        VideoRecorder.start(activity, new File(tmpDir, String.format("%s%s.%s",
+                                VideoRecorder.sFileNamePrefix, Utils.getTmpFileSuffix(),
+                                VideoRecorder.sFileNameExtension)).getAbsolutePath());
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "VideoRecorder.start()";
+                    }
+                };
+
+                if (UiModule.hasSnackbars()) {
+                    Utils.safeRun(startVideo);
+                    return;
+                }
 
                 //noinspection Convert2Lambda
                 new Utils.SnackbarBuilder(activity)
@@ -1297,14 +1391,17 @@ public class CoreLogger {
                         .setActionTextId(akha.yakhont.R.string.yakhont_record_video_ok)
                         .setActionColor(Utils.getDefaultSnackbarActionColor())
                         .setAction(new View.OnClickListener() {
-                            @SuppressLint("NewApi")
                             @Override
                             public void onClick(final View view) {
-                                VideoRecorder.start(activity, new File(tmpDir, String.format("%s%s.%s",
-                                        VideoRecorder.sFileNamePrefix, Utils.getTmpFileSuffix(),
-                                        VideoRecorder.sFileNameExtension)).getAbsolutePath());
+                                Utils.safeRun(startVideo);
                             }
                         }).show();
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "DataSenderHandler";
             }
         };
     }
@@ -1312,10 +1409,15 @@ public class CoreLogger {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Very simple gesture handler: allows to set the gestures recognition threshold and
-     * doesn't consume unrecognized gestures. Usage example:
+     * Very simple gesture handler; allows to set the gestures recognition threshold and doesn't consume
+     * unrecognized gestures (i.e. could be used, say, with {@link RecyclerView}).
+     * <br>If you need more than one gesture libraries (2, 5, 100, ...) - just create 2-5-100
+     * GestureHandlers and work with them in, say, {@link Activity#dispatchTouchEvent}.
+     * <br>Could be useful if you have many gestures and want special threshold for each of them.
+     * <br>Usage example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
+     * import android.gesture.GestureLibrary;
      * import android.view.MotionEvent;
      *
      * public class YourActivity extends Activity {
@@ -1326,12 +1428,17 @@ public class CoreLogger {
      *     protected void onCreate(Bundle savedInstanceState) {
      *         super.onCreate(savedInstanceState);
      *
+     *         // load gestures library from resources or file
+     *         GestureLibrary yourGestureLibrary = GestureHandler.loadLibrary(...);
+     *
+     *         double threshold = 2.5;   // just for example - you can use whatever you want
+     *
      *         yourGestureHandler = new GestureHandler(new Runnable() {
      *             &#064;Override
      *             public void run() {
      *                 // your code here (to handle gestures)
      *             }
-     *         }, yourGestureLibrary);
+     *         }, threshold, yourGestureLibrary);
      *     }
      *
      *     &#064;Override
@@ -1341,14 +1448,15 @@ public class CoreLogger {
      *     }
      * }
      * </pre>
+     *
+     * Also contains some helper methods for gestures libraries loading.
      */
     @SuppressWarnings("WeakerAccess")
     public static class GestureHandler {
 
-        private static final double                     THRESHOLD                = 2.5;
-
         private        final Runnable                   mRunnable;
         private        final GestureLibrary             mLibrary;
+        private        final double                     mThreshold;
         private static final ArrayList<GesturePoint>    sStrokeBuffer            = new ArrayList<>();
 
         /**
@@ -1357,11 +1465,15 @@ public class CoreLogger {
          * @param runnable
          *        The {@code Runnable} to handle gestures
          *
+         * @param threshold
+         *        The gestures recognition threshold
+         *
          * @param library
          *        The {@code GestureLibrary}
          */
-        public GestureHandler(@NonNull final Runnable runnable, @NonNull final GestureLibrary library) {
-            this(runnable, library, true);
+        @SuppressWarnings("unused")
+        public GestureHandler(final Runnable runnable, final double threshold, final GestureLibrary library) {
+            this(runnable, threshold, library, true);
         }
 
         /**
@@ -1370,19 +1482,35 @@ public class CoreLogger {
          * @param runnable
          *        The {@code Runnable} to handle gestures
          *
+         * @param threshold
+         *        The gestures recognition threshold
+         *
          * @param library
          *        The {@code GestureLibrary}
          *
          * @param load
          *        {@code true} to call {@link GestureLibrary#load}, {@code false} otherwise
          */
-        public GestureHandler(@NonNull final Runnable runnable, @NonNull final GestureLibrary library,
-                              final boolean load) {
-            mLibrary  = load ? loadLibrary(library): library;
-            mRunnable = runnable;
+        public GestureHandler(final Runnable runnable, final double threshold,
+                              final GestureLibrary library, final boolean load) {
+            mLibrary   = load ? loadLibrary(library): library;
+            mRunnable  = runnable;
+            mThreshold = threshold;
+
+            if (mLibrary  == null) logError("gesture library is null");
+            if (mRunnable == null) logError("gesture library handler is null");
         }
 
-        private static GestureLibrary loadLibrary(@NonNull final GestureLibrary library) {
+        @SuppressWarnings("SameParameterValue")
+        private GestureHandler(@NonNull final Runnable runnable, final double threshold, @NonNull final Data data) {
+            this(runnable, threshold, data.mLibrary, data.mLoad);
+        }
+
+        private static GestureLibrary loadLibrary(final GestureLibrary library) {
+            if (library == null) {
+                logError("load: gesture library is null");
+                return null;
+            }
             try {
                 final boolean result = library.load();
                 if (!result) logError("can't load gesture library: " + library);
@@ -1400,13 +1528,10 @@ public class CoreLogger {
          * @param event
          *        The event to handle
          *
-         * @param threshold
-         *        The gestures recognition threshold (default value is 2.5)
-         *
          * @return  {@code true} if this event was consumed, {@code false} otherwise
          */
         @SuppressWarnings("UnusedReturnValue")
-        public boolean handle(@NonNull final MotionEvent event, final double threshold) {
+        public boolean handle(@NonNull final MotionEvent event) {
             if (mLibrary == null || mRunnable == null) return false;
 
             switch (event.getAction()) {
@@ -1425,11 +1550,14 @@ public class CoreLogger {
 
                         if (predictions.size() > 0) {
                             final Prediction prediction = predictions.get(0);
-                            if (prediction.score >= threshold)
-                                return Utils.safeRun(mRunnable);
+                            if (prediction.score >= mThreshold) {
+                                if (!Utils.safeRun(mRunnable))
+                                    logError("can't handle gesture, Runnable: " + mRunnable);
+                                return true;
+                            }
                             else
                                 log("gesture prediction.score " + prediction.score +
-                                        " < threshold " + threshold);
+                                        " < threshold " + mThreshold);
                         }
                         else
                             logError("gesture predictions.size() == 0");
@@ -1445,90 +1573,271 @@ public class CoreLogger {
         }
 
         /**
-         * Handles {@code MotionEvent} to recognize gestures.
+         * Loads gestures library; please refer to {@link GestureLibraries#fromRawResource} for more info.
          *
-         * @param event
-         *        The event to handle
+         * @param id
+         *        The library raw resource id
          *
-         * @return  {@code true} if this event was consumed, {@code false} otherwise
+         * @return  The gestures library (or null)
          */
-        @SuppressWarnings("UnusedReturnValue")
-        public boolean handle(@NonNull final MotionEvent event) {
-            return handle(event, THRESHOLD);
+        public static GestureLibrary loadLibrary(@RawRes final int id) {
+            return loadLibrary(id, null, null);
+        }
+
+        /**
+         * Loads gestures library; please refer to {@link GestureLibraries#fromFile(File)} for more info.
+         *
+         * @param file
+         *        The library file
+         *
+         * @return  The gestures library (or null)
+         */
+        @SuppressWarnings("unused")
+        public static GestureLibrary loadLibrary(final File file) {
+            if (file != null) return loadLibrary(Core.NOT_VALID_RES_ID, file, null);
+
+            logError("load GestureLibrary: file == null");
+            return null;
+        }
+
+        /**
+         * Loads gestures library; please refer to {@link GestureLibraries#fromFile(String)} for more info.
+         *
+         * @param file
+         *        The library file name
+         *
+         * @return  The gestures library (or null)
+         */
+        @SuppressWarnings("unused")
+        public static GestureLibrary loadLibrary(final String file) {
+            if (file != null) return loadLibrary(Core.NOT_VALID_RES_ID, null, file);
+
+            logError("load GestureLibrary: file path == null");
+            return null;
+        }
+
+        private static GestureLibrary loadLibrary(@RawRes final int id, final File file, final String path) {
+            try {
+                if (file != null) return GestureLibraries.fromFile(file);
+                if (path != null) return GestureLibraries.fromFile(path);
+                return GestureLibraries.fromRawResource(Utils.getApplication(), id);
+            }
+            catch (Exception exception) {
+                log("load GestureLibrary failed", exception);
+                return null;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        protected static class Data {               // looks like a compiler issue
+
+            private    final GestureLibrary             mLibrary;
+            private    final boolean                    mLoad;
+
+            private Data(@NonNull final GestureLibrary library, final boolean load) {
+                mLibrary = library;
+                mLoad    = load;
+            }
         }
     }
 
     private static class GestureHandlerZ extends GestureHandler {
 
-        private static       GestureLibrary             sGestureLibrary;
-        private static final Object                     sGestureLibraryLock      = new Object();
+        private static final double                     THRESHOLD                = 2.5;
+
+        private static       GestureLibrary             sLibrary;
+        private static final Object                     sLock                    = new Object();
 
         private GestureHandlerZ(@NonNull final Runnable runnable) {
-            super(runnable, getLibraryHelper());
+            super(runnable, THRESHOLD, getLibraryHelper());
         }
 
-        private static GestureLibrary getLibraryHelper() {
-            synchronized (sGestureLibraryLock) {
-                if (sGestureLibrary == null) sGestureLibrary = getLibraryZ();
-                if (sGestureLibrary == null) logError("can't load Yakhont gestures library");
-                return sGestureLibrary;
-            }
-        }
-
-        private static GestureLibrary getLibraryZ() {
-            try {
-                return GestureLibraries.fromRawResource(Utils.getApplication(),
-                        akha.yakhont.R.raw.yakhont_gestures);
-            }
-            catch (Exception exception) {
-                log("GestureLibraryZ failed", exception);
-                return null;
+        private static Data getLibraryHelper() {
+            synchronized (sLock) {
+                boolean load = false;
+                if (sLibrary == null) {
+                    sLibrary = loadLibrary(akha.yakhont.R.raw.yakhont_gestures);
+                    load = sLibrary != null;
+                }
+                if (sLibrary == null) logError("can't load Yakhont gestures library");
+                return new Data(sLibrary, load);
             }
         }
     }
 
+    /**
+     * Sets custom gestures library to trigger audio / video recording.
+     *
+     * @param library
+     *        The gestures library
+     *
+     * @param load
+     *        {@code true} to call {@link GestureLibrary#load}, {@code false} otherwise
+     *
+     * @param threshold
+     *        The gestures recognition threshold
+     */
+    @SuppressWarnings("unused")
+    public static void setGestureLibrary(final GestureLibrary library, final boolean load,
+                                         final double threshold) {
+        synchronized (sGestureLibraryLock) {
+            sGestureLibrary             = library;
+            sGestureLibraryLoad         = load;
+            sGestureLibraryThreshold    = threshold;
+        }
+    }
+
+    private static       GestureLibrary                 sGestureLibrary;
+    private static       boolean                        sGestureLibraryLoad;
+    private static       double                         sGestureLibraryThreshold;
+    private static final Object                         sGestureLibraryLock      = new Object();
+
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static void handleGesture(@NonNull final Activity activity, @NonNull final MotionEvent event) {
-        if (sAddresses == null || sAddresses.length == 0) return;
-        log("about to run GesturesHandler");
-        new GestureHandlerZ(createDataSenderHandler(activity)).handle(event);
+    public static boolean handleGesture(@NonNull final Activity activity, @NonNull final MotionEvent event) {
+        if (!((sUseShake == null || !sUseShake) && sAddresses != null && sAddresses.length > 0)) return false;
+
+        final Runnable runnable = createDataSenderHandler(activity);
+        final GestureHandler gestureHandler;
+
+        if (sGestureLibrary == null) {
+            log("about to run Yakhont GesturesHandler");
+            gestureHandler = new GestureHandlerZ(runnable);
+        }
+        else {
+            log("about to run custom GesturesHandler based on library: " + sGestureLibrary);
+            gestureHandler = new GestureHandler(runnable, sGestureLibraryThreshold,
+                    sGestureLibrary, sGestureLibraryLoad);
+            synchronized (sGestureLibraryLock) {
+                sGestureLibraryLoad = gestureHandler.mLibrary == null;
+            }
+        }
+        return gestureHandler.handle(event);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static class ShakeEventListener implements SensorEventListener {
+    private static       Double                         sShakeThreshold;
+    private static       Integer                        sShakeDelay;
+    private static final Object                         sShakeLock               = new Object();
 
-        private static final float                      THRESHOLD                =    2;
+    /**
+     * Sets device shake parameters to trigger audio / video recording.
+     *
+     * @param threshold
+     *        The device shake threshold (or null); default value is 2.0
+     *
+     * @param delay
+     *        The device shake delay (or null); default value is 1000
+     */
+    @SuppressWarnings("unused")
+    public static void setShakeParameters(final Double threshold, final Integer delay) {
+        synchronized (sShakeLock) {
+            sShakeThreshold     = threshold;
+            sShakeDelay         = delay;
+        }
+    }
+
+    /**
+     * Simple shake device handler with customizable threshold. Usage example:
+     *
+     * <p><pre style="background-color: silver; border: thin solid black;">
+     * public class YourActivity extends Activity {
+     *
+     *     &#064;Override
+     *     protected void onCreate(Bundle savedInstanceState) {
+     *         super.onCreate(savedInstanceState);
+     *
+     *         new ShakeEventListener(new Runnable() {
+     *             &#064;Override
+     *             public void run() {
+     *                 // your code here (to handle device shaking)
+     *             }
+     *         }).register();
+     *     }
+     * }
+     * </pre>
+     */
+    public static class ShakeEventListener implements SensorEventListener {
+
+        private static final double                     THRESHOLD                =    2.0;
         private static final int                        DELAY                    = 1000;
+
+        private              double                     mThreshold               = THRESHOLD;
+        private              int                        mDelay                   = DELAY;
 
         private        final Runnable                   mHandler;
         private        final SensorManager              mSensorManager;
         private              Sensor                     mSensor;
         private              long                       mLastShakeTime;
 
-        private ShakeEventListener(@NonNull final Runnable handler) {
+        /**
+         * Initialises a newly created {@code ShakeEventListener} object.
+         *
+         * @param runnable
+         *        The {@code Runnable} to handle device shaking
+         */
+        @SuppressWarnings("WeakerAccess")
+        public ShakeEventListener(@NonNull final Runnable runnable) {
             mSensorManager = (SensorManager) Utils.getApplication().getSystemService(Context.SENSOR_SERVICE);
             if (mSensorManager != null)
                 mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             else
                 logWarning(Context.SENSOR_SERVICE + ": mSensorManager == null");
-            mHandler = handler;
+            mHandler = runnable;
         }
 
-        private void register() {
+        /**
+         * Sets device shaking threshold (to run device shaking handler).
+         *
+         * @param threshold
+         *        The device shake threshold (or null); default value is 2.0
+         *
+         * @return  This {@code ShakeEventListener} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings("WeakerAccess")
+        public ShakeEventListener setThreshold(final Double threshold) {
+            if (threshold != null) mThreshold = threshold;
+            return this;
+        }
+
+        /**
+         * Sets device shaking delay (to run device shaking handler).
+         *
+         * @param delay
+         *        The device shake delay (or null); default value is 1000
+         *
+         * @return  This {@code ShakeEventListener} object to allow for chaining of calls to set methods
+         */
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
+        public ShakeEventListener setDelay(final Integer delay) {
+            if (delay != null) mDelay = delay;
+            return this;
+        }
+
+        /**
+         * Registers device shaking handler (please refer to {@link SensorManager#registerListener} for more info).
+         */
+        @SuppressWarnings("WeakerAccess")
+        public void register() {
             if (mSensorManager == null) return;
             mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
             log("shake event listener registered");
         }
 
+        /**
+         * Unregisters device shaking handler (please refer to {@link SensorManager#unregisterListener} for more info).
+         */
         @SuppressWarnings("unused")
-        private void unregister() {
+        public void unregister() {
             if (mSensorManager == null) return;
             mSensorManager.unregisterListener(this, mSensor);
             log("shake event listener unregistered");
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void onSensorChanged(final SensorEvent event) {
             if (event.sensor.getType() != Sensor.TYPE_ACCELEROMETER) return;
@@ -1538,16 +1847,19 @@ public class CoreLogger {
                 final float gravity = event.values[i] / SensorManager.GRAVITY_EARTH;
                 gravityTotal += gravity * gravity;
             }
-            if (Math.sqrt(gravityTotal) < THRESHOLD) return;
+            if (Math.sqrt(gravityTotal) < mThreshold) return;
 
             final long currentTime = System.currentTimeMillis();
-            if (mLastShakeTime + DELAY > currentTime) return;
+            if (mLastShakeTime + mDelay > currentTime) return;
 
             log("shake detected");
             mLastShakeTime = currentTime;
             Utils.safeRun(mHandler);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @Override
         public void onAccuracyChanged(final Sensor sensor, final int accuracy) {
             log("onAccuracyChanged: Sensor " + sensor + ", accuracy " + accuracy);
@@ -1561,7 +1873,9 @@ public class CoreLogger {
         private static final String                     ANR_TRACES               = "/data/anr/traces.txt";
         private static final String                     ZIP_PREFIX               = "yakhont_data";
 
+        // screenshots defaults
         private static final int                        SCREENSHOT_QUALITY       =  100;
+        private static final Bitmap.CompressFormat      SCREENSHOT_FORMAT        =  Bitmap.CompressFormat.PNG;
 
         private static final int                        DELAY                    = 3000;
 
@@ -1569,12 +1883,10 @@ public class CoreLogger {
         private static final String                     DEFAULT_EXTENSION        = "txt";
 
         private static final String                     SCREENSHOT_PREFIX        = "yakhont_screenshot";
-        private static final String                     SCREENSHOT_EXTENSION     = "png";
 
         private static void sendEmail(final Context context, final String cmd, final boolean hasScreenshot,
                                       final boolean hasDb,  final String[]  moreFiles,
                                       final String subject, final String... addresses) {
-            //noinspection Convert2Lambda
             Utils.runInBackground(new Runnable() {
                 @Override
                 public void run() {
@@ -1584,6 +1896,12 @@ public class CoreLogger {
                     catch (Exception exception) {
                         log("failed to send email", exception);
                     }
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "sendEmailHelper";
                 }
             });
         }
@@ -1646,7 +1964,6 @@ public class CoreLogger {
                     "ANR traces: %s, screenshot: %s, video: %s, database: %s", isAdded(hasAnr),
                     isAdded(hasScreenshot), isAdded(videoPath != null), isAdded(hasDb)));
 
-            @SuppressWarnings("Convert2Lambda")
             final Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
@@ -1659,11 +1976,16 @@ public class CoreLogger {
                             body.append(sNewLine).append(sNewLine).append(error).append(sNewLine)
                                     .append(errors.get(error));
 
-                        //noinspection Convert2Lambda
                         Utils.runInBackground(DELAY, new Runnable() {
                             @Override
                             public void run() {
                                 Utils.sendEmail(activity, subjectToSend, body.toString(), zipFile, addresses);
+                            }
+
+                            @NonNull
+                            @Override
+                            public String toString() {
+                                return "sendEmail";
                             }
                         });
                     }
@@ -1673,10 +1995,17 @@ public class CoreLogger {
                         delete(log);
                     }
                 }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "sendZip";
+                }
             };
 
             if (hasScreenshot)
-                getScreenshot(activity, tmpDir, suffix, errors, list, runnable);
+                getScreenshot(activity, tmpDir, suffix, errors, SCREENSHOT_FORMAT, null,
+                        list, runnable, false);
             else
                 complete(null, list, runnable);
         }
@@ -1745,45 +2074,6 @@ public class CoreLogger {
             if (map != null) map.put(text, exception);
         }
 
-        private static void getScreenshot(final Activity     activity, final File tmpDir,
-                                          final String       suffix,   final Map<String, Exception> errors,
-                                          final List<String> list,     final Runnable runnable) {
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                    getScreenshotNew(activity, tmpDir, suffix, errors, list, runnable);
-                else
-                    getScreenshotOld(activity, tmpDir, suffix, errors, list, runnable);
-            }
-            catch (Exception exception) {
-                handleError("failed creating screenshot", exception, errors);
-            }
-        }
-
-        @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
-        private static File getScreenshotOld(final Activity activity, final File tmpDir,
-                                             final String suffix,     final Map<String, Exception> errors,
-                                             final List<String> list, final Runnable runnable) {
-            final View    view  = activity.getWindow().getDecorView().getRootView();
-            final boolean saved = view.isDrawingCacheEnabled();
-            try {
-                view.setDrawingCacheEnabled(true);
-                File screenshot = null;
-                try {
-                    screenshot = saveScreenshot(view.getDrawingCache(), tmpDir, suffix, errors);
-                }
-                catch (Exception exception) {
-                    log(exception);
-                }
-                if (runnable == null) return screenshot;
-
-                complete(screenshot, list, runnable);
-                return null;
-            }
-            finally {
-                view.setDrawingCacheEnabled(saved);
-            }
-        }
-
         private static void complete(final File screenshot, final List<String> list, final Runnable runnable) {
             try {
                 if (screenshot != null) list.add(screenshot.getAbsolutePath());
@@ -1794,36 +2084,93 @@ public class CoreLogger {
             }
         }
 
+        private static File getScreenshot(final Activity activity, final File tmpDir,
+                                          final String   suffix,   final Map<String, Exception> errors,
+                                          final Bitmap.CompressFormat format, final Integer quality,
+                                          final List<String> list, final Runnable runnable,
+                                          final boolean forceOld) {
+            File screenshot = null;
+            try {
+                if (forceOld || Build.VERSION.SDK_INT < Build.VERSION_CODES.O)
+                    screenshot = getScreenshotOld(activity, tmpDir, suffix, errors, format, quality);
+                else
+                    screenshot = getScreenshotNew(activity, tmpDir, suffix, errors, format, quality);
+            }
+            catch (Exception exception) {
+                handleError("failed creating screenshot", exception, errors);
+            }
+            if (runnable == null) return screenshot;
+
+            complete(screenshot, list, runnable);
+            return null;
+        }
+
+        @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
+        private static File getScreenshotOld(final Activity activity, final File tmpDir,
+                                             final String suffix,     final Map<String, Exception> errors,
+                                             final Bitmap.CompressFormat format, final Integer quality) {
+            final View    view  = activity.getWindow().getDecorView().getRootView();
+            final boolean saved = view.isDrawingCacheEnabled();
+            try {
+                view.setDrawingCacheEnabled(true);
+                File screenshot = null;
+                try {
+                    screenshot = saveScreenshot(view.getDrawingCache(), tmpDir, suffix, errors, format, quality);
+                }
+                catch (Exception exception) {
+                    log(exception);
+                }
+                return screenshot;
+            }
+            finally {
+                view.setDrawingCacheEnabled(saved);
+            }
+        }
+
         @TargetApi  (      Build.VERSION_CODES.O)
         @RequiresApi(api = Build.VERSION_CODES.O)
-        private static void getScreenshotNew(final Activity activity, final File tmpDir,
+        private static File getScreenshotNew(final Activity activity, final File tmpDir,
                                              final String suffix,     final Map<String, Exception> errors,
-                                             final List<String> list, final Runnable runnable) {
+                                             final Bitmap.CompressFormat format, final Integer quality) {
+            if (Utils.isCurrentThreadMain()) {
+                logError("PixelCopy.request() should be called from background thread");
+                return null;
+            }
+
             final DisplayMetrics dm     = activity.getResources().getDisplayMetrics();
             final Bitmap         bitmap = Bitmap.createBitmap(dm.widthPixels, dm.heightPixels,
                     Bitmap.Config.ARGB_8888);
+
+            final File[]         screenshot     = new File[1];
+            final CountDownLatch countDownLatch = new CountDownLatch(1);
+
             //noinspection Convert2Lambda
             PixelCopy.request(activity.getWindow(), bitmap, new PixelCopy.OnPixelCopyFinishedListener() {
                 @Override
                 public void onPixelCopyFinished(int copyResult) {
                     if (copyResult == PixelCopy.SUCCESS)
-                        complete(saveScreenshot(bitmap, tmpDir, suffix, errors), list, runnable);
-                    else {
+                        screenshot[0] = saveScreenshot(bitmap, tmpDir, suffix, errors, format, quality);
+                    else
                         logError("PixelCopy failed with copyResult " + copyResult);
-                        complete(null, list, runnable);
-                    }
+
+                    countDownLatch.countDown();
                 }
-            }, new Handler());
+            }, new Handler(Looper.getMainLooper()));
+
+            Utils.await(countDownLatch, 0);
+            return screenshot[0];
         }
 
         private static File saveScreenshot(final Bitmap bitmap, final File tmpDir,
-                                           final String suffix, final Map<String, Exception> errors) {
+                                           final String suffix, final Map<String, Exception> errors,
+                                           Bitmap.CompressFormat format, final Integer quality) {
+            if (format == null) format = SCREENSHOT_FORMAT;
             try {
-                final File tmpFile = getTmpFile(SCREENSHOT_PREFIX, suffix, SCREENSHOT_EXTENSION, tmpDir);
+                final File tmpFile = getTmpFile(SCREENSHOT_PREFIX, suffix, format.name(), tmpDir);
                 final FileOutputStream outputStream = new FileOutputStream(tmpFile);
                 //noinspection TryFinallyCanBeTryWithResources
                 try {
-                    bitmap.compress(Bitmap.CompressFormat.PNG, SCREENSHOT_QUALITY, outputStream);
+                    bitmap.compress(format, quality != null ? quality: SCREENSHOT_QUALITY, outputStream);
                 }
                 finally {
                     outputStream.close();
@@ -1841,14 +2188,19 @@ public class CoreLogger {
     // based on https://github.com/google/grafika and https://github.com/saki4510t/AudioVideoRecordingSample
 
     /**
-     * Component to record video / audio. This is simplified version, intended for applications debug only;
-     * don't use for professional audio / video recording). Usage example:
+     * Component to record video / audio, requires API version &gt;= {@link VERSION_CODES#LOLLIPOP LOLLIPOP}.
+     * <br>This is simplified version, intended for applications debug only; don't use it for professional
+     * audio / video recording.
+     * <br>Usage example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * VideoRecorder.start(activity, outputFile);
      * ...
      * VideoRecorder.stop();
      * </pre>
+     *
+     * Audio recording can be switched off by the dynamic permission {@link permission#RECORD_AUDIO} -
+     * just don't provide it :-)
      */
     @SuppressWarnings("WeakerAccess")
     @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
@@ -1859,16 +2211,18 @@ public class CoreLogger {
         private static final int                        INDEX_AUDIO              =  0;
         private static final int                        INDEX_VIDEO              =  1;
 
+        private static final int                        CYC_BAR_AWAIT_TIMEOUT    =  3000;  // milliseconds
+
         private static       String                     sDisplayName             = "Yakhont's Virtual Display";
         private static       String                     sFileNamePrefix          = "yakhont_record";
         private static       String                     sFileNameExtension       = "mp4";
 
         private static       int                        sAudioSampleRate         = 44100;
-        private static       int                        sAudioSamplesPerFrame    = 1024;
-        private static       int                        sAudioFramesPerBuffer    = 25;
+        private static       int                        sAudioSamplesPerFrame    =  1024;
+        private static       int                        sAudioFramesPerBuffer    =    25;
         private static       int                        sAudioBitRate            = 64000;
+        private static       int                        sAudioQualityRepeat      =     1;
         private static       int                        sAudioTimeout            = 10 * 1000;
-        private static       int                        sAudioQualityRepeat      = 1;
         private static       int                        sAudioChannelMask        = AudioFormat.CHANNEL_IN_MONO;
         private static       int                        sAudioFormat             = AudioFormat.ENCODING_PCM_16BIT;
         private static       String                     sAudioMimeType           = "audio/mp4a-latm";
@@ -1878,6 +2232,7 @@ public class CoreLogger {
         private static       String                     sVideoMimeType           = "video/avc";
 
         private static       boolean                    sWarnings                = true;
+        private static       int                        sCycBarAwaitTimeout      = CYC_BAR_AWAIT_TIMEOUT;
 
         private static       MediaProjectionManager     sMediaProjectionManager;
         private static       MediaProjection            sMediaProjection;
@@ -1954,7 +2309,6 @@ public class CoreLogger {
 
         private static void startWrapper(@NonNull final Activity activity, @NonNull final String outputFile,
                                          final boolean useAudio) {
-            //noinspection Convert2Lambda
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
@@ -1964,6 +2318,12 @@ public class CoreLogger {
                     if (result) return;
                     runHandler();
                     stop();
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "startVideoRecording";
                 }
             });
         }
@@ -2128,7 +2488,10 @@ public class CoreLogger {
                 case LOGGER_VIDEO_SYSTEM:
                 case LOGGER_VIDEO_AUDIO_SYSTEM:
                     if (resultCode != Activity.RESULT_OK) {
-                        logError("createScreenCaptureIntent() failed, result code: " + resultCode);
+                        if (resultCode == Activity.RESULT_CANCELED)
+                            log("video recording cancelled");
+                        else
+                            logError("createScreenCaptureIntent() failed, result code: " + resultCode);
                         break;
                     }
                     try {
@@ -2249,12 +2612,12 @@ public class CoreLogger {
                     }
                 }
                 finally {
-                    log("about tot call AudioRecord.stop()");
+                    log("about to call AudioRecord.stop()");
                     audioRecord.stop();
                 }
             }
             finally {
-                log("about tot call AudioRecord.release()");
+                log("about to call AudioRecord.release()");
                 audioRecord.release();
             }
         }
@@ -2467,7 +2830,7 @@ public class CoreLogger {
             if (wait) {
                 log(info + " record: wait");
                 try {
-                    sCyclicBarrier.await(3, TimeUnit.SECONDS);
+                    sCyclicBarrier.await(sCycBarAwaitTimeout, TimeUnit.MILLISECONDS);
                 }
                 catch (Exception exception) {
                     log(info + " record: failed", exception);
@@ -2661,6 +3024,11 @@ public class CoreLogger {
         @SuppressWarnings("unused")
         public static void setVideoFrameRate(final int value) {
             sVideoFrameRate = value;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        public static void setCyclicBarrierAwaitTimeout(final int value) {
+            sCycBarAwaitTimeout = value;
         }
     }
 

@@ -434,13 +434,18 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
         int result = 0;
         switch (Matcher.match(uri)) {
             case ALL:
-                //noinspection Convert2Lambda
                 runTransaction(db, new Runnable() {
                     @Override
                     public void run() {
                         for (final ContentValues values: bulkValues)
                             insert(db, uri, values, true, bulkValues);
                         CoreLogger.log("bulkInsert completed, number of added rows: " + bulkValues.length);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "bulkInsert";
                     }
                 });
                 result = bulkValues.length;
@@ -711,7 +716,6 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
         }
         final boolean addPageIndexCallable = addPageIndex;
 
-        //noinspection Convert2Lambda
         return runTransactionBoolean(db, new Callable<Boolean>() {
             @Override
             public Boolean call() {
@@ -720,6 +724,12 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
                     result = execSql(db, String.format(CREATE_INDEX, String.format(NAME_INDEX,
                             table, BaseConverter.PAGE_ID), table, BaseConverter.PAGE_ID));
                 return result;
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "execSql";
             }
         });
     }
@@ -817,11 +827,16 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      */
     public static boolean runTransaction(@NonNull final SQLiteDatabase db,
                                          @NonNull final Runnable       runnable) {
-        //noinspection Convert2Lambda
         return runTransactionBoolean(db, new Callable<Boolean>() {
             @Override
             public Boolean call() {
                 return Utils.safeRun(runnable);
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "runTransactionBoolean";
             }
         });
     }
@@ -1130,11 +1145,16 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
          */
         @Override
         public void onCreate(final SQLiteDatabase db) {
-            //noinspection Convert2Lambda
             runTransaction(db, new Runnable() {
                 @Override
                 public void run() {
                     BaseCacheProvider.this.onCreate(db);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "BaseCacheProvider.onCreate()";
                 }
             });
         }
@@ -1144,11 +1164,16 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
          */
         @Override
         public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
-            //noinspection Convert2Lambda
             runTransaction(db, new Runnable() {
                 @Override
                 public void run() {
                     BaseCacheProvider.this.onUpgrade(db, oldVersion, newVersion);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "BaseCacheProvider.onUpgrade()";
                 }
             });
         }
@@ -1222,13 +1247,18 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
     private static void copyFile(@NonNull final Context context, @NonNull final File srcFile,
                                  final File dstFile) {
         final String  permission = Manifest.permission.WRITE_EXTERNAL_STORAGE;
-        //noinspection Convert2Lambda
         final boolean result     = new CorePermissions.RequestBuilder(
                     context instanceof Activity ? (Activity) context: null)
                 .addOnGranted(permission, new Runnable() {
                     @Override
                     public void run() {
                         copyFileSync(context, srcFile, dstFile, null);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "copyFileSync";
                     }
                 })
                 .setRationale(R.string.yakhont_permission_storage)

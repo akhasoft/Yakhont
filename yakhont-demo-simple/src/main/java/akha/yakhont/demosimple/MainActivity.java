@@ -172,7 +172,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private void setDebugLogging(boolean debug) {
         if (!debug) return;
         Core.setFullLoggingInfo(true);
-        // optional; on shaking device (or make gesture Z) email with logs will be sent to the address below
+        // optional; on shaking device (or make Z-gesture) email with logs will be sent to the address below
         CoreLogger.registerDataSender(this, "address@company.com");
     }
 

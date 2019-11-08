@@ -57,7 +57,9 @@ What else? Dynamic permissions? Requested and handled fully automatically,
 all you need is just to provide permission-specific on-granted-callbacks (please refer to
 [dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)).
 
-So, as I told - the whole data loading in just one line of code (plus your callbacks - if any).
+Video / audio recording. Transparent gestures recognition / handling. And more. 
+
+And finally, as I told - the whole data loading in just one line of code (plus your callbacks - if any).
 
 ## Table of Contents
 
@@ -86,7 +88,11 @@ In addition, there are powerful utility classes which includes:
 - completely transparent (but fully customizable) 
 [dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)
 - extended [logger](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreLogger.html): 
-sending logcat error reports (with screenshots and DB copies) on just shaking device, stack traces, byte[] logging and more.
+sending logcat error reports (with screenshots and DB copies) on just shaking device (or making Z-gesture), 
+stack traces, byte[] logging and more.
+- video / audio recording (also via shaking device or making Z-gesture - for more info please refer to the logger mentioned above).
+- transparent gestures recognition / handling (i.e. can be used, say, with 
+[RecyclerView](https://developer.android.com/reference/androidx/recyclerview/widget/RecyclerView.html) - also, implemented in logger). 
 - [reflection](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreReflection.html)
 with extended collections support, methods comparing and handling (say, find list of overridden methods), etc.  
 
@@ -161,7 +167,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments are supported: it's not necessary to derive 
 them from some predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 475 KB (except the _full_ version, which is about 570 KB).
+The Yakhont AAR is about 539 KB (except the _full_ version, which is about 637 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above ('cause support library requires API level 14 as a minimum).
 

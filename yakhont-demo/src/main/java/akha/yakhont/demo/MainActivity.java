@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         Core.setRxUncaughtExceptionBehavior(false /* not terminate */);
 
         // overrides the default configuration from weaver.config (enables screen orientation setting)
-        Core.config(false, true, true);
+        Core.config(null, true, true, null);
 
         boolean debug = BuildConfig.DEBUG;
         Core.setFullLoggingInfo(debug);
@@ -83,8 +83,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         if (debug) {
             // optional; on shaking device email with logs will be sent to the address below
 //          CoreLogger.registerDataSender(this, "address@company.com");
+
             // or something like this:
-//          CoreLogger.registerDataSender(this, "logcat -d", true, true, null, "subj", "address@company.com");
+            CoreLogger.VideoRecorder.setVideoFrameRate(...);    // optional, of course
+            CoreLogger.VideoRecorder.setAudioFormat   (...);    // optional too
+
+            CoreLogger.setShakeParameters             (...);    // option for shake threshold and delay
+            CoreLogger.setGestureLibrary              (...);    // IMHO exotic option (but powerful anyway)
+
+//          CoreLogger.registerDataSender(this, null, "logcat -d", true, true, null, "subj", "address@company.com");
         }
 */
         if (savedInstanceState == null)

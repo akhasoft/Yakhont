@@ -18,12 +18,13 @@ buildscript {
     ext.kotlinVersion       = '1.3.50'
 
     repositories {
+        mavenCentral()
         google()
         jcenter()
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:3.5.1"
+        classpath "com.android.tools.build:gradle:3.5.2"
 
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
@@ -78,6 +79,7 @@ ext {
                                'proguard-square-okhttp.pro'                             ,
                                'proguard-square-okhttp3.pro'                            ,
                                'proguard-square-okio.pro'                               ,
+                               'proguard-square-glide.pro'                              ,
                                'proguard-square-picasso.pro'                            ,
                                'proguard-square-retrofit.pro'                           ,
                                'proguard-square-retrofit2.pro'                          ,
@@ -106,6 +108,8 @@ ext {
     projectLibVerRetrofit2                                      =  '2.5.0'
 
     projectLibVerGson                                           =  '2.8.5'
+
+    projectLibVerGlide                                          =  '4.10.0'
     projectLibVerPicasso                                        =  '2.71828'
 
     projectLibVerOkHttp3                                        =  '3.13.1'
@@ -115,7 +119,7 @@ ext {
     projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.0'
-    projectLibVerRoom                                           =  '2.2.0'
+    projectLibVerRoom                                           =  '2.2.1'
 
     projectLibVerDagger                                         =  '2.22.1'
 

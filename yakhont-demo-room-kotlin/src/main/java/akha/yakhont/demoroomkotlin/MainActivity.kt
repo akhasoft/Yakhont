@@ -22,6 +22,8 @@ import akha.yakhont.demoroomkotlin.retrofit.Retrofit2Api
 import akha.yakhont.demoroomkotlin.room.AppDatabase
 import akha.yakhont.demoroomkotlin.room.Item
 
+import kotlinx.android.synthetic.main.activity_main.locationView
+import kotlinx.android.synthetic.main.activity_main.recyclerView
 import kotlinx.android.synthetic.main.recycler_item.view.title
 
 import akha.yakhont.Core
@@ -91,7 +93,6 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
         setLocation()
 
-        val recyclerView: RecyclerView = findViewById<View>(R.id.recycler) as RecyclerView
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         if (savedInstanceState != null) {                // handling screen orientation changes
@@ -247,12 +248,12 @@ class MainActivity: AppCompatActivity(), LocationListener {
         private var location: String? = null
     }
 
-    override fun onLocationChanged(location: Location, date: Date) {
-        MainActivity.location = LocationCallbacks.toDms(location, this)
+    override fun onLocationChanged(newLocation: Location, newDate: Date) {
+        location = LocationCallbacks.toDms(newLocation, this)
         setLocation()
     }
 
     private fun setLocation() {
-        if (location != null) (findViewById<View>(R.id.location) as TextView).text = location
+        if (location != null) locationView.text = location
     }
 }
