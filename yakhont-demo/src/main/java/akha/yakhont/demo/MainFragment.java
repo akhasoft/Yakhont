@@ -81,6 +81,10 @@ import com.google.gson.reflect.TypeToken;
 
 public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
+    // if you have more than one loader in your Activity / Fragment / Service -
+    //   please provide unique ViewModel keys
+//  private static final String                                  DEMO_VIEWMODEL_KEY         = "yakhont_demo_viewmodel_key";
+
     private static final int                                     EMULATED_NETWORK_DELAY     = 7;
 
     private       CoreLoad<? extends Throwable, ?>               mCoreLoad;
@@ -209,7 +213,9 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                 // recommended way - but default binding also works (see below in non-Retrofit2 example)
                 .setDataBinding(BR.beer)
 
-                // it's optional - but sometimes you need to provide some customization here
+//              .setBaseViewModelKey(DEMO_VIEWMODEL_KEY)
+
+                // it's optional too - but sometimes you need to provide some customization here
                 .setLoaderCallback(MainFragment.this::onLoadFinishedDataBinding)
 /* or
                 // just an example: it does exactly the same as call above, but provides more options to customize
@@ -268,6 +274,8 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                 .setListItem(R.layout.grid_item_default)
 
                 .setViewBinder(MainFragment.this::setViewValue) // data binding (optional)
+
+//              .setBaseViewModelKey(DEMO_VIEWMODEL_KEY)
 
                 .setLoaderCallback(MainFragment.this::onLoadFinished)
 
@@ -568,7 +576,8 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
             return ProgressDefault.handle(builder.setView(view).create(), () -> {
                 if (mConfirm.isChecked()) {
-                    BaseViewModel.get().getData().confirm(getActivity(), view);
+                    BaseViewModel.get(BaseViewModel.DEFAULT_KEY).getData().confirm(getActivity(), view);
+//                  BaseViewModel.get(DEMO_VIEWMODEL_KEY).getData().confirm(getActivity(), view);
                     return true;
                 }
                 Utils.showToast(R.string.yakhont_loader_cancelled, Toast.LENGTH_LONG);

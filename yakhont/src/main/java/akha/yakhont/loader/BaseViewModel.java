@@ -26,8 +26,10 @@ import akha.yakhont.adapter.BaseRecyclerViewAdapter.PagingRecyclerViewAdapter;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.DataLoader;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoader;
 
 import android.app.Activity;
+import android.app.Service;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -56,7 +58,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -75,7 +76,11 @@ import java.util.concurrent.Executor;
  */
 public class BaseViewModel<D> extends AndroidViewModel {
 
-    private static final String                 DEFAULT_KEY         = "yakhont-default-viewmodel-key";
+    /**
+     * The {@link ViewModel} default key (use it only if you have exactly one {@link ViewModel}
+     * in your {@link ViewModelStore}).
+     * */
+    public static  final String                 DEFAULT_KEY         = "";
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected      final BaseLiveData<D>        mData;
@@ -86,10 +91,13 @@ public class BaseViewModel<D> extends AndroidViewModel {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected            List<CoreLoad<?, ?>>   mCoreLoads;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected      final DataStore              mStore              = new DataStore();
+    protected      final DataStore              mDataStore          = new DataStore();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected            Runnable               mOnClearedCallback;
+    protected      final Runnable               mOnClearedCallback;
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    protected      final boolean                mNoLifecycleOwner;
 
     /**
      * Initialises a newly created {@link BaseViewModel} object.
@@ -99,18 +107,52 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @param observer
      *        Please refer to {@link LiveData#observe}
+     *
+     * @param onClearedCallback
+     *        The callback to call from the {@link #onCleared} method
+     *
+     * @param noLifecycleOwner
+     *        {@code true} if given {@code BaseViewModel} has no associated {@link LifecycleOwner}, {@code false} otherwise
      */
     @SuppressWarnings("WeakerAccess")
     protected BaseViewModel(@NonNull final BaseLiveData<D>     data,
-                            @NonNull final Observer    <D>     observer) {
+                            @NonNull final Observer    <D>     observer,
+                                     final Runnable            onClearedCallback,
+                                     final boolean             noLifecycleOwner) {
         super(Utils.getApplication());
 
-        mData     = data;
-        mObserver = observer;
+        mData                   = data;
+        mObserver               = observer;
+        mOnClearedCallback      = onClearedCallback;
+        mNoLifecycleOwner       = noLifecycleOwner;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public boolean isNoLifecycleOwner() {
+        return mNoLifecycleOwner;
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static ViewModelStoreOwner cast(Activity activity, final Level level) {
+        if (activity == null) {
+            activity = Utils.getCurrentActivity();
+            CoreLogger.log(level != null ? level: Level.WARNING, "Activity == null, " +
+                    "the current one will be used: " + CoreLogger.getDescription(activity));
+        }
+        if (activity instanceof ViewModelStoreOwner) return (ViewModelStoreOwner) activity;
+
+        CoreLogger.log(level != null ? level: Level.ERROR, "Activity should be instance of " +
+                "ViewModelStoreOwner, e.g. FragmentActivity; the given Activity is " +
+                CoreLogger.getDescription(activity));
+        return null;
     }
 
     /**
-     * Returns the {@link BaseViewModel} for the current {@link Activity}.
+     * Returns the {@link BaseViewModel} for the current {@link Activity} and key.
+     *
+     * @param key
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+     *        empty string can be provided (if one and only BaseViewModel available)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -120,19 +162,19 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The {@link BaseViewModel}
      */
-    public static <S extends BaseViewModel<D>, D> S get() {
-        return get((Activity) null, null);
+    public static <S extends BaseViewModel<D>, D> S get(final String key) {
+        return get(cast(Utils.getCurrentActivity(), null), key);
     }
 
     /**
-     * Returns the {@link BaseViewModel} for the given {@link Activity} and key (if any).
+     * Returns the {@link BaseViewModel} for the given {@link ViewModelStoreOwner} and key.
      *
-     * @param activity
-     *        The {@link Activity}
+     * @param viewModelStoreOwner
+     *        The {@link ViewModelStoreOwner}
      *
      * @param key
-     *        The {@link BaseViewModel} key or null for default value
-     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+     *        empty string can be provided (if one and only BaseViewModel available)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -143,25 +185,23 @@ public class BaseViewModel<D> extends AndroidViewModel {
      * @return  The {@link BaseViewModel}
      */
     @SuppressWarnings("WeakerAccess")
-    public static <S extends BaseViewModel<D>, D> S get(Activity activity, final String key) {
-        if (activity == null) activity = Utils.getCurrentActivity();
-
-        final S result = get(getViewModelStore(activity), key);
-        if (result == null)
-            CoreLogger.logError("can't find ViewModel for Activity " + CoreLogger.getDescription(activity));
-
+    public static <S extends BaseViewModel<D>, D> S get(final ViewModelStoreOwner viewModelStoreOwner,
+                                                        final String key) {
+        final S result = viewModelStoreOwner == null ? null: get(getViewModelStore(viewModelStoreOwner), key);
+        if (result == null) CoreLogger.logError("can't find ViewModel for ViewModelStoreOwner " +
+                CoreLogger.getDescription(viewModelStoreOwner));
         return result;
     }
 
     /**
-     * Returns the {@link BaseViewModel} for the given {@link Fragment} and key (if any).
+     * Returns the {@link BaseViewModel} for the given {@link Fragment} and key.
      *
      * @param fragment
      *        The {@link Fragment}
      *
      * @param key
-     *        The {@link BaseViewModel} key or null for default value
-     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+     *        empty string can be provided (if one and only BaseViewModel available)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -186,14 +226,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Returns the {@link BaseViewModel} for the given {@link ViewModelStore} and key (if any).
+     * Returns the {@link BaseViewModel} for the given {@link ViewModelStore} and key.
      *
      * @param store
      *        The {@link ViewModelStore}
      *
      * @param key
-     *        The {@link BaseViewModel} key or null for default value
-     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+     *        empty string can be provided (if one and only BaseViewModel available)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -217,15 +257,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Returns the weak reference to {@link BaseViewModel} for the given {@link ViewModelStore}
-     * and key (if any).
+     * Returns the weak reference to {@link BaseViewModel} for the given {@link ViewModelStore} and key.
      *
      * @param store
      *        The {@link ViewModelStore}
      *
      * @param key
-     *        The {@link BaseViewModel} key or null for default value
-     *        (please refer to {@link ViewModelProvider#get(String, Class)})
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+     *        empty string can be provided (if one and only BaseViewModel available)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -238,60 +277,37 @@ public class BaseViewModel<D> extends AndroidViewModel {
      * @see     WeakReference
      */
     @SuppressWarnings({"unchecked", "WeakerAccess"})
-    public static <S extends BaseViewModel<D>, D> WeakReference<S> getWeak(final ViewModelStore store,
-                                                                           final String         key) {
+    public static <S extends BaseViewModel<D>, D> WeakReference<S> getWeak(
+            final ViewModelStore store, String key) {
+        if (key == null) {
+            CoreLogger.logError("BaseViewModel.getWeak(): key == null");
+            return null;
+        }
         final boolean[] empty = new boolean[] {true};
         getWeak(store, empty);
 
         if (!empty[0]) {
             final Map<String, WeakReference<? extends BaseViewModel<?>>> map =
                     BaseViewModelProvider.getHelper(store);
-
-            final WeakReference<S> ref;
-            if (key != null)
-                ref = (WeakReference<S>) map.get(key);
-            else {
-                if (map.size() > 1) {
-                    final WeakReference<S> tmp = (WeakReference<S>) map.get(DEFAULT_KEY);
-                    ref = tmp != null ? tmp: (WeakReference<S>) getHelper(map);
-                    CoreLogger.logWarning("expected ViewModel collection size 1, but actually " +
-                            map.size() + ", ViewModelStore " + CoreLogger.getDescription(store));
+            if (key.length() == 0) {
+                final Set<String> keys = map.keySet();
+                if (keys.size() == 1)
+                    key = keys.iterator().next();
+                else {
+                    CoreLogger.logError("BaseViewModel.getWeak(): default key allows only if " +
+                            "BaseViewModel is one and only");
+                    return null;
                 }
-                else
-                    ref = (WeakReference<S>) getHelper(map);
             }
+            final WeakReference<S> ref = (WeakReference<S>) map.get(key);
             if (ref != null) return ref;
 
             CoreLogger.logWarning("null WeakReference for key " + key + ", ViewModelStore " +
                     CoreLogger.getDescription(store));
         }
-
         CoreLogger.logWarning("can't find ViewModel for key " + key + ", ViewModelStore " +
                 CoreLogger.getDescription(store));
         return null;
-    }
-
-    private static Collection<WeakReference<? extends BaseViewModel<?>>> get(
-            final Map<String, WeakReference<? extends BaseViewModel<?>>> map) {
-        final Collection<WeakReference<? extends BaseViewModel<?>>> result =
-                map == null ? null: map.values();
-        if (result == null)
-            CoreLogger.logWarning("null map");
-        return result;
-    }
-
-    private static WeakReference<? extends BaseViewModel<?>> get(
-            final Collection<WeakReference<? extends BaseViewModel<?>>> values) {
-        final Iterator<WeakReference<? extends BaseViewModel<?>>> iterator =
-                values == null ? null: values.iterator();
-        if (iterator == null)
-            CoreLogger.logWarning("null values");
-        return iterator == null ? null: iterator.next();
-    }
-
-    private static WeakReference<? extends BaseViewModel<?>> getHelper(
-            final Map<String, WeakReference<? extends BaseViewModel<?>>> map) {
-        return get(get(map));
     }
 
     /**
@@ -408,34 +424,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The previous data for the given key (or null)
      *
-     * @see #getDataExt
-     * @see #setData
+     * @see #getData(String)
      */
     @SuppressWarnings("unused")
-    public <V> V setDataExt(final String key, final V value) {
-        return mStore.setData(key, value);
-    }
-
-    /**
-     * Sets some data to keep in the {@link ViewModel} associated with the current {@code Activity}.
-     *
-     * @param key
-     *        The key
-     *
-     * @param value
-     *        The data
-     *
-     * @param <V>
-     *        The type of data
-     *
-     * @return  The previous data for the given key (or null)
-     *
-     * @see #getData
-     * @see #setDataExt
-     */
-    @SuppressWarnings("unused")
-    public static <V> V setData(final String key, final V value) {
-        return get().setDataExt(key, value);
+    public <V> V setData(final String key, final V value) {
+        return mDataStore.setData(key, value);
     }
 
     /**
@@ -449,32 +442,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The data for the given key (or null)
      *
-     * @see #setDataExt
-     * @see #getData
+     * @see #setData
      */
     @SuppressWarnings({"unchecked", "unused"})
-    public <V> V getDataExt(final String key) {
-        return (V) mStore.getData(key);
-    }
-
-    /**
-     * Returns the data (associated with the given key) kept in the {@link ViewModel}
-     * associated with the current {@code Activity}.
-     *
-     * @param key
-     *        The key
-     *
-     * @param <V>
-     *        The type of data
-     *
-     * @return  The data for the given key (or null)
-     *
-     * @see #setData
-     * @see #getDataExt
-     */
-    @SuppressWarnings("unused")
-    public static <V> V getData(final String key) {
-        return get().getDataExt(key);
+    public <V> V getData(final String key) {
+        return (V) mDataStore.getData(key);
     }
 
     /**
@@ -488,38 +460,59 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static <D> Observer<D> updateUi(final boolean              stop,
-                                              final LifecycleOwner       lifecycleOwner,
-                                              @NonNull final LiveData<D> liveData,
-                                              @NonNull final Observer<D> observer) {
-        try {
-            if (lifecycleOwner == null) {
-                if (stop)
-                    liveData.removeObserver(observer);
-                else
-                    liveData.observeForever(observer);
-                return observer;
+    public static <D> Observer<D> updateUi(         final boolean        stop,
+                                                    final LifecycleOwner lifecycleOwner,
+                                           @NonNull final LiveData<D>    liveData,
+                                           @NonNull final Observer<D>    observer) {
+        if (lifecycleOwner == null) {
+            Utils.postToMainLoop(new Runnable() {
+                @Override
+                public void run() {
+                    android.util.Log.e("xxx",
+                            "!!! LiveData." + (stop ? "removeObserver": "observeForever"));
+                    if (stop)
+                        liveData.removeObserver(observer);
+                    else
+                        liveData.observeForever(observer);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "LiveData." + (stop ? "removeObserver": "observeForever");
+                }
+            });
+            return observer;
+        }
+        else if (!stop) Utils.postToMainLoop(new Runnable() {
+            @Override
+            public void run() {
+                liveData.observe(lifecycleOwner, observer);
             }
-            else if (!stop) liveData.observe(lifecycleOwner, observer);
-        }
-        catch (Exception exception) {
-            CoreLogger.log(exception);
-        }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "LiveData.observe";
+            }
+        });
+
         return null;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner, final Runnable callback) {
+    public Observer<D> updateUi(final boolean stop, final LifecycleOwner owner, final Runnable callback) {
         final Observer<D> result = updateUi(stop, owner, mData, mObserver);
         Utils.safeRun(callback);
         return result;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "UnusedReturnValue"})
-    protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner) {
+    public Observer<D> updateUi(final boolean stop, final LifecycleOwner owner) {
         return updateUi(stop, owner, null);
     }
 
+    // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void updateUiFragmentForWeaver(final boolean stop, @NonNull final Fragment fragment) {
         final Collection<BaseViewModel<?>> models = new ArrayList<>();
@@ -534,56 +527,52 @@ public class BaseViewModel<D> extends AndroidViewModel {
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void updateUiActivityForWeaver(final boolean stop, @NonNull final Activity activity) {
-        final Collection<BaseViewModel<?>> models = getViewModels(activity, false,
-                CoreLogger.getDefaultLevel());
+        final Level level = CoreLogger.getDefaultLevel();
+        final Collection<BaseViewModel<?>> models = getViewModels(cast(activity, level),
+                false, level);
 
         for (final BaseViewModel<?> model: models)
             model.updateUi(stop, getLifecycleOwner(activity));
     }
 
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static void updateUiServiceForWeaver(final int timeout, final Service service) {
+        final ViewModelStoreOwner viewModelStoreOwner = service instanceof ViewModelStoreOwner ?
+                (ViewModelStoreOwner) service: CoreLoader.INSTANCE;
+
+        final Level level = CoreLogger.getDefaultLevel();
+        final Collection<BaseViewModel<?>> models = getViewModels(viewModelStoreOwner,
+                false, level);
+
+        final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                for (final BaseViewModel<?> model: models)
+                    if (model.isNoLifecycleOwner()) {
+                        model.onCleared();
+                        model.updateUi(true, null);
+                    }
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "updateUiServiceForWeaver";
+            }
+        };
+
+        if (timeout <= 0)
+            Utils.postToMainLoop(runnable);
+        else
+            Utils.postToMainLoop(timeout, runnable);
+    }
+
     private static LifecycleOwner getLifecycleOwner(final Activity activity) {
-        return activity instanceof LifecycleOwner ? (LifecycleOwner) activity: null;
-    }
+        if (activity instanceof LifecycleOwner) return (LifecycleOwner) activity;
 
-    /**
-     * Gets ViewModelStore.
-     *
-     * @param activity
-     *        The Activity
-     *
-     * @return  The ViewModelStore
-     *
-     * @throws  ViewModelException
-     *          please refer to the exception description
-     */
-    public static ViewModelStore getViewModelStore(Activity activity) {
-        if (activity == null) {
-            CoreLogger.logWarning("getViewModelStore: about to use current Activity");
-            activity = Utils.getCurrentActivity();
-        }
-        if (activity instanceof FragmentActivity)
-            return ((FragmentActivity) activity).getViewModelStore();
-        if (activity instanceof ViewModelStoreOwner)
-            return ((ViewModelStoreOwner) activity).getViewModelStore();
-
-        throw new ViewModelException("unexpected activity (should be ViewModelStoreOwner or " +
-                "FragmentActivity): " + CoreLogger.getDescription(activity));
-    }
-
-    /**
-     * Extends {@link RuntimeException} and will be thrown if given Activity can't provide
-     * {@link ViewModelStore} instance.
-     */
-    @SuppressWarnings("WeakerAccess")
-    public static class ViewModelException extends RuntimeException {
-
-        /**
-         * Please refer to the {@link RuntimeException#RuntimeException(String)}.
-         */
-        @SuppressWarnings("WeakerAccess")
-        public ViewModelException(final String message) {
-            super(message);
-        }
+        CoreLogger.logError("can't get LifecycleOwner for Activity: " + CoreLogger.getDescription(activity));
+        return null;
     }
 
     /**
@@ -596,6 +585,49 @@ public class BaseViewModel<D> extends AndroidViewModel {
      */
     public static ViewModelStore getViewModelStore(@NonNull final Fragment fragment) {
         return fragment.getViewModelStore();
+    }
+
+    /**
+     * Gets ViewModelStore.
+     *
+     * @param viewModelStoreOwner
+     *        The {@code ViewModelStoreOwner}
+     *
+     * @return  The ViewModelStore
+     *
+     * @throws  BaseViewModelException
+     *          please refer to the exception description
+     */
+    public static ViewModelStore getViewModelStore(final ViewModelStoreOwner viewModelStoreOwner) {
+        final ViewModelStore result;
+        if (viewModelStoreOwner == null) {
+            CoreLogger.logError("getViewModelStore: viewModelStoreOwner == null");
+            result = null;
+        }
+        else
+            result = viewModelStoreOwner.getViewModelStore();
+
+        if (result != null) return result;
+
+        //noinspection ConstantConditions
+        throw new BaseViewModelException("getViewModelStore() failed, ViewModelStoreOwner: " +
+                CoreLogger.getDescription(viewModelStoreOwner));
+    }
+
+    /**
+     * Will be thrown if given {@link ViewModelStoreOwner} (e.g. {@link FragmentActivity})
+     * can't provide {@link ViewModelStore} instance.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static class BaseViewModelException extends RuntimeException {
+
+        /**
+         * Please refer to the {@link RuntimeException#RuntimeException(String)}.
+         */
+        @SuppressWarnings("WeakerAccess")
+        public BaseViewModelException(final String message) {
+            super(message);
+        }
     }
 
     @SuppressWarnings("unchecked")
@@ -613,7 +645,23 @@ public class BaseViewModel<D> extends AndroidViewModel {
      */
     @SuppressWarnings("unused")
     public static boolean isLoading(@NonNull final Activity activity) {
-        return isLoading(activity, null, true);
+        return isLoading(cast(activity, null), null, true);
+    }
+
+    /**
+     * Gets the data loading status.
+     *
+     * @param activity
+     *        The Activity
+     *
+     * @param key
+     *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
+     *
+     * @return  {@code true} if data loading is in progress, {@code false} otherwise
+     */
+    @SuppressWarnings("unused")
+    public static boolean isLoading(@NonNull final Activity activity, final String key) {
+        return isLoading(cast(activity, null), key, true);
     }
 
     /**
@@ -648,8 +696,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
     /**
      * Gets the data loading status.
      *
-     * @param activity
-     *        The Activity
+     * @param viewModelStoreOwner
+     *        The ViewModelStoreOwner
      *
      * @param key
      *        The key (if any), for more info please refer to {@link ViewModelProvider#get(String, Class)}
@@ -660,20 +708,26 @@ public class BaseViewModel<D> extends AndroidViewModel {
      * @return  {@code true} if data loading is in progress, {@code false} otherwise
      */
     @SuppressWarnings("WeakerAccess")
-    public static boolean isLoading(@NonNull final Activity activity, final String key,
-                                    final boolean includeFragments) {
-        final Level level = Level.ERROR;
-        final boolean result = BaseViewModelProvider.isLoading(getViewModelStore(activity), key, level);
-        return result || !includeFragments ? result: isLoadingFragment(activity, level);
-    }
-
-    private static boolean isLoadingFragment(@NonNull final Activity activity, @NonNull final Level level) {
-        if (!(activity instanceof FragmentActivity)) {
-            CoreLogger.logError("unexpected activity (should be FragmentActivity): "
-                    + CoreLogger.getDescription(activity));
+    public static boolean isLoading(final ViewModelStoreOwner viewModelStoreOwner,
+                                    final String key, final boolean includeFragments) {
+        if (viewModelStoreOwner == null) {
+            CoreLogger.logError("isLoading: ViewModelStoreOwner == null");
             return false;
         }
-        for (final Fragment fragment: ((FragmentActivity) activity)
+        final Level level = Level.ERROR;
+        final boolean result = BaseViewModelProvider.isLoading(
+                getViewModelStore(viewModelStoreOwner), key, level);
+        return result || !includeFragments ? result: isLoadingFragment(viewModelStoreOwner, level);
+    }
+
+    private static boolean isLoadingFragment(@NonNull final ViewModelStoreOwner viewModelStoreOwner,
+                                             @NonNull final Level level) {
+        if (!(viewModelStoreOwner instanceof FragmentActivity)) {
+            CoreLogger.logError("unexpected ViewModelStoreOwner (should be FragmentActivity): "
+                    + CoreLogger.getDescription(viewModelStoreOwner));
+            return false;
+        }
+        for (final Fragment fragment: ((FragmentActivity) viewModelStoreOwner)
                 .getSupportFragmentManager().getFragments())
             if (BaseViewModelProvider.isLoading(getViewModelStore(fragment), null, level))
                 return true;
@@ -683,8 +737,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isLoadingForWeaver(@NonNull final Activity activity) {
-        final Collection<BaseViewModel<?>> models = getViewModels(activity, true,
-                CoreLogger.getDefaultLevel());
+        final Level level = CoreLogger.getDefaultLevel();
+        final Collection<BaseViewModel<?>> models = getViewModels(
+                cast(activity, level), true, level);
 
         for (final BaseViewModel<?> model: models) {
             final BaseLiveData<?> data = model.getData();
@@ -694,10 +749,10 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     /**
-     * Returns collection of {@code BaseViewModel} associated with the current Activity.
+     * Returns collection of {@code BaseViewModel} associated with the given ViewModelStoreOwner.
      *
-     * @param activity
-     *        The Activity
+     * @param viewModelStoreOwner
+     *        The ViewModelStoreOwner
      *
      * @param includeFragments
      *        {@code true} to include fragments data loading status, {@code false} otherwise
@@ -706,35 +761,33 @@ public class BaseViewModel<D> extends AndroidViewModel {
      */
     @SuppressWarnings("unused")
     public static Collection<BaseViewModel<?>> getViewModels(
-            final Activity activity, final boolean includeFragments) {
-        return getViewModels(activity, includeFragments, Level.ERROR);
+            final ViewModelStoreOwner viewModelStoreOwner, final boolean includeFragments) {
+        return getViewModels(viewModelStoreOwner, includeFragments, Level.ERROR);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static Collection<BaseViewModel<?>> getViewModels(
-            Activity activity, final boolean includeFragments, @NonNull final Level level) {
-
-        if (activity == null) activity = Utils.getCurrentActivity();
+            final ViewModelStoreOwner viewModelStoreOwner, final boolean includeFragments, @NonNull final Level level) {
 
         final Collection<BaseViewModel<?>> list = new ArrayList<>();
-        BaseViewModelProvider.getViewModels(getViewModelStore(activity), null, list, level);
+        BaseViewModelProvider.getViewModels(getViewModelStore(viewModelStoreOwner), null, list, level);
 
         if (includeFragments)
-            if (activity instanceof FragmentActivity)
-                for (final Fragment fragment: ((FragmentActivity) activity)
+            if (viewModelStoreOwner instanceof FragmentActivity)
+                for (final Fragment fragment: ((FragmentActivity) viewModelStoreOwner)
                         .getSupportFragmentManager().getFragments())
                     BaseViewModelProvider.getViewModels(getViewModelStore(fragment), null,
                             list, level);
             else
-                CoreLogger.log("unexpected activity (should be FragmentActivity): "
-                        + CoreLogger.getDescription(activity));
+                CoreLogger.log("unexpected ViewModelStoreOwner (should be FragmentActivity): "
+                        + CoreLogger.getDescription(viewModelStoreOwner));
         return list;
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getViewModels(
-            @NonNull final Activity activity) {
-        return BaseViewModelProvider.getEntries(activity);
+            @NonNull final ViewModelStoreOwner viewModelStoreOwner) {
+        return BaseViewModelProvider.getEntries(viewModelStoreOwner);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -764,51 +817,113 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static class BaseViewModelFactory<D> implements Factory {
+    /**
+     * Implementation of {@code Factory} interface which responsible to instantiate BaseViewModels.
+     *
+     * @param <D>
+     *        The type of data
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static class BaseViewModelFactory<D> implements Factory {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  WeakReference<ViewModelStore>
-                                                mStore;
+                                                mViewModelStore;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  String                 mKey;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  BaseLiveData<D>        mData;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final  Observer    <D>        mObserver;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final  Runnable               mOnClearedCallback;
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected final  boolean                mNoLifecycleOwner;
 
-        @SuppressWarnings("unused")
-        private BaseViewModelFactory(@NonNull final ViewModelStore     store,
-                                     @NonNull final BaseLiveData<D>    data,
-                                     @NonNull final Observer    <D>    observer,
-                                              final String             key) {
-            mStore      = new WeakReference<>(store);
-            mKey        = key;
-            mData       = data;
-            mObserver   = observer;
+        /**
+         * Initialises a newly created {@link BaseViewModelFactory} object.
+         *
+         * @param viewModelStore
+         *        The {@link ViewModelStore}
+         *
+         * @param data
+         *        The {@link BaseLiveData}
+         *
+         * @param observer
+         *        Please refer to {@link LiveData#observe}
+         *
+         * @param key
+         *        The key, for more info please refer to {@link ViewModelProvider#get(String, Class)}
+         *
+         * @param onClearedCallback
+         *        The callback to call from the {@link #onCleared} method
+         *
+         * @param noLifecycleOwner
+         *        {@code true} if given {@code BaseViewModel} has no associated {@link LifecycleOwner}, {@code false} otherwise
+         */
+        public BaseViewModelFactory(         final ViewModelStore     viewModelStore,
+                                    @NonNull final BaseLiveData<D>    data,
+                                    @NonNull final Observer    <D>    observer,
+                                             final String             key,
+                                             final Runnable           onClearedCallback,
+                                             final boolean            noLifecycleOwner) {
+
+            mViewModelStore    = viewModelStore == null ? null: new WeakReference<>(viewModelStore);
+            mKey               = key;
+            mData              = data;
+            mObserver          = observer;
+            mOnClearedCallback = onClearedCallback;
+            mNoLifecycleOwner  = noLifecycleOwner;
         }
 
+        /**
+         * Creates new instance of {@link BaseViewModel}.
+         *
+         * @return  The {@link BaseViewModel}
+         */
         @SuppressWarnings("WeakerAccess")
         protected BaseViewModel<D> createViewModel() {
-            return new BaseViewModel<>(mData, mObserver);
+            return new BaseViewModel<>(mData, mObserver, mOnClearedCallback, mNoLifecycleOwner);
         }
 
+        /**
+         * Please refer to the base method description.
+         */
         @NonNull
         @Override
         public <T extends ViewModel> T create(@NonNull Class<T> notUsed) {
+            if (mKey == null) {
+                CoreLogger.logError("BaseViewModelFactory: key == null");
+                throw new BaseViewModelFactoryException("key == null");
+            }
             final BaseViewModel<D> baseViewModel = createViewModel();
 
-            final String key = mKey != null ? mKey: DEFAULT_KEY;
-            BaseViewModelProvider.put(mStore, key, new WeakReference<>(baseViewModel));
+            if (mViewModelStore != null)
+                BaseViewModelProvider.put(mViewModelStore, mKey, new WeakReference<>(baseViewModel));
 
             @SuppressWarnings("unchecked")
             final T result = (T) baseViewModel;
             return result;
         }
+
+        /**
+         * Will be thrown if key is null for given {@link ViewModelStore}.
+         */
+        public static class BaseViewModelFactoryException extends RuntimeException {
+
+            /**
+             * Please refer to the {@link RuntimeException#RuntimeException(String)}.
+             */
+            public BaseViewModelFactoryException(final String message) {
+                super(message);
+            }
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private static class BaseViewModelProvider<D> extends ViewModelProvider {
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static class BaseViewModelProvider<D> extends ViewModelProvider {
 
         // this is 'cause of ViewModelStore limitation (no official way to get list of keys)
         private final static
@@ -819,8 +934,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
         private BaseViewModelProvider(@NonNull final ViewModelStore     store,
                                       @NonNull final BaseLiveData<D>    data,
                                       @NonNull final Observer    <D>    observer,
-                                               final String             key) {
-            this(store, new BaseViewModelFactory<>(store, data, observer, key));
+                                               final String             key,
+                                               final Runnable           onClearedCallback,
+                                               final boolean            noLifecycleOwner) {
+
+            this(store, new BaseViewModelFactory<>(store, data, observer, key, onClearedCallback, noLifecycleOwner));
         }
 
         private BaseViewModelProvider(@NonNull final ViewModelStore             store,
@@ -862,11 +980,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
         }
 
         private static Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getEntries(
-                @NonNull final Activity activity) {
+                @NonNull final ViewModelStoreOwner viewModelStoreOwner) {
             final Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> result =
-                    getEntries(getViewModelStore(activity));
+                    getEntries(getViewModelStore(viewModelStoreOwner));
 
-            CoreLogger.log("entries for activity " + activity + " - " + result);
+            CoreLogger.log("entries for ViewModelStoreOwner " + viewModelStoreOwner + " - " + result);
             return result == null ? Collections.emptySet(): result;
         }
 
@@ -1028,6 +1146,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
          *
          * @param initialLoadKey
          *        The initial load key (please refer to {@link LivePagedListBuilder} for details)
+         *
+         * @param onClearedCallback
+         *        The callback to call from the {@link #onCleared} method
+         *
+         * @param noLifecycleOwner
+         *        {@code true} if given {@code PagingViewModel} has no associated {@link LifecycleOwner}, {@code false} otherwise
          */
         @SuppressWarnings("WeakerAccess")
         protected PagingViewModel(
@@ -1038,9 +1162,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter,
                          final BoundaryCallback         <T      >       boundaryCallback,
                          final Executor                                 fetchExecutor,
-                         final Key                                      initialLoadKey) {
+                         final Key                                      initialLoadKey,
+                         final Runnable                                 onClearedCallback,
+                         final boolean                                  noLifecycleOwner) {
 
-            super(data, observer);
+            super(data, observer, onClearedCallback, noLifecycleOwner);
 
             mAdapter              = adapter;
             mDataSourceFactory    = new DataSourceFactory<>(dataSourceProducer);
@@ -1072,7 +1198,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @Override
-        protected Observer<D> updateUi(final boolean stop, final LifecycleOwner owner) {
+        public Observer<D> updateUi(final boolean stop, final LifecycleOwner owner) {
             return super.updateUi(stop, owner, new Runnable() {
                 @Override
                 public void run() {
@@ -1106,6 +1232,9 @@ public class BaseViewModel<D> extends AndroidViewModel {
             private final   Executor                                    mFetchExecutor;
             private final   Key                                         mInitialLoadKey;
 
+            private final   Runnable                                    mOnClearedCallback;
+            private final   boolean                                     mNoLifecycleOwner;
+
             private ViewModelFactory(
                     @NonNull final ViewModelStore                           store,
                     @NonNull final BaseLiveData                      <D>    data,
@@ -1116,9 +1245,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
                     @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter,
                              final BoundaryCallback         <T      >       boundaryCallback,
                              final Executor                                 fetchExecutor,
-                             final Key                                      initialLoadKey) {
+                             final Key                                      initialLoadKey,
+                             final Runnable                                 onClearedCallback,
+                             final boolean                                  noLifecycleOwner) {
 
-                super(store, data, observer, key);
+                super(store, data, observer, key, onClearedCallback, noLifecycleOwner);
 
                 mDataSourceProducer     = dataSourceProducer;
                 mConfig                 = config;
@@ -1127,12 +1258,15 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 mBoundaryCallback       = boundaryCallback;
                 mFetchExecutor          = fetchExecutor;
                 mInitialLoadKey         = initialLoadKey;
+
+                mOnClearedCallback      = onClearedCallback;
+                mNoLifecycleOwner       = noLifecycleOwner;
             }
 
             @Override
             protected BaseViewModel<D> createViewModel() {
-                return new PagingViewModel<>(mData, mObserver, mDataSourceProducer, mConfig,
-                        mAdapter, mBoundaryCallback, mFetchExecutor, mInitialLoadKey);
+                return new PagingViewModel<>(mData, mObserver, mDataSourceProducer, mConfig, mAdapter,
+                        mBoundaryCallback, mFetchExecutor, mInitialLoadKey, mOnClearedCallback, mNoLifecycleOwner);
             }
         }
 
@@ -1148,9 +1282,12 @@ public class BaseViewModel<D> extends AndroidViewModel {
                     @NonNull final PagingRecyclerViewAdapter<T, R, E>       adapter,
                              final BoundaryCallback         <T      >       boundaryCallback,
                              final Executor                                 fetchExecutor,
-                             final Key                                      initialLoadKey) {
+                             final Key                                      initialLoadKey,
+                             final Runnable                                 onClearedCallback,
+                             final boolean                                  noLifecycleOwner) {
                 super(store, new ViewModelFactory<>(store, data, observer, key, dataSourceProducer,
-                        config, adapter, boundaryCallback, fetchExecutor, initialLoadKey));
+                        config, adapter, boundaryCallback, fetchExecutor, initialLoadKey,
+                        onClearedCallback, noLifecycleOwner));
             }
         }
 
@@ -1263,7 +1400,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected     WeakReference<Activity>                   mActivity;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected     ViewModelStore                            mStore;
+        protected     ViewModelStore                            mViewModelStore;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected     LifecycleOwner                            mLifecycleOwner;
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1358,7 +1495,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
          */
         public Builder<S, Key, T, R, E, D> setViewModelStore(final ViewModelStore viewModelStore) {
-            mStore                  = viewModelStore;
+            mViewModelStore         = viewModelStore;
             return this;
         }
 
@@ -1536,11 +1673,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
             if (activity != null) {
                 mActivity           = new WeakReference<>(activity);
                 mLifecycleOwner     = getLifecycleOwner(activity);
-                if (mStore ==  null)
-                    mStore          = getViewModelStore(activity);
-                else
-                    CoreLogger.logWarning("ViewModelStore already defined for activity " +
-                            CoreLogger.getDescription(activity));
+
+                if (mViewModelStore == null)
+                    mViewModelStore = getViewModelStore(cast(activity, null));
+
+                else if (activity instanceof ViewModelStoreOwner &&
+                        mViewModelStore != getViewModelStore(cast(activity, null)))
+                    CoreLogger.logError("ViewModelStore (" + CoreLogger.getDescription(mViewModelStore) +
+                            ") already defined for Activity: " + CoreLogger.getDescription(activity));
             }
             return this;
         }
@@ -1564,11 +1704,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 else {
                     mActivity           = new WeakReference<>(activity);
                     mLifecycleOwner     = fragment;
-                    if (mStore ==  null)
-                        mStore          = getViewModelStore(fragment);
-                    else
-                        CoreLogger.logWarning("ViewModelStore already defined for fragment " +
-                                CoreLogger.getDescription(fragment));
+
+                    final ViewModelStore viewModelStore = getViewModelStore(fragment);
+                    if (mViewModelStore == null)
+                        mViewModelStore = viewModelStore;
+
+                    else if (mViewModelStore != viewModelStore)
+                        CoreLogger.logError("ViewModelStore (" + CoreLogger.getDescription(mViewModelStore) +
+                                ") already defined for Fragment: " + CoreLogger.getDescription(fragment));
                 }
             }
             return this;
@@ -1580,20 +1723,30 @@ public class BaseViewModel<D> extends AndroidViewModel {
          * @return  The {@code BaseViewModel} instance
          */
         public S create() {
-            Activity activity = mActivity == null ? null: mActivity.get();
-            if (activity == null) activity = Utils.getCurrentActivity();
-
-            if (activity.getApplication() == null) {
-                CoreLogger.log(new IllegalStateException(
-                        "Your activity is not yet attached to "
-                                + "Application. You can't request ViewModel before onCreate call."));
+            if (mKey == null) {
+                CoreLogger.logError("BaseViewModel.Builder: key == null");
                 return null;
             }
-            CoreLogger.log("creating BaseViewModel, Activity " + CoreLogger.getDescription(activity));
+            android.util.Log.e("xxx", "!!! mKey: " + mKey);
 
-            if (mStore == null) mStore = getViewModelStore(activity);
+            final Activity activity = mActivity == null ? null: mActivity.get();
+            if (activity != null && activity.getApplication() == null) {    // from Google sources
+                CoreLogger.log(new IllegalStateException("Your Activity is not yet attached to "
+                        + "Application. You can't request ViewModel before 'onCreate()' call."));
+                return null;
+            }
+            CoreLogger.log("creating BaseViewModel, Activity: " + CoreLogger.getDescription(activity));
 
-            if (mLifecycleOwner == null) mLifecycleOwner = getLifecycleOwner(activity);
+            if (mViewModelStore == null && activity != null)
+                mViewModelStore = getViewModelStore(BaseViewModel.cast(activity, null));
+            if (mViewModelStore == null) {
+                CoreLogger.logError("BaseViewModel.Builder: ViewModelStore == null");
+                return null;
+            }
+
+            if (mLifecycleOwner == null && activity != null) mLifecycleOwner = getLifecycleOwner(activity);
+            if (mLifecycleOwner == null)
+                CoreLogger.logWarning("LifecycleOwner == null, Activity: " + CoreLogger.getDescription(activity));
 
             if (mData == null) {
                 if (mDataLoader == null) {
@@ -1607,13 +1760,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
                     ((CacheLiveData) mData).setMerge(true);
             }
 
-            if (mKey == null) mKey = DEFAULT_KEY;
+            final boolean noLifecycleOwner = mLifecycleOwner == null;
 
             final S result;
             if (mDataSourceProducer == null) {
                 if (mClass == null) mClass = castBaseViewModelClass(false);
 
-                result = new BaseViewModelProvider<>(mStore, mData, mObserver, mKey).get(mKey, mClass);
+                result = new BaseViewModelProvider<>(mViewModelStore, mData, mObserver, mKey,
+                        mOnCleared, noLifecycleOwner).get(mKey, mClass);
             }
             else {
                 if (mAdapter == null) {
@@ -1629,15 +1783,13 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
                 if (mClass == null) mClass = castBaseViewModelClass(true);
 
-                result = new PagingViewModel.ViewModelProvider<>(mStore, mData, mObserver, mKey,
-                        mDataSourceProducer, mConfig, mAdapter, mBoundaryCallback, mFetchExecutor,
-                        mInitialLoadKey).get(mKey, mClass);
+                result = new PagingViewModel.ViewModelProvider<>(mViewModelStore, mData, mObserver,
+                        mKey, mDataSourceProducer, mConfig, mAdapter, mBoundaryCallback,
+                        mFetchExecutor, mInitialLoadKey, mOnCleared, noLifecycleOwner).get(mKey, mClass);
             }
             result.updateUi(false, mLifecycleOwner);
 
-            result.mOnClearedCallback = mOnCleared;
-
-            CoreLogger.log("created BaseViewModel " + CoreLogger.getDescription(result));
+            CoreLogger.log("created BaseViewModel: " + CoreLogger.getDescription(result));
             return result;
        }
     }

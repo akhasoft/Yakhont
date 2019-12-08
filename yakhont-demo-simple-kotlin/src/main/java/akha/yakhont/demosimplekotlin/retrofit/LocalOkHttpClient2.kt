@@ -24,23 +24,23 @@ class LocalOkHttpClient2(retrofit2: Retrofit2<*, *>): BaseLocalOkHttpClient2(ret
 
     override fun getContent(): String {
         return getJson(
-                "Duvel",
-                "Abbaye de Brogne",
-                "Chimay",
-                "Delirium Tremens",
-                "Gouden Carolus",
-                "Green Killer",
-                "Gulden Draak",
-                "Liefmans",
-                "Orval Trappist",
-                "Pauwel Kwak",
-                "Petrus",
-                "Rodenbach Grand Cru",
-                "Val-Dieu",
-                "Waterloo",
-                "Westmalle",
-                "Westvleteren",
-                "Wilderen Goud"
+            "Duvel",
+            "Abbaye de Brogne",
+            "Chimay",
+            "Delirium Tremens",
+            "Gouden Carolus",
+            "Green Killer",
+            "Gulden Draak",
+            "Liefmans",
+            "Orval Trappist",
+            "Pauwel Kwak",
+            "Petrus",
+            "Rodenbach Grand Cru",
+            "Val-Dieu",
+            "Waterloo",
+            "Westmalle",
+            "Westvleteren",
+            "Wilderen Goud"
         )
     }
 }

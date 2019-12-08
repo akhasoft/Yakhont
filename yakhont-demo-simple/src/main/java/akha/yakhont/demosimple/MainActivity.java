@@ -49,6 +49,10 @@ import java.util.concurrent.Callable;
 @CallbacksInherited( /* value = */ LocationCallbacks.class /* , properties = R.string.permissions_rationale_demo */ )
 public class MainActivity extends AppCompatActivity implements LocationListener {
 
+    // if you have more than one loader in your Activity / Fragment / Service -
+    //   please provide unique ViewModel keys
+//  private static final String                         DEMO_VIEWMODEL_KEY         = "yakhont_demo_paging_viewmodel_key";
+
     private        CoreLoad<Throwable, List<Data>>      mLoader;
     private        LocalOkHttpClient2                   mOkHttpClient2;
 
@@ -92,14 +96,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 */
         if (savedInstanceState != null) {           // handling screen orientation changes
             mLoader = Retrofit2Loader.getExistingLoader();
+//          mLoader = Retrofit2Loader.getExistingLoader(DEMO_VIEWMODEL_KEY, this);
             return;
         }
 
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
         mOkHttpClient2 = new LocalOkHttpClient2(retrofit2);
 
-        mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class,
-                Retrofit2Api::getData, BR.data, mOkHttpClient2, retrofit2,
+        mLoader = Retrofit2Loader.get("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData,
+                null /*DEMO_VIEWMODEL_KEY*/, BR.data, mOkHttpClient2, retrofit2,
 
                 // paging-specific settings
                 new PagedList.Config.Builder()
@@ -122,7 +127,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                     }
                 },
 */
-                null);
+                null, null, this, null);
     }
 
     private class DemoDataSource extends PositionalDataSource<Data> {

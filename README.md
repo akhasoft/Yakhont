@@ -57,9 +57,13 @@ What else? Dynamic permissions? Requested and handled fully automatically,
 all you need is just to provide permission-specific on-granted-callbacks (please refer to
 [dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)).
 
-Video / audio recording. Transparent gestures recognition / handling. And more. 
+And all that jazz works from services, too (please refer to
+[demo service](yakhont-demo-service/src/main/java/akha/yakhont/demosimple/MainService.java) for more info).
 
-And finally, as I told - the whole data loading in just one line of code (plus your callbacks - if any).
+Endless adapter (paging). Configuration changes (e.g. portrait / landscape) surviving.
+Transparent gestures recognition / handling. For logging - video / audio recording possibility. And more. 
+
+In sum, as I told - you can make the whole data loading in just one line of code (plus your callbacks - if any).
 
 ## Table of Contents
 
@@ -93,6 +97,7 @@ stack traces, byte[] logging and more.
 - video / audio recording (also via shaking device or making Z-gesture - for more info please refer to the logger mentioned above).
 - transparent gestures recognition / handling (i.e. can be used, say, with 
 [RecyclerView](https://developer.android.com/reference/androidx/recyclerview/widget/RecyclerView.html) - also, implemented in logger). 
+- more about gestures: you can record and load your own ones (and provide your own handlers for them).
 - [reflection](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreReflection.html)
 with extended collections support, methods comparing and handling (say, find list of overridden methods), etc.  
 
@@ -110,6 +115,7 @@ public class YourActivity extends Activity {
 
 Just put such call in weaver.config - and Yakhont Weaver will add it to all classes you need
 (via changing already compiled code with [Javassist](https://www.javassist.org/)). Both Java and Kotlin supported.
+And last but not least - Yakhont Weaver supports any applications (i.e. you can use it without Yakhont library).
 
 All-in-one magic mentioned above uses this trick extensively (please refer to
 [weaver.config](yakhont/weaver.config) for more details).
@@ -156,8 +162,11 @@ In short, the data loading features are:
 - [RxJava](https://github.com/ReactiveX/RxJava) support
 - [Retrofit](https://square.github.io/retrofit/2.x/retrofit/) support
 - pull-to-refresh
-- configuration changing (e.g. portrait / landscape) support
+- configuration changes (e.g. portrait / landscape) surviving support
 - progress GUI with loading cancellation possibility (yes, fully customizable too)
+- endless adapter support (please refer to
+[paging demo](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainActivity.java)
+for the working example)
 
 In addition, as already told above, there are powerful utility features
 (reflection, logging, dynamic permissions handling and more).
@@ -192,9 +201,11 @@ The simplest demo, just loads and displays some list (with "pull-to refresh" sup
 2. [demo room kotlin](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
 The [Google room library](https://developer.android.com/topic/libraries/architecture/room) 
 usage demo (+ custom adapter demo).
-3. [demo simple](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk):
+3. [demo paging](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk):
 The endless adapter demo (based on [Google paging library](https://developer.android.com/topic/libraries/architecture/paging)).
-4. [demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+4. [demo service](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+The simple demo which loads some data - but from [service](https://developer.android.com/reference/android/app/Service.html).
+5. [main demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
 The most complex demo with tons of customization.
 
 ## Versions
@@ -320,7 +331,7 @@ android.applicationVariants.all { variant ->
 The Yakhont Weaver is a small but powerful utility which manipulates the compiled Java (and Kotlin) bytecode
 (e.g. in Yakhont demo applications it customizes "Activity.onCreate()" and other callbacks).
 
-By default the Yakhont Weaver uses configuration from it's JAR, but you can provide your own
+By default, the Yakhont Weaver uses configuration from it's JAR, but you can provide your own
 configuration file(s) as a parameter (see above). The "weaverAddConfig = true" means adding your
 configuration (if not null) to the default one; "weaverAddConfig = false" forces the Yakhont Weaver
 to replace default configuration with yours (even if null).
@@ -376,19 +387,19 @@ buildTypes {
 ## Build
 
 To check out and build the Yakhont source, issue the following commands:
-
 ```
 $ git clone https://github.com/akhasoft/Yakhont.git
 $ cd Yakhont
 $ ./gradlew --configure-on-demand yakhont-weaver:clean yakhont-weaver:build
-$ ./gradlew --configure-on-demand yakhont:clean yakhont:build
+$ ./gradlew --configure-on-demand yakhont:clean        yakhont:build
 ```
 To build Yakhont demo applications, additionally execute the following commands:
 ```
-$ ./gradlew --configure-on-demand yakhont-demo:clean yakhont-demo:build
-$ ./gradlew --configure-on-demand yakhont-demo-simple:clean yakhont-demo-simple:build
+$ ./gradlew --configure-on-demand yakhont-demo:clean               yakhont-demo:build
+$ ./gradlew --configure-on-demand yakhont-demo-simple:clean        yakhont-demo-simple:build
+$ ./gradlew --configure-on-demand yakhont-demo-service:clean       yakhont-demo-service:build
 $ ./gradlew --configure-on-demand yakhont-demo-simple-kotlin:clean yakhont-demo-simple-kotlin:build
-$ ./gradlew --configure-on-demand yakhont-demo-room-kotlin:clean yakhont-demo-room-kotlin:build
+$ ./gradlew --configure-on-demand yakhont-demo-room-kotlin:clean   yakhont-demo-room-kotlin:build
 ```
 
 **Note:** you may need to update your Android SDK before building.

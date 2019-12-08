@@ -38,18 +38,17 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseConverter;
-// for javadoc
-import akha.yakhont.loader.wrapper.BaseLoaderWrapper;
-import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;
-import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper;                                       // for javadoc
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters;                        // for javadoc
+import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;                 // for javadoc
 import akha.yakhont.technology.retrofit.BaseRetrofit;
 import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2LoaderBuilder;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
-
 import android.app.Activity;
+import android.app.Service;                                                                 // for javadoc
 import android.content.res.Resources;
 import android.content.Context;
 import android.os.Bundle;
@@ -70,6 +69,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.lifecycle.ViewModelStore;
+import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.paging.DataSource;
 import androidx.paging.LivePagedListBuilder;
 import androidx.paging.PagedList.BoundaryCallback;
@@ -112,6 +112,10 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
     // just a placeholder for the moment
     private static final int                                    MAX_TABLE_NAME_LENGTH   = 1024;
+
+    // parameters doesn't matter
+    private static final BaseResponse<?, ?, ?>                  STUB_DATA               =
+            new BaseResponse<>(new LoadParameters(0L), Source.UNKNOWN);
 
     private   final     String                                  mTableName;
     private   final     String                                  mTableDescription;
@@ -262,6 +266,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         mTableName              = tableName;
         mTableDescription       = description;
         CoreLogger.log("assigned table name: " + mTableName);
+        android.util.Log.e("xxx", "!! table name: " + mTableName);
 
         mRequester              = requester;
         mConverter              = converter;
@@ -501,13 +506,19 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         return Utils.getUriResolver();
     }
 
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unchecked"})
+    @Override
+    protected BaseResponse<R, E, D> getStubData() {
+        return (BaseResponse<R, E, D>) STUB_DATA;
+    }
+
     /**
      * Please refer to the base method description.
      */
     @CallSuper
     @Override
-    protected void onLoadFinished(final BaseResponse<R, E, D> data) {
-        super.onLoadFinished(data);
+    protected boolean onLoadFinished(final BaseResponse<R, E, D> data) {
+        if (!super.onLoadFinished(data)) return false;
 
         if (mLoaderCallbacks != null || mPagingCallbacks != null) {
             if (data == null) {
@@ -571,6 +582,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 CoreLogger.logWarning("adapter == null, table name: " + mTableName);
 
         if (mRx != null) mRx.onResult(data);
+
+        return true;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -681,14 +694,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         /**
          * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
-         */
-        @SuppressWarnings("WeakerAccess")
-        public BaseResponseLoaderBuilder() {
-            mViewModelStore     = BaseViewModel.getViewModelStore((Activity) null);
-        }
-
-        /**
-         * Initialises a newly created {@code BaseResponseLoaderBuilder} object.
          *
          * @param fragment
          *        The Fragment
@@ -706,7 +711,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @SuppressWarnings("WeakerAccess")
         public BaseResponseLoaderBuilder(@NonNull final Activity activity) {
-            mViewModelStore     = BaseViewModel.getViewModelStore(activity);
+            mViewModelStore     = BaseViewModel.getViewModelStore(BaseViewModel.cast(activity, null));
         }
 
         /**
@@ -1210,13 +1215,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         /**
          * Initialises a newly created {@code BaseResponseLoaderExtendedBuilder} object.
-         */
-        @SuppressWarnings("unused")
-        public BaseResponseLoaderExtendedBuilder() {
-        }
-
-        /**
-         * Initialises a newly created {@code BaseResponseLoaderExtendedBuilder} object.
          *
          * @param fragment
          *        The Fragment
@@ -1477,8 +1475,20 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @see     LoadParameters#NO_LOAD
          */
-        @SuppressWarnings("unused")
         boolean start(Bundle savedInstanceState);
+
+        /**
+         * Starts all loaders associated with the given {@code CoreLoad} component.
+         * <p>
+         * If {@code savedInstanceState} is not null, loaders will be fully prepared
+         * but real data loading will not start.
+         *
+         * @return  {@code true} if data loading was successfully started, {@code false} otherwise
+         *
+         * @see     LoadParameters#NO_LOAD
+         */
+        @SuppressWarnings("unused")
+        boolean start();
 
         /**
          * Starts all loaders associated with the given {@code CoreLoad} component.
@@ -1494,8 +1504,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Starts all loaders associated with the given {@code CoreLoad} component.
          *
-         * @param activity
-         *        The Activity
+         * @param viewModelStoreOwner
+         *        The ViewModelStoreOwner
          *
          * @param parameters
          *        The LoadParameters
@@ -1503,13 +1513,13 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  {@code true} if data loading was successfully started, {@code false} otherwise
          */
         @SuppressWarnings("unused")
-        boolean start(Activity activity, LoadParameters parameters);
+        boolean start(ViewModelStoreOwner viewModelStoreOwner, LoadParameters parameters);
 
         /**
          * Cancels all {@link BaseLoaderWrapper loaders} associated with the given {@code CoreLoad} component.
          *
          * @param activity
-         *        The Activity
+         *        The Activity (or null, e.g. in case of service)
          *
          * @return  This {@code CoreLoad} object to allow for chaining of calls
          */
@@ -1538,10 +1548,21 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *        The type of data to load
      */
     @SuppressWarnings("unused")
-    public static class CoreLoader<E, D> implements CoreLoad<E, D> {
+    public static class CoreLoader<E, D> implements CoreLoad<E, D>, ViewModelStoreOwner {
 
-        private final   List<BaseLoaderWrapper<?>>              mLoaders                = Utils.newList();
-        private final   AtomicBoolean                           mGoBackOnCancelLoading  = new AtomicBoolean(false);
+        // for default ViewModelStoreOwner only
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public  final static CoreLoader                         INSTANCE                = new CoreLoader();
+
+        private final        List<BaseLoaderWrapper<?>>         mLoaders                = Utils.newList();
+        private final        AtomicBoolean                      mGoBackOnCancelLoading  = new AtomicBoolean(false);
+        private final static CoreLoadViewModelStore             sViewModelStore         = new CoreLoadViewModelStore();
+
+        /**
+         * Initialises a newly created {@code CoreLoader} object.
+         */
+        public CoreLoader() {
+        }
 
         /**
          * Please refer to the base method description.
@@ -1582,20 +1603,19 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @Override
         public CoreLoad<E, D> cancelLoading(final Activity activity) {
-            final Activity activityTmp = activity != null ? activity: Utils.getCurrentActivity();
-
             CoreLogger.logWarning("about to cancel loading");
 
             for (final BaseLoaderWrapper baseLoaderWrapper: mLoaders)
                 baseLoaderWrapper.cancelRequest(Level.WARNING);
 
-            if (!isGoBackOnCancelLoading()) return this;
+            if (!isGoBackOnCancelLoading() || activity == null) return this;
+
             CoreLogger.logWarning("isGoBackOnLoadingCanceled: about to call Activity.onBackPressed()");
 
             Utils.postToMainLoop(new Runnable() {
                     @Override
                     public void run() {
-                        if (activityTmp != null) activityTmp.onBackPressed();
+                        activity.onBackPressed();
                     }
 
                     @NonNull
@@ -1625,7 +1645,16 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @Override
         public boolean start(final Bundle savedInstanceState) {
-            return start(null, BaseLoaderWrapper.getLoadParameters(savedInstanceState));
+            return start(BaseViewModel.cast(Utils.getCurrentActivity(), null),
+                    BaseLoaderWrapper.getLoadParameters(savedInstanceState));
+        }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public boolean start() {
+            return start(null);
         }
 
         /**
@@ -1633,16 +1662,30 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @Override
         public boolean start(final long pageId) {
-            return start(null, new LoadParameters(pageId));
+            return start(BaseViewModel.cast(Utils.getCurrentActivity(), null), new LoadParameters(pageId));
         }
 
         /**
          * Please refer to the base method description.
          */
         @Override
-        public boolean start(final Activity activity, final LoadParameters parameters) {
-            return BaseLoaderWrapper.start(activity, mLoaders, parameters);
+        public boolean start(final ViewModelStoreOwner viewModelStoreOwner, final LoadParameters parameters) {
+            return BaseLoaderWrapper.start(viewModelStoreOwner, mLoaders, parameters);
         }
+
+        /**
+         * Please refer to the base method description.
+         */
+        @NonNull
+        @Override
+        public ViewModelStore getViewModelStore() {
+            return sViewModelStore;
+        }
+
+        /**
+         * Intended to use with {@link Service}.
+         */
+        public static class CoreLoadViewModelStore extends ViewModelStore {}
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2071,7 +2114,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          */
         @SuppressWarnings("WeakerAccess")
         protected CoreLoad<E, D> create(Activity activity, final Fragment fragment) {
-
             activity = getActivity(activity);
 
             if (mLoaderBuilder == null) {

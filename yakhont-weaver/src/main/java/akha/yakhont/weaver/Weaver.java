@@ -48,6 +48,8 @@ import javassist.NotFoundException;
  * declarations via annotations (which defines callbacks for the annotated methods).
  * <br>For more info please refer to the 'weaver.config' configuration file.
  *
+ * <p>Weaver supports any applications (i.e. you can use Weaver without Yakhont library).
+ *
  * @author akha
  */
 @SuppressWarnings({"WeakerAccess", "unused"})

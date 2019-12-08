@@ -1,0 +1,191 @@
+/*
+ * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+buildscript {
+    repositories {
+        jcenter()
+        flatDir dirs: '../yakhont-weaver/build/libs'                        // Yakhont weaver
+    }
+    dependencies {
+        classpath "akha.yakhont.weaver:yakhont-weaver:$projectVerName"
+        classpath "org.javassist:javassist:$projectLibVerJavassist"         // Yakhont weaver
+    }
+}
+
+apply plugin: 'com.android.application'
+
+def dependenciesStrategy = { DependencyResolveDetails details ->
+    // comment out if you don't need Location API
+    if     (details.requested.group == 'com.google.android.gms') {
+        if (details.requested.name  == 'play-services-location' ||
+                details.requested.name  == 'play-services-places-placereport')
+            details.useVersion      projectLibVerLocation
+        else
+            details.useVersion      projectLibVerGms
+        details.because 'To enforce releasable units for Google Play Services'
+    }
+    if (details.requested.group == 'com.squareup.retrofit2') {
+        details.useVersion          projectLibVerRetrofit2
+        details.because 'To enforce releasable units for Retrofit 2'
+    }
+    if (details.requested.group == 'com.squareup.okhttp3') {
+        details.useVersion          projectLibVerOkHttp3
+        details.because 'To enforce releasable units for OkHttp 3'
+    }
+    if (details.requested.group == 'com.google.dagger') {
+        details.useVersion          projectLibVerDagger
+        details.because 'To enforce releasable units for Dagger 2'
+    }
+}
+
+android {
+    compileSdkVersion           projectVerSdk
+    buildToolsVersion           projectVerBuildTools
+
+    //noinspection GroovyMissingReturnStatement
+    defaultConfig {
+        applicationId          'akha.yakhont.demoservice'
+        minSdkVersion           projectVerSdkMin
+        targetSdkVersion        projectVerSdk
+        versionCode             projectVerCodeDemo
+        versionName             projectVerNameDemo
+        resConfigs              projectResConfigs
+    }
+
+    compileOptions {
+        sourceCompatibility     JavaVersion.VERSION_1_8
+        targetCompatibility     JavaVersion.VERSION_1_8
+    }
+
+    lintOptions {
+        abortOnError            false
+    }
+
+    dataBinding {
+        enabled                 true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled       projectConfig != projectNoObfuscate
+
+            // normally it added from aar automatically - but this demo is not dependent on yakhont.aar
+            // proguardFile                '../yakhont/proguard/proguard-consumer.pro'
+
+            projectProGuardFiles.each {
+                //noinspection GroovyAssignabilityCheck
+                proguardFile            '../proguard/libs/' + it
+            }
+            proguardFile                '../proguard/libs/proguard-gson.pro'
+
+            proguardFile                './proguard/proguard-project-app.pro'
+            proguardFile                '../proguard/proguard-project.pro'
+            //noinspection GroovyAssignabilityCheck
+            proguardFile                getDefaultProguardFile('proguard-android.txt')
+        }
+    }
+
+    repositories {
+        flatDir dirs: '../yakhont/build/outputs/aar'
+    }
+
+    // fixed DuplicateFileException when both RxJava 1.x and RxJava 2.x are in use
+    packagingOptions {
+        exclude 'META-INF/rxjava.properties'
+    }
+
+    applicationVariants.all { variant ->
+        String prefix = variant.buildType.name
+        configurations.getByName(prefix + 'UnitTestCompileClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        configurations.getByName(prefix + 'UnitTestRuntimeClasspath')
+                                                     .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.runtimeConfiguration                 .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getAnnotationProcessorConfiguration().resolutionStrategy.eachDependency dependenciesStrategy
+    }
+    testVariants      .all { variant ->
+        variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+        variant.getRuntimeConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
+    }
+}
+
+dependencies {
+    implementation      "com.google.dagger:dagger:$projectLibVerDefault"
+    annotationProcessor "com.google.dagger:dagger-compiler:$projectLibVerDefault"
+
+    implementation      "androidx.appcompat:appcompat:$projectLibVerAppcompatAppcompat"
+    implementation      "androidx.lifecycle:lifecycle-common-java8:$projectLibVerLifecycleLifecycleCommonJava8"
+    implementation      "androidx.lifecycle:lifecycle-extensions:$projectLibVerLifecycleLifecycleExtensions"
+
+    // comment out if you don't need Location API
+    // (and uncomment lines in proguard-project-app.pro)
+    implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
+    implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
+
+    implementation      "com.google.code.gson:gson:$projectLibVerGson"
+
+    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {
+        exclude group:  "com.squareup.okhttp3", module: "okhttp"
+    }
+    implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerDefault") {
+        exclude group:  "com.google.code.gson", module: "gson"
+    }
+    implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
+    implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
+
+    implementation      "com.squareup.retrofit2:adapter-rxjava:$projectLibVerDefault"
+    implementation      "com.squareup.retrofit2:adapter-rxjava2:$projectLibVerDefault"
+
+    implementation     ("com.squareup.retrofit:retrofit:$projectLibVerRetrofit") {
+        exclude group:  "com.google.code.gson", module: "gson"
+    }
+
+    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
+    implementation      "io.reactivex:rxjava:$projectLibVerRxJava"
+
+    implementation      "androidx.paging:paging-runtime:$projectLibVerPaging"
+
+    implementation      "com.github.akhasoft:yakhont:$projectVerName@aar"
+}
+
+// let's build release (or debug) only - just to reduce building time
+android.variantFilter { variant ->
+    if (variant.buildType.name == (projectConfig == projectDebug ? 'release': 'debug')) {
+        variant.setIgnore(true)
+    }
+}
+
+// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
+String weaverConfigFiles = null
+String pkg = android.defaultConfig.applicationId
+boolean weaverDebug = false, weaverAddConfig = true
+
+android.applicationVariants.all { variant ->
+    JavaCompile javaCompile = variant.javaCompileProvider.get()
+    javaCompile.doLast {
+        //noinspection UnnecessaryQualifiedReference
+        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
+                javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
+                android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
+    }
+}
+
+/* if (by some reason) you're about to use the deprecated Transform API, you can try the following:
+//noinspection GroovyAssignabilityCheck, UnnecessaryQualifiedReference
+android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
+        android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles))
+*/

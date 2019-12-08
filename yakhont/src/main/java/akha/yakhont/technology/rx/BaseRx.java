@@ -612,7 +612,7 @@ public abstract class BaseRx<D> {
         @SuppressWarnings("WeakerAccess")
         public LocationRx(final CommonRx<Location> commonRx, final Activity activity) {
             super(commonRx, false);
-            mActivity = (activity == null) ? null: new WeakReference<>(activity);
+            mActivity = activity == null ? null: new WeakReference<>(activity);
         }
 
         /**

@@ -581,6 +581,7 @@ public class Rx2<D> extends CommonRx<D> {
     protected void onResult(final Observer<? super D> observer, final D result) {
         if (!checkNullObserver(observer)) return;
 
+        // null values are generally not allowed in 2.x operators and sources
         if (result == null) {
             onError(observer, new Exception("Rx2: result is null"));
             return;

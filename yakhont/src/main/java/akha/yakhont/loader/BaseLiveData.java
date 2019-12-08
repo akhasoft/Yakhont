@@ -55,6 +55,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.CallSuper;
+import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.DialogFragment;
@@ -293,10 +294,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    @MainThread
     protected void onCompleteHelper(final boolean success, final D result, Boolean notDisplayErrors) {
         if (success) {
             if (result instanceof BaseResponse) ((BaseResponse<?, ?, ?>) result).setValues(null);
 
+            android.util.Log.e("xxx", "!!! BaseLiveData.setValue()");
             setValue(result);
             return;
         }
@@ -429,21 +432,25 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         }): null, loadParameters);
             }
 
-            Utils.postToMainLoop(mProgressDelay, new Runnable() {
-                @Override
-                public void run() {
-                    synchronized (mLockLoading) {
-                        if (mLoading.get() && !mLoadParameters.mParameters.getNoProgress())
-                            mBaseDialog.start(activity, text, data);
+            if (activity == null)   // e.g. service
+                CoreLogger.logWarning("makeRequestHandler: activity == null");
+            else {
+                Utils.postToMainLoop(mProgressDelay, new Runnable() {
+                    @Override
+                    public void run() {
+                        synchronized (mLockLoading) {
+                            if (mLoading.get() && !mLoadParameters.mParameters.getNoProgress())
+                                mBaseDialog.start(activity, text, data);
+                        }
                     }
-                }
 
-                @NonNull
-                @Override
-                public String toString() {
-                    return "BaseDialog.start()";
-                }
-            });
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "BaseDialog.start()";
+                    }
+                });
+            }
 
             mSetValue.set(true);
 
@@ -1066,10 +1073,14 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * @param view
              *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
              *
+             * @param key
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+             *        empty string can be provided (if one and only BaseViewModel available)
+
              * @return  The handled {@link Dialog}
              */
-            public static Dialog handle(@NonNull final Dialog dialog, final View view) {
-                return handle(dialog, createCallable(BaseViewModel.get(), null, view));
+            public static Dialog handle(@NonNull final Dialog dialog, final View view, final String key) {
+                return handle(dialog, createCallable(BaseViewModel.get(key), null, view));
             }
 
             /**
@@ -1085,14 +1096,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The {@link Activity}
              *
              * @param key
-             *        The {@link BaseViewModel} key or null for default value
-             *        (please refer to {@link ViewModelProvider#get(String, Class)})
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+             *        empty string can be provided (if one and only BaseViewModel available)
              *
              * @return  The handled {@link Dialog}
              */
             public static Dialog handle(@NonNull final Dialog dialog, final View view,
                                         final Activity activity, final String key) {
-                return handle(dialog, createCallable(BaseViewModel.get(activity, key), activity, view));
+                return handle(dialog, createCallable(BaseViewModel.get(
+                        BaseViewModel.cast(activity, null), key), activity, view));
             }
 
             /**
@@ -1108,8 +1120,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The {@link Fragment}
              *
              * @param key
-             *        The {@link BaseViewModel} key or null for default value
-             *        (please refer to {@link ViewModelProvider#get(String, Class)})
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+             *        empty string can be provided (if one and only BaseViewModel available)
              *
              * @return  The handled {@link Dialog}
              */
@@ -1455,7 +1467,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         @SuppressWarnings("unused")
         @Override
         public void stop() {
-            stop(false, null);
+            stop(false, Utils.getCurrentActivity());
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1500,7 +1512,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             if (force) {
                 final Collection<BaseViewModel<?>> models = BaseViewModel.getViewModels(
-                        activity, true, CoreLogger.getDefaultLevel());
+                        BaseViewModel.cast(activity, null), true, CoreLogger.getDefaultLevel());
                 if (models == null) {
                     CoreLogger.logWarning("only current BaseLiveData loading will be " +
                             "stopped 'cause of unsupported Activity " + CoreLogger.getDescription(activity));

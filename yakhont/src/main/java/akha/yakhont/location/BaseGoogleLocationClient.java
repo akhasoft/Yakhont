@@ -262,11 +262,11 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     @SuppressWarnings({"SameParameterValue", "UnusedReturnValue", "WeakerAccess", "unused"})
     public BaseGoogleLocationClient setLocationUpdatesParameters(final boolean requestingLocationUpdates,
                                                                  final boolean highAccuracy) {
-        final long interval = (highAccuracy) ? UPDATE_INTERVAL_HIGH_ACCURACY:
-                                               UPDATE_INTERVAL_LOW_ACCURACY;
+        final long interval = highAccuracy ? UPDATE_INTERVAL_HIGH_ACCURACY:
+                                             UPDATE_INTERVAL_LOW_ACCURACY;
         setLocationUpdatesParameters(requestingLocationUpdates,
-                (highAccuracy) ? LocationRequest.PRIORITY_HIGH_ACCURACY:
-                                 LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
+                highAccuracy ? LocationRequest.PRIORITY_HIGH_ACCURACY:
+                               LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY,
                 interval, interval / 2);
 
         return this;

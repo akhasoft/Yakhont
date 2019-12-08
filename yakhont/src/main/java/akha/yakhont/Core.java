@@ -56,6 +56,7 @@ import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.app.Dialog;
+import android.app.Service;
 import android.content.ComponentCallbacks;
 import android.content.ComponentCallbacks2;
 import android.content.Context;
@@ -509,6 +510,11 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     // initDefault(...) methods are subject to call by the Yakhont Weaver
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    public static void initDefault(@NonNull final Service service) {
+        initDefault(service.getApplication());
+    }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
     public static void initDefault(@NonNull final Activity activity) {
@@ -1870,7 +1876,7 @@ public class Core implements DefaultLifecycleObserver {
                 return CoreReflection.getField(Class.forName(packageName + ".BuildConfig"), fieldName);
             }
             catch (/*ClassNotFound*/Exception exception) {
-                CoreLogger.log(exception);
+                CoreLogger.log(Level.WARNING, exception);
                 return null;
             }
         }
@@ -2677,14 +2683,14 @@ public class Core implements DefaultLifecycleObserver {
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean postToMainLoop(@NonNull final Runnable runnable) {
                 final boolean result = sHandler.post(prepareRunnable(runnable));
-                if (!result) CoreLogger.logError("post failed for: " + runnable);
+                if (!result) CoreLogger.logError("post to main loop failed for: " + runnable);
                 return result;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean postToMainLoop(final long delay, @NonNull final Runnable runnable) {
                 final boolean result = sHandler.postDelayed(prepareRunnable(runnable), delay);
-                if (!result) CoreLogger.logError("postDelayed failed for: " + runnable);
+                if (!result) CoreLogger.logError("delayed post to main loop failed for: " + runnable);
                 return result;
             }
 
@@ -3070,13 +3076,13 @@ public class Core implements DefaultLifecycleObserver {
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public static View getView(Activity activity, @IdRes final int viewId) {
                 if (activity == null) {
-                    CoreLogger.logWarning("activity == null, current activity will be used");
+                    CoreLogger.logWarning("getView(): activity == null, current activity will be used");
                     activity = getCurrentActivity();
                 }
                 CoreLogger.logWarning("getView() from activity: " + CoreLogger.getDescription(activity));
 
                 if (viewId != NOT_VALID_VIEW_ID) {
-                    final View view = activity.findViewById(viewId);
+                    final View view = activity == null ? null: activity.findViewById(viewId);
                     if (view == null)
                         CoreLogger.logError("can not find view with ID " +
                                 CoreLogger.getResourceDescription(viewId));
@@ -3091,7 +3097,7 @@ public class Core implements DefaultLifecycleObserver {
 
                 View view = null;
                 try {
-                    view = activity.findViewById(defaultViewId);
+                    view = activity == null ? null: activity.findViewById(defaultViewId);
                 }
                 catch (Exception exception) {
                     CoreLogger.log(exception);
@@ -3102,7 +3108,7 @@ public class Core implements DefaultLifecycleObserver {
                     CoreLogger.logWarning("Note that calling this function \"locks in\" various " +
                             "characteristics of the window that can not, from this point forward, be changed");
 
-                    final Window window = activity.getWindow();
+                    final Window window = activity == null ? null: activity.getWindow();
                     if (window == null) CoreLogger.logError("window == null, Activity " +
                             CoreLogger.getDescription(activity));
 
@@ -3152,7 +3158,7 @@ public class Core implements DefaultLifecycleObserver {
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
             public static Type getType(final Method method) {
-                return (method == null) ? null: getType(method.getGenericReturnType());
+                return method == null ? null: getType(method.getGenericReturnType());
             }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -3354,7 +3360,18 @@ public class Core implements DefaultLifecycleObserver {
             return false;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
+        /**
+         * Wrapper for {@link CountDownLatch#await()}.
+         *
+         * @param countDownLatch
+         *        The {@code CountDownLatch}
+
+         * @param timeout
+         *        The timeout (if <= 0 - endless awaiting)
+
+         * @return  {@code true} if no errors, {@code false} otherwise
+         */
+        @SuppressWarnings("UnusedReturnValue")
         public static boolean await(final CountDownLatch countDownLatch, final long timeout) {
             return handle(countDownLatch, timeout);
         }
@@ -3387,6 +3404,8 @@ public class Core implements DefaultLifecycleObserver {
                     CoreLogger.log(exception);
                 }
 
+            CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.ERROR,
+                    "countDownLatch.await() result: " + result);
             return result;
         }
 
@@ -3529,7 +3548,8 @@ public class Core implements DefaultLifecycleObserver {
 
                 final BaseLoaderWrapper loader = getLoader(coreLoad);
                 if (loader != null) {
-                    final BaseViewModel<?> model = loader.findViewModel(activity);
+                    final BaseViewModel<?> model = loader.findViewModel(
+                            BaseViewModel.cast(activity, null));
                     if (model instanceof PagingViewModel) {
                         final BaseLiveData tmp = model.getData();
                         if (tmp instanceof CacheLiveData)
@@ -3647,7 +3667,7 @@ public class Core implements DefaultLifecycleObserver {
             @SuppressWarnings("unused")
             public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad<E,    D> coreLoad,
                                                                   final LoaderCallback<D> callback) {
-                return setPagingCallback(coreLoad, callback, null, null);
+                return setPagingCallback(coreLoad, callback, null, getCurrentActivity());
             }
 
             /**

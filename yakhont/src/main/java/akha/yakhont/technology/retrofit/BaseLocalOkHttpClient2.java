@@ -64,8 +64,14 @@ import okio.Timeout;
  */
 public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
 
-    private   static final String       TYPE_JSON                   = "application/json";
-    private   static final String       MESSAGE                     = "";
+    /** The JSON mime type (the value is {@value}). */
+    @SuppressWarnings("WeakerAccess")
+    public    static final String       TYPE_JSON                   = "application/json";
+
+    /** The default message {@code Response.Builder} message (the value is {@value}). */
+    @SuppressWarnings("WeakerAccess")
+    public    static final String       MESSAGE                     = "";
+
     private   static final byte[]       EMPTY_BYTES                 = new byte[0];
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -197,12 +203,14 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      * Sets network delay emulation.
      *
      * @param delay
-     *        The emulated network delay (in milliseconds)
+     *        The emulated network delay (in seconds)
      *
      * @return  This {@code BaseLocalOkHttpClient2} object to allow for chaining of calls
      */
     @SuppressWarnings("unused")
     public BaseLocalOkHttpClient2 setEmulatedNetworkDelay(final int delay) {
+        CoreLogger.logWarning("emulated network delay set to " + delay + " seconds");
+
         mEmulatedNetworkDelay = delay;
         return this;
     }

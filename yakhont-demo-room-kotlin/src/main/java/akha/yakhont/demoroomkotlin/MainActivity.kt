@@ -66,6 +66,10 @@ private const val ROOM_DB_NAME          = "demo"
 private const val ROOM_DB_TABLE_NAME    = "item"
 private const val ROOM_DB_COLUMN_NAME   = "title"
 
+// if you have more than one loader in your Activity / Fragment / Service -
+//   please provide unique ViewModel keys
+//private const val DEMO_VIEWMODEL_KEY    = "yakhont_demo_room_viewmodel_key"
+
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
 
@@ -97,8 +101,9 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
         if (savedInstanceState != null) {                // handling screen orientation changes
             Retrofit2Loader.getExistingLoader<Throwable, List<Beer>>()
+//          Retrofit2Loader.getExistingLoader<Throwable, List<Beer>>(DEMO_VIEWMODEL_KEY, this)
 
-            recyclerView.adapter = BaseViewModel.getData<Any>(ROOM_DB_KEY) as CustomAdapter
+            recyclerView.adapter = getViewModel().getData<Any>(ROOM_DB_KEY) as CustomAdapter
             return
         }
 
@@ -112,6 +117,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         Retrofit2Loader.adjust<List<Beer>>(Retrofit2CoreLoadBuilder(retrofit2)
                 .setRequester{it.data}
                 .setDataBinding(BR.beer)
+//              .setBaseViewModelKey(DEMO_VIEWMODEL_KEY)
 
                 // Room-specific settings
                 .setTableName(ROOM_DB_TABLE_NAME)
@@ -132,9 +138,14 @@ class MainActivity: AppCompatActivity(), LocationListener {
                             }
                         }))
 */
-                .create()).start(null)
+                .create(), null /*DEMO_VIEWMODEL_KEY*/, false, this).start()
 
-        BaseViewModel.setData(ROOM_DB_KEY, adapter)
+        getViewModel().setData(ROOM_DB_KEY, adapter)
+    }
+
+    private fun getViewModel(): BaseViewModel<List<Beer>> {
+//      return BaseViewModel.get(this, DEMO_VIEWMODEL_KEY)
+        return BaseViewModel.get(this, BaseViewModel.DEFAULT_KEY)
     }
 
     private fun getItem(cursor: Cursor): Beer {

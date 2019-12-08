@@ -32,8 +32,7 @@
         tools:ignore="GoogleAppIndexingWarning,UnusedAttribute">
 
         <activity
-            android:name=".gui.SplashActivity"
-            android:label="@string/app_name">
+            android:name=".gui.SplashActivity">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -42,8 +41,7 @@
         </activity>
 
         <activity
-            android:name=".MainActivity"
-            android:label="@string/app_name" />
+            android:name=".MainActivity" />
 
         <provider
             android:authorities="akha.yakhont.demo.provider"

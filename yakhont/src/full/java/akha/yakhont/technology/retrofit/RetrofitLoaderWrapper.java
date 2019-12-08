@@ -243,18 +243,6 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
         /**
          * Initialises a newly created {@code RetrofitLoaderBuilder} object.
          *
-         * @param retrofit
-         *        The Retrofit component
-         */
-        @SuppressWarnings("WeakerAccess")
-        public RetrofitLoaderBuilder(@NonNull final Retrofit<T, D> retrofit) {
-
-            mRetrofit = retrofit;
-        }
-
-        /**
-         * Initialises a newly created {@code RetrofitLoaderBuilder} object.
-         *
          * @param fragment
          *        The Fragment
          *
@@ -279,7 +267,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
          *        The Retrofit component
          */
         @SuppressWarnings("unused")
-        public RetrofitLoaderBuilder(final Activity activity,
+        public RetrofitLoaderBuilder(final Activity                activity,
                                      @NonNull final Retrofit<T, D> retrofit) {
             super(activity);
 
@@ -356,6 +344,7 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
     public static class RetrofitCoreLoadBuilder<D, T> extends CoreLoadExtendedBuilder<Callback<D>, Response, Exception, D, T> {
 
         private final Retrofit<T, D>                                 mRetrofit;
+        private final ViewModelStore                                 mViewModelStore;
 
         /**
          * Initialises a newly created {@code RetrofitCoreLoadBuilder} object.
@@ -365,9 +354,24 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
          */
         @SuppressWarnings("unused")
         public RetrofitCoreLoadBuilder(@NonNull final Retrofit<T, D> retrofit) {
+            this(retrofit, null);
+        }
+
+        /**
+         * Initialises a newly created {@code RetrofitCoreLoadBuilder} object.
+         *
+         * @param retrofit
+         *        The Retrofit component
+         *
+         * @param viewModelStore
+         *        The ViewModelStore component
+         */
+        public RetrofitCoreLoadBuilder(@NonNull final Retrofit<T, D> retrofit,
+                                                final ViewModelStore viewModelStore) {
             super();
 
-            mRetrofit = retrofit;
+            mRetrofit           = retrofit;
+            mViewModelStore     = viewModelStore;
         }
 
         /**
@@ -383,7 +387,8 @@ public class RetrofitLoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Callb
          */
         @Override
         public CoreLoad<Exception, D> create() {
-            final RetrofitLoaderBuilder<D, T> builder = new RetrofitLoaderBuilder<>(mRetrofit);
+            final RetrofitLoaderBuilder<D, T> builder = new RetrofitLoaderBuilder<>(
+                    mViewModelStore, mRetrofit);
 
             if (mType != null) builder.setType(mType);
 

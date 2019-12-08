@@ -642,7 +642,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
 
     @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean checkData(final Activity activity, final LocationRx locationRx) {
-        if (activity   == null) CoreLogger.logError("activity == null");
+        if (activity   == null) CoreLogger.logError("LocationCallbacks.checkData(): activity == null");
         if (locationRx == null) CoreLogger.logError("locationRx == null");
         return activity != null && locationRx != null;
     }
@@ -695,7 +695,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      */
     public static Location getCurrentLocation(final Activity activity) {
         if (activity == null) {
-            CoreLogger.logWarning("activity == null");
+            CoreLogger.logWarning("getCurrentLocation(): activity == null");
             return null;
         }
         LocationCallbacks locationCallbacks = getLocationCallbacks(activity);

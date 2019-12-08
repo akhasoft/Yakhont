@@ -17,6 +17,7 @@
 package akha.yakhont.demo.retrofit;
 
 import akha.yakhont.CoreLogger;
+import akha.yakhont.technology.retrofit.BaseLocalOkHttpClient2;
 
 import android.content.Context;
 
@@ -64,7 +65,7 @@ public class LocalOkHttpClientHelper {
         InputStream inputStream = context.getResources().openRawResource(resourceId);
 
         String mimeType = URLConnection.guessContentTypeFromStream(inputStream);
-        if (mimeType == null) mimeType = "application/json";
+        if (mimeType == null) mimeType = BaseLocalOkHttpClient2.TYPE_JSON;
 
         return new Data(mimeType, "Content from res/raw/" + fileName, inputStream);
     }

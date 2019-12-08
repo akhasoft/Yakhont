@@ -15,7 +15,7 @@
  */
 
 buildscript {
-    ext.kotlinVersion       = '1.3.50'
+    ext.kotlinVersion       = '1.3.61'
 
     repositories {
         mavenCentral()
@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:3.5.2"
+        classpath "com.android.tools.build:gradle:3.5.3"
 
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
@@ -119,7 +119,7 @@ ext {
     projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.0'
-    projectLibVerRoom                                           =  '2.2.1'
+    projectLibVerRoom                                           =  '2.2.2'
 
     projectLibVerDagger                                         =  '2.22.1'
 
@@ -140,7 +140,7 @@ ext {
     projectLibVerMediaMedia                                     =  '1.1.0'
     projectLibVerMediaRouterMediaRouter                         =  '1.0.0'
     projectLibVerPreferencePreference                           =  '1.1.0-beta01'
-    projectLibVerRecyclerViewRecyclerView                       =  '1.0.0'
+    projectLibVerRecyclerViewRecyclerView                       =  '1.1.0'
 
     projectLibVerNotxMaterialMaterial                           =  '1.0.0'
 

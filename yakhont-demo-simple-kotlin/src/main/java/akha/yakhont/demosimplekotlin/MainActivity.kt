@@ -38,6 +38,10 @@ import androidx.recyclerview.widget.LinearLayoutManager
 
 import java.util.Date
 
+// if you have more than one loader in your Activity / Fragment / Service -
+//   please provide unique ViewModel keys
+//private const val DEMO_VIEWMODEL_KEY = "yakhont_demo_simple_viewmodel_key"
+
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
 
@@ -66,7 +70,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
 */
         if (savedInstanceState != null)                  // handling screen orientation changes
             Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>()
-
+//          Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>(DEMO_VIEWMODEL_KEY, this)
         else {
             val rx: SubscriberRx<Array<Beer>>? = null
 /* or       val rx = object: SubscriberRx<Array<Beer>>() {
@@ -81,13 +85,13 @@ class MainActivity: AppCompatActivity(), LocationListener {
 */
             val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
 
-            Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java,
-                    {it.data}, BR.beer, LocalOkHttpClient2(retrofit2)
+            Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, {it.data},
+                null /*DEMO_VIEWMODEL_KEY*/, BR.beer, LocalOkHttpClient2(retrofit2)
 
                     // just to demo the progress GUI - comment it out if not needed
                     .setEmulatedNetworkDelay(7)
 
-                    ,retrofit2, rx, null).start(null)
+                    , retrofit2, rx, null, null).start()
         }
     }
 

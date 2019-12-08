@@ -337,7 +337,7 @@ public class CoreLogger {
     }
 
     /**
-     * Sets whether the stack trace should be logged for all methods.
+     * Sets whether the stack trace should be logged for all messages.
      *
      * @param showStack
      *        The value to set
@@ -350,7 +350,7 @@ public class CoreLogger {
     }
 
     /**
-     * Sets whether the thread info should be logged for all methods.
+     * Sets whether the thread info should be logged for all messages.
      *
      * @param showThread
      *        The value to set
@@ -462,6 +462,20 @@ public class CoreLogger {
     }
 
     /**
+     * Performs logging with ({@link Level#WARNING WARNING}) level.
+     *
+     * @param str
+     *        The message to log
+     *
+     * @param throwable
+     *        The Throwable to log
+     */
+    @SuppressWarnings("unused")
+    public static void logWarning(@NonNull final String str, @NonNull final Throwable throwable) {
+        log(Level.WARNING, str, throwable);
+    }
+
+    /**
      * Performs logging with ({@link Level#ERROR ERROR}) level.
      *
      * @param str
@@ -469,6 +483,20 @@ public class CoreLogger {
      */
     public static void logError(@NonNull final String str) {
         log(Level.ERROR, str);
+    }
+
+    /**
+     * Performs logging with ({@link Level#ERROR ERROR}) level.
+     *
+     * @param str
+     *        The message to log
+     *
+     * @param throwable
+     *        The Throwable to log
+     */
+    @SuppressWarnings("unused")
+    public static void logError(@NonNull final String str, @NonNull final Throwable throwable) {
+        log(Level.ERROR, str, throwable);
     }
 
     /**
@@ -977,7 +1005,7 @@ public class CoreLogger {
                                      final Bitmap.CompressFormat format, final Integer quality,
                                      Boolean oldScreenshot) {
         if (activity      == null) activity = Utils.getCurrentActivity();
-        if (activity      == null) logError("activity == null");
+        if (activity      == null) logError("getScreenshot(): activity == null");
 
         if (suffix        == null) logError("suffix == null");
         if (oldScreenshot == null) oldScreenshot = false;
@@ -1047,7 +1075,7 @@ public class CoreLogger {
     public static String getResourceName(@AnyRes final int id) {
         if (id == Core.NOT_VALID_RES_ID) {
             logWarning("getResourceName(): not valid resource ID " + id);
-            return null;
+            return "NOT_VALID_RES_ID";
         }
         try {
             return Utils.getApplication().getResources().getResourceName(id);
@@ -1074,8 +1102,8 @@ public class CoreLogger {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @NonNull
     public static String getDescription(final Object object) {
-        return getDescription(object == null ? null:
-                object instanceof Class ? (Class) object: object.getClass());
+        return object == null ? "null": getDescription(object instanceof Class ?
+                (Class) object: object.getClass()) + ", toString(): " + object;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})

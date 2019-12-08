@@ -729,7 +729,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         }
 
         private boolean check(final Activity activity) {
-            if (activity == null) CoreLogger.logError("activity == null");
+            if (activity == null) CoreLogger.logWarning("CurrentActivityHelper: activity == null");
             return activity != null;
         }
     }

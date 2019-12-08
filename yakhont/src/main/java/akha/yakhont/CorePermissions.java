@@ -682,7 +682,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static Set<Integer> getIds(final Activity activity) {
         if (activity == null) {
-            CoreLogger.logError("activity == null");
+            CoreLogger.logError("getIds(): activity == null");
             return null;
         }
 

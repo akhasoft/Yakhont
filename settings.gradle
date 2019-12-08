@@ -15,4 +15,4 @@
  */
 
 include ':yakhont', ':yakhont-weaver', ':yakhont-demo', ':yakhont-demo-simple'
-include ':yakhont-demo-simple-kotlin', ':yakhont-demo-room-kotlin'
+include ':yakhont-demo-simple-kotlin', ':yakhont-demo-room-kotlin', ':yakhont-demo-service'

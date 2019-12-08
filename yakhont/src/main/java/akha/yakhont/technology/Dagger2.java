@@ -924,7 +924,7 @@ class Helper {
     static void onActivityResult(final Activity activity, final Intent intent,
                                  final int requestCode,   final int resultCode) {
         if (activity == null)
-            CoreLogger.logError("activity == null");
+            CoreLogger.logError("Helper.onActivityResult(): activity == null");
         else
             Utils.onActivityResult(activity, requestCode, resultCode, intent);
     }
@@ -1189,7 +1189,7 @@ class BaseSnackbar implements BaseDialog {
     boolean start(Activity activity, final String text, final Intent data, final Snackbar[] snackbar,
                   final boolean show) {
         if (activity == null) {
-            CoreLogger.logWarning("activity == null");
+            CoreLogger.logWarning("BaseSnackbar.start(): activity == null");
             activity = Utils.getCurrentActivity();
         }
         try {
@@ -1259,7 +1259,7 @@ class BaseSnackbar implements BaseDialog {
     private boolean start(final String text, final Snackbar[] snackbar, final boolean show) {
         final Activity activity = mActivity.get();
         if (activity == null) {
-            CoreLogger.logError("activity == null");
+            CoreLogger.logError("starting Snackbar: activity == null");
             return false;
         }
 
@@ -1691,13 +1691,21 @@ class BaseToast implements BaseDialog {
         return startToast(context, text, textId, data, new Toast[] {null}, true);
     }
 
+    private boolean noView() {
+        return mView == null && mViewId == Core.NOT_VALID_RES_ID;
+    }
+
+    private String getToastDescription(final String text) {
+        return "text - " + text + ", view - " + mView + ", view ID - " + CoreLogger.getResourceDescription(mViewId);
+    }
+
     @SuppressLint("ShowToast")
     boolean startToast(Context context, String text, @StringRes final int textId, final Intent data,
                        final Toast[] toast, final boolean show) {
         if (context == null) context = Utils.getCurrentActivity();
         if (context == null) context = Utils.getApplication();
 
-        if (text == null)
+        if (text == null && noView())
             if (textId == Core.NOT_VALID_RES_ID) {
                 CoreLogger.logError("no text for Toast");
                 return false;
@@ -1705,8 +1713,7 @@ class BaseToast implements BaseDialog {
             else
                 text = context.getString(textId);
 
-        if (mToast == null && mView == null && mViewId == Core.NOT_VALID_RES_ID &&
-                !Dagger2.UiModule.validate(text)) return false;
+        if (mToast == null && noView() && !Dagger2.UiModule.validate(text)) return false;
 
         try {
             if (mToast == null) {
@@ -1773,7 +1780,7 @@ class BaseToast implements BaseDialog {
 
                     final int delay = isStandardDuration(mDuration) ? DELAY_STANDARD: mDuration + DELAY_ADD;
                     CoreLogger.log("BaseToast onActivityResult() delay " + delay +
-                            " for Toast with text: " + text);
+                            " for Toast: " + getToastDescription(text));
 
                     Utils.runInBackground(delay, new Runnable() {
                         @Override
@@ -1790,12 +1797,12 @@ class BaseToast implements BaseDialog {
                 }
                 else
                     CoreLogger.logError("context is not Activity, onActivityResult() will not be called " +
-                            "for Toast with text: " + text);
+                            "for Toast: " + getToastDescription(text));
 
             return true;
         }
         catch (Exception exception) {
-            CoreLogger.log("failed Toast with text: " + text, exception);
+            CoreLogger.log("failed Toast: " + getToastDescription(text), exception);
             return false;
         }
     }
@@ -1806,7 +1813,7 @@ class BaseToast implements BaseDialog {
             if (mView != null && mViewId != Core.NOT_VALID_RES_ID)
                 CoreLogger.logError("View for Toast is already defined, so View ID " +
                         CoreLogger.getResourceDescription(mViewId) +
-                        " will be ignored for Toast with text: " + text);
+                        " will be ignored for Toast: " + getToastDescription(text));
             mToast = new Toast(context);
             mToast.setView(mView != null ? mView: LayoutInflater.from(context)
                     .inflate(mViewId, null, false));
@@ -1817,8 +1824,8 @@ class BaseToast implements BaseDialog {
                 mToast = Toast.makeText(context, text, getDuration());
             }
             catch (Exception exception) {
-                CoreLogger.log("looks like a Toast.makeText() bug for Toast with text: " +
-                        text + ", context: " + CoreLogger.getDescription(context), exception);
+                CoreLogger.log("looks like a Toast.makeText() bug for Toast: " + getToastDescription(text) +
+                        ", context: " + CoreLogger.getDescription(context), exception);
             }
     }
 

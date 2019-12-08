@@ -251,7 +251,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
 
         final Activity activity = LocationCallbacks.getActivity();
         if (activity == null)
-            CoreLogger.logError("activity == null");
+            CoreLogger.logError("onConnectionFailedHelper(: activity == null (in location)");
 
         if (!result.hasResolution()) {
             if (!mSystemErrorDialog) {
@@ -325,11 +325,11 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
         private Activity getCurrentActivity() {
             Activity activity = null;
             if (mActivity == null)          // should never happen
-                CoreLogger.logError("mActivity == null");
+                CoreLogger.logError("LocationErrorDialogFragment: mActivity == null");
             else {
                 activity = mActivity.get();
                 if (activity == null)       // should never happen
-                    CoreLogger.logError("activity == null");
+                    CoreLogger.logError("LocationErrorDialogFragment: activity == null");
             }
             return activity;
         }
@@ -350,7 +350,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
 
         private static void onDismiss(final Activity activity) {
             if (activity == null)
-                CoreLogger.logError("activity == null, onDismiss failed");
+                CoreLogger.logError("LocationErrorDialogFragment: activity == null, onDismiss failed");
             else
                 Utils.onActivityResult(activity, REQUEST_CODE_ERROR,
                         Activity.RESULT_CANCELED /* ignored */, null);
