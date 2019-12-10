@@ -16,10 +16,10 @@
 
 package akha.yakhont.demoservice.retrofit;
 
-import java.util.Date;
-
 import akha.yakhont.technology.retrofit.BaseLocalOkHttpClient2;
 import akha.yakhont.technology.retrofit.Retrofit2;
+
+import java.util.Date;
 
 // OkHttp3 local client for Retrofit 2
 public class LocalOkHttpClient2 extends BaseLocalOkHttpClient2 {

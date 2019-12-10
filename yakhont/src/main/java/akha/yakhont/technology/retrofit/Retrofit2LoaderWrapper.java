@@ -23,7 +23,9 @@ import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
+import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
@@ -577,13 +579,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param requester
          *        The data loading requester
          *
-         * @param viewModelKey
-         *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
-         *        for more info); could be null (for default value)
-         *
-         * @param viewModelStoreOwner
-         *        The ViewModelStoreOwner (or null for default one)
-         *
          * @param dataBinding
          *        The BR id of the variable to be set (please refer to
          *        {@link ViewDataBinding#setVariable} for more info)
@@ -599,14 +594,61 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         public static <R> void start(@NonNull final String                  url,
                                      @NonNull final Class    <R>            service,
                                      @NonNull final Requester<R>            requester,
+                                              final Integer                 dataBinding,
+                                              final Bundle                  savedInstanceState) {
+            start(get(url, service, requester, null, dataBinding, null,
+                    null, null, null, null,
+                    null, null, null,
+                    BaseViewModel.cast(Utils.getCurrentActivity(), null), null,
+                    null, savedInstanceState), savedInstanceState);
+        }
+
+        /**
+         * Starts data loading.
+         *
+         * @param url
+         *        The Retrofit 2 API endpoint URL
+         *
+         * @param service
+         *        The Retrofit 2 service interface
+         *
+         * @param requester
+         *        The data loading requester
+         *
+         * @param viewModelKey
+         *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+         *        for more info); could be null (for default value)
+         *
+         * @param viewModelStoreOwner
+         *        The ViewModelStoreOwner (or null for default one)
+         *
+         * @param dataBinding
+         *        The BR id of the variable to be set (please refer to
+         *        {@link ViewDataBinding#setVariable} for more info)
+         *
+         * @param onItemClickListener
+         *        The {@code OnItemClickListener} (or null for no item's click handling)
+         *
+         * @param savedInstanceState
+         *        Please refer to {@link Activity#onCreate(Bundle)}
+         *
+         * @param <R>
+         *        The type of Retrofit API
+         *
+         * @see CoreLoad#start(Bundle)
+         */
+        public static <R> void start(@NonNull final String                  url,
+                                     @NonNull final Class    <R>            service,
+                                     @NonNull final Requester<R>            requester,
                                               final String                  viewModelKey,
                                               final ViewModelStoreOwner     viewModelStoreOwner,
                                               final Integer                 dataBinding,
+                                              final OnItemClickListener     onItemClickListener,
                                               final Bundle                  savedInstanceState) {
             start(get(url, service, requester, viewModelKey, dataBinding, null, null,
                     null, null, null, null,
-                    null, null, viewModelStoreOwner,
-                    savedInstanceState), savedInstanceState);
+                    null, null, viewModelStoreOwner, null,
+                    onItemClickListener, savedInstanceState), savedInstanceState);
         }
 
         private static <D> void start(final CoreLoad<Throwable, D> coreLoad, final Bundle savedInstanceState) {
@@ -639,6 +681,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param dataSourceProducer
          *        The {@code DataSource} producer component (for paging)
          *
+         * @param onItemClickListener
+         *        The {@code OnItemClickListener} (or null for no item's click handling)
+         *
          * @param savedInstanceState
          *        Please refer to {@link Activity#onCreate(Bundle)}
          *
@@ -654,10 +699,11 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                               final ViewModelStoreOwner                  viewModelStoreOwner,
                                               final Integer                              dataBinding,
                                               final Callable<? extends DataSource<?, ?>> dataSourceProducer,
+                                              final OnItemClickListener                  onItemClickListener,
                                               final Bundle                               savedInstanceState) {
-            start(get(url, service, requester, viewModelKey, dataBinding, null, null,
-                    null, dataSourceProducer, null, null, null,
-                    null, viewModelStoreOwner, savedInstanceState), savedInstanceState);
+            start(get(url, service, requester, viewModelKey, dataBinding, null, null, null,
+                    dataSourceProducer, null, null, null, null,
+                    viewModelStoreOwner, null, onItemClickListener, savedInstanceState), savedInstanceState);
         }
 
         /**
@@ -689,6 +735,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param dataSourceProducer
          *        The {@code DataSource} producer component (for paging)
          *
+         * @param onItemClickListener
+         *        The {@code OnItemClickListener} (or null for no item's click handling)
+         *
          * @param savedInstanceState
          *        Please refer to {@link Activity#onCreate(Bundle)}
          *
@@ -705,11 +754,12 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                               final Integer                              dataBinding,
                                               final Integer                              pageSize,
                                               final Callable<? extends DataSource<?, ?>> dataSourceProducer,
+                                              final OnItemClickListener                  onItemClickListener,
                                               final Bundle                               savedInstanceState) {
             start(get(url, service, requester, viewModelKey, dataBinding, null, null,
                     pageSize == null ? null: new Config.Builder().setPageSize(pageSize).build(),
                     dataSourceProducer, null, null,null, null,
-                    viewModelStoreOwner, savedInstanceState), savedInstanceState);
+                    viewModelStoreOwner, null, onItemClickListener, savedInstanceState), savedInstanceState);
         }
 
         /**
@@ -730,6 +780,13 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param loaderCallbacks
          *        The {@code LoaderCallbacks} component (or null if not used)
          *
+         * @param viewModelKey
+         *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+         *        for more info); could be null (for default value)
+         *
+         * @param viewModelStoreOwner
+         *        The ViewModelStoreOwner (or null for default one)
+         *
          * @param <D>
          *        The type of data
          *
@@ -740,8 +797,10 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                         @NonNull final Class    <R>                      service,
                                         @NonNull final Requester<R>                      requester,
                                                  final SubscriberRx<              D>     rx,
-                                                 final LoaderCallbacks<Throwable, D>     loaderCallbacks) {
-            start(url, service, requester, rx, loaderCallbacks, null, null,
+                                                 final LoaderCallbacks<Throwable, D>     loaderCallbacks,
+                                                 final String                            viewModelKey,
+                                                 final ViewModelStoreOwner               viewModelStoreOwner) {
+            start(url, service, requester, rx, loaderCallbacks, viewModelKey, viewModelStoreOwner,
                     null, null);
         }
 
@@ -795,7 +854,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
             final CoreLoad<Throwable, D> coreLoad = get(url, service, requester, viewModelKey,
                     null, client, retrofit, null, null, rx,
-                    false, loaderCallbacks, true, viewModelStoreOwner, SERVICE_STUB);
+                    false, loaderCallbacks, true, viewModelStoreOwner,
+                    null, null, SERVICE_STUB);
 
             if (coreLoad != null)
                 coreLoad.start(viewModelStoreOwner, BaseLoaderWrapper.getLoadParameters(null));
@@ -833,6 +893,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param loaderCallbacks
          *        The {@code LoaderCallbacks} component (or null if not used)
          *
+         * @param onItemClickListener
+         *        The {@code OnItemClickListener} (or null for no item's click handling)
+         *
          * @param savedInstanceState
          *        Please refer to {@link Activity#onCreate(Bundle)}
          *
@@ -855,10 +918,11 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                                  final SubscriberRx<D>       rx,
                                                                  final LoaderCallbacks<Throwable, D>
                                                                                              loaderCallbacks,
+                                                                 final OnItemClickListener   onItemClickListener,
                                                                  final Bundle                savedInstanceState) {
             return get(url, service, requester, viewModelKey, dataBinding, client, retrofit,
                     null, null, rx, null, loaderCallbacks,
-                    null, null, savedInstanceState);
+                    null, null, null, onItemClickListener, savedInstanceState);
         }
 
         /**
@@ -903,7 +967,13 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          *        {@code true} if working from service, {@code false} otherwise (or null for default value)
          *
          * @param viewModelStoreOwner
-         *        The ViewModelStoreOwner (or null for default one)
+         *        The {@code ViewModelStoreOwner} (or null for default one)
+         *
+         * @param progress
+         *        The custom {@code Progress} indicator (or null for default one)
+         *
+         * @param onItemClickListener
+         *        The {@code OnItemClickListener} (or null for no item's click handling)
          *
          * @param savedInstanceState
          *        Please refer to {@link Activity#onCreate(Bundle)}
@@ -932,10 +1002,12 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                                                              loaderCallbacks,
                                                                        Boolean               isService,
                                                                  final ViewModelStoreOwner   viewModelStoreOwner,
+                                                                 final Progress              progress,
+                                                                 final OnItemClickListener   onItemClickListener,
                                                                  final Bundle                savedInstanceState) {
             return get(url, service, requester, viewModelKey, dataBinding, client, retrofit,
-                    pagingConfig, dataSourceProducer, rx, null, loaderCallbacks,
-                    isService, viewModelStoreOwner, savedInstanceState);
+                    pagingConfig, dataSourceProducer, rx, null, loaderCallbacks, isService,
+                    viewModelStoreOwner, progress, onItemClickListener, savedInstanceState);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -955,9 +1027,10 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                                                                                              loaderCallbacks,
                                                                        Boolean               isService,
                                                                  final ViewModelStoreOwner   viewModelStoreOwner,
+                                                                 final Progress              progress,
+                                                                 final OnItemClickListener   onItemClickListener,
                                                                  final Bundle                savedInstanceState) {
             if (isService == null) isService = savedInstanceState == SERVICE_STUB;
-            android.util.Log.e("xxx", "!! get.isService " + isService);
 
             View swipeView = null;
             if (isService) {
@@ -985,7 +1058,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             final CoreLoad<Throwable, D> coreLoad = get(url, service, requester, viewModelKey,
                     dataBinding, client, retrofit != null ? retrofit: new Retrofit2<>(), pagingConfig,
                     dataSourceProducer, rx, isRxSingle, loaderCallbacks,
-                    isService ? null: swipeView == null, viewModelStoreOwner);
+                    isService ? null: swipeView == null, viewModelStoreOwner, progress, onItemClickListener);
 
             if (!isService) handleSwipeToRefresh(coreLoad, swipeView);
 
@@ -1072,22 +1145,24 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static <R, D> CoreLoad<Throwable, D> get(@NonNull final String                url,
-                                                        @NonNull final Class    <R>          service,
-                                                        @NonNull final Requester<R>          requester,
-                                                                 final String                viewModelKey,
-                                                                 final Integer               dataBinding,
-                                                                 final OkHttpClient          client,
-                                                        @NonNull final Retrofit2<R, D>       retrofit,
-                                                                 final Config                pagingConfig,
+        public static <R, D> CoreLoad<Throwable, D> get(@NonNull final String                   url,
+                                                        @NonNull final Class    <R>             service,
+                                                        @NonNull final Requester<R>             requester,
+                                                                 final String                   viewModelKey,
+                                                                 final Integer                  dataBinding,
+                                                                 final OkHttpClient             client,
+                                                        @NonNull final Retrofit2<R, D>          retrofit,
+                                                                 final Config                   pagingConfig,
                                                                  final Callable<? extends DataSource<?, ?>>
-                                                                                             dataSourceProducer,
-                                                                 final SubscriberRx<D>       rx,
-                                                                       Boolean               isRxSingle,
+                                                                                                dataSourceProducer,
+                                                                 final SubscriberRx<D>          rx,
+                                                                       Boolean                  isRxSingle,
                                                                  final LoaderCallbacks<Throwable, D>
-                                                                                             loaderCallbacks,
-                                                                       Boolean               noSwipeToRefresh,
-                                                                       ViewModelStoreOwner   viewModelStoreOwner) {
+                                                                                                loaderCallbacks,
+                                                                       Boolean                  noSwipeToRefresh,
+                                                                       ViewModelStoreOwner      viewModelStoreOwner,
+                                                                 final Progress                 progress,
+                                                                 final OnItemClickListener      onItemClickListener) {
             final boolean isService = noSwipeToRefresh == null;
             if (noSwipeToRefresh == null) noSwipeToRefresh = true;
 
@@ -1108,6 +1183,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                 builder.setRx(new Retrofit2Rx<D>(true, isRxSingle).subscribeSimple(rx));
             }
             if (loaderCallbacks        != null) builder.setLoaderCallbacks(loaderCallbacks);
+
+            if (progress               != null) builder.setProgress(progress);
+            if (onItemClickListener    != null) builder.setOnItemClickListener(onItemClickListener);
 
             if (dataBinding            != null) builder.setDataBinding(dataBinding);
             if (dataSourceProducer     != null) builder.setPagingDataSourceProducer(dataSourceProducer);

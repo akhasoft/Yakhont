@@ -17,21 +17,18 @@
 package akha.yakhont.demoservice.model;
 
 import androidx.annotation.NonNull;
-import androidx.databinding.BaseObservable;
-import androidx.databinding.Bindable;
 
 import java.util.Locale;
 
 import com.google.gson.annotations.SerializedName;
 
 @SuppressWarnings("unused")
-public class Data extends BaseObservable {      // POJO with Data Binding Library support
+public class Data {
 
     @SerializedName("title")
     @SuppressWarnings("unused")
     private String mTitle;
 
-    @Bindable
     public String getTitle() {
         return mTitle;
     }

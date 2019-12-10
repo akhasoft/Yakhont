@@ -127,7 +127,11 @@ public class BaseViewModel<D> extends AndroidViewModel {
         mNoLifecycleOwner       = noLifecycleOwner;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /**
+     * Checks whether the {@code BaseViewModel} has associated {@link LifecycleOwner} or not.
+     *
+     * @return  {@code true} if given {@code BaseViewModel} has no associated {@link LifecycleOwner}, {@code false} otherwise
+     */
     public boolean isNoLifecycleOwner() {
         return mNoLifecycleOwner;
     }
@@ -151,8 +155,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
      * Returns the {@link BaseViewModel} for the current {@link Activity} and key.
      *
      * @param key
-     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-     *        empty string can be provided (if one and only BaseViewModel available)
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+     *        for more info); could be null (for default value)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -173,8 +177,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *        The {@link ViewModelStoreOwner}
      *
      * @param key
-     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-     *        empty string can be provided (if one and only BaseViewModel available)
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+     *        for more info); could be null (for default value)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -186,7 +190,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      */
     @SuppressWarnings("WeakerAccess")
     public static <S extends BaseViewModel<D>, D> S get(final ViewModelStoreOwner viewModelStoreOwner,
-                                                        final String key) {
+                                                        final String              key) {
         final S result = viewModelStoreOwner == null ? null: get(getViewModelStore(viewModelStoreOwner), key);
         if (result == null) CoreLogger.logError("can't find ViewModel for ViewModelStoreOwner " +
                 CoreLogger.getDescription(viewModelStoreOwner));
@@ -200,8 +204,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *        The {@link Fragment}
      *
      * @param key
-     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-     *        empty string can be provided (if one and only BaseViewModel available)
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+     *        for more info); could be null (for default value)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -232,8 +236,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *        The {@link ViewModelStore}
      *
      * @param key
-     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-     *        empty string can be provided (if one and only BaseViewModel available)
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+     *        for more info); could be null (for default value)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -263,8 +267,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *        The {@link ViewModelStore}
      *
      * @param key
-     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-     *        empty string can be provided (if one and only BaseViewModel available)
+     *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+     *        for more info); could be null (for default value)
      *
      * @param <S>
      *        The type of {@link BaseViewModel}
@@ -280,8 +284,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
     public static <S extends BaseViewModel<D>, D> WeakReference<S> getWeak(
             final ViewModelStore store, String key) {
         if (key == null) {
-            CoreLogger.logError("BaseViewModel.getWeak(): key == null");
-            return null;
+            CoreLogger.logWarning("BaseViewModel.getWeak(): key == null, default one will be used");
+            key = DEFAULT_KEY;
         }
         final boolean[] empty = new boolean[] {true};
         getWeak(store, empty);
@@ -468,8 +472,6 @@ public class BaseViewModel<D> extends AndroidViewModel {
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
-                    android.util.Log.e("xxx",
-                            "!!! LiveData." + (stop ? "removeObserver": "observeForever"));
                     if (stop)
                         liveData.removeObserver(observer);
                     else
@@ -521,7 +523,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 models, CoreLogger.getDefaultLevel());
 
         for (final BaseViewModel<?> model: models)
-            model.updateUi(stop, fragment);
+            if (!model.isNoLifecycleOwner()) model.updateUi(stop, fragment);
     }
 
     // subject to call by the Yakhont Weaver
@@ -532,7 +534,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 false, level);
 
         for (final BaseViewModel<?> model: models)
-            model.updateUi(stop, getLifecycleOwner(activity));
+            if (!model.isNoLifecycleOwner()) model.updateUi(stop, getLifecycleOwner(activity));
     }
 
     // subject to call by the Yakhont Weaver
@@ -1727,7 +1729,6 @@ public class BaseViewModel<D> extends AndroidViewModel {
                 CoreLogger.logError("BaseViewModel.Builder: key == null");
                 return null;
             }
-            android.util.Log.e("xxx", "!!! mKey: " + mKey);
 
             final Activity activity = mActivity == null ? null: mActivity.get();
             if (activity != null && activity.getApplication() == null) {    // from Google sources

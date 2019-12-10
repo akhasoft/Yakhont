@@ -61,12 +61,40 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
 //      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false);    // not terminate
 
         super.onCreate();
+
+//      setDebugLogging(BuildConfig.DEBUG);         // optional
     }
 
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
         CountDownLatch countDownLatch = new CountDownLatch(1);
 
+        LoaderCallbacks<Throwable, List<Data>> loaderCallbacks =
+                new LoaderCallbacks<Throwable, List<Data>>() {
+                    @Override
+                    public void onLoadFinished(List<Data> data, Source source) {
+                        // your code here, for example:
+                        Log.e("yakhont", "onLoadFinished(): " + data.get(0).getTitle());
+
+                        countDownLatch.countDown();
+                    }
+
+                    @Override
+                    public void onLoadError(Throwable throwable, Source source) {
+                        // your code here
+
+                        countDownLatch.countDown();
+                    }
+                };
+/*
+        ////////
+        // normally it should be enough - but here we have the local client, so see below...
+
+        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData,
+                null, loaderCallbacks, null, this);
+
+        ////////
+*/
         Retrofit2<Retrofit2Api, List<Data>> retrofit2 = new Retrofit2<>();
 
         Retrofit2Loader.start("http://localhost/", Retrofit2Api.class, Retrofit2Api::getData,
@@ -85,27 +113,10 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
                     }
                 },
 */
-                new LoaderCallbacks<Throwable, List<Data>>() {
-                    @Override
-                    public void onLoadFinished(List<Data> data, Source source) {
-                        // your code here, for example:
-                        Log.e("yakhont", "onLoadFinished(): " + data.get(0).getTitle());
-
-                        countDownLatch.countDown();
-                    }
-
-                    @Override
-                    public void onLoadError(Throwable throwable, Source source) {
-                        // your code here
-
-                        countDownLatch.countDown();
-                    }
-                },
-
-                null, this,
+                loaderCallbacks, null, this,
                 new LocalOkHttpClient2(retrofit2) /* .setEmulatedNetworkDelay(7) */ , retrofit2);
 
         // prevents service destroying before receiving data
-        Utils.await(countDownLatch, 0);
+        Utils.await(countDownLatch);
     }
 }

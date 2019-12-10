@@ -1517,7 +1517,7 @@ class BaseSnackbar implements BaseDialog {
 
                     if (entry.mCountDownLatch != null) {
                         CoreLogger.log("Snackbar waiting on latch, text: " + text);
-                        Utils.await(entry.mCountDownLatch, mCountDownLatchTimeout == null ? 0: mCountDownLatchTimeout);
+                        Utils.await(entry.mCountDownLatch, mCountDownLatchTimeout);
 
                         CoreLogger.log("Snackbar waiting on latch released, text: " + text);
                         if (mStopList != null && entry.mId != null) {
@@ -1737,7 +1737,7 @@ class BaseToast implements BaseDialog {
                             return "makeToast";
                         }
                     });
-                    Utils.await(countDownLatch, 0);
+                    Utils.await(countDownLatch);
                 }
                 if (mToast == null) return false;
 

@@ -266,7 +266,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         mTableName              = tableName;
         mTableDescription       = description;
         CoreLogger.log("assigned table name: " + mTableName);
-        android.util.Log.e("xxx", "!! table name: " + mTableName);
 
         mRequester              = requester;
         mConverter              = converter;

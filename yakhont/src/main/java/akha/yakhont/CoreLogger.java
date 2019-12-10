@@ -1040,7 +1040,7 @@ public class CoreLogger {
                     return "getScreenshot";
                 }
             });
-            Utils.await(countDownLatch, 0);
+            Utils.await(countDownLatch);
 
             return screenshot[0];
         }
@@ -2185,7 +2185,7 @@ public class CoreLogger {
                 }
             }, new Handler(Looper.getMainLooper()));
 
-            Utils.await(countDownLatch, 0);
+            Utils.await(countDownLatch);
             return screenshot[0];
         }
 

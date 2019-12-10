@@ -902,7 +902,6 @@ public abstract class BaseLoaderWrapper<D> {
     protected boolean onLoadFinished(final D data) {
         if (data == getStubData()) return false;
 
-        android.util.Log.e("xxx", "!!! onLoadFinished()");
         CoreLogger.log("loader ID: " + mLoaderId + ", data: " + data);
         mData = data;
 
@@ -1019,7 +1018,7 @@ public abstract class BaseLoaderWrapper<D> {
                 return "startLoadingHelperWrapper";
             }
         });
-        Utils.await(countDownLatch, 0);
+        Utils.await(countDownLatch);
 
         return result[0];
     }
@@ -1227,7 +1226,7 @@ public abstract class BaseLoaderWrapper<D> {
             }
         });
 
-        Utils.await(countDownLatch, 0);
+        Utils.await(countDownLatch);
 
         for (final BaseLoaderWrapper loader: loaders)
             if (checkId(parameters, loader.mLoaderId))

@@ -23,19 +23,24 @@ import akha.yakhont.Core;
 import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.callback.annotation.CallbacksInherited;
+import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationListener;
 import akha.yakhont.technology.retrofit.BaseLocalOkHttpClient2;
 import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader;
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
+import android.app.Activity;
 import android.location.Location;
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelStore;
+import androidx.lifecycle.ViewModelStoreOwner;
 import androidx.paging.PagedList;
 import androidx.paging.PositionalDataSource;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -47,7 +52,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 @CallbacksInherited( /* value = */ LocationCallbacks.class /* , properties = R.string.permissions_rationale_demo */ )
-public class MainActivity extends AppCompatActivity implements LocationListener {
+public class MainActivity extends Activity implements ViewModelStoreOwner, LocationListener {
 
     // if you have more than one loader in your Activity / Fragment / Service -
     //   please provide unique ViewModel keys
@@ -56,14 +61,24 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private        CoreLoad<Throwable, List<Data>>      mLoader;
     private        LocalOkHttpClient2                   mOkHttpClient2;
 
+    private final  ViewModelStore                       mViewModelStore            = new ViewModelStore();
+
+    @NonNull
+    @Override
+    public ViewModelStore getViewModelStore() {
+        return mViewModelStore;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         // uncomment if you're going to use Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
 //      Core.setRxUncaughtExceptionBehavior(false);     // not terminate
-/*
+
         // customize default progress here (and uncomment setEmulatedNetworkDelay() below to see results)
+        // you can also provide your own progress component (see below)
+/*
         akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setToastViewHandler((view, vh) -> {
             view.setBackgroundColor(android.graphics.Color.GRAY);
             vh.getTextView().setTextColor(android.graphics.Color.YELLOW);
@@ -89,8 +104,9 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         ////////
         // normally it should be enough - but here we have the local client, so see below...
 
-        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.data,
-                (Callable<SamplePositionalSource>) SamplePositionalSource::new, savedInstanceState);
+        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData,
+                null, this, BR.data,
+                (Callable<DemoDataSource>) DemoDataSource::new, null, savedInstanceState);
 
         ////////
 */
@@ -113,21 +129,17 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
                         .build(),
                 (Callable<DemoDataSource>) DemoDataSource::new,
 
-                // Rx-specific settings (if any)
-                null,
-/* or           new akha.yakhont.technology.rx.BaseRx.SubscriberRx<List<Data>>() {
-                    @Override
-                    public void onNext(List<Data> data) {
-                        // your code here
-                    }
+                getRx(), null, null, this, getProgress(),
 
-                    @Override
-                    public void onError(Throwable throwable) {
-                        // your code here
-                    }
+                // list item click handler (if any)
+                //null,
+                (view, pos) -> {
+                    // your code here, for example:
+                    Toast.makeText(this, ((TextView) view.findViewById(R.id.title)).getText(),
+                            Toast.LENGTH_SHORT).show();
                 },
-*/
-                null, null, this, null);
+
+                null);
     }
 
     private class DemoDataSource extends PositionalDataSource<Data> {
@@ -157,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         private LocalOkHttpClient2(Retrofit2 retrofit2) {
             super(retrofit2);
-//          setEmulatedNetworkDelay(7);     // just to demo the progress GUI
+//          setEmulatedNetworkDelay(3);     // just to demo the progress GUI
         }
 
         @Override
@@ -179,6 +191,47 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         Core.setFullLoggingInfo(true);
         // optional; on shaking device (or make Z-gesture) email with logs will be sent to the address below
         CoreLogger.registerDataSender(this, "address@company.com");
+    }
+
+    @SuppressWarnings("SameReturnValue")
+    private SubscriberRx<List<Data>> getRx() {
+        return null; /* new SubscriberRx<List<Data>>() {
+            @Override
+            public void onNext(List<Data> data) {
+                // your code here
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                // your code here
+            }
+        }; */
+    }
+
+    // another one possibility to customize progress GUI (see 'customize default progress' above)
+    @SuppressWarnings("SameReturnValue")
+    private Progress getProgress() {
+        return null; /* new Progress() {
+            @Override
+            public void setText(String text) {
+                // your code here (to set progress text)
+            }
+
+            @Override
+            public void show() {
+                // your code here (to show progress)
+            }
+
+            @Override
+            public void hide() {
+                // your code here (to hide progress)
+            }
+
+            @Override
+            public void confirm(android.app.Activity activity, android.view.View view) {
+                // your code here (to confirm data loading cancellation)
+            }
+        }; */
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

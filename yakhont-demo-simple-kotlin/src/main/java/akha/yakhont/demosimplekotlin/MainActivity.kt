@@ -32,6 +32,9 @@ import akha.yakhont.technology.rx.BaseRx.SubscriberRx
 
 import android.location.Location
 import android.os.Bundle
+import android.view.View
+import android.widget.TextView
+import android.widget.Toast
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -72,17 +75,6 @@ class MainActivity: AppCompatActivity(), LocationListener {
             Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>()
 //          Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>(DEMO_VIEWMODEL_KEY, this)
         else {
-            val rx: SubscriberRx<Array<Beer>>? = null
-/* or       val rx = object: SubscriberRx<Array<Beer>>() {
-                override fun onNext(data: Array<Beer>?) {
-                    // your code here
-                }
-
-                override fun onError(throwable: Throwable) {
-                    // your code here
-                }
-            }
-*/
             val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
 
             Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, {it.data},
@@ -91,8 +83,30 @@ class MainActivity: AppCompatActivity(), LocationListener {
                     // just to demo the progress GUI - comment it out if not needed
                     .setEmulatedNetworkDelay(7)
 
-                    , retrofit2, rx, null, null).start()
+                , retrofit2, getRx(), null,
+
+                // list item click handler (if any)
+                //null,
+                { view, _ ->
+                    // your code here, for example:
+                    Toast.makeText(this, (view.findViewById<View>(R.id.title) as TextView).text,
+                        Toast.LENGTH_SHORT).show()
+                },
+
+                null).start()
         }
+    }
+
+    private fun getRx(): SubscriberRx<Array<Beer>>? {
+        return null /* object: SubscriberRx<Array<Beer>>() {
+            override fun onNext(data: Array<Beer>?) {
+                // your code here
+            }
+
+            override fun onError(throwable: Throwable) {
+                // your code here
+            }
+        } */
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

@@ -299,7 +299,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         if (success) {
             if (result instanceof BaseResponse) ((BaseResponse<?, ?, ?>) result).setValues(null);
 
-            android.util.Log.e("xxx", "!!! BaseLiveData.setValue()");
             setValue(result);
             return;
         }
@@ -1074,8 +1073,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
              *
              * @param key
-             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-             *        empty string can be provided (if one and only BaseViewModel available)
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+             *        for more info); could be null (for default value)
 
              * @return  The handled {@link Dialog}
              */
@@ -1096,8 +1095,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The {@link Activity}
              *
              * @param key
-             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-             *        empty string can be provided (if one and only BaseViewModel available)
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+             *        for more info); could be null (for default value)
              *
              * @return  The handled {@link Dialog}
              */
@@ -1120,8 +1119,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The {@link Fragment}
              *
              * @param key
-             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
-             *        empty string can be provided (if one and only BaseViewModel available)
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+             *        for more info); could be null (for default value)
              *
              * @return  The handled {@link Dialog}
              */

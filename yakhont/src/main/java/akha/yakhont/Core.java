@@ -242,6 +242,7 @@ public class Core implements DefaultLifecycleObserver {
     private static final AtomicBoolean                  sStarted                    = new AtomicBoolean();
 
     private static final DataStore                      sStore                      = new DataStore();
+    private static       Long                           sAwaitDefaultTimeout        = 15 * 60 * 1000L;
 
     /**
      *  The data loading dialog API.
@@ -3365,15 +3366,46 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @param countDownLatch
          *        The {@code CountDownLatch}
-
-         * @param timeout
-         *        The timeout (if <= 0 - endless awaiting)
-
+         *
          * @return  {@code true} if no errors, {@code false} otherwise
          */
         @SuppressWarnings("UnusedReturnValue")
-        public static boolean await(final CountDownLatch countDownLatch, final long timeout) {
-            return handle(countDownLatch, timeout);
+        public static boolean await(final CountDownLatch countDownLatch) {
+            return await(countDownLatch, null);
+        }
+
+        /**
+         * Wrapper for {@link CountDownLatch#await()}.
+         *
+         * @param countDownLatch
+         *        The {@code CountDownLatch}
+         *
+         * @param timeout
+         *        The timeout (0 for endless awaiting, null for the default value)
+         *
+         * @return  {@code true} if no errors, {@code false} otherwise
+         *
+         * @see #setAwaitDefaultTimeout
+         */
+        public static boolean await(final CountDownLatch countDownLatch, final Long timeout) {
+            return handle(countDownLatch, timeout != null ? timeout: sAwaitDefaultTimeout != null ?
+                    sAwaitDefaultTimeout: 0);
+        }
+
+        /**
+         * Sets the default {@link CountDownLatch#await(long, TimeUnit)} timeout.
+         *
+         * @param timeout
+         *        The timeout (0 for endless awaiting, null for the default value)
+         */
+        @SuppressWarnings("unused")
+        public static void setAwaitDefaultTimeout(final Long timeout) {
+            sAwaitDefaultTimeout = timeout;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue", "unused"})
+        public static Long getAwaitDefaultTimeout() {
+            return sAwaitDefaultTimeout;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
@@ -3396,7 +3428,7 @@ public class Core implements DefaultLifecycleObserver {
                     else {
                         final long tmp = adjustTimeout(timeout);
                         if (!              countDownLatch.await(tmp, TimeUnit.MILLISECONDS))
-                            CoreLogger.logWarning(tmp + " (ms) timeout for CountDownLatch " + countDownLatch);
+                            CoreLogger.logWarning(tmp + " (ms) timeout for CountDownLatch: " + countDownLatch);
                     }
                     result = true;
                 }
