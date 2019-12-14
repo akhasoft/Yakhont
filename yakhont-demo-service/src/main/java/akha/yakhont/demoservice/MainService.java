@@ -114,7 +114,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
                 },
 */
                 loaderCallbacks, null, this,
-                new LocalOkHttpClient2(retrofit2) /* .setEmulatedNetworkDelay(7) */ , retrofit2);
+                new LocalOkHttpClient2(retrofit2) /* .setEmulatedNetworkDelay(3) */ , retrofit2);
 
         // prevents service destroying before receiving data
         Utils.await(countDownLatch);

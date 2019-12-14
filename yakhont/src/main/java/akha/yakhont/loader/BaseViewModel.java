@@ -530,11 +530,43 @@ public class BaseViewModel<D> extends AndroidViewModel {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void updateUiActivityForWeaver(final boolean stop, @NonNull final Activity activity) {
         final Level level = CoreLogger.getDefaultLevel();
+        if (!(activity instanceof ViewModelStoreOwner)) {
+            CoreLogger.log(level, "not ViewModelStoreOwner Activity: " + CoreLogger.getDescription(activity));
+            return;
+        }
         final Collection<BaseViewModel<?>> models = getViewModels(cast(activity, level),
                 false, level);
 
+        final LifecycleOwner lifecycleOwner = getLifecycleOwner(activity, CoreLogger.getDefaultLevel());
+
         for (final BaseViewModel<?> model: models)
-            if (!model.isNoLifecycleOwner()) model.updateUi(stop, getLifecycleOwner(activity));
+            if (stop) {
+                if (model.isNoLifecycleOwner())
+                    modelUpdateUi(model);
+                else
+                    modelUpdateUi(model, lifecycleOwner, true, activity);
+            }
+            else {
+                if (model.isNoLifecycleOwner()) {
+                    if (lifecycleOwner != null)     // should never happen
+                        CoreLogger.logError("unexpected LifecycleOwner Activity: " + CoreLogger.getDescription(activity));
+                    model.updateUi(false, null);
+                }
+                else
+                    modelUpdateUi(model, lifecycleOwner, false, activity);
+            }
+    }
+
+    private static void modelUpdateUi(final BaseViewModel<?> model, final LifecycleOwner lifecycleOwner,
+                                      final boolean          stop , final Activity       activity) {
+        if (lifecycleOwner == null)                 // should never happen
+            CoreLogger.logError("not LifecycleOwner Activity: " + CoreLogger.getDescription(activity));
+        model.updateUi(stop, lifecycleOwner);
+    }
+
+    private static void modelUpdateUi(final BaseViewModel<?> model) {
+        model.onCleared();
+        model.updateUi(true, null);
     }
 
     // subject to call by the Yakhont Weaver
@@ -551,10 +583,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             @Override
             public void run() {
                 for (final BaseViewModel<?> model: models)
-                    if (model.isNoLifecycleOwner()) {
-                        model.onCleared();
-                        model.updateUi(true, null);
-                    }
+                    if (model.isNoLifecycleOwner()) modelUpdateUi(model);
             }
 
             @NonNull
@@ -570,11 +599,15 @@ public class BaseViewModel<D> extends AndroidViewModel {
             Utils.postToMainLoop(timeout, runnable);
     }
 
-    private static LifecycleOwner getLifecycleOwner(final Activity activity) {
+    private static LifecycleOwner getLifecycleOwner(final Activity activity, final Level level) {
         if (activity instanceof LifecycleOwner) return (LifecycleOwner) activity;
 
-        CoreLogger.logError("can't get LifecycleOwner for Activity: " + CoreLogger.getDescription(activity));
+        CoreLogger.log(level, "can't get LifecycleOwner for Activity: " + CoreLogger.getDescription(activity));
         return null;
+    }
+
+    private static LifecycleOwner getLifecycleOwner(final Activity activity) {
+        return getLifecycleOwner(activity, Level.ERROR);
     }
 
     /**
@@ -739,6 +772,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean isLoadingForWeaver(@NonNull final Activity activity) {
+        if (!(activity instanceof ViewModelStoreOwner)) return false;
+
         final Level level = CoreLogger.getDefaultLevel();
         final Collection<BaseViewModel<?>> models = getViewModels(
                 cast(activity, level), true, level);
@@ -1674,7 +1709,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         public Builder<S, Key, T, R, E, D> setActivity(final Activity activity) {
             if (activity != null) {
                 mActivity           = new WeakReference<>(activity);
-                mLifecycleOwner     = getLifecycleOwner(activity);
+                mLifecycleOwner     = getLifecycleOwner(activity, CoreLogger.getDefaultLevel());
 
                 if (mViewModelStore == null)
                     mViewModelStore = getViewModelStore(cast(activity, null));
@@ -1739,13 +1774,14 @@ public class BaseViewModel<D> extends AndroidViewModel {
             CoreLogger.log("creating BaseViewModel, Activity: " + CoreLogger.getDescription(activity));
 
             if (mViewModelStore == null && activity != null)
-                mViewModelStore = getViewModelStore(BaseViewModel.cast(activity, null));
+                mViewModelStore =  getViewModelStore(BaseViewModel.cast(activity, null));
             if (mViewModelStore == null) {
                 CoreLogger.logError("BaseViewModel.Builder: ViewModelStore == null");
                 return null;
             }
 
-            if (mLifecycleOwner == null && activity != null) mLifecycleOwner = getLifecycleOwner(activity);
+            if (mLifecycleOwner == null && activity instanceof LifecycleOwner)
+                mLifecycleOwner =  getLifecycleOwner(activity);
             if (mLifecycleOwner == null)
                 CoreLogger.logWarning("LifecycleOwner == null, Activity: " + CoreLogger.getDescription(activity));
 

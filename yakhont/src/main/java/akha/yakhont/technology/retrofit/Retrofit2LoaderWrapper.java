@@ -1207,8 +1207,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
                     }
 
                     @Override
-                    public void confirm(final Activity activity, final View view) {
+                    public boolean confirm(final Activity activity, final View view) {
                         CoreLogger.logWarning("ProgressDefault.confirm() ignored 'cause of Service");
+                        return true;
                     }
                 });
                 builder.setNoBinding(true);

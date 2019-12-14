@@ -533,9 +533,10 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         }
 
         @Override
-        public void confirm(Activity activity, View view) {
+        public boolean confirm(Activity activity, View view) {
             ProgressDialogFragment progress = (ProgressDialogFragment) getDialog();
             if (progress != null && progress.mConfirm.isChecked()) super.confirm(activity, view);
+            return true;
         }
     }
 

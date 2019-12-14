@@ -884,9 +884,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * @param view
              *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
              *
+             * @return  {@code true} if data load canceling confirmation supported, {@code false} otherwise
+             *
              * @see BaseDialog#confirm
              */
-            void confirm(Activity activity, View view);
+            boolean confirm(Activity activity, View view);
         }
 
         /**
@@ -929,11 +931,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * Please refer to the base method description.
              */
             @Override
-            public void confirm(final Activity activity, final View view) {
+            public boolean confirm(final Activity activity, final View view) {
                 if (UiModule.hasSnackbars()) {
                     CoreLogger.logWarning("data loading cancel confirmation Snackbar will not be shown " +
                             "'cause some Yakhont's Snackbar is already on screen (or in queue)");
-                    return;
+                    return false;
                 }
 
                 if (sSnackbarBuilder != null && sSnackbarDuration != null)
@@ -951,6 +953,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         mSnackbar = null;
                     }
                 });
+
+                return true;
             }
 
             /**
@@ -1578,7 +1582,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
-                    mProgress.confirm(activity, view);
+                    if (!mProgress.confirm(activity, view)) cancel(activity);
                 }
 
                 @NonNull
@@ -1598,6 +1602,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          */
         @SuppressWarnings("WeakerAccess")
         public static void cancel(final Activity activity) {
+            CoreLogger.logWarning("about to cancel data loading");
             sInstance.stop(true, activity);
         }
     }

@@ -181,7 +181,7 @@ public class CorePermissions implements ConfigurationChangedListener {
             requestWrapper(activity, permissions);
             return;
         }
-        else if (mRationale == null) CoreLogger.logError(
+        else if (mRationale == null) CoreLogger.logWarning(
                 "shouldShowRequestPermissionRationale return true but rationale is empty");
 
         // from the official Google example:

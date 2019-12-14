@@ -2631,7 +2631,8 @@ public class Core implements DefaultLifecycleObserver {
                     if (checkRequestCode(result, activity, method, null) == null) return result;
                 }
                 int result = getRequestCode(requestCode, REQUEST_CODES_OFFSET_SHORT);
-                final Throwable throwable = checkRequestCode(result, activity, method, Level.ERROR);
+                final Throwable throwable = method == null ? null:
+                        checkRequestCode(result, activity, method, Level.ERROR);
 
                 if (throwable != null) CoreLogger.log("getRequestCode failed", throwable);
                 return result;

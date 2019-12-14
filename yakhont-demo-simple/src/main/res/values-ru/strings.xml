@@ -20,4 +20,5 @@
     <string name="list_title_beers" >Работа с бесконечным адаптером</string>
     <string name="permissions_rationale_demo" tools:keep="@string/permissions_rationale_demo"
                                     >Rationale для разрешений: демо</string>
+    <string name="cancel"           >Загрузка данных прервана</string>
 </resources>

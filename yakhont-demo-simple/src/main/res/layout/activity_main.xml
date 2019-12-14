@@ -22,7 +22,7 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/location"
+        android:id="@+id/locationView"
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         android:layout_margin="@dimen/activity_vertical_margin"
@@ -32,7 +32,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/location"
+        android:layout_above="@id/locationView"
         android:orientation="vertical">
 
         <TextView

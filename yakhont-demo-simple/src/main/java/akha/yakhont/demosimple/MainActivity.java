@@ -72,6 +72,9 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        //todo
+        akha.yakhont.CoreLogger.setShowStack(true);
+
         // uncomment if you're going to use Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
 //      Core.setRxUncaughtExceptionBehavior(false);     // not terminate
@@ -169,7 +172,7 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
 
         private LocalOkHttpClient2(Retrofit2 retrofit2) {
             super(retrofit2);
-//          setEmulatedNetworkDelay(3);     // just to demo the progress GUI
+            // setEmulatedNetworkDelay(3);     // just to demo the progress GUI
         }
 
         @Override
@@ -228,8 +231,9 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
             }
 
             @Override
-            public void confirm(android.app.Activity activity, android.view.View view) {
-                // your code here (to confirm data loading cancellation)
+            public boolean confirm(android.app.Activity activity, android.view.View view) {
+                Toast.makeText(MainActivity.this, R.string.cancel, Toast.LENGTH_SHORT).show();
+                return false;       // no confirmation, just cancel data loading
             }
         }; */
     }
@@ -245,6 +249,6 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
     }
 
     private void setLocation() {
-        if (sLocation != null) ((TextView) findViewById(R.id.location)).setText(sLocation);
+        if (sLocation != null) ((TextView) findViewById(R.id.locationView)).setText(sLocation);
     }
 }
