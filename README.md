@@ -1,4 +1,4 @@
-﻿<!-- Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
+﻿<!-- Copyright (C) 2015-2020 akha, a.k.a. Alexander Kharitonov
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -196,16 +196,16 @@ Releases are available [here](https://github.com/akhasoft/Yakhont/releases),
 demo applications can be downloaded from the
 [latest release](https://github.com/akhasoft/Yakhont/releases/latest).
 
-1. [demo simple kotlin](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+1. [demo simple kotlin](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
 The simplest demo, just loads and displays some list (with "pull-to refresh" support).
-2. [demo room kotlin](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+2. [demo room kotlin](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
 The [Google room library](https://developer.android.com/topic/libraries/architecture/room) 
 usage demo (+ custom adapter demo).
-3. [demo paging](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo-simple.apk):
+3. [demo paging](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo-simple.apk):
 The endless adapter demo (based on [Google paging library](https://developer.android.com/topic/libraries/architecture/paging)).
-4. [demo service](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+4. [demo service](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
 The simple demo which loads some data - but from [service](https://developer.android.com/reference/android/app/Service.html).
-5. [main demo](https://github.com/akhasoft/Yakhont/releases/download/v0.9.19/yakhont-demo.apk):
+5. [main demo](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
 The most complex demo with tons of customization.
 
 ## Versions
@@ -228,7 +228,7 @@ buildscript {
         // your code here, e.g. 'jcenter()'
     }
     dependencies {
-        classpath 'com.github.akhasoft:yakhont-weaver:0.9.19'
+        classpath 'com.github.akhasoft:yakhont-weaver:1.2.01'
     }
 }
 ```
@@ -249,9 +249,9 @@ android {
 
 ```groovy
 dependencies {
-    implementation    'com.github.akhasoft:yakhont:0.9.19'
+    implementation    'com.github.akhasoft:yakhont:1.2.01'
 //  or
-//  implementation    'com.github.akhasoft:yakhont-full:0.9.19'
+//  implementation    'com.github.akhasoft:yakhont-full:1.2.01'
 
 //  and if you're going to customize Yakhont using build-in Dagger 2:
     implementation      'com.google.dagger:dagger:2.22.1'           // (or higher)
@@ -415,9 +415,9 @@ add [yakhont.dic](yakhont.dic) to File -> Settings -> Editor -> Spelling.
 ## Information and Documentation
 
 - [Wiki](https://github.com/akhasoft/Yakhont/wiki)
-- [Javadoc - core](https://akhasoft.github.io/yakhont/library/core/)
-- [Javadoc - full](https://akhasoft.github.io/yakhont/library/full/)
-- [Javadoc - weaver](https://akhasoft.github.io/yakhont/weaver/)
+- [Javadoc - core](https://akhasoft.github.io/yakhont/1.2.01/library/core/)
+- [Javadoc - full](https://akhasoft.github.io/yakhont/1.2.01/library/full/)
+- [Javadoc - weaver](https://akhasoft.github.io/yakhont/1.2.01/weaver/)
 
 ## Known Issues
 
@@ -436,7 +436,7 @@ For bugs, questions and discussions please use the
 
 ## License
 
-    Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
+    Copyright (C) 2015-2020 akha, a.k.a. Alexander Kharitonov
     
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.

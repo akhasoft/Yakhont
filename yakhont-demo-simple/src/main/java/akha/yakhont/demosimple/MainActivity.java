@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2015-2019 akha, a.k.a. Alexander Kharitonov
+ * Copyright (C) 2015-2020 akha, a.k.a. Alexander Kharitonov
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -71,9 +71,6 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
-        //todo
-        akha.yakhont.CoreLogger.setShowStack(true);
 
         // uncomment if you're going to use Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
@@ -172,7 +169,7 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
 
         private LocalOkHttpClient2(Retrofit2 retrofit2) {
             super(retrofit2);
-            // setEmulatedNetworkDelay(3);     // just to demo the progress GUI
+//          setEmulatedNetworkDelay(3);     // just to demo the progress GUI
         }
 
         @Override
