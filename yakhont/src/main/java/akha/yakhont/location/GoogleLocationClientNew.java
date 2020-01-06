@@ -201,7 +201,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                 .addOnCompleteListener(activity, new OnCompleteListener<LocationSettingsResponse>() {
                     @Override
                     public void onComplete(@NonNull final Task<LocationSettingsResponse> task) {
-                        log(task, "checkLocationSettings");
+                        log(task, "GoogleLocationClientNew.checkLocationSettings");
                         if (!task.isSuccessful()) {
                             taskOnFailure(task.getException());
                             return;
@@ -244,7 +244,6 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
         final int code = apiException.getStatusCode();
 
         switch (code) {
-
             case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                 CoreLogger.log("Location settings are not satisfied; about to upgrade location settings");
                 try {
@@ -339,9 +338,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                                                              @NonNull final Class    classBroadcast,
                                                              @NonNull final String   action,
                                                                       final int      requestCode) {
-        final Intent intent = new Intent(activity, classBroadcast);
-        intent.setAction(action);
-        return PendingIntent.getBroadcast(activity, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getBroadcast(activity, requestCode, new Intent(activity, classBroadcast)
+                .setAction(action), PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     /**
@@ -394,9 +392,8 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
             CoreLogger.logError("For apps targeting API level O, only PendingIntent.getBroadcast() should be used");
             return null;
         }
-        final Intent intent = new Intent(activity, classService);
-        intent.setAction(action);
-        return PendingIntent.getService(activity, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return PendingIntent.getService(activity, requestCode, new Intent(activity, classService)
+                .setAction(action), PendingIntent.FLAG_UPDATE_CURRENT);
     }
 
     /**
@@ -499,7 +496,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            log(task, "requestLocationUpdates");
+                            log(task, "GoogleLocationClientNew.requestLocationUpdates");
                         }
                     })
                     .addOnFailureListener(activity, new OnFailureListener() {
@@ -528,7 +525,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            log(task, "removeLocationUpdates");
+                            log(task, "GoogleLocationClientNew.removeLocationUpdates");
                         }
                     });
         }

@@ -38,7 +38,6 @@ import androidx.lifecycle.ViewModelStoreOwner;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-//@CallbacksInherited(LocationCallbacks.class) //todo
 public class MainService extends IntentService implements ViewModelStoreOwner {
 
     private final ViewModelStore mViewModelStore = new ViewModelStore();

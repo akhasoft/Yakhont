@@ -62,6 +62,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 
@@ -216,6 +217,21 @@ public interface Dagger2 {
         private        final int     mData;
 
         private static Parameters    sInstance;
+
+        static {
+            init();
+        }
+
+        /**
+         * Cleanups static fields in Parameters; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            init();
+        }
+
+        private static void init() {
+            sInstance = null;
+        }
 
         private Parameters(final int data) {
             if (sInstance != null) CoreLogger.logWarning("sInstance != null");
@@ -385,6 +401,21 @@ public interface Dagger2 {
         private static final int    PERMISSION_DENIED_DURATION              =   8;      // seconds
 
         private static final long   COUNTDOWN_LATCH_TIMEOUT                 = 128;      // about 2 minutes
+
+        static {
+            init();
+        }
+
+        /**
+         * Cleanups UiModule; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            init();
+        }
+
+        private static void init() {
+            BaseSnackbar.init();
+        }
 
         /**
          * Initialises a newly created {@code UiModule} object.
@@ -723,7 +754,7 @@ public interface Dagger2 {
         private static void show(final boolean useSnackbarIsoToast, String text,
                                  @StringRes final int resId, final Integer duration) {
             if (text == null && !validate(resId)) return;
-            if (text == null) text = Utils.getApplication().getString(resId);
+            if (text == null) text = Objects.requireNonNull(Utils.getApplication()).getString(resId);
 
             if (useSnackbarIsoToast)
                 new BaseSnackbar(duration, null)
@@ -735,6 +766,7 @@ public interface Dagger2 {
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         private static boolean validate(@StringRes final int resId) {
             try {
+                //noinspection ConstantConditions
                 return validate(Utils.getApplication().getString(resId));
             }
             catch (Exception exception) {
@@ -960,8 +992,8 @@ class BaseSnackbar implements BaseDialog {
     private static final int                      MAX_MAX_LINES     = 8;
 
     private static       String                   sText;
-    private static final LinkedList<QueueEntry>   sQueue            = new LinkedList<>();
-    private static final Object                   sQueueLock        = new Object();
+    private static       LinkedList<QueueEntry>   sQueue;
+    private static       Object                   sQueueLock;
     private static       Collection<String>       sStopList;
 
     @IdRes
@@ -1001,6 +1033,18 @@ class BaseSnackbar implements BaseDialog {
     private              QueueEntry               mSnackbar;
     private              String                   mText;
 
+    static {
+        init();
+    }
+
+    static void init() {
+        if (sQueue != null) sQueue.clear();
+        sQueue      = new LinkedList<>();
+        sText       = null;
+        sQueueLock  = new Object();
+        sStopList   = null;
+    }
+
     BaseSnackbar(final Integer duration, final Integer requestCode) {
         this(Core.NOT_VALID_VIEW_ID, duration, requestCode);
     }
@@ -1028,18 +1072,21 @@ class BaseSnackbar implements BaseDialog {
     }
 
     static boolean isQueueEmpty() {
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return sQueue.isEmpty();
         }
     }
 
     static String getText() {
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return sText;
         }
     }
 
     static boolean hasSnackbars() {
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return getText() != null || !isQueueEmpty();
         }
@@ -1095,6 +1142,7 @@ class BaseSnackbar implements BaseDialog {
     }
 
     void removeAndRelease(final Collection<String> stopList) {
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             if (stopList != null && stopList.size() > 0) {
                 final Level level = CoreLogger.getDefaultLevel();
@@ -1120,6 +1168,7 @@ class BaseSnackbar implements BaseDialog {
             //noinspection ConstantConditions
             return result;
         }
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             for (int i = sQueue.size() - 1; i >= 0; i--)
                 if (id.equals(sQueue.get(i).mId)) {
@@ -1354,6 +1403,7 @@ class BaseSnackbar implements BaseDialog {
                 mActivity, actionSet, new Callable<Collection<String>>() {
             @Override
             public Collection<String> call() {
+                //noinspection SynchronizeOnNonFinalField
                 synchronized (sQueueLock) {
                     final Collection<String> tmp = sStopList;
                     sStopList = null;
@@ -1375,7 +1425,8 @@ class BaseSnackbar implements BaseDialog {
             }
         });
 
-        if (show) synchronized (sQueueLock) {
+        if (show) //noinspection SynchronizeOnNonFinalField
+            synchronized (sQueueLock) {
             if (hasSnackbars())
                 addNotSync(snackbar[0], mText, mCountDownLatch, mId);
             else
@@ -1413,6 +1464,7 @@ class BaseSnackbar implements BaseDialog {
                        @SuppressWarnings("SameParameterValue") final Callable<Collection<String>> stopList) {
         if (snackbar != null) snackbar.addCallback(new BaseCallback(requestCode, intent,
                 countDownLatchTimeout, activity, actionNoDefaultHandler, stopList));
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return addNotSync(snackbar, getSnackbarText(snackbar, UNKNOWN_TEXT), countDownLatch, id);
         }
@@ -1450,6 +1502,7 @@ class BaseSnackbar implements BaseDialog {
                 case Callback.DISMISS_EVENT_CONSECUTIVE:
                     onDismiss(UiModule.SNACKBAR_DISMISSED_REASON_CONSECUTIVE);
 
+                    //noinspection SynchronizeOnNonFinalField
                     synchronized (sQueueLock) {
                         if (sQueue.size() > 0) {
                             final List<String> list = new ArrayList<>();
@@ -1508,6 +1561,7 @@ class BaseSnackbar implements BaseDialog {
                 @Override
                 public void run() {
                     final QueueEntry entry;
+                    //noinspection SynchronizeOnNonFinalField
                     synchronized (sQueueLock) {
                         entry = onDismissAsync();
                     }
@@ -1610,7 +1664,7 @@ class BaseToast implements BaseDialog {
     private static final int                      DELAY_STANDARD    = 3000;
     private static final int                      DELAY_ADD         =  500;
 
-    private static final int                      UPDATE_INTERVAL   = 300;
+    private static final int                      UPDATE_INTERVAL   =  300;
 
     private              Toast                    mToast;
     private        final Integer                  mRequestCode;
@@ -1711,7 +1765,7 @@ class BaseToast implements BaseDialog {
                 return false;
             }
             else
-                text = context.getString(textId);
+                text = Objects.requireNonNull(context).getString(textId);
 
         if (mToast == null && noView() && !Dagger2.UiModule.validate(text)) return false;
 

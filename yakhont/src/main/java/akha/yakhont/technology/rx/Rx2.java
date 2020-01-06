@@ -16,6 +16,7 @@
 
 package akha.yakhont.technology.rx;
 
+import akha.yakhont.Core;               // for javadoc
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
@@ -62,6 +63,19 @@ public class Rx2<D> extends CommonRx<D> {
     private final Disposable                    mDisposable;
 
     private static boolean                      sIsErrorHandlerDefined;
+
+    /**
+     * Makes Rx2 cleanup; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        try {
+            RxJavaPlugins.setErrorHandler(null);
+            sIsErrorHandlerDefined = false;
+        }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+        }
+    }
 
     /**
      * Initialises a newly created {@code Rx2} object.

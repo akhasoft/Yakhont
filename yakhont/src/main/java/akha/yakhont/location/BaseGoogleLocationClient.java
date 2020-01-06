@@ -18,6 +18,7 @@ package akha.yakhont.location;
 
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 
 import android.annotation.SuppressLint;
@@ -524,14 +525,14 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public static String getPriorityDescription(final int priority) {
         switch (priority) {
-            case LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY:
-                return "PRIORITY_BALANCED_POWER_ACCURACY";
-            case LocationRequest.PRIORITY_HIGH_ACCURACY:
-                return "PRIORITY_HIGH_ACCURACY";
-            case LocationRequest.PRIORITY_LOW_POWER:
-                return "PRIORITY_LOW_POWER";
-            case LocationRequest.PRIORITY_NO_POWER:
-                return "PRIORITY_NO_POWER";
+            case LocationRequest.PRIORITY_BALANCED_POWER_ACCURACY   :
+                return          "PRIORITY_BALANCED_POWER_ACCURACY"  ;
+            case LocationRequest.PRIORITY_HIGH_ACCURACY             :
+                return          "PRIORITY_HIGH_ACCURACY"            ;
+            case LocationRequest.PRIORITY_LOW_POWER                 :
+                return          "PRIORITY_LOW_POWER"                ;
+            case LocationRequest.PRIORITY_NO_POWER                  :
+                return          "PRIORITY_NO_POWER"                 ;
             default:
                 return "unknown priority " + Utils.getUnknownResult(priority);
         }
@@ -580,7 +581,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                     .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                         @Override
                         public void onComplete(@NonNull Task<Void> task) {
-                            log(task, "requestLocationUpdates");
+                            log(task, "BaseGoogleLocationClient.requestLocationUpdates");
                         }
                     })
                     .addOnFailureListener(activity, new OnFailureListener() {
@@ -614,7 +615,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                 .addOnCompleteListener(activity, new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
-                        log(task, "removeLocationUpdates");
+                        log(task, "BaseGoogleLocationClient.removeLocationUpdates");
                     }
                 });
     }
@@ -628,7 +629,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                     .addOnCompleteListener(activity, new OnCompleteListener<Location>() {
                         @Override
                         public void onComplete(@NonNull Task<Location> task) {
-                            log(task, "getLastLocation");
+                            log(task, "BaseGoogleLocationClient.getLastLocation");
                             if (task.isSuccessful())
                                 onLocationChanged(task.getResult());
                             else
@@ -664,18 +665,21 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
         final ApiException apiException = (ApiException) exception;
         final int code = apiException.getStatusCode();
 
-        // another one ugly hack :-)
-        final String message = apiException.getMessage();
-        final boolean alreadyUnregistered = message != null && message.contains("listener already unregistered");
-
-        CoreLogger.log(alreadyUnregistered ? CoreLogger.getDefaultLevel(): CoreLogger.Level.ERROR,
-                "ApiException - code: " + code + " " + getStatusCodeDescription(code) +
-                        ", message: " + apiException.getMessage() + (caller == null ? "": caller));
+        CoreLogger.log(getLevel(apiException), "ApiException - code: " + code + " " +
+                getStatusCodeDescription(code) + ", message: " + apiException.getMessage() +
+                (caller == null ? "": caller));
     }
 
     private static String getStatusCodeDescription(final int code) {
         return code == LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE ?
                 "SETTINGS_CHANGE_UNAVAILABLE" : CommonStatusCodes.getStatusCodeString(code);
+    }
+
+    // another one ugly hack :-)
+    private static Level getLevel(final Exception exception) {
+        final String message = exception.getMessage();
+        return message != null && message.contains("listener already unregistered")
+                ? CoreLogger.getDefaultLevel(): Level.ERROR;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -694,7 +698,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
             CoreLogger.log("task.getException() == null" + callerTxt);
             return;
         }
-        CoreLogger.log("task.getException()" + callerTxt, exception);
+        CoreLogger.log(getLevel(exception), "task.getException()" + callerTxt, exception);
         logException(exception, callerTxt);
     }
 }

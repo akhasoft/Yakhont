@@ -538,7 +538,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 .baseUrl(retrofitBase);
 
         addFactory(builder, getFactoryRx(false));     // RxJava2CallAdapterFactory
-        addFactory(builder, getFactoryRx(true));      // RxJavaCallAdapterFactory
+        addFactory(builder, getFactoryRx(true ));     // RxJavaCallAdapterFactory
 
         return builder;
     }

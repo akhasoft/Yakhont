@@ -82,6 +82,7 @@ import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1551,11 +1552,28 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         // for default ViewModelStoreOwner only
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public  final static CoreLoader                         INSTANCE                = new CoreLoader();
+        public        static CoreLoader                         INSTANCE;
+
+        private       static CoreLoadViewModelStore             sViewModelStore;
 
         private final        List<BaseLoaderWrapper<?>>         mLoaders                = Utils.newList();
         private final        AtomicBoolean                      mGoBackOnCancelLoading  = new AtomicBoolean(false);
-        private final static CoreLoadViewModelStore             sViewModelStore         = new CoreLoadViewModelStore();
+
+        static {
+            init();
+        }
+
+        /**
+         * Cleanups static fields in CoreLoader; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            init();
+        }
+
+        private static void init() {
+            INSTANCE            = new CoreLoader();
+            sViewModelStore     = new CoreLoadViewModelStore();
+        }
 
         /**
          * Initialises a newly created {@code CoreLoader} object.
@@ -3302,7 +3320,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                     builder.setDescription (mDescription     );
             }
             else if (mDescriptionId != Core.NOT_VALID_RES_ID) {
-                final String description = Utils.getApplication().getString(mDescriptionId);
+                final String description = Objects.requireNonNull(Utils.getApplication()).getString(mDescriptionId);
                 if (check(description,  builder.getDescriptionRaw()      , "Description"     ))
                     builder.setDescription (description      );
             }

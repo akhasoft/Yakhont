@@ -17,6 +17,7 @@
 package akha.yakhont.loader;
 
 import akha.yakhont.CoreLogger;
+import akha.yakhont.Core;               // for javadoc
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CursorHandler;
 import akha.yakhont.Core.Utils.DataStore;
@@ -76,8 +77,8 @@ public class BaseResponse<R, E, D> {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public  static final    Cursor                      EMPTY_CURSOR      = new MatrixCursor(MIN_COLUMNS, 0);
 
-    private static final    String                      sNewLine          = System.getProperty("line.separator");
-    private static          int                         sBytesQtyForArray = 64;
+    private static          String                      sNewLine;
+    private static          int                         sBytesQtyForArray;
 
     private final           LoadParameters              mParameters;
     private final           R                           mResponse;
@@ -89,6 +90,22 @@ public class BaseResponse<R, E, D> {
     private final           Throwable                   mThrowable;
 
     private final           DataStore                   mStore            = new DataStore();
+
+    static {
+        init();
+    }
+
+    /**
+     * Cleanups static fields in BaseResponse; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sNewLine            = System.getProperty("line.separator");
+        sBytesQtyForArray   = 64;
+    }
 
     /**
      * Initialises a newly created {@code BaseResponse} object.

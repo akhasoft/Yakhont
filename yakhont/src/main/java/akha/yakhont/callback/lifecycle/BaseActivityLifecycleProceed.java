@@ -60,12 +60,30 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
 
     private static final String                             FORMAT_VALUE                = "%s == %d (%s)";
 
-    private static final AtomicInteger                      sResumed                    = new AtomicInteger();
-    private static final AtomicInteger                      sPaused                     = new AtomicInteger();
-    private static final AtomicInteger                      sStarted                    = new AtomicInteger();
-    private static final AtomicInteger                      sStopped                    = new AtomicInteger();
+    private static       AtomicInteger                      sResumed;
+    private static       AtomicInteger                      sPaused;
+    private static       AtomicInteger                      sStarted;
+    private static       AtomicInteger                      sStopped;
 
-    private static final CurrentActivityHelper              sActivity                   = new CurrentActivityHelper();
+    private static       CurrentActivityHelper              sActivity;
+
+    /**
+     * Cleanups static fields in BaseActivityLifecycleProceed; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sResumed    = new AtomicInteger();
+        sPaused     = new AtomicInteger();
+        sStarted    = new AtomicInteger();
+        sStopped    = new AtomicInteger();
+
+        sActivity   = new CurrentActivityHelper();
+        sCallbacks  = Utils.newMap();
+        sActive     = false;
+    }
 
     /**
      * Initialises a newly created {@code BaseActivityLifecycleProceed} object.
@@ -136,9 +154,12 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         SAVE_INSTANCE_STATE
     }
 
-    private static final Map<String, ActivityLifecycle>     CALLBACKS;
+    private static       Map<BaseActivityCallbacks, Set<ActivityLifecycle>>     sCallbacks;
+    private static final Map<String, ActivityLifecycle>                         CALLBACKS;
 
     static {
+        init();
+
         final Map<String, ActivityLifecycle> callbacks = new HashMap<>();
 
         callbacks.put("onActivityCreated",           ActivityLifecycle.CREATED);
@@ -151,9 +172,6 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
 
         CALLBACKS = Collections.unmodifiableMap(callbacks);
     }
-
-    private static final Map<BaseActivityCallbacks, Set<ActivityLifecycle>>
-                                                            sCallbacks      = Utils.newMap();
 
     /**
      * Returns the collection of registered callbacks handlers.

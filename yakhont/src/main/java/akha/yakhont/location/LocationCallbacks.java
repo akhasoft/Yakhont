@@ -48,6 +48,7 @@ import java.util.Date;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -88,7 +89,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     private   static final int                                      DELAY               = 750;    // ms
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected static final CurrentActivityHelper                    sActivity           = new CurrentActivityHelper();
+    protected static       CurrentActivityHelper                    sActivity;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected        Lazy<LocationClient>                           mLocationClient;
@@ -120,6 +121,21 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     protected        Integer                                        mPermissionsRequestCode;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected        String                                         mPermissionsRationale;
+
+    static {
+        init();
+    }
+
+    /**
+     * Cleanups static fields in LocationCallbacks; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sActivity = new CurrentActivityHelper();
+    }
 
     /**
      * Activity should implement this interface for receiving notifications when the location has changed.
@@ -292,7 +308,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
                 if (properties[0] == Core.NOT_VALID_RES_ID)
                     CoreLogger.logWarning("wrong permissions rationale String ID " + properties[0]);
                 else
-                    mPermissionsRationale = Utils.getApplication().getString(properties[0]);
+                    mPermissionsRationale = Objects.requireNonNull(Utils.getApplication()).getString(properties[0]);
             }
             if (properties.length > 2) {
                 final Integer[] tmp = new Integer[properties.length];

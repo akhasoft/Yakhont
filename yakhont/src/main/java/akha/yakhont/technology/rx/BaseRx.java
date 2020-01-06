@@ -16,6 +16,7 @@
 
 package akha.yakhont.technology.rx;
 
+import akha.yakhont.Core;               // for javadoc
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
@@ -335,17 +336,33 @@ public abstract class BaseRx<D> {
         protected final FlavorCommonRx          mFlavorCommonRx     = new FlavorCommonRx();
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected BaseRx<D>                     mBaseRx;
+        protected       BaseRx<D>               mBaseRx;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected final Rx2Disposable           mRx2Disposable      = new Rx2Disposable();
 
         // for anonymous Rx
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected static final Rx2Disposable    sRx2Disposable      = new Rx2Disposable();
+        protected static Rx2Disposable          sRx2Disposable;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected static boolean                sSafe               = true;
+        protected static boolean                sSafe;
+
+        static {
+            init();
+        }
+
+        /**
+         * Cleanups static fields in CommonRx; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            init();
+        }
+
+        private static void init() {
+            sRx2Disposable  = new Rx2Disposable();
+            sSafe           = true;
+        }
 
         /**
          * Initialises a newly created {@code CommonRx} object.

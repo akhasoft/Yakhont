@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import javax.inject.Provider;
@@ -375,8 +376,7 @@ public class CorePermissions implements ConfigurationChangedListener {
             case PERMISSIONS_DENIED_ALERT:
                 switch (resultCode) {
                     case Activity.RESULT_OK:
-                        final String applicationId = (String) Utils.getBuildConfigField(
-                                activity.getApplication().getPackageName(), "APPLICATION_ID");
+                        final String applicationId = (String) Utils.getBuildConfigField("APPLICATION_ID");
                         if (applicationId == null) {
                             CoreLogger.logError("can't find BuildConfig.APPLICATION_ID");
                             break;
@@ -931,7 +931,7 @@ public class CorePermissions implements ConfigurationChangedListener {
          */
         @SuppressWarnings("unused")
         public RequestBuilder setRationale(@StringRes final int rationaleId, final Object... args) {
-            mRationale = Utils.getApplication().getString(rationaleId, args);
+            mRationale = Objects.requireNonNull(Utils.getApplication()).getString(rationaleId, args);
             return this;
         }
 

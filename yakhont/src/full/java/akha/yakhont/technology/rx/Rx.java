@@ -16,6 +16,7 @@
 
 package akha.yakhont.technology.rx;
 
+import akha.yakhont.Core;               // for javadoc
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreReflection;
@@ -28,6 +29,7 @@ import android.annotation.SuppressLint;
 
 import androidx.annotation.NonNull;
 
+import java.lang.Exception;
 import java.lang.reflect.Method;
 
 import rx.Completable;
@@ -60,6 +62,19 @@ public class Rx<D> extends CommonRx<D> {
     protected final boolean                     mHasProducer;
 
     private static boolean                      sIsErrorHandlerDefined;
+
+    /**
+     * Makes Rx cleanup; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        try {
+            RxJavaHooks.setOnError(null);
+            sIsErrorHandlerDefined = false;
+        }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+        }
+    }
 
     /**
      * Initialises a newly created {@code Rx} object.

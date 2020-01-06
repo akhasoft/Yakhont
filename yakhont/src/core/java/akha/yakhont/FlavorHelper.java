@@ -32,6 +32,10 @@ public class FlavorHelper {
     }
 
     @SuppressWarnings("EmptyMethod")
+    public static void cleanUpRx() {
+    }
+
+    @SuppressWarnings("EmptyMethod")
     public static void setRxErrorHandlerDefault() {
     }
 

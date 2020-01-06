@@ -18,6 +18,7 @@ package akha.yakhont;
 
 import akha.yakhont.Core.Utils.DataStore;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.adapter.BaseCacheAdapter;
 import akha.yakhont.adapter.BaseCacheAdapter.BaseCacheAdapterWrapper;
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter;
 import akha.yakhont.callback.BaseCallbacks;
@@ -33,6 +34,7 @@ import akha.yakhont.debug.BaseFragment;
 import akha.yakhont.loader.BaseLiveData;
 import akha.yakhont.loader.BaseLiveData.CacheLiveData;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
+import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
 import akha.yakhont.loader.BaseViewModel.PagingViewModel;
@@ -54,6 +56,7 @@ import akha.yakhont.technology.rx.Rx2;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
+import android.app.ActivityManager;
 import android.app.Application;
 import android.app.Dialog;
 import android.app.Service;
@@ -100,6 +103,7 @@ import androidx.annotation.RequiresApi;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.DialogFragment;
 import androidx.lifecycle.DefaultLifecycleObserver;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.Lifecycle.Event;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ProcessLifecycleOwner;
@@ -235,14 +239,18 @@ public class Core implements DefaultLifecycleObserver {
 
     private static       Core                           sInstance;
     private static       boolean                        sbyUser, sSupport, sSetOrientation, sHideKeyboard, sOldConnection;
-    private static       WeakReference<Application>     sApplication;
-    private static       Dagger2                        sDagger;
 
-    private static final AtomicBoolean                  sResumed                    = new AtomicBoolean();
-    private static final AtomicBoolean                  sStarted                    = new AtomicBoolean();
+    private              Init                           mInit;
+    private              WeakReference<Application>     mApplication;
+    private              Dagger2                        mDagger;
 
-    private static final DataStore                      sStore                      = new DataStore();
-    private static       Long                           sAwaitDefaultTimeout        = 15 * 60 * 1000L;
+    private        final AtomicBoolean                  mResumed                    = new AtomicBoolean();
+    private        final AtomicBoolean                  mStarted                    = new AtomicBoolean();
+
+    private        final DataStore                      mStore                      = new DataStore();
+
+    // 10 minutes (as in WorkManager)
+    private              Long                           mAwaitDefaultTimeout        = 10 * 60 * 1000L;
 
     /**
      *  The data loading dialog API.
@@ -351,7 +359,7 @@ public class Core implements DefaultLifecycleObserver {
      */
     @NonNull
     public static Dagger2 getDagger() {
-        return sDagger;
+        return sInstance.mDagger;
     }
 
     /**
@@ -510,7 +518,7 @@ public class Core implements DefaultLifecycleObserver {
         return init(application, fullInfo, dagger, true);
     }
 
-    // initDefault(...) methods are subject to call by the Yakhont Weaver
+    // initDefault(...) methods are subjects to call by the Yakhont Weaver
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
     public static void initDefault(@NonNull final Service service) {
@@ -542,18 +550,21 @@ public class Core implements DefaultLifecycleObserver {
 
         sbyUser = byUser;
 
-        if (firstInit) sApplication = new WeakReference<>(application);
+        if (firstInit) sInstance.mApplication = new WeakReference<>(application);
 
         initDagger(dagger, byUser);
 
-        Init.logging(application, fullInfo != null ? fullInfo:
+        sInstance.mInit = sInstance.new Init();
+        sInstance.mInit.logging(application, fullInfo != null ? fullInfo:
                 Utils.isDebugMode(application.getPackageName()), false);
-        Init.allRemaining(application);
+        sInstance.mInit.allRemaining(application);
 
         CoreLogger.log("uri "         + Utils.getBaseUri());
         CoreLogger.log("support "     + sSupport);
 
-        Init.registerCallbacks(application, firstInit);
+        sInstance.mInit.registerCallbacks(application, firstInit);
+
+        CoreLogger.removeTmpFiles();
 
         return true;
     }
@@ -566,7 +577,7 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings("unused")
     public static void setFullLoggingInfo(final boolean fullInfo) {
-        Init.logging(sApplication.get(), fullInfo, true);
+        sInstance.mInit.logging(sInstance.mApplication.get(), fullInfo, true);
     }
 
     /**
@@ -590,10 +601,10 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     private static void initDagger(final Dagger2 dagger, final boolean byUser) {
-        if (!byUser && sDagger != null && dagger == null) return;
-        sDagger = dagger != null ? dagger: getDefaultDagger();
+        if (!byUser && sInstance.mDagger != null && dagger == null) return;
+        sInstance.mDagger = dagger != null ? dagger: getDefaultDagger();
 
-        BaseCallbacks.setValidator(sDagger.getCallbacksValidator());
+        BaseCallbacks.setValidator(sInstance.mDagger.getCallbacksValidator());
     }
 
     private static Dagger2 getDefaultDagger(final boolean useGoogleLocationOldApi,
@@ -624,7 +635,13 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings({"WeakerAccess", "BooleanMethodIsAlwaysInverted"})
     public static boolean isVisible() {
-        return sStarted.get();  // BaseActivityLifecycleProceed.isVisible();
+        try {
+            return sInstance.mStarted.get();    // BaseActivityLifecycleProceed.isVisible();
+        }
+        catch (/*NullPointer*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+        }
+        return false;
     }
 
     /**
@@ -637,7 +654,13 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "WeakerAccess"})
     public static boolean isInForeground() {
-        return sResumed.get();  // BaseActivityLifecycleProceed.isInForeground();
+        try {
+            return sInstance.mResumed.get();    // BaseActivityLifecycleProceed.isInForeground();
+        }
+        catch (/*NullPointer*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+        }
+        return false;
     }
 
     /**
@@ -657,7 +680,12 @@ public class Core implements DefaultLifecycleObserver {
      */
     @Override
     public void onStart(@NonNull LifecycleOwner owner) {
-        sStarted.set(true);
+        try {
+            sInstance.mStarted.set(true);
+        }
+        catch (/*NullPointer*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+        }
         logLifecycle("onStart");
     }
 
@@ -668,7 +696,12 @@ public class Core implements DefaultLifecycleObserver {
      */
     @Override
     public void onResume(@NonNull LifecycleOwner owner) {
-        sResumed.set(true);
+        try {
+            sInstance.mResumed.set(true);
+        }
+        catch (/*NullPointer*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+        }
         logLifecycle("onResume");
     }
 
@@ -679,7 +712,12 @@ public class Core implements DefaultLifecycleObserver {
      */
     @Override
     public void onPause(@NonNull LifecycleOwner owner) {
-        sResumed.set(false);
+        try {
+            sInstance.mResumed.set(false);
+        }
+        catch (/*NullPointer*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+        }
         logLifecycle("onPause");
     }
 
@@ -690,7 +728,12 @@ public class Core implements DefaultLifecycleObserver {
      */
     @Override
     public void onStop(@NonNull LifecycleOwner owner) {
-        sStarted.set(false);
+        try {
+            sInstance.mStarted.set(false);
+        }
+        catch (/*NullPointer*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+        }
         logLifecycle("onStop");
     }
 
@@ -701,10 +744,226 @@ public class Core implements DefaultLifecycleObserver {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    private       static   ApplicationCallbacks         sAppCallbacks;
+    private                Runnable                     mCleanUpCallback;
+    private final          AtomicInteger                mServicesCounter            = new AtomicInteger();
+    private final          AtomicBoolean                mNoAutoCleanUp              = new AtomicBoolean();
 
-    private final static   Set<ConfigurationChangedListener>
-                                                        sAppCallbacksListeners      = Utils.newSet();
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    public static void considerService(final boolean increment) {
+        if (increment)
+            sInstance.mServicesCounter.incrementAndGet();
+        else
+            sInstance.mServicesCounter.decrementAndGet();
+    }
+
+    // subject to call by the Yakhont Weaver
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    public static void cleanUpDefault(final int timeout, final Activity activity) {
+        if (!sInstance.mNoAutoCleanUp.get()) cleanUp(timeout, activity);
+    }
+
+    /**
+     * Sets auto Yakhont cleanup flag.
+     *
+     * @param value
+     *        The value to set ({@code true} for no auto cleanup, {@code false} otherwise)
+     */
+    @SuppressWarnings("unused")
+    public static void setNoAutoCleanUp(final boolean value) {
+        sInstance.mNoAutoCleanUp.set(value);
+    }
+
+    /**
+     * Sets user-defined callback to call from {@link #cleanUp(int, Activity) cleanUp}.
+     *
+     * @param value
+     *        The callback
+     */
+    @SuppressWarnings("unused")
+    public static void setCleanUpCallback(final Runnable value) {
+        sInstance.mCleanUpCallback = value;
+    }
+
+    /**
+     * Makes Yakhont cleanup (on exit from last {@link Activity} or last {@link Service}).
+     * Normally called automatically via Yakhont Weaver (please refer to weaver.config for more info)
+     * - but it could be switched off (via call to {@link #setNoAutoCleanUp}), and then you can do it
+     * by yourself (say, from {@link Activity#onDestroy onDestroy} method in your root {@link Activity}).
+     *
+     * @param timeout
+     *        The cleanup timeout (in ms); provide 0 to start immediately
+     *
+     * @param activity
+     *        The activity (null for current one or {@link Service})
+     *
+     * @see #cleanUp()
+     */
+    @SuppressWarnings("unused")
+    public static void cleanUp(final int timeout, final Activity activity) {
+        final Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                final Activity activityCurrent = Utils.getCurrentActivity();
+                if (activityCurrent != null && activityCurrent != activity) return;
+
+                int servicesCounter = 0;
+                try {
+                    servicesCounter = sInstance.mServicesCounter.get();
+                }
+                catch (/*NullPointer*/Exception exception) {
+                    CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+                }
+                if (servicesCounter > 0 || !isLastActivity(activityCurrent)) return;
+
+                CoreLogger.logWarning("about to cleanup Yakhont, activity: " +
+                        CoreLogger.getDescription(activityCurrent));
+                try {
+                    if (sInstance.mCleanUpCallback != null) Utils.safeRun(sInstance.mCleanUpCallback);
+                }
+                catch (/*NullPointer*/Exception exception) {
+                    CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+                }
+                cleanUp();
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "cleanUp";
+            }
+        };
+
+        if (timeout <= 0)
+            Utils.runInBackground(runnable);
+        else
+            Utils.runInBackground(timeout, runnable);
+    }
+
+    /**
+     * Makes Yakhont cleanup; normally called from {@link #cleanUp(int, Activity)}.
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static void cleanUp() {
+        if (sInstance == null) return;
+
+        enableFragmentManagerDebugLogging(false);
+
+        Utils.postToMainLoop(new Runnable() {
+            @Override
+            public void run() {
+                getLifecycle().removeObserver(sInstance);
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "getLifecycle().removeObserver()";
+            }
+        });
+
+        sInstance.mInit.unregisterConnectionHandler();
+        sInstance.mInit.unregisterCallbacksSupport ();
+
+        sInstance.mAppCallbacksListeners .clear();
+        sInstance.mNetworkStatusListeners.clear();
+
+        sbyUser         = false;
+        sSupport        = false;
+        sSetOrientation = false;
+        sHideKeyboard   = false;
+        sOldConnection  = false;
+
+        Utils.init();
+        Utils.ViewHelper.init();
+
+        cleanUpComponents();
+
+        sInstance = null;
+    }
+
+    private static void cleanUpComponents() {
+        BaseCacheProvider.cleanUp();
+        BaseCacheAdapter .cleanUp();
+
+        BaseFragmentLifecycleProceed.cleanUp();
+        BaseActivityLifecycleProceed.cleanUp();
+        BaseCallbacks               .cleanUp();
+
+        BaseResponse.cleanUp();
+
+        BaseLiveData.cleanUp();
+        LiveDataDialog.ProgressDefault.cleanUp();
+        LiveDataDialog                .cleanUp();
+        BaseViewModel.BaseViewModelProvider.cleanUp();
+
+        BaseResponseLoaderWrapper.CoreLoader.cleanUp();
+        BaseLoaderWrapper.LoadParameters.cleanUp();
+
+        LocationCallbacks.cleanUp();
+
+        Parameters.cleanUp();
+        UiModule  .cleanUp();
+
+        Rx2         .cleanUp  ();
+        FlavorHelper.cleanUpRx();
+        CommonRx    .cleanUp  ();
+
+        CoreLogger.GestureHandler.cleanUp();
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) CoreLogger.VideoRecorder.cleanUp();
+        CoreLogger.cleanUp();
+    }
+
+    /**
+     * Return whether this activity is the root of a task (and there is only one task in the process).
+     * The root is the first activity in a task.
+     *
+     * @param activity
+     *        The activity (or null for current one)
+     *
+     * @return  {@code true} if given Activity is the root (and there is only one task), {@code false} otherwise
+     */
+    @SuppressWarnings({"WeakerAccess", "BooleanMethodIsAlwaysInverted"})
+    public static boolean isLastActivity(Activity activity) {
+        if (activity == null) activity = Utils.getCurrentActivity();
+        if (activity == null) return true;
+
+        if (!activity.isTaskRoot()) return false;
+        try {
+            final ActivityManager activityManager =
+                    (ActivityManager) activity.getSystemService(Context.ACTIVITY_SERVICE);
+            if (activityManager != null) {
+                final int taskQty;
+                if (Build.VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP)
+                    taskQty = getTaskQtyNew(activityManager);
+                else
+                    taskQty = getTaskQtyOld(activityManager);
+                return taskQty <= 1;
+            }
+        }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+        }
+        return true;
+    }
+
+    @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private static int getTaskQtyNew(final ActivityManager activityManager) {
+        return activityManager.getAppTasks().size();
+    }
+
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    private static int getTaskQtyOld(final ActivityManager activityManager) {
+        return activityManager.getRunningTasks(2).size();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    private                ApplicationCallbacks         mAppCallbacks;
+
+    private final          Set<ConfigurationChangedListener>
+                                                        mAppCallbacksListeners      = Utils.newSet();
 
     /**
      * Registers component to be notified about device configuration changes.
@@ -739,8 +998,8 @@ public class Core implements DefaultLifecycleObserver {
             CoreLogger.logError("listener == null");
             return false;
         }
-        final boolean result = add ?
-                sAppCallbacksListeners.add(listener): sAppCallbacksListeners.remove(listener);
+        final boolean result = add ? sInstance.mAppCallbacksListeners.add   (listener):
+                                     sInstance.mAppCallbacksListeners.remove(listener);
 
         CoreLogger.log(result ? CoreLogger.getDefaultLevel(): Level.WARNING,
                 "result: " + result + ", listener: " + listener);
@@ -750,20 +1009,44 @@ public class Core implements DefaultLifecycleObserver {
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void onApplicationConfigurationChanged(final Configuration newConfig) {
-        if (sAppCallbacks == null) return;
-        sAppCallbacks.onConfigurationChanged(newConfig);
+        if (sInstance.mAppCallbacks == null) return;
+        sInstance.mAppCallbacks.onConfigurationChanged(newConfig);
     }
 
-    private static class ApplicationCallbacks extends BaseListeners implements ComponentCallbacks {
+    @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
+    private class ApplicationCallbacks2 extends ApplicationCallbacks implements ComponentCallbacks2 {
+
+        /**
+         * Please refer to the base method description.
+         */
+        @Override
+        public void onTrimMemory(int level) {
+            CoreLogger.log(Utils.getOnTrimMemoryLevel(level),
+                    "level " + Utils.getOnTrimMemoryLevelString(level));
+        }
+    }
+
+    private class ApplicationCallbacks extends BaseListeners implements ComponentCallbacks {
 
         /**
          * Please refer to the base method description.
          */
         @Override
         public void onConfigurationChanged(@NonNull final Configuration newConfig) {
+            try {
+                onConfigurationChangedHelper(newConfig);
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception instanceof NullPointerException
+                        ? CoreLogger.getDefaultLevel(): Level.ERROR, exception);
+            }
+        }
+
+        private void onConfigurationChangedHelper(@NonNull final Configuration newConfig) {
             CoreLogger.logWarning("newConfig " + newConfig);
 
-            for (final ConfigurationChangedListener listener: sAppCallbacksListeners)
+            for (final ConfigurationChangedListener listener: sInstance.mAppCallbacksListeners)
                 notifyListener(new Runnable() {
                     @Override
                     public void run() {
@@ -791,21 +1074,6 @@ public class Core implements DefaultLifecycleObserver {
         public void onLowMemory() {
             CoreLogger.log(Utils.getOnLowMemoryLevel(), "low memory");
         }
-
-        @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-        @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-        private static class ApplicationCallbacks2 extends ApplicationCallbacks
-                implements ComponentCallbacks2 {
-
-            /**
-             * Please refer to the base method description.
-             */
-            @Override
-            public void onTrimMemory(int level) {
-                CoreLogger.log(Utils.getOnTrimMemoryLevel(level),
-                        "level " + Utils.getOnTrimMemoryLevelString(level));
-            }
-        }
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -817,110 +1085,136 @@ public class Core implements DefaultLifecycleObserver {
         }
     }
 
+    private static Lifecycle getLifecycle() {
+        return ProcessLifecycleOwner.get().getLifecycle();
+    }
+
+    private static void enableFragmentManagerDebugLogging(final boolean value) {
+        BaseFragment.enableFragmentManagerDebugLogging(value);
+    }
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     @SuppressWarnings("unused")
-    private static class Init extends BaseListeners {
+    private class Init extends BaseListeners {
 
-        private static       String                     sBaseUri;
+        private              String                     mBaseUri;
 
-        private static       boolean                    sLogLevelSet;
-        private static final Object                     sLogLevelSetLock                = new Object();
+        private              boolean                    mLogLevelSet;
+        private        final Object                     mLogLevelSetLock                = new Object();
 
-        private static final AtomicBoolean              sConnected                      = new AtomicBoolean(true);
-        private static final Object                     sConnectedLock                  = new Object();
-        private static final AtomicBoolean              sRunNetworkMonitor              = new AtomicBoolean(true);
-        private static final AtomicInteger              sConnectionCheckInterval        = new AtomicInteger(TIMEOUT_NETWORK_MONITOR);
+        private        final AtomicBoolean              mConnected                      = new AtomicBoolean(true);
+        private        final Object                     mConnectedLock                  = new Object();
+        private        final AtomicBoolean              mRunNetworkMonitor              = new AtomicBoolean(true);
+        private        final AtomicInteger              mConnectionCheckInterval        = new AtomicInteger(TIMEOUT_NETWORK_MONITOR);
 
-        private static       ConnectivityManager.NetworkCallback
-                                                        sNetworkCallback;
+        private              ConnectivityManager.NetworkCallback
+                                                        mNetworkCallback;
 
-        private static       ActivityLifecycleProceed   sActivityLifecycleProceed;
-        private static       ApplicationCallbacks.ApplicationCallbacks2
-                                                        sApplicationCallbacks2;
+        private              ActivityLifecycleProceed   mActivityLifecycleProceed;
+        private              ApplicationCallbacks2      mApplicationCallbacks2;
 
-        private static       HideKeyboardCallbacks      sHideKeyboardCallbacks;
-        private static       OrientationCallbacks       sOrientationCallbacks;
+        private              HideKeyboardCallbacks      mHideKeyboardCallbacks;
+        private              OrientationCallbacks       mOrientationCallbacks;
 
-        public static void registerCallbacks(@NonNull final Application application, final boolean firstInit) {
+        public void registerCallbacks(@NonNull final Application application, final boolean firstInit) {
             if (firstInit) registerCallbacks(application);
 
             if (sHideKeyboard) {
-                if (sHideKeyboardCallbacks == null) {
-                    sHideKeyboardCallbacks  = new HideKeyboardCallbacks();
-                    register((BaseActivityCallbacks) sHideKeyboardCallbacks.setForceProceed(true));
+                if (mHideKeyboardCallbacks == null) {
+                    mHideKeyboardCallbacks  = new HideKeyboardCallbacks();
+                    register((BaseActivityCallbacks) mHideKeyboardCallbacks.setForceProceed(true));
                 }
             }
             else {
-                if (sHideKeyboardCallbacks != null) {
-                    BaseActivityLifecycleProceed.unregister(sHideKeyboardCallbacks);
-                    sHideKeyboardCallbacks  = null;
+                if (mHideKeyboardCallbacks != null) {
+                    BaseActivityLifecycleProceed.unregister(mHideKeyboardCallbacks);
+                    mHideKeyboardCallbacks  = null;
                 }
             }
             if (sSetOrientation) {
-                if (sOrientationCallbacks == null) {
-                    sOrientationCallbacks  = new OrientationCallbacks();
-                    register((BaseActivityCallbacks) sOrientationCallbacks.setForceProceed(true));
+                if (mOrientationCallbacks == null) {
+                    mOrientationCallbacks  = new OrientationCallbacks();
+                    register((BaseActivityCallbacks) mOrientationCallbacks.setForceProceed(true));
                 }
             }
             else {
-                if (sOrientationCallbacks != null) {
-                    BaseActivityLifecycleProceed.unregister(sOrientationCallbacks);
-                    sOrientationCallbacks  = null;
+                if (mOrientationCallbacks != null) {
+                    BaseActivityLifecycleProceed.unregister(mOrientationCallbacks);
+                    mOrientationCallbacks  = null;
                 }
             }
 
             registerCallbacksSupport(application);
         }
 
-        private static void registerCallbacks(@NonNull final Application application) {
+        private void registerCallbacks(@NonNull final Application application) {
             // don't remove validation
             BaseFragmentLifecycleProceed.register(new ValidateFragmentCallbacks(), true);
             BaseActivityLifecycleProceed.register(new ValidateActivityCallbacks(), true);
 
             register(new LocationCallbacks());
 
-            ProcessLifecycleOwner.get().getLifecycle().addObserver(sInstance);
+            Utils.postToMainLoop(new Runnable() {
+                @Override
+                public void run() {
+                    getLifecycle().addObserver(sInstance);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return "getLifecycle().addObserver()";
+                }
+            });
         }
 
         @SuppressWarnings({"UnusedReturnValue", "unused"})
-        private static boolean register(@NonNull final BaseActivityCallbacks callbacks) {
+        private boolean register(@NonNull final BaseActivityCallbacks callbacks) {
             return BaseActivityLifecycleProceed.register(callbacks);
         }
 
         @SuppressLint("ObsoleteSdkInt")
-        private static void registerCallbacksSupport(@NonNull final Application application) {
+        private void registerCallbacksSupport(@NonNull final Application application) {
             final boolean iceCream = Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH;
             if (iceCream && !sSupport) {
-                if (sActivityLifecycleProceed == null) {
-                    sActivityLifecycleProceed  = new ActivityLifecycleProceed();
-                    application.registerActivityLifecycleCallbacks(sActivityLifecycleProceed);
+                if (mActivityLifecycleProceed == null) {
+                    mActivityLifecycleProceed  = new ActivityLifecycleProceed();
+                    application.registerActivityLifecycleCallbacks(mActivityLifecycleProceed);
                 }
-                if (sApplicationCallbacks2    == null) {
-                    sApplicationCallbacks2     = new ApplicationCallbacks.ApplicationCallbacks2();
-                    application.registerComponentCallbacks(sApplicationCallbacks2);
+                if (mApplicationCallbacks2    == null) {
+                    mApplicationCallbacks2     = new ApplicationCallbacks2();
+                    application.registerComponentCallbacks(mApplicationCallbacks2);
                 }
                 BaseActivityLifecycleProceed.setActive(false);
             }
             else {
                 if (iceCream) {
-                    if (sActivityLifecycleProceed != null) {
-                        application.unregisterActivityLifecycleCallbacks(sActivityLifecycleProceed);
-                        sActivityLifecycleProceed  = null;
+                    if (mActivityLifecycleProceed != null) {
+                        application.unregisterActivityLifecycleCallbacks(mActivityLifecycleProceed);
+                        mActivityLifecycleProceed  = null;
                     }
-                    if (sApplicationCallbacks2    != null) {
-                        application.unregisterComponentCallbacks        (sApplicationCallbacks2);
-                        sApplicationCallbacks2     = null;
+                    if (mApplicationCallbacks2    != null) {
+                        application.unregisterComponentCallbacks        (mApplicationCallbacks2);
+                        mApplicationCallbacks2     = null;
                     }
                 }
                 BaseActivityLifecycleProceed.setActive(true);
-                if (sAppCallbacks == null) sAppCallbacks = new ApplicationCallbacks();
+                if (sInstance.mAppCallbacks == null) sInstance.mAppCallbacks = new ApplicationCallbacks();
             }
         }
 
-        private static void logging(@NonNull final Application application, final boolean fullInfo,
-                                    final boolean forceSet) {
-            final String  pkgName = application.getPackageName();
+        private void unregisterCallbacksSupport() {
+            final Application application = Utils.getApplication();
+            if (mActivityLifecycleProceed != null)
+                Objects.requireNonNull(application).unregisterActivityLifecycleCallbacks(mActivityLifecycleProceed);
+            if (mApplicationCallbacks2    != null)
+                Objects.requireNonNull(application).unregisterComponentCallbacks        (mApplicationCallbacks2);
+        }
+
+        private void logging(@NonNull final Application application, final boolean fullInfo,
+                             final boolean forceSet) {
+            final String pkgName = application.getPackageName();
 
             if (!Utils.isDebugMode(pkgName)) {
                 String version = "N/A";
@@ -940,31 +1234,31 @@ public class Core implements DefaultLifecycleObserver {
                         akha.yakhont.BuildConfig.VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
             }
 
-            synchronized (sLogLevelSetLock) {
-                if (forceSet || !sLogLevelSet) {
+            synchronized (mLogLevelSetLock) {
+                if (forceSet || !mLogLevelSet) {
                     CoreLogger.setLogLevel(fullInfo ? CoreLogger.getDefaultLevel(): Level.ERROR);
-                    sLogLevelSet = true;
+                    mLogLevelSet = true;
                 }
             }
-            BaseFragment.enableFragmentManagerDebugLogging(fullInfo);
+            enableFragmentManagerDebugLogging(fullInfo);
         }
 
         @SuppressWarnings({"deprecation", "RedundantSuppression" /* lint bug workaround */ })
-        private static int getVersionOld(@NonNull final PackageInfo packageInfo) {
+        private int getVersionOld(@NonNull final PackageInfo packageInfo) {
             return packageInfo.versionCode;
         }
 
         @SuppressLint("MissingPermission")
         @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
         @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-        private static void handleConnectionNew(final ConnectivityManager connectivityManager,
-                                                final boolean start) {
+        private void handleConnectionNew(final ConnectivityManager connectivityManager,
+                                         final boolean start) {
             if (start) {
-                if (sNetworkCallback != null) {
-                    CoreLogger.logWarning("already registered " + sNetworkCallback);
+                if (mNetworkCallback != null) {
+                    CoreLogger.logWarning("already registered " + mNetworkCallback);
                     return;
                 }
-                sNetworkCallback = new ConnectivityManager.NetworkCallback() {
+                mNetworkCallback = new ConnectivityManager.NetworkCallback() {
                     @Override
                     public void onAvailable(@NonNull final Network network) {
                         CoreLogger.log("NetworkCallback.onAvailable()");
@@ -997,21 +1291,40 @@ public class Core implements DefaultLifecycleObserver {
                         setConnected(false);
                     }
                 };
-                connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(), sNetworkCallback);
+                connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(), mNetworkCallback);
             }
-            else {
-                if (sNetworkCallback == null) {
+            else
+                unregisterNew(connectivityManager);
+        }
+
+        @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
+        @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+        private void unregisterNew(final ConnectivityManager connectivityManager) {
+            try {
+                if (mNetworkCallback == null) {
                     CoreLogger.logWarning("already unregistered");
                     return;
                 }
-                connectivityManager.unregisterNetworkCallback(sNetworkCallback);
-                sNetworkCallback = null;
+                connectivityManager.unregisterNetworkCallback(mNetworkCallback);
+                mNetworkCallback = null;
+            }
+            catch (Exception exception) {
+                CoreLogger.log(exception);
             }
         }
 
-        private static void setConnected(final boolean isConnected) {
-            synchronized (sConnectedLock) {
-                if (sConnected.getAndSet(isConnected) != isConnected) {
+        private void unregisterConnectionHandler() {
+            if (Build.VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) {
+                final ConnectivityManager connectivityManager = getConnectivityManager(
+                        Objects.requireNonNull(Utils.getApplication()));
+                if (connectivityManager != null) unregisterNew(connectivityManager);
+            }
+            unregisterOld();
+        }
+
+        private void setConnected(final boolean isConnected) {
+            synchronized (mConnectedLock) {
+                if (mConnected.getAndSet(isConnected) != isConnected) {
                     CoreLogger.log((isConnected ? Level.INFO: Level.WARNING),
                             "network is " + (isConnected ? "": "NOT ") + "available");
                     onNetworkStatusChanged(isConnected);
@@ -1019,14 +1332,14 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
-        private static void handleConnectionOld(final ConnectivityManager connectivityManager,
-                                                final boolean start) {
+        private void handleConnectionOld(final ConnectivityManager connectivityManager,
+                                         final boolean start) {
             if (start) {
                 if (Utils.sExecutorHelperConnection != null) {
                     CoreLogger.logWarning("network monitor already running");
                     return;
                 }
-                final long period = adjustTimeout(sConnectionCheckInterval.get());
+                final long period = adjustTimeout(mConnectionCheckInterval.get());
 
                 Utils.sExecutorHelperConnection = new Utils.ExecutorHelper();
                 if (Utils.sExecutorHelperConnection.runInBackground(new Runnable() {
@@ -1050,26 +1363,34 @@ public class Core implements DefaultLifecycleObserver {
                 }, 0, period, false) == null)   // should never happen
                     CoreLogger.logError("can't run network monitoring");
             }
-            else {
-                if (Utils.sExecutorHelperConnection == null) {
-                    CoreLogger.logWarning("network monitor already stopped");
-                    return;
-                }
-                CoreLogger.log("about to cancel network monitoring");
-                Utils.sExecutorHelperConnection.cancel();
-                Utils.sExecutorHelperConnection = null;
-            }
+            else
+                unregisterOld();
         }
 
-        private static void handleConnection(@NonNull final Application application, Boolean start,
-                                             final boolean forceOld) {
-            final ConnectivityManager connectivityManager =
-                    (ConnectivityManager) application.getSystemService(Context.CONNECTIVITY_SERVICE);
-            if (connectivityManager == null) {
-                CoreLogger.logWarning(Context.CONNECTIVITY_SERVICE + ": connectivityManager == null");
+        private void unregisterOld() {
+            if (Utils.sExecutorHelperConnection == null) {
+                CoreLogger.logWarning("network monitor already stopped");
                 return;
             }
-            if (start == null) start = sRunNetworkMonitor.get();
+            CoreLogger.log("about to cancel network monitoring");
+            Utils.sExecutorHelperConnection.cancel();
+            Utils.sExecutorHelperConnection = null;
+        }
+
+        private ConnectivityManager getConnectivityManager(@NonNull final Application application) {
+            final ConnectivityManager connectivityManager =
+                    (ConnectivityManager) application.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (connectivityManager == null)
+                CoreLogger.logWarning(Context.CONNECTIVITY_SERVICE + ": connectivityManager == null");
+            return connectivityManager;
+        }
+
+        private void handleConnection(@NonNull final Application application, Boolean start,
+                                      final boolean forceOld) {
+            final ConnectivityManager connectivityManager = getConnectivityManager(application);
+            if (connectivityManager == null) return;
+
+            if (start == null) start = mRunNetworkMonitor.get();
 
             CoreLogger.log(start ? CoreLogger.getDefaultLevel(): Level.WARNING,
                     "run network monitor == " + start);
@@ -1081,32 +1402,37 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         @SuppressWarnings("UnusedReturnValue")
-        private static void allRemaining(@NonNull final Application application) {
-            sBaseUri = String.format(BASE_URI, application.getPackageName());
+        private void allRemaining(@NonNull final Application application) {
+            mBaseUri = String.format(BASE_URI, application.getPackageName());
             handleConnection(application, null, sOldConnection);
         }
 
-        private static void onNetworkStatusChanged(final boolean isConnected) {
-            for (final NetworkStatusListener listener: sNetworkStatusListeners)
-                notifyListener(new Runnable() {
-                    @Override
-                    public void run() {
-                        listener.onNetworkStatusChanged(isConnected);
-                    }
+        private void onNetworkStatusChanged(final boolean isConnected) {
+            try {
+                for (final NetworkStatusListener listener: sInstance.mNetworkStatusListeners)
+                    notifyListener(new Runnable() {
+                        @Override
+                        public void run() {
+                            listener.onNetworkStatusChanged(isConnected);
+                        }
 
-                    @NonNull
-                    @Override
-                    public String toString() {
-                        return "NetworkStatusListener.onNetworkStatusChanged()";
-                    }
-                });
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "NetworkStatusListener.onNetworkStatusChanged()";
+                        }
+                    });
+            }
+            catch (/*NullPointer*/Exception exception) {
+                CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
+            }
         }
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static void setRunNetworkMonitor(final boolean runNetworkMonitor) {
-        if (Init.sRunNetworkMonitor.compareAndSet(!runNetworkMonitor, runNetworkMonitor))
-            Init.handleConnection(sApplication.get(), null, false);
+        if (sInstance.mInit.mRunNetworkMonitor.compareAndSet(!runNetworkMonitor, runNetworkMonitor))
+            sInstance.mInit.handleConnection(sInstance.mApplication.get(), null, false);
     }
 
     /**
@@ -1122,17 +1448,17 @@ public class Core implements DefaultLifecycleObserver {
     @SuppressWarnings("unused")
     public static int setRunNetworkMonitorInterval(final int interval) {
 //      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) return -1;
-        synchronized (Init.sConnectedLock) {
-            if (Init.sConnectionCheckInterval.get() == interval) return interval;
+        synchronized (sInstance.mInit.mConnectedLock) {
+            if (sInstance.mInit.mConnectionCheckInterval.get() == interval) return interval;
             if (interval <= 0) {
                 CoreLogger.logError("wrong network monitor interval " + interval);
-                return Init.sConnectionCheckInterval.get();
+                return sInstance.mInit.mConnectionCheckInterval.get();
             }
-            final Application application = sApplication.get();
+            final Application application = sInstance.mApplication.get();
 
-            Init.handleConnection(application, false, false);
-            final int previous = Init.sConnectionCheckInterval.getAndSet(interval);
-            Init.handleConnection(application, true, true);
+            sInstance.mInit.handleConnection(application, false, false);
+            final int previous = sInstance.mInit.mConnectionCheckInterval.getAndSet(interval);
+            sInstance.mInit.handleConnection(application, true, true);
 
             return previous;
         }
@@ -1143,16 +1469,16 @@ public class Core implements DefaultLifecycleObserver {
         void onNetworkStatusChanged(boolean isConnected);
     }
 
-    private static final Set<NetworkStatusListener>     sNetworkStatusListeners         = Utils.newSet();
+    private        final Set<NetworkStatusListener>     mNetworkStatusListeners         = Utils.newSet();
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean register(@NonNull final NetworkStatusListener listener) {
-        return sNetworkStatusListeners.add(listener);
+        return sInstance.mNetworkStatusListeners.add(listener);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static boolean unregister(@NonNull final NetworkStatusListener listener) {
-        return sNetworkStatusListeners.remove(listener);
+        return sInstance.mNetworkStatusListeners.remove(listener);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1192,7 +1518,7 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings("unused")
     public static <V> V setSingleton(final String key, final V value) {
-        return sStore.setData(key, value);
+        return sInstance.mStore.setData(key, value);
     }
 
     /**
@@ -1210,7 +1536,7 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings({"unchecked", "unused"})
     public static <V> V getSingleton(final String key) {
-        return (V) sStore.getData(key);
+        return (V) sInstance.mStore.getData(key);
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1220,18 +1546,39 @@ public class Core implements DefaultLifecycleObserver {
      */
     public static class Utils {
 
-        @SuppressWarnings("Convert2Lambda")
-        private static       UriResolver                sUriResolver                    = new UriResolver() {
-            @Override
-            public Uri getUri(@NonNull final String tableName) {
-                return Uri.parse(String.format("%s/%s", getBaseUri(), tableName));
-            }
-        };
+        private static       UriResolver                sUriResolver;
 
-        private static final ExecutorHelper             sExecutorHelper                 = new ExecutorHelper();
+        private static       ExecutorHelper             sExecutorHelper;
         private static       ExecutorHelper             sExecutorHelperConnection;
 
         private Utils() {
+        }
+
+        static {
+            init();
+        }
+
+        private static void init() {
+            try {
+                if (sExecutorHelper != null) sExecutorHelper.cancel(true);
+            }
+            catch (Exception exception) {
+                CoreLogger.log("Core.Utils init error", exception);
+            }
+
+            sExecutorHelper           = new ExecutorHelper();
+            sExecutorHelperConnection = null;
+
+            sDebug                    = null;
+            sDebugLock                = new Object();
+
+            //noinspection Convert2Lambda
+            sUriResolver              = new UriResolver() {
+                @Override
+                public Uri getUri(@NonNull final String tableName) {
+                    return Uri.parse(String.format("%s/%s", getBaseUri(), tableName));
+                }
+            };
         }
 
         /**
@@ -1309,12 +1656,18 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("unused")
         public static Application getApplication() {
-            // should never happen
-            if      (sApplication       == null) CoreLogger.logError("sApplication == null");
-            else if (sApplication.get() == null) CoreLogger.logError("sApplication.get() == null");
+            try {
+                // should never happen
+                if      (sInstance.mApplication       == null) CoreLogger.logError("Application == null");
+                else if (sInstance.mApplication.get() == null) CoreLogger.logError("Application.get() == null");
 
-            return Objects.requireNonNull(sApplication == null /* should never happen */ ?
-                    null: sApplication.get());
+                return Objects.requireNonNull(sInstance.mApplication == null /* should never happen */
+                        ? null: sInstance.mApplication.get());
+            }
+            catch (Exception exception) {   // should never happen
+                CoreLogger.log(exception);
+                return null;
+            }
         }
 
         /**
@@ -1371,7 +1724,7 @@ public class Core implements DefaultLifecycleObserver {
         @NonNull
         @SuppressWarnings("unused")
         public static Handler getHandlerMainThread() {
-            return ExecutorHelper.sHandler;
+            return ExecutorHelper.getMainHandler();
         }
 
         /**
@@ -1502,7 +1855,8 @@ public class Core implements DefaultLifecycleObserver {
                 return;
             }
             CoreLogger.logWarning("about to clear cache table " + table);
-            Utils.getApplication().getContentResolver().delete(uri, null, null);
+            Objects.requireNonNull(Utils.getApplication()).getContentResolver().delete(
+                    uri, null, null);
         }
 
         /**
@@ -1521,7 +1875,7 @@ public class Core implements DefaultLifecycleObserver {
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         @NonNull
         public static String getBaseUri() {
-            return Init.sBaseUri;
+            return sInstance.mInit.mBaseUri;
         }
 
         /**
@@ -1551,8 +1905,8 @@ public class Core implements DefaultLifecycleObserver {
          * @return  The network status flag
          */
         public static boolean isConnected() {
-            synchronized (Init.sConnectedLock) {
-                return Init.sConnected.get();
+            synchronized (sInstance.mInit.mConnectedLock) {
+                return sInstance.mInit.mConnected.get();
             }
         }
 
@@ -1718,8 +2072,9 @@ public class Core implements DefaultLifecycleObserver {
             if (context == null) context = getApplication();
 
             File dir;
-            if (checkTmpDir(dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES))) return dir;
-            if (checkTmpDir(dir = context.getExternalCacheDir()))                               return dir;
+            if (checkTmpDir(dir = Objects.requireNonNull(context)
+                    .getExternalFilesDir(Environment.DIRECTORY_PICTURES))) return dir;
+            if (checkTmpDir(dir = context.getExternalCacheDir()))          return dir;
 
             CoreLogger.logError("can not find tmp directory");
             return null;
@@ -1849,7 +2204,7 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         private static       Boolean                    sDebug;
-        private static final Object                     sDebugLock                      = new Object();
+        private static       Object                     sDebugLock;
 
         /**
          * Checks the debug mode.
@@ -1861,6 +2216,7 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public static boolean isDebugMode(@NonNull final String packageName) {
+            //noinspection SynchronizeOnNonFinalField
             synchronized (sDebugLock) {
                 if (sDebug == null) {
                     final Boolean debug = (Boolean) getBuildConfigField(packageName, "DEBUG");
@@ -1871,6 +2227,18 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static Object getBuildConfigField(@NonNull final String fieldName) {
+            try {
+                //noinspection ConstantConditions
+                return getBuildConfigField(getApplication().getPackageName(), fieldName);
+            }
+            catch (/*NullPointer*/Exception exception) {
+                CoreLogger.log(exception);
+                return null;
+            }
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static Object getBuildConfigField(@NonNull final String packageName,
                                                  @NonNull final String fieldName) {
             try {
@@ -2251,7 +2619,7 @@ public class Core implements DefaultLifecycleObserver {
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "deprecation", "WeakerAccess"})
         public static int getColor(@ColorRes final int id, final Resources.Theme theme) {
-            final Resources resources = getApplication().getResources();
+            final Resources resources = Objects.requireNonNull(getApplication()).getResources();
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
                 return resources.getColor(id, theme);
             else
@@ -2658,8 +3026,6 @@ public class Core implements DefaultLifecycleObserver {
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public  static final int                    THREAD_POOL_SIZE                = 8;
 
-            private static final Handler                sHandler                        = new Handler(Looper.getMainLooper());
-
             private final ScheduledExecutorService      mExecutorService;
             private final ScheduledExecutorService      mExecutorServiceSingle;
 
@@ -2682,16 +3048,20 @@ public class Core implements DefaultLifecycleObserver {
                         Executors.newSingleThreadScheduledExecutor(threadFactory);
             }
 
+            private static Handler getMainHandler() {
+                return new Handler(Looper.getMainLooper());
+            }
+
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean postToMainLoop(@NonNull final Runnable runnable) {
-                final boolean result = sHandler.post(prepareRunnable(runnable));
+                final boolean result = getMainHandler().post(prepareRunnable(runnable));
                 if (!result) CoreLogger.logError("post to main loop failed for: " + runnable);
                 return result;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean postToMainLoop(final long delay, @NonNull final Runnable runnable) {
-                final boolean result = sHandler.postDelayed(prepareRunnable(runnable), delay);
+                final boolean result = getMainHandler().postDelayed(prepareRunnable(runnable), delay);
                 if (!result) CoreLogger.logError("delayed post to main loop failed for: " + runnable);
                 return result;
             }
@@ -2713,7 +3083,7 @@ public class Core implements DefaultLifecycleObserver {
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
             public static boolean isCurrentThreadMain() {
-                return Thread.currentThread() == sHandler.getLooper().getThread();
+                return Thread.currentThread() == getMainHandler().getLooper().getThread();
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -2787,9 +3157,14 @@ public class Core implements DefaultLifecycleObserver {
             @SuppressWarnings("UnusedReturnValue")
             private static List<Runnable> cancel(@NonNull final ScheduledExecutorService service,
                                                  final boolean forceStopTasks) {
-                if (forceStopTasks) return service.shutdownNow();
+                try {
+                    if (forceStopTasks) return service.shutdownNow();
 
-                service.shutdown();
+                    service.shutdown();
+                }
+                catch (Exception exception) {
+                    CoreLogger.log(exception);
+                }
                 return null;
             }
         }
@@ -2933,15 +3308,21 @@ public class Core implements DefaultLifecycleObserver {
             public static final boolean                 VIEW_FOUND                      = true;
 
             @IdRes
-            private static final int                    DEF_VIEW_REF_ID                 =
-                    R.id.yakhont_default_view_id;
+            private static final int                    DEF_VIEW_REF_ID                 = R.id.yakhont_default_view_id;
             @IdRes
-            private static final int                    DEF_VIEW_ID                     =
-                    android.R.id.content;
+            private static final int                    DEF_VIEW_ID                     = android.R.id.content;
             @IdRes
-            private static int                          sDefViewId                      = DEF_VIEW_ID;
+            private static int                          sDefViewId;
 
             private ViewHelper() {
+            }
+
+            static {
+                init();
+            }
+
+            private static void init() {
+                sDefViewId = DEF_VIEW_ID;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
@@ -3091,7 +3472,7 @@ public class Core implements DefaultLifecycleObserver {
                     return view;
                 }
 
-                final Resources resources = getApplication().getResources();
+                final Resources resources = Objects.requireNonNull(getApplication()).getResources();
                 @IdRes final int defaultViewId = getDefaultViewId(resources);
 
                 final String defaultViewDescription = CoreLogger.getResourceDescription(defaultViewId);
@@ -3389,8 +3770,8 @@ public class Core implements DefaultLifecycleObserver {
          * @see #setAwaitDefaultTimeout
          */
         public static boolean await(final CountDownLatch countDownLatch, final Long timeout) {
-            return handle(countDownLatch, timeout != null ? timeout: sAwaitDefaultTimeout != null ?
-                    sAwaitDefaultTimeout: 0);
+            return handle(countDownLatch, timeout != null ? timeout: sInstance.mAwaitDefaultTimeout != null
+                    ? sInstance.mAwaitDefaultTimeout: 0);
         }
 
         /**
@@ -3401,12 +3782,12 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("unused")
         public static void setAwaitDefaultTimeout(final Long timeout) {
-            sAwaitDefaultTimeout = timeout;
+            sInstance.mAwaitDefaultTimeout = timeout;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue", "unused"})
         public static Long getAwaitDefaultTimeout() {
-            return sAwaitDefaultTimeout;
+            return sInstance.mAwaitDefaultTimeout;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
@@ -3654,7 +4035,7 @@ public class Core implements DefaultLifecycleObserver {
 
                         @SuppressWarnings("unchecked")
                         final D tmp         = (D) (data == null ? Collections.EMPTY_LIST: data);
-                        final Source source =      data == null ? Source.UNKNOWN : Source.CACHE;
+                        final Source source =      data == null ? Source.UNKNOWN: Source.CACHE;
 
                         Utils.safeRun(new Runnable() {
                             @Override

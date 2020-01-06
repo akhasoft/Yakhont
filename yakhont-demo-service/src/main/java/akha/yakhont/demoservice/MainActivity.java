@@ -25,7 +25,7 @@ import android.widget.Button;
 
 public class MainActivity extends Activity {
 
-    private static final int SERVICE_DELAY = 5000;
+    private static final int SERVICE_DELAY = 2000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

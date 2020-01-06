@@ -60,6 +60,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executor;
@@ -119,7 +120,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                             @NonNull final Observer    <D>     observer,
                                      final Runnable            onClearedCallback,
                                      final boolean             noLifecycleOwner) {
-        super(Utils.getApplication());
+        super(Objects.requireNonNull(Utils.getApplication()));
 
         mData                   = data;
         mObserver               = observer;
@@ -963,9 +964,22 @@ public class BaseViewModel<D> extends AndroidViewModel {
     public static class BaseViewModelProvider<D> extends ViewModelProvider {
 
         // this is 'cause of ViewModelStore limitation (no official way to get list of keys)
-        private final static
+        private       static
                          Map<ViewModelStore, Map<String, WeakReference<? extends BaseViewModel<?>>>>
-                                                sMap            = Utils.newWeakMap();
+                                                sMap;
+
+        static {
+            init();
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void cleanUp() {
+            init();
+        }
+
+        private static void init() {
+            sMap = Utils.newWeakMap();
+        }
 
         @SuppressWarnings("unused")
         private BaseViewModelProvider(@NonNull final ViewModelStore     store,

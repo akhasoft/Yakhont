@@ -58,15 +58,15 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
     //   please provide unique ViewModel keys
 //  private static final String                         DEMO_VIEWMODEL_KEY         = "yakhont_demo_paging_viewmodel_key";
 
+    private static final String                         DEMO_STORE_KEY             = "demo_store_key";
+
     private        CoreLoad<Throwable, List<Data>>      mLoader;
     private        LocalOkHttpClient2                   mOkHttpClient2;
-
-    private final  ViewModelStore                       mViewModelStore            = new ViewModelStore();
 
     @NonNull
     @Override
     public ViewModelStore getViewModelStore() {
-        return mViewModelStore;
+        return Core.getSingleton(DEMO_STORE_KEY);       // just simple example
     }
 
     @Override
@@ -110,7 +110,9 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
 
         ////////
 */
-        if (savedInstanceState != null) {           // handling screen orientation changes
+        if (savedInstanceState == null)             // handling screen orientation changes
+            Core.setSingleton(DEMO_STORE_KEY, new ViewModelStore());
+        else {
             mLoader = Retrofit2Loader.getExistingLoader();
 //          mLoader = Retrofit2Loader.getExistingLoader(DEMO_VIEWMODEL_KEY, this);
             return;

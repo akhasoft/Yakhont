@@ -67,6 +67,7 @@ import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModelProvider;
 
 import java.util.Collection;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
@@ -94,8 +95,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         private    final LoadParameters             mParameters;
 
         private LiveDataLoadParameters(final Future<?> future, final LoadParameters parameters) {
-            mFuture                 = future;
-            mParameters             = parameters != null ? parameters: new LoadParameters();
+            mFuture         = future;
+            mParameters     = parameters != null ? parameters: new LoadParameters();
 
             if (parameters == null) CoreLogger.log("accepted default load parameters: " + mParameters);
         }
@@ -120,8 +121,25 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     private        final Object                     mLockLoading            = new Object();
 
     private        final Provider<BaseDialog>       mToast;
+
     private static       long                       sToastStartTime;
-    private static final Object                     sLockToast              = new Object();
+    private static       Object                     sLockToast;
+
+    static {
+        init();
+    }
+
+    /**
+     * Cleanups static fields in BaseLiveData; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sToastStartTime     = 0;
+        sLockToast          = new Object();
+    }
 
     /**
      * The data loading helper API.
@@ -344,6 +362,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     protected void displayError(final BaseResponse baseResponse, final boolean notDisplayErrors) {
         if (notDisplayErrors) return;
 
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sLockToast) {
             // again an ugly hack :-) (4000 is for Toast.LENGTH_SHORT - according to Toast sources)
             if (sToastStartTime + 4000 + DEFAULT_GUI_DELAY >= getCurrentTime()) return;
@@ -359,7 +378,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected String makeErrorMessage(@SuppressWarnings("unused") final BaseResponse baseResponse) {
-        return Utils.getApplication().getString(akha.yakhont.R.string.yakhont_loader_error);
+        return Objects.requireNonNull(Utils.getApplication()).getString(akha.yakhont.R.string.yakhont_loader_error);
     }
 
     /**
@@ -891,6 +910,21 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             boolean confirm(Activity activity, View view);
         }
 
+        static {
+            init();
+        }
+
+        /**
+         * Cleanups static fields in LiveDataDialog; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            init();
+        }
+
+        private static void init() {
+            sInstance = new LiveDataDialog();
+        }
+
         /**
          * The base (with {@link Snackbar} for confirmation) {@link Progress} implementation.
          */
@@ -907,6 +941,24 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             protected     static ViewHandler        sToastViewHandler;
 
             private              Snackbar           mSnackbar;
+
+            static {
+                init();
+            }
+
+            /**
+             * Cleanups static fields in ProgressDefault; normally called from {@link Core#cleanUp()}.
+             */
+            public static void cleanUp() {
+                ProgressDefaultImp.init();
+                init();
+            }
+
+            private static void init() {
+                sSnackbarDuration   = null;
+                sSnackbarBuilder    = null;
+                sToastViewHandler   = null;
+            }
 
             /**
              * Please refer to the base method description.
@@ -1240,6 +1292,14 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             private              Toast              mToast;
             private              CountDownTimer     mCountDownTimer;
 
+            static {
+                init();
+            }
+
+            private static void init() {
+                sInstance = null;
+            }
+
             // lazy init and no sync ('cause it's implemented in parent class)
             @NonNull
             private static ProgressDefaultImp getInstance() {
@@ -1317,7 +1377,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         private              Runnable               mOnCancel;
         private final        Object                 mLockCancel             = new Object();
 
-        private final static LiveDataDialog         sInstance               = new LiveDataDialog();
+        private       static LiveDataDialog         sInstance;
 
         /**
          * Gets instance of LiveDataDialog (yes, it's Singleton).

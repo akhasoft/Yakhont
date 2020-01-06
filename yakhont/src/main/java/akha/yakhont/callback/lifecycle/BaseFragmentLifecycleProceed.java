@@ -57,6 +57,18 @@ import java.util.Set;
 public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed {
 
     /**
+     * Cleanups static fields in BaseFragmentLifecycleProceed; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sCallbacks  = Utils.newMap();
+        sActive     = true;
+    }
+
+    /**
      * Initialises a newly created {@code BaseFragmentLifecycleProceed} object.
      */
     public BaseFragmentLifecycleProceed() {
@@ -85,9 +97,12 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
         ACTIVITY_CREATED
     }
 
-    private static final Map<String, FragmentLifecycle>     CALLBACKS;
+    private static       Map<BaseFragmentCallbacks, Set<FragmentLifecycle>>     sCallbacks;
+    private static final Map<String, FragmentLifecycle>                         CALLBACKS;
 
     static {
+        init();
+
         final Map<String, FragmentLifecycle> callbacks = new HashMap<>();
 
         callbacks.put("onFragmentCreated",           FragmentLifecycle.CREATED);
@@ -102,9 +117,6 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
 
         CALLBACKS = Collections.unmodifiableMap(callbacks);
     }
-
-    private static final Map<BaseFragmentCallbacks, Set<FragmentLifecycle>>
-                                                            sCallbacks      = Utils.newMap();
 
     /**
      * Returns the collection of registered callbacks handlers.
@@ -241,7 +253,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
 
     private static final String                             PREFIX                      = "subject to call by the Yakhont Weaver - ";
 
-    private static boolean                                  sActive                     = true;
+    private static boolean                                  sActive;
 
     /**
      * Activates Yakhont Weaver.

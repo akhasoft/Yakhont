@@ -44,10 +44,12 @@ import android.hardware.display.VirtualDisplay;
 import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaCodec;
-import android.media.MediaCodecInfo;
+import android.media.MediaCodecInfo.CodecCapabilities;
+import android.media.MediaCodecInfo.CodecProfileLevel;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
-import android.media.MediaRecorder;
+import android.media.MediaMuxer.OutputFormat;
+import android.media.MediaRecorder.AudioSource;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
@@ -153,6 +155,7 @@ public class CoreLogger {
     private static final String                         FORMAT                   = "%s: %s";
     private static final String                         FORMAT_INFO              = "%s.%s(line %s)";
     private static final String                         FORMAT_THREAD            = "[%s] %s";
+    private static final String                         FORMAT_APP_ID            = "APP_ID: %s, %s";
 
     private static final String                         CLASS_NAME               = CoreLogger.class.getName();
 
@@ -161,6 +164,7 @@ public class CoreLogger {
 
     private static final Level                          LEVEL_STACK              = Level.ERROR;
     private static final Level                          LEVEL_THREAD             = Level.WARNING;
+    private static final Level                          LEVEL_APP_ID             = Level.ERROR;
 
     /** The maximum tag length (before API 25), value is {@value}. */
     @SuppressWarnings("WeakerAccess")
@@ -179,21 +183,23 @@ public class CoreLogger {
 
     private static       LoggerExtender                 sLoggerExtender;
 
-    private static final AtomicReference<String>        sTag                     = new AtomicReference<>();
+    private static       AtomicReference<String>        sTag;
+    private static       AtomicReference<String>        sAppId;
 
-    private static final String                         sNewLine                 = Objects.requireNonNull( /* should always happen */ System.getProperty("line.separator"));
+    private static       String                         sNewLine;
 
-    private static final AtomicReference<Level>         sLogLevel                = new AtomicReference<>(Level.ERROR);
+    private static       AtomicReference<Level>         sLogLevel;
     // should be consistent with javadoc below
-    private static final AtomicReference<Level>         sLogLevelDefault         = new AtomicReference<>(Level.INFO);
-    private static final AtomicBoolean                  sForceShowStack          = new AtomicBoolean();
-    private static final AtomicBoolean                  sForceShowThread         = new AtomicBoolean();
-    private static final AtomicBoolean                  sNoSilentBackDoor        = new AtomicBoolean();
+    private static       AtomicReference<Level>         sLogLevelDefault;
+    private static       AtomicBoolean                  sForceShowStack;
+    private static       AtomicBoolean                  sForceShowThread;
+    private static       AtomicBoolean                  sForceShowAppId;
+    private static       AtomicBoolean                  sNoSilentBackDoor;
 
-    private static final AtomicInteger                  sMaxLogLineLength        = new AtomicInteger(MAX_LOG_LINE_LENGTH);
-    private static final AtomicBoolean                  sSplitToNewLine          = new AtomicBoolean(true);
-    private static final List<String>                   sLinesList               = new ArrayList<>();
-    private static final Object                         sLock                    = new Object();
+    private static       AtomicInteger                  sMaxLogLineLength;
+    private static       AtomicBoolean                  sSplitToNewLine;
+    private static       List<String>                   sLinesList;
+    private static       Object                         sLock;
 
     /**
      * Allows usage of 3-rd party loggers. Please refer to {@link #setLoggerExtender(LoggerExtender)}.
@@ -233,6 +239,59 @@ public class CoreLogger {
     }
 
     private CoreLogger() {
+    }
+
+    static {
+        init();
+    }
+
+    /**
+     * Makes CoreLogger cleanup; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sLoggerExtender             = null;
+
+        sTag                        = new AtomicReference<>();
+        sAppId                      = new AtomicReference<>();
+
+        sNewLine                    = Objects.requireNonNull(System.getProperty("line.separator"));
+
+        sLogLevel                   = new AtomicReference<>(Level.ERROR);
+        // should be consistent with javadoc below
+        sLogLevelDefault            = new AtomicReference<>(Level.INFO);
+        sForceShowStack             = new AtomicBoolean();
+        sForceShowThread            = new AtomicBoolean();
+        sForceShowAppId             = new AtomicBoolean();
+        sNoSilentBackDoor           = new AtomicBoolean();
+
+        sMaxLogLineLength           = new AtomicInteger(MAX_LOG_LINE_LENGTH);
+        sSplitToNewLine             = new AtomicBoolean(true);
+        sLinesList                  = new ArrayList<>();
+        sLock                       = new Object();
+
+        sCmd                        = null;
+        sHasScreenShot              = false;
+        sHasDb                      = false;
+        sMoreFiles                  = null;
+        sSubject                    = null;
+        sAddresses                  = null;
+        sUseShake                   = null;
+
+        if (sShakeEventListener != null) sShakeEventListener.unregister();
+        sShakeEventListener         = null;
+
+        sGestureLibrary             = null;
+        sGestureLibraryLoad         = false;
+        sGestureLibraryThreshold    = 0;
+        sGestureLibraryLock         = new Object();
+
+        sShakeThreshold             = null;
+        sShakeDelay                 = null;
+        sShakeLock                  = new Object();
     }
 
     /**
@@ -360,6 +419,19 @@ public class CoreLogger {
     @SuppressWarnings("unused")
     public static boolean setShowThread(final boolean showThread) {
         return sForceShowThread.getAndSet(showThread);
+    }
+
+    /**
+     * Sets whether the application ID should be logged for all messages.
+     *
+     * @param showAppId
+     *        The value to set
+     *
+     * @return  The previous value
+     */
+    @SuppressWarnings("unused")
+    public static boolean setShowAppId(final boolean showAppId) {
+        return sForceShowAppId.getAndSet(showAppId);
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -735,8 +807,18 @@ public class CoreLogger {
                     lineNumber == null ? "unknown"         : lineNumber.toString());
             str = String.format(FORMAT, methodInfo, str);
         }
-        return sForceShowThread.get() || level.ordinal() >= LEVEL_THREAD.ordinal() ?
-                String.format(FORMAT_THREAD, Thread.currentThread().getName(), str): str;
+        if (sForceShowThread.get() || level.ordinal() >= LEVEL_THREAD.ordinal())
+            str = String.format(FORMAT_THREAD, Thread.currentThread().getName(), str);
+
+        if (sForceShowAppId.get() || level.ordinal() >= LEVEL_APP_ID.ordinal()) {
+            final String appIdGet = sAppId.get(), appId = appIdGet == null
+                    ? (String) Utils.getBuildConfigField("APPLICATION_ID"): appIdGet;
+            if (!TextUtils.isEmpty(appId)) {
+                if (appIdGet == null) sAppId.set(appId);
+                str = String.format(FORMAT_APP_ID, appId, str);
+            }
+        }
+        return str;
     }
 
     private static void log(@NonNull final Level level, @NonNull final String tag,
@@ -751,6 +833,7 @@ public class CoreLogger {
             return;
         }
 
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sLock) {
             split(sLinesList, text, maxLength, true);
             if (sSplitToNewLine.get() && maxLength < MAX_LOG_LENGTH) reSplit(sLinesList);
@@ -1078,7 +1161,7 @@ public class CoreLogger {
             return "NOT_VALID_RES_ID";
         }
         try {
-            return Utils.getApplication().getResources().getResourceName(id);
+            return Objects.requireNonNull(Utils.getApplication()).getResources().getResourceName(id);
         }
         catch (Exception exception) {
             log(exception);
@@ -1337,10 +1420,15 @@ public class CoreLogger {
             logError("registerDataSender: context == null");
         else if ((sUseShake == null || sUseShake) && addresses != null && addresses.length > 0) {
             log("about to create ShakeEventListener");
+
             final ShakeEventListener shakeEventListener = new ShakeEventListener(createDataSenderHandler(context));
+            //noinspection SynchronizeOnNonFinalField
             synchronized (sShakeLock) {
                 shakeEventListener.setThreshold(sShakeThreshold).setDelay(sShakeDelay);
             }
+            if (sShakeEventListener != null) sShakeEventListener.unregister();
+
+            sShakeEventListener = shakeEventListener;
             shakeEventListener.register();
         }
     }
@@ -1352,6 +1440,7 @@ public class CoreLogger {
     private static       String                         sSubject;
     private static       String[]                       sAddresses;
     private static       Boolean                        sUseShake;
+    private static       ShakeEventListener             sShakeEventListener;
 
     private static File getTmpDir(final Context context) {
         return Utils.getTmpDir(context);
@@ -1391,7 +1480,7 @@ public class CoreLogger {
                     @Override
                     public void run() {
                         VideoRecorder.start(activity, new File(tmpDir, String.format("%s%s.%s",
-                                VideoRecorder.sFileNamePrefix, Utils.getTmpFileSuffix(),
+                                VIDEO_PREFIX, Utils.getTmpFileSuffix(),
                                 VideoRecorder.sFileNameExtension)).getAbsolutePath());
                     }
 
@@ -1485,7 +1574,24 @@ public class CoreLogger {
         private        final Runnable                   mRunnable;
         private        final GestureLibrary             mLibrary;
         private        final double                     mThreshold;
-        private static final ArrayList<GesturePoint>    sStrokeBuffer            = new ArrayList<>();
+
+        private static       ArrayList<GesturePoint>    sStrokeBuffer;
+
+        static {
+            init();
+        }
+
+        /**
+         * Cleanups static fields in GestureHandler; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            GestureHandlerZ.init();
+            init();
+        }
+
+        private static void init() {
+            sStrokeBuffer = new ArrayList<>();
+        }
 
         /**
          * Initialises a newly created {@code GestureHandler} object.
@@ -1674,13 +1780,23 @@ public class CoreLogger {
         private static final double                     THRESHOLD                = 2.5;
 
         private static       GestureLibrary             sLibrary;
-        private static final Object                     sLock                    = new Object();
+        private static       Object                     sLock;
+
+        static {
+            init();
+        }
+
+        private static void init() {
+            sLibrary    = null;
+            sLock       = new Object();
+        }
 
         private GestureHandlerZ(@NonNull final Runnable runnable) {
             super(runnable, THRESHOLD, getLibraryHelper());
         }
 
         private static Data getLibraryHelper() {
+            //noinspection SynchronizeOnNonFinalField
             synchronized (sLock) {
                 boolean load = false;
                 if (sLibrary == null) {
@@ -1708,6 +1824,7 @@ public class CoreLogger {
     @SuppressWarnings("unused")
     public static void setGestureLibrary(final GestureLibrary library, final boolean load,
                                          final double threshold) {
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sGestureLibraryLock) {
             sGestureLibrary             = library;
             sGestureLibraryLoad         = load;
@@ -1718,7 +1835,7 @@ public class CoreLogger {
     private static       GestureLibrary                 sGestureLibrary;
     private static       boolean                        sGestureLibraryLoad;
     private static       double                         sGestureLibraryThreshold;
-    private static final Object                         sGestureLibraryLock      = new Object();
+    private static       Object                         sGestureLibraryLock;
 
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -1736,6 +1853,7 @@ public class CoreLogger {
             log("about to run custom GesturesHandler based on library: " + sGestureLibrary);
             gestureHandler = new GestureHandler(runnable, sGestureLibraryThreshold,
                     sGestureLibrary, sGestureLibraryLoad);
+            //noinspection SynchronizeOnNonFinalField
             synchronized (sGestureLibraryLock) {
                 sGestureLibraryLoad = gestureHandler.mLibrary == null;
             }
@@ -1747,7 +1865,7 @@ public class CoreLogger {
 
     private static       Double                         sShakeThreshold;
     private static       Integer                        sShakeDelay;
-    private static final Object                         sShakeLock               = new Object();
+    private static       Object                         sShakeLock;
 
     /**
      * Sets device shake parameters to trigger audio / video recording.
@@ -1760,6 +1878,7 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static void setShakeParameters(final Double threshold, final Integer delay) {
+        //noinspection SynchronizeOnNonFinalField
         synchronized (sShakeLock) {
             sShakeThreshold     = threshold;
             sShakeDelay         = delay;
@@ -1807,7 +1926,8 @@ public class CoreLogger {
          */
         @SuppressWarnings("WeakerAccess")
         public ShakeEventListener(@NonNull final Runnable runnable) {
-            mSensorManager = (SensorManager) Utils.getApplication().getSystemService(Context.SENSOR_SERVICE);
+            mSensorManager = (SensorManager) Objects.requireNonNull(Utils.getApplication())
+                    .getSystemService(Context.SENSOR_SERVICE);
             if (mSensorManager != null)
                 mSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             else
@@ -1848,19 +1968,29 @@ public class CoreLogger {
          */
         @SuppressWarnings("WeakerAccess")
         public void register() {
-            if (mSensorManager == null) return;
-            mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
-            log("shake event listener registered");
+            try {
+                if (mSensorManager == null) return;
+                mSensorManager.registerListener(this, mSensor, SensorManager.SENSOR_DELAY_UI);
+                log("shake event listener registered");
+            }
+            catch (Exception exception) {
+                log(exception);
+            }
         }
 
         /**
          * Unregisters device shaking handler (please refer to {@link SensorManager#unregisterListener} for more info).
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings("WeakerAccess")
         public void unregister() {
-            if (mSensorManager == null) return;
-            mSensorManager.unregisterListener(this, mSensor);
-            log("shake event listener unregistered");
+            try {
+                if (mSensorManager == null) return;
+                mSensorManager.unregisterListener(this, mSensor);
+                log("shake event listener unregistered");
+            }
+            catch (Exception exception) {
+                log(exception);
+            }
         }
 
         /**
@@ -1892,6 +2022,49 @@ public class CoreLogger {
         public void onAccuracyChanged(final Sensor sensor, final int accuracy) {
             log("onAccuracyChanged: Sensor " + sensor + ", accuracy " + accuracy);
         }
+    }
+
+    private static void delete(final File file) {
+        try {
+            if (file == null || !file.exists()) return;
+            log("about to delete " + file);
+
+            final boolean result = file.delete();
+            if (!result) logWarning("can not delete " + file);
+        }
+        catch (Exception exception) {
+            log(exception);
+        }
+    }
+
+    private static void removeTmpFiles(final File dir) {
+        try {
+            if (dir == null || !dir.exists()) return;
+
+            @SuppressWarnings("Convert2Lambda")
+            final File[] files = dir.listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(final File dir, final String name) {
+                    return name.startsWith(Sender.ZIP_PREFIX)        ||
+                           name.startsWith(Sender.SCREENSHOT_PREFIX) ||
+                           name.startsWith(VIDEO_PREFIX);
+                }
+            });
+            if (files == null) return;
+
+            for (final File file: files) {
+                log("about to delete temp file: " + file.getAbsolutePath());
+                delete(file);
+            }
+        }
+        catch (Exception exception) {
+            log(exception);
+        }
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static void removeTmpFiles() {
+        removeTmpFiles(Utils.getTmpDir(null));
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1952,8 +2125,6 @@ public class CoreLogger {
             final boolean hasAnr = new File(ANR_TRACES).exists();
 
             final Map<String, Exception> errors = new ArrayMap<>();
-
-            removePreviousFiles(tmpDir);
 
             final ArrayList<String>  list = new ArrayList<>();
             if (hasAnr)              list.add(ANR_TRACES);
@@ -2040,32 +2211,6 @@ public class CoreLogger {
 
         private static String isAdded(final boolean added) {
             return (added ? "": "not ") + "added";
-        }
-
-        private static void delete(final File file) {
-            if (file == null || !file.exists()) return;
-            log("about to delete " + file);
-
-            final boolean result = file.delete();
-            if (!result) logWarning("can not delete " + file);
-        }
-
-        private static void removePreviousFiles(final File dir) {
-            if (dir == null || !dir.exists()) return;
-
-            @SuppressWarnings("Convert2Lambda")
-            final File[] files = dir.listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(final File dir, final String name) {
-                    return name.startsWith(ZIP_PREFIX) || name.endsWith(".zip");
-                }
-            });
-            if (files == null) return;
-
-            for (final File file: files) {
-                log("about to delete temp file: " + file.getAbsolutePath());
-                delete(file);
-            }
         }
 
         private static File getTmpFile(final String prefix, final String suffix,
@@ -2215,6 +2360,8 @@ public class CoreLogger {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // based on https://github.com/google/grafika and https://github.com/saki4510t/AudioVideoRecordingSample
 
+    private static final String                         VIDEO_PREFIX             = "yakhont_record";
+
     /**
      * Component to record video / audio, requires API version &gt;= {@link VERSION_CODES#LOLLIPOP LOLLIPOP}.
      * <br>This is simplified version, intended for applications debug only; don't use it for professional
@@ -2241,53 +2388,118 @@ public class CoreLogger {
 
         private static final int                        CYC_BAR_AWAIT_TIMEOUT    =  3000;  // milliseconds
 
-        private static       String                     sDisplayName             = "Yakhont's Virtual Display";
-        private static       String                     sFileNamePrefix          = "yakhont_record";
-        private static       String                     sFileNameExtension       = "mp4";
+        private static       String                     sDisplayName;
+        private static       String                     sFileNameExtension;
 
-        private static       int                        sAudioSampleRate         = 44100;
-        private static       int                        sAudioSamplesPerFrame    =  1024;
-        private static       int                        sAudioFramesPerBuffer    =    25;
-        private static       int                        sAudioBitRate            = 64000;
-        private static       int                        sAudioQualityRepeat      =     1;
-        private static       int                        sAudioTimeout            = 10 * 1000;
-        private static       int                        sAudioChannelMask        = AudioFormat.CHANNEL_IN_MONO;
-        private static       int                        sAudioFormat             = AudioFormat.ENCODING_PCM_16BIT;
-        private static       String                     sAudioMimeType           = "audio/mp4a-latm";
+        private static       int                        sAudioSampleRate;
+        private static       int                        sAudioSamplesPerFrame;
+        private static       int                        sAudioFramesPerBuffer;
+        private static       int                        sAudioBitRate;
+        private static       int                        sAudioQualityRepeat;
+        private static       int                        sAudioChannelCount;
+        private static       int                        sAudioTimeout;
+        private static       int                        sAudioChannelMask;
+        private static       int                        sAudioCodecProfileLevel;
+        private static       int                        sAudioFormat;
+        private static       int                        sAudioSource;
+        private static       String                     sAudioMimeType;
 
-        private static       int                        sVideoFrameRate          = 30;
-        private static       int                        sVideoBitRate            = 6 * 1000 * 1000;
-        private static       String                     sVideoMimeType           = "video/avc";
+        private static       int                        sVideoFrameRate;
+        private static       int                        sVideoBitRate;
+        private static       int                        sVideoColorFormat;
+        private static       int                        sVirtualDisplayFlags;
+        private static       String                     sVideoMimeType;
 
-        private static       boolean                    sWarnings                = true;
-        private static       int                        sCycBarAwaitTimeout      = CYC_BAR_AWAIT_TIMEOUT;
+        private static       int                        sMediaMuxerOutputFormat;
+
+        private static       boolean                    sWarnings;
+        private static       int                        sCycBarAwaitTimeout;
 
         private static       MediaProjectionManager     sMediaProjectionManager;
         private static       MediaProjection            sMediaProjection;
         private static       MediaMuxer                 sMediaMuxer;
-        private static final Object                     sMediaMuxerLock          = new Object();
-        private static final MediaCodec[]               sEncoders                = new MediaCodec[2];
+        private static       Object                     sMediaMuxerLock;
+        private static       MediaCodec[]               sEncoders;
         private static       VirtualDisplay             sVirtualDisplay;
         private static       Surface                    sInputSurface;
         private static       long                       sPrevAudioTime;
-        private static final int[]                      sTrackIndexes            = new int[2];
+        private static       int[]                      sTrackIndexes;
         private static       CyclicBarrier              sCyclicBarrier;
 
         private static       Runnable                   sHandler;
         private static       String                     sOutputFile;
         private static       boolean                    sIsOk;
-        private static final Object                     sIsOkLock                = new Object();
+        private static       Object                     sIsOkLock;
 
         private VideoRecorder() {
         }
 
+        static {
+            init();
+        }
+
+        /**
+         * Makes VideoRecorder cleanup; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            stop();
+            init();
+        }
+
+        private static void init() {
+            sDisplayName             = "Yakhont's Virtual Display";
+            sFileNameExtension       = "mp4";
+
+            sAudioSampleRate         = 44100;
+            sAudioSamplesPerFrame    =  1024;
+            sAudioFramesPerBuffer    =    25;
+            sAudioBitRate            = 64000;
+            sAudioQualityRepeat      =     1;
+            sAudioChannelCount       =     1;
+            sAudioTimeout            = 10 * 1000;
+            sAudioChannelMask        = AudioFormat.CHANNEL_IN_MONO;
+            sAudioCodecProfileLevel  = CodecProfileLevel.AACObjectLC;
+            sAudioFormat             = AudioFormat.ENCODING_PCM_16BIT;
+            sAudioSource             = AudioSource.MIC;
+            sAudioMimeType           = "audio/mp4a-latm";
+
+            sVideoFrameRate          = 30;
+            sVideoBitRate            = 6 * 1000 * 1000;
+            sVideoColorFormat        = CodecCapabilities.COLOR_FormatSurface;
+            sVirtualDisplayFlags     = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR;
+            sVideoMimeType           = "video/avc";
+
+            sMediaMuxerOutputFormat  = OutputFormat.MUXER_OUTPUT_MPEG_4;
+
+            sWarnings                = true;
+            sCycBarAwaitTimeout      = CYC_BAR_AWAIT_TIMEOUT;
+
+            sMediaProjectionManager  = null;
+            sMediaProjection         = null;
+            sMediaMuxer              = null;
+            sMediaMuxerLock          = new Object();
+            sEncoders                = new MediaCodec[2];
+            sVirtualDisplay          = null;
+            sInputSurface            = null;
+            sPrevAudioTime           = 0;
+            sTrackIndexes            = new int[2];
+            sCyclicBarrier           = null;
+
+            sHandler                 = null;
+            sOutputFile              = null;
+            sIsOk                    = false;
+            sIsOkLock                = new Object();
+        }
+
         private static boolean isOk() {
+            //noinspection SynchronizeOnNonFinalField
             synchronized (sIsOkLock) {
                 return sIsOk;
             }
         }
 
         private static void setOk(final boolean ok) {
+            //noinspection SynchronizeOnNonFinalField
             synchronized (sIsOkLock) {
                 sIsOk = ok;
             }
@@ -2547,7 +2759,7 @@ public class CoreLogger {
         }
 
         private static void startRecording(@NonNull final Activity activity, final boolean useAudio) throws IOException {
-            sMediaMuxer    = new MediaMuxer(sOutputFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+            sMediaMuxer    = new MediaMuxer(sOutputFile, sMediaMuxerOutputFormat);
             sCyclicBarrier = new CyclicBarrier(2, null);
 
             try {
@@ -2565,6 +2777,12 @@ public class CoreLogger {
                                 log("audio record failed", exception);
                             }
                         }
+
+                        @NonNull
+                        @Override
+                        public String toString() {
+                            return "startAudioRecording";
+                        }
                     }.start();
                 }
             }
@@ -2577,17 +2795,17 @@ public class CoreLogger {
             setupVideo(displayMetrics.widthPixels, displayMetrics.heightPixels);
 
             sMediaProjection.createVirtualDisplay(sDisplayName, displayMetrics.widthPixels,
-                    displayMetrics.heightPixels, displayMetrics.densityDpi,
-                    DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, sInputSurface, null, null);
+                    displayMetrics.heightPixels, displayMetrics.densityDpi, sVirtualDisplayFlags,
+                    sInputSurface, null, null);
 
             if (sEncoders[INDEX_VIDEO] != null) sEncoders[INDEX_VIDEO].start();
         }
 
         private static void setupAudio() throws IOException {
             final MediaFormat mediaFormat = MediaFormat.createAudioFormat(sAudioMimeType,
-                    sAudioSampleRate, 1);
+                    sAudioSampleRate, sAudioChannelCount);
 
-            mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE,  MediaCodecInfo.CodecProfileLevel.AACObjectLC);
+            mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE,  sAudioCodecProfileLevel);
             mediaFormat.setInteger(MediaFormat.KEY_CHANNEL_MASK, sAudioChannelMask);
             mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE,     sAudioBitRate);
 
@@ -2608,8 +2826,8 @@ public class CoreLogger {
 
             AudioRecord audioRecord;
             try {
-                audioRecord = new AudioRecord(MediaRecorder.AudioSource.MIC, sAudioSampleRate,
-                        sAudioChannelMask, sAudioFormat, bufferSize);
+                audioRecord = new AudioRecord(sAudioSource, sAudioSampleRate, sAudioChannelMask,
+                        sAudioFormat, bufferSize);
                 if (audioRecord.getState() != AudioRecord.STATE_INITIALIZED) {
                     audioRecord = null;
                     logError("AudioRecord failed");
@@ -2737,6 +2955,7 @@ public class CoreLogger {
 
                         if (info.size != 0) {
                             info.presentationTimeUs = getAudioTime();
+                            //noinspection SynchronizeOnNonFinalField
                             synchronized (sMediaMuxerLock) {
                                 sMediaMuxer.writeSampleData(sTrackIndexes[INDEX_AUDIO], buffer, info);
                             }
@@ -2754,8 +2973,7 @@ public class CoreLogger {
         private static void setupVideo(final int width, final int height) throws IOException {
             final MediaFormat mediaFormat = MediaFormat.createVideoFormat(sVideoMimeType, width, height);
 
-            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-                    MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
+            mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, sVideoColorFormat);
             mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE,     sVideoBitRate);
             mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE,   sVideoFrameRate);
             mediaFormat.setInteger(MediaFormat.KEY_CAPTURE_RATE, sVideoFrameRate);
@@ -2811,6 +3029,7 @@ public class CoreLogger {
                     if (info.size != 0 && isOk()) {
                         encodedData.position(info.offset);
                         encodedData.limit(info.offset + info.size);
+                        //noinspection SynchronizeOnNonFinalField
                         synchronized (sMediaMuxerLock) {
                             sMediaMuxer.writeSampleData(sTrackIndexes[INDEX_VIDEO], encodedData, info);
                         }
@@ -2866,6 +3085,7 @@ public class CoreLogger {
                 }
             }
 
+            //noinspection SynchronizeOnNonFinalField
             synchronized (sIsOkLock) {
                 if (!isOk() &&
                         (sTrackIndexes[INDEX_VIDEO] >= 0 || sTrackIndexes[INDEX_AUDIO] >= 0)) {
@@ -2897,17 +3117,6 @@ public class CoreLogger {
         @SuppressWarnings("unused")
         public static void setDisplayName(final String value) {
             sDisplayName = value;
-        }
-
-        /**
-         * Sets output file name prefix.
-         *
-         * @param value
-         *        The output file name prefix
-         */
-        @SuppressWarnings("unused")
-        public static void setFileNamePrefix(final String value) {
-            sFileNamePrefix = value;
         }
 
         /**
@@ -3022,6 +3231,51 @@ public class CoreLogger {
         }
 
         /**
+         * Sets audio source; the default value is {@link AudioSource#MIC}.
+         *
+         * @param value
+         *        The audio source
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioSource(final int value) {
+            sAudioSource = value;
+        }
+
+        /**
+         * Sets audio codec profile level; the default value is {@link CodecProfileLevel#AACObjectLC}.
+         *
+         * @param value
+         *        The audio codec profile level
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioCodecProfileLevel(final int value) {
+            sAudioCodecProfileLevel = value;
+        }
+
+        /**
+         * Sets audio channels count; the default value is 1.
+         *
+         * @param value
+         *        The audio channels count
+         */
+        @SuppressWarnings("unused")
+        public static void setAudioChannelCount(final int value) {
+            sAudioChannelCount = value;
+        }
+
+        /**
+         * Sets virtual display flags; the default value is {@link DisplayManager#VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR}.
+         * Please refer to {@link DisplayManager#createVirtualDisplay} for more info.
+         *
+         * @param value
+         *        The virtual display flags
+         */
+        @SuppressWarnings("unused")
+        public static void setVirtualDisplayFlags(final int value) {
+            sVirtualDisplayFlags = value;
+        }
+
+        /**
          * Sets video mime type; the default value is "video/avc".
          *
          * @param value
@@ -3052,6 +3306,28 @@ public class CoreLogger {
         @SuppressWarnings("unused")
         public static void setVideoFrameRate(final int value) {
             sVideoFrameRate = value;
+        }
+
+        /**
+         * Sets video color format; the default value is {@link CodecCapabilities#COLOR_FormatSurface}.
+         *
+         * @param value
+         *        The video color format
+         */
+        @SuppressWarnings("unused")
+        public static void setVideoColorFormat(final int value) {
+            sVideoColorFormat = value;
+        }
+
+        /**
+         * Sets {@link MediaMuxer} output format; the default value is {@link OutputFormat#MUXER_OUTPUT_MPEG_4}.
+         *
+         * @param value
+         *        The {@link MediaMuxer} output format
+         */
+        @SuppressWarnings("unused")
+        public static void setMediaMuxerOutputFormat(final int value) {
+            sMediaMuxerOutputFormat = value;
         }
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})

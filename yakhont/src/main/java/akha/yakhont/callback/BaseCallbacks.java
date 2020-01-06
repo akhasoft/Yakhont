@@ -16,6 +16,7 @@
 
 package akha.yakhont.callback;
 
+import akha.yakhont.Core;               // for javadoc
 import akha.yakhont.Core.Utils;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
@@ -146,9 +147,24 @@ public abstract class BaseCallbacks<T> {
 
     private static final String                             FORMAT                      = "-%s (%s)";
 
-    private boolean                                         mForceProceed;
+    private              boolean                            mForceProceed;
 
-    private static Validator                                sValidator;
+    private static       Validator                          sValidator;
+
+    static {
+        init();
+    }
+
+    /**
+     * Cleanups static fields in BaseCallbacks; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sValidator = null;
+    }
 
     /**
      * The callbacks annotations validation API.

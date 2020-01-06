@@ -97,13 +97,28 @@ import com.squareup.picasso.Picasso;
  */
 public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter, Filterable {
 
-    private static       boolean                             sUseGlide                  = true;
+    private static       boolean                             sUseGlide;
 
     private              BaseAdapter                         mBaseAdapter;
     private        final BaseArrayAdapter<T>                 mArrayAdapter;
     private        final BaseCursorAdapter                   mCursorAdapter;
 
     private        final DataConverter<T, R, E, D>           mConverter;
+
+    static {
+        init();
+    }
+
+    /**
+     * Cleanups static fields in BaseCacheAdapter; normally called from {@link Core#cleanUp()}.
+     */
+    public static void cleanUp() {
+        init();
+    }
+
+    private static void init() {
+        sUseGlide = true;
+    }
 
     /**
      * Sets default library for images loading.

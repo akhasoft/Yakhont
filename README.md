@@ -176,7 +176,7 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments are supported: it's not necessary to derive 
 them from some predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 539 KB (except the _full_ version, which is about 637 KB).
+The Yakhont AAR is about 550 KB (except the _full_ version, which is about 650 KB).
 
 Yakhont supports Android 4.0 (API level 14) and above ('cause support library requires API level 14 as a minimum).
 
@@ -196,16 +196,16 @@ Releases are available [here](https://github.com/akhasoft/Yakhont/releases),
 demo applications can be downloaded from the
 [latest release](https://github.com/akhasoft/Yakhont/releases/latest).
 
-1. [demo simple kotlin](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
+1. [demo simple kotlin](https://github.com/akhasoft/Yakhont/releases/download/v1.2.01/yakhont-demo.apk):
 The simplest demo, just loads and displays some list (with "pull-to refresh" support).
-2. [demo room kotlin](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
+2. [demo room kotlin](https://github.com/akhasoft/Yakhont/releases/download/v1.2.01/yakhont-demo.apk):
 The [Google room library](https://developer.android.com/topic/libraries/architecture/room) 
 usage demo (+ custom adapter demo).
-3. [demo paging](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo-simple.apk):
+3. [demo paging](https://github.com/akhasoft/Yakhont/releases/download/v1.2.01/yakhont-demo-simple.apk):
 The endless adapter demo (based on [Google paging library](https://developer.android.com/topic/libraries/architecture/paging)).
-4. [demo service](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
+4. [demo service](https://github.com/akhasoft/Yakhont/releases/download/v1.2.01/yakhont-demo.apk):
 The simple demo which loads some data - but from [service](https://developer.android.com/reference/android/app/Service.html).
-5. [main demo](https://github.com/akhasoft/Yakhont/releases/download/v/1.2.01/yakhont-demo.apk):
+5. [main demo](https://github.com/akhasoft/Yakhont/releases/download/v1.2.01/yakhont-demo.apk):
 The most complex demo with tons of customization.
 
 ## Versions
@@ -261,7 +261,7 @@ dependencies {
 }
 ```
 
-4. The code which runs Yakhont Weaver:
+4. Add the code which runs Yakhont Weaver:
 
     4.1. For Java:
 ```groovy
@@ -309,7 +309,7 @@ android.applicationVariants.all { variant ->
     to alternate classes implementation (e.g. add / modify callbacks in Activities and Fragments)
     without changing their source code.
 
-5. Finally, please add to your _AndroidManifest.xml_ something like code snippet below
+5. Finally, please add to your _AndroidManifest.xml_ the code snippet below
 (skip it only if you're not going to use build-in Yakhont cache):
 
 ```

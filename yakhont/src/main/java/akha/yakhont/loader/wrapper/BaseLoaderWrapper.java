@@ -978,8 +978,10 @@ public abstract class BaseLoaderWrapper<D> {
 
     private Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getModels(
             final ViewModelStoreOwner viewModelStoreOwner) {
+
         final Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> set    =
                 BaseViewModel.getViewModels(viewModelStoreOwner);
+
         final Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> result =
                 set != null && !set.isEmpty() ? set: BaseViewModel.getViewModels(mViewModelStore);
 
@@ -1191,6 +1193,7 @@ public abstract class BaseLoaderWrapper<D> {
 
         if (parameters != null && parameters.getLoaderId() != null) {
             final String id = parameters.getLoaderId();
+
             boolean found = false;
             for (final BaseLoaderWrapper loader: loaders)
                 if (loader.mLoaderId.equals(id)) {
@@ -1706,16 +1709,31 @@ public abstract class BaseLoaderWrapper<D> {
         private static final int                  IDX_NO_LOAD             = 7;
         private static final int                  ARRAY_SIZE              = 8;
 
-        private final String                      mLoaderId;
-        private final boolean                     mForceCache, mNoProgress, mMerge, mNoErrors, mSync,
+        private        final String               mLoaderId;
+        private        final boolean              mForceCache, mNoProgress, mMerge, mNoErrors, mSync,
                                                   mHandleTimeout, mPullToRefresh, mNoLoad;
-        private final String                      mError;
-        private final int                         mTimeout;
-        private final Long                        mPageId;
-        private       String                      mTableName;
-        private       DataStore                   mStore                  = new DataStore();
+        private        final String               mError;
+        private        final int                  mTimeout;
+        private        final Long                 mPageId;
+        private              String               mTableName;
+        private              DataStore            mStore                  = new DataStore();
 
-        private final static AtomicBoolean        sSafe                   = new AtomicBoolean(true);
+        private static       AtomicBoolean        sSafe;
+
+        static {
+            init();
+        }
+
+        /**
+         * Cleanups static fields in LoadParameters; normally called from {@link Core#cleanUp()}.
+         */
+        public static void cleanUp() {
+            init();
+        }
+
+        private static void init() {
+            sSafe = new AtomicBoolean(true);
+        }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static final Parcelable.Creator<LoadParameters> CREATOR
