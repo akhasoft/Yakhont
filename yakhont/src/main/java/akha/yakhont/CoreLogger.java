@@ -199,7 +199,7 @@ public class CoreLogger {
     private static       AtomicInteger                  sMaxLogLineLength;
     private static       AtomicBoolean                  sSplitToNewLine;
     private static       List<String>                   sLinesList;
-    private static       Object                         sLock;
+    private static final Object                         sLock;
 
     /**
      * Allows usage of 3-rd party loggers. Please refer to {@link #setLoggerExtender(LoggerExtender)}.
@@ -242,6 +242,10 @@ public class CoreLogger {
     }
 
     static {
+        sLock                                                                    = new Object();
+        sGestureLibraryLock                                                      = new Object();
+        sShakeLock                                                               = new Object();
+
         init();
     }
 
@@ -253,45 +257,49 @@ public class CoreLogger {
     }
 
     private static void init() {
-        sLoggerExtender             = null;
+        sLoggerExtender                 = null;
 
-        sTag                        = new AtomicReference<>();
-        sAppId                      = new AtomicReference<>();
+        sTag                            = new AtomicReference<>();
+        sAppId                          = new AtomicReference<>();
 
-        sNewLine                    = Objects.requireNonNull(System.getProperty("line.separator"));
+        sNewLine                        = Objects.requireNonNull(System.getProperty("line.separator"));
 
-        sLogLevel                   = new AtomicReference<>(Level.ERROR);
+        sLogLevel                       = new AtomicReference<>(Level.ERROR);
         // should be consistent with javadoc below
-        sLogLevelDefault            = new AtomicReference<>(Level.INFO);
-        sForceShowStack             = new AtomicBoolean();
-        sForceShowThread            = new AtomicBoolean();
-        sForceShowAppId             = new AtomicBoolean();
-        sNoSilentBackDoor           = new AtomicBoolean();
+        sLogLevelDefault                = new AtomicReference<>(Level.INFO);
+        sForceShowStack                 = new AtomicBoolean();
+        sForceShowThread                = new AtomicBoolean();
+        sForceShowAppId                 = new AtomicBoolean();
+        sNoSilentBackDoor               = new AtomicBoolean();
 
-        sMaxLogLineLength           = new AtomicInteger(MAX_LOG_LINE_LENGTH);
-        sSplitToNewLine             = new AtomicBoolean(true);
-        sLinesList                  = new ArrayList<>();
-        sLock                       = new Object();
+        sMaxLogLineLength               = new AtomicInteger(MAX_LOG_LINE_LENGTH);
+        sSplitToNewLine                 = new AtomicBoolean(true);
 
-        sCmd                        = null;
-        sHasScreenShot              = false;
-        sHasDb                      = false;
-        sMoreFiles                  = null;
-        sSubject                    = null;
-        sAddresses                  = null;
-        sUseShake                   = null;
+        synchronized (sLock) {
+            sLinesList                  = new ArrayList<>();
+        }
+
+        sCmd                            = null;
+        sHasScreenShot                  = false;
+        sHasDb                          = false;
+        sMoreFiles                      = null;
+        sSubject                        = null;
+        sAddresses                      = null;
+        sUseShake                       = null;
 
         if (sShakeEventListener != null) sShakeEventListener.unregister();
-        sShakeEventListener         = null;
+        sShakeEventListener             = null;
 
-        sGestureLibrary             = null;
-        sGestureLibraryLoad         = false;
-        sGestureLibraryThreshold    = 0;
-        sGestureLibraryLock         = new Object();
+        synchronized (sGestureLibraryLock) {
+            sGestureLibrary             = null;
+            sGestureLibraryLoad         = false;
+            sGestureLibraryThreshold    = 0;
+        }
 
-        sShakeThreshold             = null;
-        sShakeDelay                 = null;
-        sShakeLock                  = new Object();
+        synchronized (sShakeLock) {
+            sShakeThreshold             = null;
+            sShakeDelay                 = null;
+        }
     }
 
     /**
@@ -833,7 +841,6 @@ public class CoreLogger {
             return;
         }
 
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sLock) {
             split(sLinesList, text, maxLength, true);
             if (sSplitToNewLine.get() && maxLength < MAX_LOG_LENGTH) reSplit(sLinesList);
@@ -1422,7 +1429,6 @@ public class CoreLogger {
             log("about to create ShakeEventListener");
 
             final ShakeEventListener shakeEventListener = new ShakeEventListener(createDataSenderHandler(context));
-            //noinspection SynchronizeOnNonFinalField
             synchronized (sShakeLock) {
                 shakeEventListener.setThreshold(sShakeThreshold).setDelay(sShakeDelay);
             }
@@ -1780,15 +1786,17 @@ public class CoreLogger {
         private static final double                     THRESHOLD                = 2.5;
 
         private static       GestureLibrary             sLibrary;
-        private static       Object                     sLock;
+        private static final Object                     sLock;
 
         static {
+            sLock                                                                = new Object();
             init();
         }
 
         private static void init() {
-            sLibrary    = null;
-            sLock       = new Object();
+            synchronized (sLock) {
+                sLibrary = null;
+            }
         }
 
         private GestureHandlerZ(@NonNull final Runnable runnable) {
@@ -1796,7 +1804,6 @@ public class CoreLogger {
         }
 
         private static Data getLibraryHelper() {
-            //noinspection SynchronizeOnNonFinalField
             synchronized (sLock) {
                 boolean load = false;
                 if (sLibrary == null) {
@@ -1824,7 +1831,6 @@ public class CoreLogger {
     @SuppressWarnings("unused")
     public static void setGestureLibrary(final GestureLibrary library, final boolean load,
                                          final double threshold) {
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sGestureLibraryLock) {
             sGestureLibrary             = library;
             sGestureLibraryLoad         = load;
@@ -1835,7 +1841,7 @@ public class CoreLogger {
     private static       GestureLibrary                 sGestureLibrary;
     private static       boolean                        sGestureLibraryLoad;
     private static       double                         sGestureLibraryThreshold;
-    private static       Object                         sGestureLibraryLock;
+    private static final Object                         sGestureLibraryLock;
 
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
@@ -1853,7 +1859,6 @@ public class CoreLogger {
             log("about to run custom GesturesHandler based on library: " + sGestureLibrary);
             gestureHandler = new GestureHandler(runnable, sGestureLibraryThreshold,
                     sGestureLibrary, sGestureLibraryLoad);
-            //noinspection SynchronizeOnNonFinalField
             synchronized (sGestureLibraryLock) {
                 sGestureLibraryLoad = gestureHandler.mLibrary == null;
             }
@@ -1865,7 +1870,7 @@ public class CoreLogger {
 
     private static       Double                         sShakeThreshold;
     private static       Integer                        sShakeDelay;
-    private static       Object                         sShakeLock;
+    private static final Object                         sShakeLock;
 
     /**
      * Sets device shake parameters to trigger audio / video recording.
@@ -1878,7 +1883,6 @@ public class CoreLogger {
      */
     @SuppressWarnings("unused")
     public static void setShakeParameters(final Double threshold, final Integer delay) {
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sShakeLock) {
             sShakeThreshold     = threshold;
             sShakeDelay         = delay;
@@ -2386,7 +2390,24 @@ public class CoreLogger {
         private static final int                        INDEX_AUDIO              =  0;
         private static final int                        INDEX_VIDEO              =  1;
 
-        private static final int                        CYC_BAR_AWAIT_TIMEOUT    =  3000;  // milliseconds
+        private static final int                        CYC_BAR_AWAIT_TIMEOUT    =  3000;  // ms
+
+        /** Suitable bit rate for 1080p (the value is {@value}). */
+        public  static final int                        VIDEO_BIT_RATE_1080      = (int) (4.5 * 1024 * 1024);
+        /** Suitable bit rate for 720p (the value is {@value}). */
+        public  static final int                        VIDEO_BIT_RATE_720       = (int) (2.5 * 1024 * 1024);
+        /** Suitable bit rate for 480p (the value is {@value}). */
+        public  static final int                        VIDEO_BIT_RATE_480       =              1024 * 1024;
+        /** Suitable bit rate for 360p (the value is {@value}). */
+        public  static final int                        VIDEO_BIT_RATE_360       =               740 * 1024;
+        /** Suitable bit rate for 240p (the value is {@value}). */
+        public  static final int                        VIDEO_BIT_RATE_240       =               400 * 1024;
+        /** Not-bad quality bit rate (the value is {@value}). */
+        public  static final int                        VIDEO_BIT_RATE_HIGH      = (int) (6.8 * 1024 * 1024);
+        /** File-size-economic bit rate (the value is {@value}). */
+        public  static final int                        VIDEO_BIT_RATE_LOW       =               128 * 1024;
+
+        private static final int                        VIDEO_BIT_RATE_DEFAULT   = VIDEO_BIT_RATE_240;
 
         private static       String                     sDisplayName;
         private static       String                     sFileNameExtension;
@@ -2405,7 +2426,8 @@ public class CoreLogger {
         private static       String                     sAudioMimeType;
 
         private static       int                        sVideoFrameRate;
-        private static       int                        sVideoBitRate;
+        private static       Integer                    sVideoBitRate;
+        private static       Boolean                    sVideoBitRateHigh;
         private static       int                        sVideoColorFormat;
         private static       int                        sVirtualDisplayFlags;
         private static       String                     sVideoMimeType;
@@ -2418,7 +2440,7 @@ public class CoreLogger {
         private static       MediaProjectionManager     sMediaProjectionManager;
         private static       MediaProjection            sMediaProjection;
         private static       MediaMuxer                 sMediaMuxer;
-        private static       Object                     sMediaMuxerLock;
+        private static final Object                     sMediaMuxerLock;
         private static       MediaCodec[]               sEncoders;
         private static       VirtualDisplay             sVirtualDisplay;
         private static       Surface                    sInputSurface;
@@ -2429,12 +2451,15 @@ public class CoreLogger {
         private static       Runnable                   sHandler;
         private static       String                     sOutputFile;
         private static       boolean                    sIsOk;
-        private static       Object                     sIsOkLock;
+        private static final Object                     sIsOkLock;
 
         private VideoRecorder() {
         }
 
         static {
+            sMediaMuxerLock                                                      = new Object();
+            sIsOkLock                                                            = new Object();
+
             init();
         }
 
@@ -2450,25 +2475,25 @@ public class CoreLogger {
             sDisplayName             = "Yakhont's Virtual Display";
             sFileNameExtension       = "mp4";
 
-            sAudioSampleRate         = 44100;
-            sAudioSamplesPerFrame    =  1024;
-            sAudioFramesPerBuffer    =    25;
-            sAudioBitRate            = 64000;
-            sAudioQualityRepeat      =     1;
-            sAudioChannelCount       =     1;
+            sAudioSampleRate         =     44100;
+            sAudioSamplesPerFrame    =      1024;
+            sAudioFramesPerBuffer    =        25;
+            sAudioBitRate            =     64000;
+            sAudioQualityRepeat      =         1;
+            sAudioChannelCount       =         1;
             sAudioTimeout            = 10 * 1000;
             sAudioChannelMask        = AudioFormat.CHANNEL_IN_MONO;
             sAudioCodecProfileLevel  = CodecProfileLevel.AACObjectLC;
             sAudioFormat             = AudioFormat.ENCODING_PCM_16BIT;
             sAudioSource             = AudioSource.MIC;
-            sAudioMimeType           = "audio/mp4a-latm";
+            sAudioMimeType           = MediaFormat.MIMETYPE_AUDIO_AAC;
 
             sVideoFrameRate          = 30;
-            sVideoBitRate            = 6 * 1000 * 1000;
+            sVideoBitRate            = null;
+            sVideoBitRateHigh        = null;
             sVideoColorFormat        = CodecCapabilities.COLOR_FormatSurface;
             sVirtualDisplayFlags     = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR;
-            sVideoMimeType           = "video/avc";
-
+            sVideoMimeType           = MediaFormat.MIMETYPE_VIDEO_AVC;
             sMediaMuxerOutputFormat  = OutputFormat.MUXER_OUTPUT_MPEG_4;
 
             sWarnings                = true;
@@ -2476,8 +2501,6 @@ public class CoreLogger {
 
             sMediaProjectionManager  = null;
             sMediaProjection         = null;
-            sMediaMuxer              = null;
-            sMediaMuxerLock          = new Object();
             sEncoders                = new MediaCodec[2];
             sVirtualDisplay          = null;
             sInputSurface            = null;
@@ -2485,21 +2508,25 @@ public class CoreLogger {
             sTrackIndexes            = new int[2];
             sCyclicBarrier           = null;
 
+            synchronized (sMediaMuxerLock) {
+                sMediaMuxer          = null;
+            }
+
             sHandler                 = null;
             sOutputFile              = null;
-            sIsOk                    = false;
-            sIsOkLock                = new Object();
+
+            synchronized (sIsOkLock) {
+                sIsOk                = false;
+            }
         }
 
         private static boolean isOk() {
-            //noinspection SynchronizeOnNonFinalField
             synchronized (sIsOkLock) {
                 return sIsOk;
             }
         }
 
         private static void setOk(final boolean ok) {
-            //noinspection SynchronizeOnNonFinalField
             synchronized (sIsOkLock) {
                 sIsOk = ok;
             }
@@ -2955,7 +2982,6 @@ public class CoreLogger {
 
                         if (info.size != 0) {
                             info.presentationTimeUs = getAudioTime();
-                            //noinspection SynchronizeOnNonFinalField
                             synchronized (sMediaMuxerLock) {
                                 sMediaMuxer.writeSampleData(sTrackIndexes[INDEX_AUDIO], buffer, info);
                             }
@@ -2970,11 +2996,27 @@ public class CoreLogger {
             return isContinue;
         }
 
+        @SuppressWarnings("ConstantConditions")
+        private static int getVideoBitRate(final int height) {
+            if (sVideoBitRate     != null) return sVideoBitRate;
+            if (sVideoBitRateHigh != null) return sVideoBitRateHigh ? VIDEO_BIT_RATE_HIGH: VIDEO_BIT_RATE_LOW;
+            int value = VIDEO_BIT_RATE_DEFAULT;
+            if (height <= 1080 && value > VIDEO_BIT_RATE_1080) value = VIDEO_BIT_RATE_1080;
+            if (height <=  720 && value > VIDEO_BIT_RATE_720)  value = VIDEO_BIT_RATE_720;
+            if (height <=  480 && value > VIDEO_BIT_RATE_480)  value = VIDEO_BIT_RATE_480;
+            if (height <=  360 && value > VIDEO_BIT_RATE_360)  value = VIDEO_BIT_RATE_360;
+            if (height <=  240 && value > VIDEO_BIT_RATE_240)  value = VIDEO_BIT_RATE_240;
+            return value;
+        }
+
         private static void setupVideo(final int width, final int height) throws IOException {
             final MediaFormat mediaFormat = MediaFormat.createVideoFormat(sVideoMimeType, width, height);
 
+            final int bitRate = getVideoBitRate(height);
+            CoreLogger.log("MediaFormat.KEY_BIT_RATE: " + bitRate);
+
             mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, sVideoColorFormat);
-            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE,     sVideoBitRate);
+            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE,     bitRate);
             mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE,   sVideoFrameRate);
             mediaFormat.setInteger(MediaFormat.KEY_CAPTURE_RATE, sVideoFrameRate);
             mediaFormat.setInteger(MediaFormat.KEY_REPEAT_PREVIOUS_FRAME_AFTER, 1000 * 1000 / sVideoFrameRate);
@@ -3029,7 +3071,7 @@ public class CoreLogger {
                     if (info.size != 0 && isOk()) {
                         encodedData.position(info.offset);
                         encodedData.limit(info.offset + info.size);
-                        //noinspection SynchronizeOnNonFinalField
+
                         synchronized (sMediaMuxerLock) {
                             sMediaMuxer.writeSampleData(sTrackIndexes[INDEX_VIDEO], encodedData, info);
                         }
@@ -3085,10 +3127,8 @@ public class CoreLogger {
                 }
             }
 
-            //noinspection SynchronizeOnNonFinalField
             synchronized (sIsOkLock) {
-                if (!isOk() &&
-                        (sTrackIndexes[INDEX_VIDEO] >= 0 || sTrackIndexes[INDEX_AUDIO] >= 0)) {
+                if (!isOk() && (sTrackIndexes[INDEX_VIDEO] >= 0 || sTrackIndexes[INDEX_AUDIO] >= 0)) {
                     sMediaMuxer.start();
 
                     log(info + " record: started");
@@ -3197,7 +3237,7 @@ public class CoreLogger {
         }
 
         /**
-         * Sets audio mime type; the default value is "audio/mp4a-latm".
+         * Sets audio mime type; the default value is {@link MediaFormat#MIMETYPE_AUDIO_AAC}.
          *
          * @param value
          *        The audio mime type
@@ -3276,7 +3316,7 @@ public class CoreLogger {
         }
 
         /**
-         * Sets video mime type; the default value is "video/avc".
+         * Sets video mime type; the default value is {@link MediaFormat#MIMETYPE_VIDEO_AVC}.
          *
          * @param value
          *        The video mime type
@@ -3287,14 +3327,34 @@ public class CoreLogger {
         }
 
         /**
-         * Sets video bitrate; the default value is 6000000.
+         * Sets video bitrate (overrides {@link #setVideoBitRateQuality}).
          *
          * @param value
          *        The video bitrate
+         *
+         * @see #VIDEO_BIT_RATE_HIGH
+         * @see #VIDEO_BIT_RATE_LOW
+         * @see #VIDEO_BIT_RATE_480
+         * @see #VIDEO_BIT_RATE_360
+         * @see #VIDEO_BIT_RATE_240
          */
         @SuppressWarnings("unused")
         public static void setVideoBitRate(final int value) {
             sVideoBitRate = value;
+        }
+
+        /**
+         * Sets video bitrate quality ({@link #VIDEO_BIT_RATE_HIGH} or {@link #VIDEO_BIT_RATE_LOW}).
+         *
+         * @param value
+         *        The video bitrate quality
+         *
+         * @see #setVideoBitRate
+         */
+        @SuppressWarnings("unused")
+        public static void setVideoBitRateQuality(final boolean value) {
+            if (sVideoBitRate != null) logError("video bitrate is already defined");
+            sVideoBitRateHigh = value;
         }
 
         /**

@@ -28,6 +28,7 @@ import kotlinx.android.synthetic.main.recycler_item.view.title
 
 import akha.yakhont.Core
 import akha.yakhont.Core.Utils
+import akha.yakhont.CoreLogger
 import akha.yakhont.adapter.BaseCacheAdapter.CacheAdapter
 import akha.yakhont.callback.annotation.CallbacksInherited
 import akha.yakhont.loader.BaseConverter
@@ -93,7 +94,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
         if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7)
 
-//      Core.setFullLoggingInfo(true)      // for debug
+        setDebugLogging(BuildConfig.DEBUG)      // optional
 
         setLocation()
 
@@ -207,6 +208,13 @@ class MainActivity: AppCompatActivity(), LocationListener {
         override fun getType(): Type {
             return object: TypeToken<List<Beer>>(){}.type
         }
+    }
+
+    private fun setDebugLogging(debug: Boolean) {
+        if (debug) Core.setFullLoggingInfo(true)
+
+        // optional; on shaking device (or make Z-gesture) email with logs will be sent to the address below
+        CoreLogger.registerDataSender(this, "address@company.com")
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

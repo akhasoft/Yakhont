@@ -62,6 +62,7 @@ android {
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
         applicationId          'akha.yakhont.demosimplekotlin'
+        multiDexEnabled         true                        // for debug builds
         minSdkVersion           projectVerSdkMin
         targetSdkVersion        projectVerSdk
         versionCode             projectVerCodeDemo
@@ -70,7 +71,6 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility     JavaVersion.VERSION_1_8
         targetCompatibility     JavaVersion.VERSION_1_8
     }
 
@@ -120,6 +120,9 @@ android {
 }
 
 dependencies {
+    implementation      "androidx.multidex:multidex:$projectLibVerMultidex"     // for debug builds
+    debugImplementation "com.squareup.leakcanary:leakcanary-android:$projectLibVerLeakCanary"
+
     implementation      "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlinVersion"
     implementation      "androidx.core:core-ktx:$projectLibVerKotlinCoreCore"
     kapt                "com.android.databinding:compiler:$projectLibVerKotlinDatabindingCompiler"

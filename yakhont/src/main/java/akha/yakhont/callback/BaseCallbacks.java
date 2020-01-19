@@ -163,7 +163,7 @@ public abstract class BaseCallbacks<T> {
     }
 
     private static void init() {
-        sValidator = null;
+        sValidator  = null;
     }
 
     /**

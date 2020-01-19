@@ -814,6 +814,7 @@ public class Core implements DefaultLifecycleObserver {
                 catch (/*NullPointer*/Exception exception) {
                     CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
                 }
+
                 if (servicesCounter > 0 || !isLastActivity(activityCurrent)) return;
 
                 CoreLogger.logWarning("about to cleanup Yakhont, activity: " +
@@ -824,6 +825,7 @@ public class Core implements DefaultLifecycleObserver {
                 catch (/*NullPointer*/Exception exception) {
                     CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
                 }
+
                 cleanUp();
             }
 
@@ -849,10 +851,11 @@ public class Core implements DefaultLifecycleObserver {
 
         enableFragmentManagerDebugLogging(false);
 
+        final Core instance = sInstance;
         Utils.postToMainLoop(new Runnable() {
             @Override
             public void run() {
-                getLifecycle().removeObserver(sInstance);
+                getLifecycle().removeObserver(instance);
             }
 
             @NonNull
@@ -1555,12 +1558,13 @@ public class Core implements DefaultLifecycleObserver {
         }
 
         static {
+            sDebugLock                = new Object();
             init();
         }
 
         private static void init() {
             try {
-                if (sExecutorHelper != null) sExecutorHelper.cancel(true);
+                if (sExecutorHelper  != null) sExecutorHelper.cancel(true);
             }
             catch (Exception exception) {
                 CoreLogger.log("Core.Utils init error", exception);
@@ -1569,8 +1573,9 @@ public class Core implements DefaultLifecycleObserver {
             sExecutorHelper           = new ExecutorHelper();
             sExecutorHelperConnection = null;
 
-            sDebug                    = null;
-            sDebugLock                = new Object();
+            synchronized (sDebugLock) {
+                sDebug                = null;
+            }
 
             //noinspection Convert2Lambda
             sUriResolver              = new UriResolver() {
@@ -2203,8 +2208,8 @@ public class Core implements DefaultLifecycleObserver {
             return object1 == null && object2 == null || object1 != null && object1.equals(object2);
         }
 
-        private static       Boolean                    sDebug;
-        private static       Object                     sDebugLock;
+        private static       Boolean                        sDebug;
+        private static final Object                         sDebugLock;
 
         /**
          * Checks the debug mode.
@@ -2216,7 +2221,6 @@ public class Core implements DefaultLifecycleObserver {
          */
         @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public static boolean isDebugMode(@NonNull final String packageName) {
-            //noinspection SynchronizeOnNonFinalField
             synchronized (sDebugLock) {
                 if (sDebug == null) {
                     final Boolean debug = (Boolean) getBuildConfigField(packageName, "DEBUG");
@@ -3322,7 +3326,7 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             private static void init() {
-                sDefViewId = DEF_VIEW_ID;
+                sDefViewId  = DEF_VIEW_ID;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})

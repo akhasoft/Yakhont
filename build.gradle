@@ -94,15 +94,18 @@ ext {
     projectVerSdk                                               =  29
     projectVerBuildTools                                        = '29.0.2'
 
-    projectVerName                                              = '1.2.01'
-    projectVerCode                                              =  1020010
-    projectVerNameDemo                                          = '1.2'
-    projectVerCodeDemo                                          =  10201
+    projectVerName                                              =  '1.2.01'
+    projectVerCode                                              =   1020010
+    projectVerNameDemo                                          =  '1.2'
+    projectVerCodeDemo                                          =   10201
 
     projectLibVerDefault                                        = 'default'
 
     projectLibVerGms                                            = '16.0.1'
     projectLibVerLocation                                       = '17.0.0'
+
+    projectLibVerMultidex                                       =  '2.0.1'  // for demo debug builds
+    projectLibVerLeakCanary                                     =  '2.1'
 
     projectLibVerRetrofit                                       =  '1.9.0'
     projectLibVerRetrofit2                                      =  '2.5.0'

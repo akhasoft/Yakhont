@@ -59,6 +59,7 @@ android {
     //noinspection GroovyMissingReturnStatement
     defaultConfig {
         applicationId          'akha.yakhont.demo'
+        multiDexEnabled         true                        // for debug builds
         minSdkVersion           projectVerSdkMin
         targetSdkVersion        projectVerSdk
         versionCode             projectVerCodeDemo
@@ -125,6 +126,9 @@ android {
 }
 
 dependencies {
+    implementation      "androidx.multidex:multidex:$projectLibVerMultidex"     // for debug builds
+    debugImplementation "com.squareup.leakcanary:leakcanary-android:$projectLibVerLeakCanary"
+
     implementation      "com.google.dagger:dagger:$projectLibVerDefault"
     annotationProcessor "com.google.dagger:dagger-compiler:$projectLibVerDefault"
 

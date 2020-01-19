@@ -993,7 +993,7 @@ class BaseSnackbar implements BaseDialog {
 
     private static       String                   sText;
     private static       LinkedList<QueueEntry>   sQueue;
-    private static       Object                   sQueueLock;
+    private static final Object                   sQueueLock;
     private static       Collection<String>       sStopList;
 
     @IdRes
@@ -1034,15 +1034,18 @@ class BaseSnackbar implements BaseDialog {
     private              String                   mText;
 
     static {
+        sQueueLock                                                  = new Object();
         init();
     }
 
     static void init() {
-        if (sQueue != null) sQueue.clear();
-        sQueue      = new LinkedList<>();
-        sText       = null;
-        sQueueLock  = new Object();
-        sStopList   = null;
+        synchronized (sQueueLock) {
+            if (sQueue != null) sQueue.clear();
+            sQueue      = new LinkedList<>();
+
+            sText       = null;
+            sStopList   = null;
+        }
     }
 
     BaseSnackbar(final Integer duration, final Integer requestCode) {
@@ -1072,21 +1075,18 @@ class BaseSnackbar implements BaseDialog {
     }
 
     static boolean isQueueEmpty() {
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return sQueue.isEmpty();
         }
     }
 
     static String getText() {
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return sText;
         }
     }
 
     static boolean hasSnackbars() {
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return getText() != null || !isQueueEmpty();
         }
@@ -1142,7 +1142,6 @@ class BaseSnackbar implements BaseDialog {
     }
 
     void removeAndRelease(final Collection<String> stopList) {
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             if (stopList != null && stopList.size() > 0) {
                 final Level level = CoreLogger.getDefaultLevel();
@@ -1168,7 +1167,6 @@ class BaseSnackbar implements BaseDialog {
             //noinspection ConstantConditions
             return result;
         }
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             for (int i = sQueue.size() - 1; i >= 0; i--)
                 if (id.equals(sQueue.get(i).mId)) {
@@ -1403,7 +1401,6 @@ class BaseSnackbar implements BaseDialog {
                 mActivity, actionSet, new Callable<Collection<String>>() {
             @Override
             public Collection<String> call() {
-                //noinspection SynchronizeOnNonFinalField
                 synchronized (sQueueLock) {
                     final Collection<String> tmp = sStopList;
                     sStopList = null;
@@ -1425,8 +1422,7 @@ class BaseSnackbar implements BaseDialog {
             }
         });
 
-        if (show) //noinspection SynchronizeOnNonFinalField
-            synchronized (sQueueLock) {
+        if (show) synchronized (sQueueLock) {
             if (hasSnackbars())
                 addNotSync(snackbar[0], mText, mCountDownLatch, mId);
             else
@@ -1464,7 +1460,6 @@ class BaseSnackbar implements BaseDialog {
                        @SuppressWarnings("SameParameterValue") final Callable<Collection<String>> stopList) {
         if (snackbar != null) snackbar.addCallback(new BaseCallback(requestCode, intent,
                 countDownLatchTimeout, activity, actionNoDefaultHandler, stopList));
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sQueueLock) {
             return addNotSync(snackbar, getSnackbarText(snackbar, UNKNOWN_TEXT), countDownLatch, id);
         }
@@ -1502,7 +1497,6 @@ class BaseSnackbar implements BaseDialog {
                 case Callback.DISMISS_EVENT_CONSECUTIVE:
                     onDismiss(UiModule.SNACKBAR_DISMISSED_REASON_CONSECUTIVE);
 
-                    //noinspection SynchronizeOnNonFinalField
                     synchronized (sQueueLock) {
                         if (sQueue.size() > 0) {
                             final List<String> list = new ArrayList<>();
@@ -1561,7 +1555,6 @@ class BaseSnackbar implements BaseDialog {
                 @Override
                 public void run() {
                     final QueueEntry entry;
-                    //noinspection SynchronizeOnNonFinalField
                     synchronized (sQueueLock) {
                         entry = onDismissAsync();
                     }

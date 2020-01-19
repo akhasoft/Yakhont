@@ -23,6 +23,8 @@ import akha.yakhont.demosimplekotlin.retrofit.Retrofit2Api
 import kotlinx.android.synthetic.main.activity_main.locationView
 import kotlinx.android.synthetic.main.activity_main.recyclerView
 
+import akha.yakhont.Core
+import akha.yakhont.CoreLogger
 import akha.yakhont.callback.annotation.CallbacksInherited
 import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
@@ -52,12 +54,12 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
         // uncomment if you're going to use Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
-//      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false)      // not terminate
+//      Core.setRxUncaughtExceptionBehavior(false)      // not terminate
 
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-//      akha.yakhont.Core.setFullLoggingInfo(true)      // for debug
+        setDebugLogging(BuildConfig.DEBUG)      // optional
 
         setLocation()
 
@@ -107,6 +109,13 @@ class MainActivity: AppCompatActivity(), LocationListener {
                 // your code here
             }
         } */
+    }
+
+    private fun setDebugLogging(debug: Boolean) {
+        if (debug) Core.setFullLoggingInfo(true)
+
+        // optional; on shaking device (or make Z-gesture) email with logs will be sent to the address below
+        CoreLogger.registerDataSender(this, "address@company.com")
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

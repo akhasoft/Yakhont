@@ -95,7 +95,7 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//      setDebugLogging(BuildConfig.DEBUG);         // optional
+        setDebugLogging(BuildConfig.DEBUG);         // optional
 
         setLocation();                              // device orientation changing support
 
@@ -187,10 +187,10 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
         }
     }
 
-    @SuppressWarnings({"SameParameterValue", "unused"})
+    @SuppressWarnings("SameParameterValue")
     private void setDebugLogging(boolean debug) {
-        if (!debug) return;
-        Core.setFullLoggingInfo(true);
+        if (debug) Core.setFullLoggingInfo(true);
+
         // optional; on shaking device (or make Z-gesture) email with logs will be sent to the address below
         CoreLogger.registerDataSender(this, "address@company.com");
     }

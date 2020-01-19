@@ -117,7 +117,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     private static void init() {
-        sUseGlide = true;
+        sUseGlide   = true;
     }
 
     /**

@@ -16,6 +16,7 @@
 
 package akha.yakhont.demoservice;
 
+import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 
 import android.app.Activity;
@@ -25,12 +26,14 @@ import android.widget.Button;
 
 public class MainActivity extends Activity {
 
-    private static final int SERVICE_DELAY = 2000;
+    private static final int SERVICE_DELAY = 2000;  // ms
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (BuildConfig.DEBUG) Core.setFullLoggingInfo(true);       // optional
 
         Button buttonStartService = findViewById(R.id.button);
         buttonStartService.setTransformationMethod(null);   // switches off button's text capitalization

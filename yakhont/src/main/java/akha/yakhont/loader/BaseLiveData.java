@@ -123,9 +123,10 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     private        final Provider<BaseDialog>       mToast;
 
     private static       long                       sToastStartTime;
-    private static       Object                     sLockToast;
+    private static final Object                     sLockToast;
 
     static {
+        sLockToast                                                          = new Object();
         init();
     }
 
@@ -137,8 +138,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     private static void init() {
-        sToastStartTime     = 0;
-        sLockToast          = new Object();
+        synchronized (sLockToast) {
+            sToastStartTime     = 0;
+        }
     }
 
     /**
@@ -362,7 +364,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     protected void displayError(final BaseResponse baseResponse, final boolean notDisplayErrors) {
         if (notDisplayErrors) return;
 
-        //noinspection SynchronizeOnNonFinalField
         synchronized (sLockToast) {
             // again an ugly hack :-) (4000 is for Toast.LENGTH_SHORT - according to Toast sources)
             if (sToastStartTime + 4000 + DEFAULT_GUI_DELAY >= getCurrentTime()) return;
