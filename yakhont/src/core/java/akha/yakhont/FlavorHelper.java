@@ -32,7 +32,7 @@ public class FlavorHelper {
     }
 
     @SuppressWarnings("EmptyMethod")
-    public static void cleanUpRx() {
+    public static void cleanUpRxFinal() {
     }
 
     @SuppressWarnings("EmptyMethod")

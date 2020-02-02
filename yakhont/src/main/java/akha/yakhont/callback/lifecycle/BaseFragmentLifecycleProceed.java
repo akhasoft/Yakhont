@@ -57,9 +57,9 @@ import java.util.Set;
 public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed {
 
     /**
-     * Cleanups static fields in BaseFragmentLifecycleProceed; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in BaseFragmentLifecycleProceed; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 

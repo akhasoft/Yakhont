@@ -68,9 +68,9 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
     private static       CurrentActivityHelper              sActivity;
 
     /**
-     * Cleanups static fields in BaseActivityLifecycleProceed; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in BaseActivityLifecycleProceed; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 

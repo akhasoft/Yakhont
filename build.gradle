@@ -92,7 +92,7 @@ ext {
 
     projectVerSdkMin                                            =  14
     projectVerSdk                                               =  29
-    projectVerBuildTools                                        = '29.0.2'
+    projectVerBuildTools                                        = '29.0.3'
 
     projectVerName                                              =  '1.2.01'
     projectVerCode                                              =   1020010
@@ -104,7 +104,8 @@ ext {
     projectLibVerGms                                            = '16.0.1'
     projectLibVerLocation                                       = '17.0.0'
 
-    projectLibVerMultidex                                       =  '2.0.1'  // for demo debug builds
+    // for demo debug builds
+    projectLibVerMultidex                                       =  '2.0.1'
     projectLibVerLeakCanary                                     =  '2.1'
 
     projectLibVerRetrofit                                       =  '1.9.0'
@@ -131,7 +132,7 @@ ext {
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.1.0'
     projectLibVerCoreCore                                       =  '1.1.0'
-    projectLibVerFragmentFragment                               =  '1.1.0'
+    projectLibVerFragmentFragment                               =  '1.2.0'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
     projectLibVerLegacyLegacyPreferenceV14                      =  '1.0.0'
@@ -139,7 +140,7 @@ ext {
     projectLibVerLegacyLegacySupportCoreUtils                   =  '1.0.0'
     projectLibVerLegacyLegacySupportV13                         =  '1.0.0'
     projectLibVerLifecycleLifecycleCommonJava8                  =  '2.0.0'
-    projectLibVerLifecycleLifecycleExtensions                   =  '2.1.0'
+    projectLibVerLifecycleLifecycleExtensions                   =  '2.2.0'
     projectLibVerMediaMedia                                     =  '1.1.0'
     projectLibVerMediaRouterMediaRouter                         =  '1.0.0'
     projectLibVerPreferencePreference                           =  '1.1.0-beta01'
@@ -149,8 +150,8 @@ ext {
 
     projectLibVerKotlinCoreCore                                 =  '1.1.0'
     projectLibVerKotlinDatabindingCompiler                      =  '3.1.4'
-    projectLibVerKotlinLifecycleLifecycleViewmodel              =  '2.1.0'
-    projectLibVerKotlinLifecycleLifecycleReactiveStreams        =  '2.1.0'
+    projectLibVerKotlinLifecycleLifecycleViewmodel              =  '2.2.0'
+    projectLibVerKotlinLifecycleLifecycleReactiveStreams        =  '2.2.0'
 }
 
 allprojects {

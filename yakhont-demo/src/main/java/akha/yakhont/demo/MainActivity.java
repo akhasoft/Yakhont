@@ -203,12 +203,15 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     // default implementation - customize only modules you need
 //  @Component(modules = {CallbacksValidationModule.class, LocationModule.class, UiModule.class})
 
+    @SuppressWarnings("unused")
     @Component(modules = {DemoCallbacksValidationModule.class, DemoLocationModule.class, DemoUiModule.class})
     interface DemoDagger extends Dagger2 {
         @Component.Builder
         interface Builder {
+            @SuppressWarnings("unused")
             @BindsInstance
             Builder parameters(Parameters parameters);
+            @SuppressWarnings("unused")
             DemoDagger build();
         }
     }

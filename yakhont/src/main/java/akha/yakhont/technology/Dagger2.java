@@ -223,9 +223,9 @@ public interface Dagger2 {
         }
 
         /**
-         * Cleanups static fields in Parameters; normally called from {@link Core#cleanUp()}.
+         * Cleanups static fields in Parameters; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             init();
         }
 
@@ -295,7 +295,7 @@ public interface Dagger2 {
         /**
          * Initialises a newly created {@code CallbacksValidationModule} object.
          */
-        @SuppressWarnings("WeakerAccess")
+        @SuppressWarnings({"WeakerAccess", "unused"})
         public CallbacksValidationModule() {
         }
 
@@ -350,7 +350,7 @@ public interface Dagger2 {
         /**
          * Initialises a newly created {@code LocationModule} object.
          */
-        @SuppressWarnings("WeakerAccess")
+        @SuppressWarnings({"WeakerAccess", "unused"})
         public LocationModule() {
         }
 
@@ -407,14 +407,20 @@ public interface Dagger2 {
         }
 
         /**
-         * Cleanups UiModule; normally called from {@link Core#cleanUp()}.
+         * Cleanups UiModule; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             init();
         }
 
-        private static void init() {
+        // should be called on switching Activities
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static void cleanUp() {
             BaseSnackbar.init();
+        }
+
+        private static void init() {
+            cleanUp();
         }
 
         /**
@@ -559,8 +565,7 @@ public interface Dagger2 {
          */
         protected BaseDialog getPermissionAlert(final Integer requestCode, final Integer duration) {
             return new BaseSnackbar(duration, requestCode)
-                    .setViewHandler(Utils.getSnackbarViewHandler(
-                            Utils.getDefaultSnackbarViewModifier(), null, false))
+                    .setViewHandler(getSnackbarViewHandler(Utils.getDefaultSnackbarViewModifier()))
 
                     .setActionText(R.string.yakhont_alert_ok)
                     .setActionTextColor(Utils.getDefaultSnackbarActionColor())
@@ -571,6 +576,15 @@ public interface Dagger2 {
                             return "permission alert CountDownLatch";
                         }
                     }, COUNTDOWN_LATCH_TIMEOUT);
+        }
+
+        private static ViewHandlerSnackbar getSnackbarViewHandler(final ViewModifier viewModifier) {
+            return viewModifier == null ? null: new ViewHandlerSnackbar() {
+                @Override
+                public void modify(final View view, final ViewHandler viewHandler) {
+                    viewModifier.modify(view, viewHandler);
+                }
+            };
         }
 
         private static boolean handle(final boolean release, final BaseDialog baseDialog,

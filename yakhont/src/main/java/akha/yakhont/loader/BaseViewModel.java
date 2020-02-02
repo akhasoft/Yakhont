@@ -972,8 +972,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
             init();
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             init();
         }
 

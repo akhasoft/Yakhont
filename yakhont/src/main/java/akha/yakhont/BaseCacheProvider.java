@@ -175,9 +175,9 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
     }
 
     /**
-     * Cleanups static fields in BaseCacheProvider; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in BaseCacheProvider; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         sUsePragma  = false;
     }
 

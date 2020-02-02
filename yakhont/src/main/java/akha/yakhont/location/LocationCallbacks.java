@@ -127,9 +127,9 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     }
 
     /**
-     * Cleanups static fields in LocationCallbacks; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in LocationCallbacks; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 

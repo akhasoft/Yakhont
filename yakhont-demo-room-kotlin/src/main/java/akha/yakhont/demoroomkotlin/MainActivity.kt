@@ -38,8 +38,10 @@ import akha.yakhont.loader.wrapper.BaseLoaderWrapper.LoadParameters
 import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
 import akha.yakhont.technology.retrofit.Retrofit2
+import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2CoreLoadBuilder
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader
+import akha.yakhont.technology.rx.BaseRx.SubscriberRx
 
 import android.content.ContentValues
 import android.database.Cursor
@@ -101,8 +103,9 @@ class MainActivity: AppCompatActivity(), LocationListener {
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         if (savedInstanceState != null) {                // handling screen orientation changes
-            Retrofit2Loader.getExistingLoader<Throwable, List<Beer>>()
-//          Retrofit2Loader.getExistingLoader<Throwable, List<Beer>>(DEMO_VIEWMODEL_KEY, this)
+            Retrofit2Loader.getExistingLoader<Throwable, List<Beer>>(
+                null, this, null, getRx(), null, null)
+// or:      Retrofit2Loader.getExistingLoader<Throwable, List<Beer>>(DEMO_VIEWMODEL_KEY, this)
 
             recyclerView.adapter = getViewModel().getData<Any>(ROOM_DB_KEY) as CustomAdapter
             return
@@ -127,21 +130,23 @@ class MainActivity: AppCompatActivity(), LocationListener {
                 // custom-adapter-specific (not related to Room - just custom adapter demo)
                 .setAdapter(adapter)
 
-                // uncomment for Rx-specific settings (not related to Room or custom adapter - just Rx demo)
-/*              .setRx(Retrofit2.Retrofit2Rx<List<Beer>>().subscribeSimple(
-                        object: akha.yakhont.technology.rx.BaseRx.SubscriberRx<List<Beer>>() {
-                            override fun onNext(data: List<Beer>?) {
-                                // your code here
-                            }
+                .setRx(Retrofit2Rx<List<Beer>>().subscribeSimple(getRx()))
 
-                            override fun onError(throwable: Throwable) {
-                                // your code here
-                            }
-                        }))
-*/
                 .create(), null /*DEMO_VIEWMODEL_KEY*/, false, this).start()
 
         getViewModel().setData(ROOM_DB_KEY, adapter)
+    }
+
+    private fun getRx(): SubscriberRx<List<Beer>> {
+        return object: SubscriberRx<List<Beer>>() {
+            override fun onNext(data: List<Beer>?) {
+                // your code here
+            }
+
+            override fun onError(throwable: Throwable) {
+                // your code here
+            }
+        }
     }
 
     private fun getViewModel(): BaseViewModel<List<Beer>> {

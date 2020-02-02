@@ -353,9 +353,9 @@ public abstract class BaseRx<D> {
         }
 
         /**
-         * Cleanups static fields in CommonRx; normally called from {@link Core#cleanUp()}.
+         * Cleanups static fields in CommonRx; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             init();
         }
 

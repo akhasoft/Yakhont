@@ -218,6 +218,9 @@ public class Bubbles {
         synchronized (sViews) {
             sViews.clear();
         }
+
+        sLayoutInflater     = null;
+        sRootLayout         = null;
     }
 
     private static void initFun(Activity activity) {

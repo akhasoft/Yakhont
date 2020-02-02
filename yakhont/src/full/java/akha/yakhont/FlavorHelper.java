@@ -34,8 +34,8 @@ public class FlavorHelper {                    // full
     private FlavorHelper() {
     }
 
-    public static void cleanUpRx() {
-        Rx.cleanUp();
+    public static void cleanUpRxFinal() {
+        Rx.cleanUpFinal();
     }
 
     public static void setRxErrorHandlerDefault() {

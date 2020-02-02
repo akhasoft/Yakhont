@@ -96,9 +96,9 @@ public class BaseResponse<R, E, D> {
     }
 
     /**
-     * Cleanups static fields in BaseResponse; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in BaseResponse; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 

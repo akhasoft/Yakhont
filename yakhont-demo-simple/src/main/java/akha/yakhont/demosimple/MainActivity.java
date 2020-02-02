@@ -22,6 +22,7 @@ import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 import akha.yakhont.Core;
 import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.CoreLogger;
+import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener;
 import akha.yakhont.callback.annotation.CallbacksInherited;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
@@ -113,8 +114,9 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
         if (savedInstanceState == null)             // handling screen orientation changes
             Core.setSingleton(DEMO_STORE_KEY, new ViewModelStore());
         else {
-            mLoader = Retrofit2Loader.getExistingLoader();
-//          mLoader = Retrofit2Loader.getExistingLoader(DEMO_VIEWMODEL_KEY, this);
+            mLoader = Retrofit2Loader.getExistingLoader(null, this, getListItemClickHandler(),
+                    getRx(), false, null);
+// or:      mLoader = Retrofit2Loader.getExistingLoader(DEMO_VIEWMODEL_KEY, this, ...);
             return;
         }
 
@@ -133,15 +135,16 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
 
                 getRx(), null, null, this, getProgress(),
 
-                // list item click handler (if any)
-                //null,
-                (view, pos) -> {
-                    // your code here, for example:
-                    Toast.makeText(this, ((TextView) view.findViewById(R.id.title)).getText(),
-                            Toast.LENGTH_SHORT).show();
-                },
+                getListItemClickHandler(), null);
+    }
 
-                null);
+    private OnItemClickListener getListItemClickHandler() {
+//      return null;
+        return (view, position) -> {
+            // your code here, for example:
+            Toast.makeText(MainActivity.this, ((TextView) view.findViewById(R.id.title)).getText(),
+                    Toast.LENGTH_SHORT).show();
+        };
     }
 
     private class DemoDataSource extends PositionalDataSource<Data> {

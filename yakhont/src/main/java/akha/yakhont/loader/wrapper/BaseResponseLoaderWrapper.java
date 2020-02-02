@@ -81,6 +81,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Callable;
@@ -1556,7 +1557,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         private       static CoreLoadViewModelStore             sViewModelStore;
 
-        private final        List<BaseLoaderWrapper<?>>         mLoaders                = Utils.newList();
+        private final        List<BaseLoaderWrapper<?>>         mLoaders;
         private final        AtomicBoolean                      mGoBackOnCancelLoading  = new AtomicBoolean(false);
 
         static {
@@ -1564,14 +1565,15 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         }
 
         /**
-         * Cleanups static fields in CoreLoader; normally called from {@link Core#cleanUp()}.
+         * Cleanups static fields in CoreLoader; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             init();
         }
 
+        @SuppressWarnings("unchecked")
         private static void init() {
-            INSTANCE            = new CoreLoader();
+            INSTANCE            = new CoreLoader(Collections.unmodifiableList(Collections.EMPTY_LIST));
             sViewModelStore     = new CoreLoadViewModelStore();
         }
 
@@ -1579,6 +1581,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * Initialises a newly created {@code CoreLoader} object.
          */
         public CoreLoader() {
+            this(Utils.newList());
+        }
+
+        private CoreLoader(final List<BaseLoaderWrapper<?>> loaders) {
+            mLoaders = loaders;
         }
 
         /**

@@ -155,7 +155,7 @@ public class CoreLogger {
     private static final String                         FORMAT                   = "%s: %s";
     private static final String                         FORMAT_INFO              = "%s.%s(line %s)";
     private static final String                         FORMAT_THREAD            = "[%s] %s";
-    private static final String                         FORMAT_APP_ID            = "APP_ID: %s, %s";
+    private static final String                         FORMAT_APP_ID            = "APP ID: %s, %s";
 
     private static final String                         CLASS_NAME               = CoreLogger.class.getName();
 
@@ -250,13 +250,22 @@ public class CoreLogger {
     }
 
     /**
-     * Makes CoreLogger cleanup; normally called from {@link Core#cleanUp()}.
+     * Makes CoreLogger cleanup; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 
+    // should be called on switching Activities
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static void cleanUp() {
+        if (sShakeEventListener != null) sShakeEventListener.unregister();
+        sShakeEventListener             = null;
+    }
+
     private static void init() {
+        cleanUp();
+
         sLoggerExtender                 = null;
 
         sTag                            = new AtomicReference<>();
@@ -266,7 +275,7 @@ public class CoreLogger {
 
         sLogLevel                       = new AtomicReference<>(Level.ERROR);
         // should be consistent with javadoc below
-        sLogLevelDefault                = new AtomicReference<>(Level.INFO);
+        sLogLevelDefault                = new AtomicReference<>(Level.INFO );
         sForceShowStack                 = new AtomicBoolean();
         sForceShowThread                = new AtomicBoolean();
         sForceShowAppId                 = new AtomicBoolean();
@@ -286,9 +295,6 @@ public class CoreLogger {
         sSubject                        = null;
         sAddresses                      = null;
         sUseShake                       = null;
-
-        if (sShakeEventListener != null) sShakeEventListener.unregister();
-        sShakeEventListener             = null;
 
         synchronized (sGestureLibraryLock) {
             sGestureLibrary             = null;
@@ -1503,7 +1509,7 @@ public class CoreLogger {
                 }
 
                 //noinspection Convert2Lambda
-                new Utils.SnackbarBuilder(activity)
+                new Utils.SnackbarBuilder()
                         .setTextId(akha.yakhont.R.string.yakhont_record_video)
                         .setDuration(Snackbar.LENGTH_INDEFINITE)
                         .setRequestCode(Utils.getRequestCode(RequestCodes.LOGGER_VIDEO))
@@ -1577,7 +1583,9 @@ public class CoreLogger {
     @SuppressWarnings("WeakerAccess")
     public static class GestureHandler {
 
-        private        final Runnable                   mRunnable;
+        private static final String                     DEFAULT_NAME             = "";
+
+        private        final Map<String, Runnable>      mHandlers;
         private        final GestureLibrary             mLibrary;
         private        final double                     mThreshold;
 
@@ -1588,9 +1596,9 @@ public class CoreLogger {
         }
 
         /**
-         * Cleanups static fields in GestureHandler; normally called from {@link Core#cleanUp()}.
+         * Cleanups static fields in GestureHandler; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             GestureHandlerZ.init();
             init();
         }
@@ -1602,8 +1610,8 @@ public class CoreLogger {
         /**
          * Initialises a newly created {@code GestureHandler} object.
          *
-         * @param runnable
-         *        The {@code Runnable} to handle gestures
+         * @param handlers
+         *        The recognized gestures handlers (gesture's name + handler)
          *
          * @param threshold
          *        The gestures recognition threshold
@@ -1612,15 +1620,16 @@ public class CoreLogger {
          *        The {@code GestureLibrary}
          */
         @SuppressWarnings("unused")
-        public GestureHandler(final Runnable runnable, final double threshold, final GestureLibrary library) {
-            this(runnable, threshold, library, true);
+        public GestureHandler(final Map<String, Runnable> handlers, final double threshold,
+                              final GestureLibrary library) {
+            this(handlers, threshold, library, true);
         }
 
         /**
          * Initialises a newly created {@code GestureHandler} object.
          *
-         * @param runnable
-         *        The {@code Runnable} to handle gestures
+         * @param handlers
+         *        The recognized gestures handlers (gesture's name + handler)
          *
          * @param threshold
          *        The gestures recognition threshold
@@ -1631,19 +1640,88 @@ public class CoreLogger {
          * @param load
          *        {@code true} to call {@link GestureLibrary#load}, {@code false} otherwise
          */
-        public GestureHandler(final Runnable runnable, final double threshold,
-                              final GestureLibrary library, final boolean load) {
+        public GestureHandler(final Map<String, Runnable> handlers, final double  threshold,
+                              final GestureLibrary        library , final boolean load) {
             mLibrary   = load ? loadLibrary(library): library;
-            mRunnable  = runnable;
+            mHandlers  = handlers;
             mThreshold = threshold;
 
-            if (mLibrary  == null) logError("gesture library is null");
-            if (mRunnable == null) logError("gesture library handler is null");
+            if (mLibrary  == null)                          logError("gesture library is null");
+            if (mHandlers == null || mHandlers.size() == 0) logError("no handlers for gesture library");
+        }
+
+        /**
+         * Initialises a newly created {@code GestureHandler} object.
+         *
+         * @param handler
+         *        The recognized gesture(s) handler
+         *
+         * @param threshold
+         *        The gestures recognition threshold
+         *
+         * @param library
+         *        The {@code GestureLibrary}
+         */
+        @SuppressWarnings("unused")
+        public GestureHandler(final Runnable handler, final double threshold, final GestureLibrary library) {
+            this(getHandler(handler), threshold, library);
+        }
+
+        /**
+         * Converts given handler to format which wil work with any gestures
+         * (normally handler linked to gesture's name).
+         *
+         * @param handler
+         *        The recognized gesture(s) handler
+         *
+         * @return  The converted handler
+         */
+        public static Map<String, Runnable> getHandler(final Runnable handler) {
+            final Map<String, Runnable> handlers;
+            if (handler != null) {
+                handlers = Utils.newMap();
+                handlers.put(DEFAULT_NAME, handler);
+            }
+            else {
+                handlers = null;
+                logError("null Runnable for gesture handling");
+            }
+            return handlers;
         }
 
         @SuppressWarnings("SameParameterValue")
-        private GestureHandler(@NonNull final Runnable runnable, final double threshold, @NonNull final Data data) {
-            this(runnable, threshold, data.mLibrary, data.mLoad);
+        private GestureHandler(@NonNull final Runnable handler, final double threshold, @NonNull final Data data) {
+            this(getHandler(handler), threshold, data.mLibrary, data.mLoad);
+        }
+
+        /**
+         * Returns the {@code GestureLibrary} in use.
+         *
+         * @return  The {@code GestureLibrary}
+         */
+        @SuppressWarnings("unused")
+        public GestureLibrary getLibrary() {
+            return mLibrary;
+        }
+
+        /**
+         * Returns the gestures recognition threshold in use.
+         *
+         * @return  The gestures recognition threshold
+         */
+        @SuppressWarnings("unused")
+        public double getThreshold() {
+            return mThreshold;
+        }
+
+        /**
+         * Returns the recognized gestures handlers.
+         *
+         * @return  The recognized gestures handlers
+         */
+        @SuppressWarnings("unused")
+        public Map<String, Runnable> getHandlers() {
+            return mHandlers;
         }
 
         private static GestureLibrary loadLibrary(final GestureLibrary library) {
@@ -1672,7 +1750,8 @@ public class CoreLogger {
          */
         @SuppressWarnings("UnusedReturnValue")
         public boolean handle(@NonNull final MotionEvent event) {
-            if (mLibrary == null || mRunnable == null) return false;
+            boolean result = false;
+            if (mLibrary == null || mHandlers == null || mHandlers.size() == 0) return false;
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:           // fall through
@@ -1689,15 +1768,40 @@ public class CoreLogger {
                         final ArrayList<Prediction> predictions = mLibrary.recognize(gesture);
 
                         if (predictions.size() > 0) {
-                            final Prediction prediction = predictions.get(0);
-                            if (prediction.score >= mThreshold) {
-                                if (!Utils.safeRun(mRunnable))
-                                    logError("can't handle gesture, Runnable: " + mRunnable);
-                                return true;
+                            Double score = null;
+                            String name  = null;
+                            for (final Prediction prediction: predictions)
+                                if (prediction.score >= mThreshold &&
+                                        (score == null || prediction.score > score)) {
+                                    score = prediction.score;
+                                    name  = prediction.name ;
+                                }
+
+                            if (score == null)
+                                log("gesture(s) prediction score(s) < threshold " + mThreshold);
+                            else {
+                                // event consumed (even if we'll have gesture handling errors)
+                                result = true;
+
+                                Runnable handler = null;
+                                if (mHandlers.size() == 1) {
+                                    String handlerName = mHandlers.keySet().iterator().next();
+                                    if (handlerName.equals(DEFAULT_NAME) || handlerName.equals(name))
+                                        handler = mHandlers.get(handlerName);
+                                    else
+                                        logError("unexpected gesture handler's name " +
+                                                handlerName + ", should be " + name);
+                                }
+                                else if (mHandlers.containsKey(name))
+                                    handler = mHandlers.get(name);
+                                else
+                                    logError("there's no gesture handler with name " + name);
+
+                                if (handler == null)
+                                    logError("null handler for gesture with name " + name);
+                                else if (!Utils.safeRun(handler))
+                                    logError("can't handle gesture, handler: " + handler);
                             }
-                            else
-                                log("gesture prediction.score " + prediction.score +
-                                        " < threshold " + mThreshold);
                         }
                         else
                             logError("gesture predictions.size() == 0");
@@ -1709,7 +1813,7 @@ public class CoreLogger {
                     sStrokeBuffer.clear();
                     break;
             }
-            return false;
+            return result;
         }
 
         /**
@@ -1838,6 +1942,20 @@ public class CoreLogger {
         }
     }
 
+    /**
+     * Returns the gestures library to trigger audio / video recording.
+     *
+     * @return  The {@code GestureLibrary}
+     *
+     * @see GestureHandler
+     */
+    @SuppressWarnings("unused")
+    public static GestureLibrary getGestureLibrary() {
+        synchronized (sGestureLibraryLock) {
+            return sGestureLibrary;
+        }
+    }
+
     private static       GestureLibrary                 sGestureLibrary;
     private static       boolean                        sGestureLibraryLoad;
     private static       double                         sGestureLibraryThreshold;
@@ -1845,20 +1963,20 @@ public class CoreLogger {
 
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static boolean handleGesture(@NonNull final Activity activity, @NonNull final MotionEvent event) {
+    public static boolean handleGestureForVideo(@NonNull final Activity activity, @NonNull final MotionEvent event) {
         if (!((sUseShake == null || !sUseShake) && sAddresses != null && sAddresses.length > 0)) return false;
 
         final Runnable runnable = createDataSenderHandler(activity);
         final GestureHandler gestureHandler;
 
         if (sGestureLibrary == null) {
-            log("about to run Yakhont GesturesHandler");
+            log("about to run Yakhont's default GesturesHandler (Z-gesture only)");
             gestureHandler = new GestureHandlerZ(runnable);
         }
         else {
             log("about to run custom GesturesHandler based on library: " + sGestureLibrary);
-            gestureHandler = new GestureHandler(runnable, sGestureLibraryThreshold,
-                    sGestureLibrary, sGestureLibraryLoad);
+            gestureHandler = new GestureHandler(GestureHandler.getHandler(runnable),
+                    sGestureLibraryThreshold, sGestureLibrary, sGestureLibraryLoad);
             synchronized (sGestureLibraryLock) {
                 sGestureLibraryLoad = gestureHandler.mLibrary == null;
             }
@@ -2464,9 +2582,9 @@ public class CoreLogger {
         }
 
         /**
-         * Makes VideoRecorder cleanup; normally called from {@link Core#cleanUp()}.
+         * Makes VideoRecorder cleanup; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             stop();
             init();
         }
@@ -2478,7 +2596,7 @@ public class CoreLogger {
             sAudioSampleRate         =     44100;
             sAudioSamplesPerFrame    =      1024;
             sAudioFramesPerBuffer    =        25;
-            sAudioBitRate            =     64000;
+            sAudioBitRate            = 64 * 1000;
             sAudioQualityRepeat      =         1;
             sAudioChannelCount       =         1;
             sAudioTimeout            = 10 * 1000;
@@ -3334,6 +3452,8 @@ public class CoreLogger {
          *
          * @see #VIDEO_BIT_RATE_HIGH
          * @see #VIDEO_BIT_RATE_LOW
+         * @see #VIDEO_BIT_RATE_1080
+         * @see #VIDEO_BIT_RATE_720
          * @see #VIDEO_BIT_RATE_480
          * @see #VIDEO_BIT_RATE_360
          * @see #VIDEO_BIT_RATE_240

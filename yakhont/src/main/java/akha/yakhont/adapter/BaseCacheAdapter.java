@@ -110,9 +110,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     /**
-     * Cleanups static fields in BaseCacheAdapter; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in BaseCacheAdapter; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 

@@ -131,9 +131,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     /**
-     * Cleanups static fields in BaseLiveData; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in BaseLiveData; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 
@@ -916,9 +916,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         /**
-         * Cleanups static fields in LiveDataDialog; normally called from {@link Core#cleanUp()}.
+         * Cleanups static fields in LiveDataDialog; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             init();
         }
 
@@ -938,8 +938,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             protected     static SnackbarBuilder    sSnackbarBuilder;
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-            @SuppressLint("StaticFieldLeak")
-            protected     static ViewHandler        sToastViewHandler;
+            protected     static ViewModifier       sToastViewModifier;
 
             private              Snackbar           mSnackbar;
 
@@ -948,9 +947,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
 
             /**
-             * Cleanups static fields in ProgressDefault; normally called from {@link Core#cleanUp()}.
+             * Cleanups static fields in ProgressDefault; called from {@link Core#cleanUpFinal()}.
              */
-            public static void cleanUp() {
+            public static void cleanUpFinal() {
                 ProgressDefaultImp.init();
                 init();
             }
@@ -958,7 +957,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             private static void init() {
                 sSnackbarDuration   = null;
                 sSnackbarBuilder    = null;
-                sToastViewHandler   = null;
+                sToastViewModifier  = null;
             }
 
             /**
@@ -1030,7 +1029,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             public static SnackbarBuilder getDefaultSnackbarBuilder(Activity activity) {
                 final Activity activityToUse = activity != null ? activity: Utils.getCurrentActivity();
                 //noinspection Convert2Lambda
-                return new SnackbarBuilder(activityToUse)
+                return new SnackbarBuilder()
                         .setTextId(akha.yakhont.R.string.yakhont_loader_alert)
                         .setDuration(sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_LONG)
 
@@ -1087,12 +1086,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The Toast's view modifier
              */
             public static void setToastViewHandler(final ViewModifier viewModifier) {
-                sToastViewHandler = viewModifier == null ? null: new ViewHandler() {
-                    @Override
-                    public void modify(final View view, final ViewHandler viewHandler) {
-                        viewModifier.modify(view, viewHandler);
-                    }
-                };
+                sToastViewModifier = viewModifier;
             }
 
             /**
@@ -1319,7 +1313,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 mToast = new Toast(context);
                 View view = getView(context);
 
-                if (sToastViewHandler != null && !sToastViewHandler.wrapper(view)) {
+                final ViewHandler viewHandler = getToastViewHandler();
+
+                if (viewHandler != null && !viewHandler.wrapper(view)) {
                     CoreLogger.logError("failed View customization for Toast: " + mToast);
                     view = getView(context);
                 }
@@ -1327,6 +1323,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 mToast.setView(view);
                 mToast.setGravity(Gravity.CENTER, 0, 0);
                 mToast.setDuration(Toast.LENGTH_SHORT);
+            }
+
+            private static ViewHandler getToastViewHandler() {
+                return sToastViewModifier == null ? null: new ViewHandler() {
+                    @SuppressWarnings("unused")
+                    @Override
+                    public void modify(final View view, final ViewHandler viewHandler) {
+                        sToastViewModifier.modify(view, viewHandler);
+                    }
+                };
             }
 
             @SuppressLint("InflateParams")

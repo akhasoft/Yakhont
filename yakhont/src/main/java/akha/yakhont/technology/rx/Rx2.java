@@ -65,9 +65,9 @@ public class Rx2<D> extends CommonRx<D> {
     private static boolean                      sIsErrorHandlerDefined;
 
     /**
-     * Makes Rx2 cleanup; normally called from {@link Core#cleanUp()}.
+     * Makes Rx2 cleanup; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         try {
             RxJavaPlugins.setErrorHandler(null);
             sIsErrorHandlerDefined = false;

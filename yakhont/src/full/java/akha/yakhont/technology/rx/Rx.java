@@ -64,9 +64,9 @@ public class Rx<D> extends CommonRx<D> {
     private static boolean                      sIsErrorHandlerDefined;
 
     /**
-     * Makes Rx cleanup; normally called from {@link Core#cleanUp()}.
+     * Makes Rx cleanup; normally called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         try {
             RxJavaHooks.setOnError(null);
             sIsErrorHandlerDefined = false;

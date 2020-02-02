@@ -25,6 +25,7 @@ import kotlinx.android.synthetic.main.activity_main.recyclerView
 
 import akha.yakhont.Core
 import akha.yakhont.CoreLogger
+import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener
 import akha.yakhont.callback.annotation.CallbacksInherited
 import akha.yakhont.location.LocationCallbacks
 import akha.yakhont.location.LocationCallbacks.LocationListener
@@ -74,29 +75,30 @@ class MainActivity: AppCompatActivity(), LocationListener {
         ////////
 */
         if (savedInstanceState != null)                  // handling screen orientation changes
-            Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>()
-//          Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>(DEMO_VIEWMODEL_KEY, this)
+            Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>(
+                null, this, getListItemClickHandler(), getRx(), null, null)
+// or:      Retrofit2Loader.getExistingLoader<Throwable, Array<Beer>>(DEMO_VIEWMODEL_KEY, this, ...)
         else {
             val retrofit2 = Retrofit2<Retrofit2Api, Array<Beer>>()
 
-            Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, {it.data},
+            Retrofit2Loader.get("http://localhost/", Retrofit2Api::class.java, { it.data },
                 null /*DEMO_VIEWMODEL_KEY*/, BR.beer, LocalOkHttpClient2(retrofit2)
 
                     // just to demo the progress GUI - comment it out if not needed
                     .setEmulatedNetworkDelay(7)
 
-                , retrofit2, getRx(), null,
-
-                // list item click handler (if any)
-                //null,
-                { view, _ ->
-                    // your code here, for example:
-                    Toast.makeText(this, (view.findViewById<View>(R.id.title) as TextView).text,
-                        Toast.LENGTH_SHORT).show()
-                },
-
-                null).start()
+                , retrofit2, getRx(), null, { view, _ -> handleItemClick(view) }, null).start()
         }
+    }
+
+    private fun handleItemClick(view: View) {
+        // your code here, for example:
+        Toast.makeText(this@MainActivity, (view.findViewById<View>(R.id.title) as TextView).text,
+            Toast.LENGTH_SHORT).show()
+    }
+
+    private fun getListItemClickHandler(): OnItemClickListener {
+        return OnItemClickListener { view: View, _: Int -> handleItemClick(view) }
     }
 
     private fun getRx(): SubscriberRx<Array<Beer>>? {

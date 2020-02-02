@@ -23,6 +23,7 @@ import akha.yakhont.Core.Utils.TypeHelper;
 import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.adapter.BaseRecyclerViewAdapter;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.Progress;
@@ -35,6 +36,7 @@ import akha.yakhont.loader.wrapper.BaseLoaderWrapper.SwipeToRefreshWrapper;     
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;          // for javadoc
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoader;
+import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;   // for javadoc
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
@@ -63,6 +65,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.Callable;
 
 import okhttp3.OkHttpClient;
@@ -1180,7 +1183,9 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
             if (rx                     != null) {
                 if (isRxSingle == null) isRxSingle = dataSourceProducer == null && noSwipeToRefresh;
-                builder.setRx(new Retrofit2Rx<D>(true, isRxSingle).subscribeSimple(rx));
+                @SuppressWarnings("unchecked")
+                final Retrofit2Rx<D> tmp = getRx(rx, isRxSingle);
+                builder.setRx(tmp);
             }
             if (loaderCallbacks        != null) builder.setLoaderCallbacks(loaderCallbacks);
 
@@ -1216,6 +1221,10 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             }
 
             return builder.create();
+        }
+
+        private static <D> Retrofit2Rx getRx(final SubscriberRx<D> rx, boolean isSingle) {
+            return rx == null ? null: new Retrofit2Rx<D>(true, isSingle).subscribeSimple(rx);
         }
 
         /**
@@ -1275,7 +1284,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
         /**
          * Returns the {@link CoreLoad} kept in the current {@link ViewModel} (mostly for screen
-         * orientation changes handling). Also handles swipe-to-refresh (if available).
+         * orientation changes handling); also handles swipe-to-refresh (if available).
          *
          * @param <E>
          *        The type of error (if any)
@@ -1291,7 +1300,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
         /**
          * Returns the {@link CoreLoad} kept in the current {@link ViewModel} (mostly for screen
-         * orientation changes handling). Also handles swipe-to-refresh (if available).
+         * orientation changes handling); also handles swipe-to-refresh (if available).
          *
          * @param viewModelKey
          *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
@@ -1330,6 +1339,74 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
             handleSwipeToRefresh(coreLoad, activity);
 
+            return coreLoad;
+        }
+
+        /**
+         * Returns the {@link CoreLoad} kept in the current {@link ViewModel} (mostly for screen
+         * orientation changes handling); also handles swipe-to-refresh (if available). Intended to
+         * use for avoid memory leaks ('cause of anonymous Rx, OnItemClickListener and LoaderCallbacks).
+         *
+         * @param viewModelKey
+         *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)});
+         *        null can be provided (if one and only BaseViewModel available)
+         *
+         * @param activity
+         *        The Activity (or null for the current one)
+         *
+         * @param onItemClickListener
+         *        The {@link OnItemClickListener} (or null for no item's click handling)
+         *
+         * @param rx
+         *        The {@link SubscriberRx} component (or null if not used)
+         *
+         * @param isRxSingle
+         *        {@code true} if {@code Rx} either emits one value only or an error notification,
+         *        {@code false} otherwise; null for default value
+         *
+         * @param loaderCallbacks
+         *        The {@link LoaderCallbacks} component (or null if not used)
+         *
+         * @param <E>
+         *        The type of error (if any)
+         *
+         * @param <D>
+         *        The type of data to load
+         *
+         * @return  The {@link CoreLoad}
+         */
+        @SuppressWarnings("unchecked")          // Rx, LoaderCallbacks
+        public static <E, D> CoreLoad<E, D> getExistingLoader(final String viewModelKey, final Activity activity,
+                                                              final OnItemClickListener  onItemClickListener,
+                                                              final SubscriberRx<D>      rx,
+                                                                    Boolean              isRxSingle,
+                                                              final LoaderCallbacks      loaderCallbacks) {
+            final CoreLoad<E, D> coreLoad = getExistingLoader(viewModelKey, activity);
+            if (coreLoad == null) return null;
+
+            if (isRxSingle == null) isRxSingle = getSwipeView(activity) == null;
+
+            final List<BaseLoaderWrapper<?>> loaders = coreLoad.getLoaders();
+            if (loaders != null) for (final BaseLoaderWrapper<?> loader: loaders) {
+                final BaseRecyclerViewAdapter adapter = loader.getRecyclerViewAdapter();
+                if (adapter != null) adapter.setOnItemClickListener(onItemClickListener);
+
+                if (loader instanceof BaseResponseLoaderWrapper) {
+                    final BaseResponseLoaderWrapper<?, ?, ?, ?> loaderCasted =
+                            (BaseResponseLoaderWrapper<?, ?, ?, ?>) loader;
+                    final LoaderRx<?, ?, ?> rxCurrent = loaderCasted.getRx();
+                    if (rxCurrent != null) rxCurrent.cleanup();
+                    loaderCasted.setRx(getRx(rx, isRxSingle));
+
+                    loaderCasted.setLoaderCallbacks(loaderCallbacks);
+                }
+                else {
+                    final String error = " ignored in getExistingLoader(): loader is not " +
+                            "BaseResponseLoaderWrapper, but " + CoreLogger.getDescription(loader);
+                    if (rx              != null) CoreLogger.logError("Rx"              + error);
+                    if (loaderCallbacks != null) CoreLogger.logError("LoaderCallbacks" + error);
+                }
+            }
             return coreLoad;
         }
     }

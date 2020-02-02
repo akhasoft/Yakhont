@@ -87,7 +87,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
         return CoreLogger.getDescription(fragment);
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"deprecation", "JavaDoc"})
     public static void enableFragmentManagerDebugLogging(final boolean enable) {
         FragmentManager.enableDebugLogging(enable);
     }

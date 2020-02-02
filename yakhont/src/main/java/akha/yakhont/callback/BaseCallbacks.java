@@ -156,9 +156,9 @@ public abstract class BaseCallbacks<T> {
     }
 
     /**
-     * Cleanups static fields in BaseCallbacks; normally called from {@link Core#cleanUp()}.
+     * Cleanups static fields in BaseCallbacks; called from {@link Core#cleanUpFinal()}.
      */
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         init();
     }
 

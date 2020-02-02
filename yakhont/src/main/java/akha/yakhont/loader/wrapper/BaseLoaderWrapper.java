@@ -1725,9 +1725,9 @@ public abstract class BaseLoaderWrapper<D> {
         }
 
         /**
-         * Cleanups static fields in LoadParameters; normally called from {@link Core#cleanUp()}.
+         * Cleanups static fields in LoadParameters; called from {@link Core#cleanUpFinal()}.
          */
-        public static void cleanUp() {
+        public static void cleanUpFinal() {
             init();
         }
 

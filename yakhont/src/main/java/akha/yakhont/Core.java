@@ -518,23 +518,6 @@ public class Core implements DefaultLifecycleObserver {
         return init(application, fullInfo, dagger, true);
     }
 
-    // initDefault(...) methods are subjects to call by the Yakhont Weaver
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
-    public static void initDefault(@NonNull final Service service) {
-        initDefault(service.getApplication());
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
-    public static void initDefault(@NonNull final Activity activity) {
-        initDefault(activity.getApplication());
-    }
-
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    public static void initDefault(@NonNull final Application application) {
-        if (sInstance == null) init(application, null, null, false);
-    }
-
     private static boolean init(@NonNull final Application application,
                                 final Boolean fullInfo, final Dagger2 dagger, final boolean byUser) {
         if (fullInfo == null && dagger == null && byUser) {
@@ -568,6 +551,29 @@ public class Core implements DefaultLifecycleObserver {
 
         return true;
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // initDefault(...) methods are subjects to call by the Yakhont Weaver
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    public static void initDefault(@NonNull final Service service) {
+        initDefault(service.getApplication());
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    public static void initDefault(@NonNull final Activity activity) {
+        if (sInstance == null)
+            initDefault(activity.getApplication());
+        else
+            cleanUpComponents();
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    public static void initDefault(@NonNull final Application application) {
+        if (sInstance == null) init(application, null, null, false);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
      * Adjusts logging.
@@ -760,7 +766,7 @@ public class Core implements DefaultLifecycleObserver {
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
     public static void cleanUpDefault(final int timeout, final Activity activity) {
-        if (!sInstance.mNoAutoCleanUp.get()) cleanUp(timeout, activity);
+        if (!sInstance.mNoAutoCleanUp.get()) cleanUpFinal(timeout, activity);
     }
 
     /**
@@ -775,7 +781,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Sets user-defined callback to call from {@link #cleanUp(int, Activity) cleanUp}.
+     * Sets user-defined callback to call from {@link #cleanUpFinal(int, Activity) cleanUp}.
      *
      * @param value
      *        The callback
@@ -797,10 +803,10 @@ public class Core implements DefaultLifecycleObserver {
      * @param activity
      *        The activity (null for current one or {@link Service})
      *
-     * @see #cleanUp()
+     * @see #cleanUpFinal()
      */
     @SuppressWarnings("unused")
-    public static void cleanUp(final int timeout, final Activity activity) {
+    public static void cleanUpFinal(final int timeout, final Activity activity) {
         final Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -826,7 +832,7 @@ public class Core implements DefaultLifecycleObserver {
                     CoreLogger.log(CoreLogger.getDefaultLevel(), exception);
                 }
 
-                cleanUp();
+                cleanUpFinal();
             }
 
             @NonNull
@@ -843,10 +849,10 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     /**
-     * Makes Yakhont cleanup; normally called from {@link #cleanUp(int, Activity)}.
+     * Makes Yakhont cleanup; called from {@link #cleanUpFinal(int, Activity)}.
      */
     @SuppressWarnings("WeakerAccess")
-    public static void cleanUp() {
+    public static void cleanUpFinal() {
         if (sInstance == null) return;
 
         enableFragmentManagerDebugLogging(false);
@@ -880,41 +886,50 @@ public class Core implements DefaultLifecycleObserver {
         Utils.init();
         Utils.ViewHelper.init();
 
-        cleanUpComponents();
+        cleanUpComponentsFinal();
 
         sInstance = null;
     }
 
-    private static void cleanUpComponents() {
-        BaseCacheProvider.cleanUp();
-        BaseCacheAdapter .cleanUp();
+    private static void cleanUpComponentsFinal() {
+        BaseCacheProvider.cleanUpFinal();
+        BaseCacheAdapter .cleanUpFinal();
 
-        BaseFragmentLifecycleProceed.cleanUp();
-        BaseActivityLifecycleProceed.cleanUp();
-        BaseCallbacks               .cleanUp();
+        BaseFragmentLifecycleProceed.cleanUpFinal();
+        BaseActivityLifecycleProceed.cleanUpFinal();
+        BaseCallbacks               .cleanUpFinal();
 
-        BaseResponse.cleanUp();
+        BaseResponse.cleanUpFinal();
 
-        BaseLiveData.cleanUp();
-        LiveDataDialog.ProgressDefault.cleanUp();
-        LiveDataDialog                .cleanUp();
-        BaseViewModel.BaseViewModelProvider.cleanUp();
+        BaseLiveData                       .cleanUpFinal();
+        LiveDataDialog.ProgressDefault     .cleanUpFinal();
+        LiveDataDialog                     .cleanUpFinal();
+        BaseViewModel.BaseViewModelProvider.cleanUpFinal();
 
-        BaseResponseLoaderWrapper.CoreLoader.cleanUp();
-        BaseLoaderWrapper.LoadParameters.cleanUp();
+        BaseLoaderWrapper.LoadParameters    .cleanUpFinal();
+        BaseResponseLoaderWrapper.CoreLoader.cleanUpFinal();
 
-        LocationCallbacks.cleanUp();
+        LocationCallbacks.cleanUpFinal();
 
-        Parameters.cleanUp();
-        UiModule  .cleanUp();
+        Parameters.cleanUpFinal();
+        UiModule  .cleanUpFinal();
 
-        Rx2         .cleanUp  ();
-        FlavorHelper.cleanUpRx();
-        CommonRx    .cleanUp  ();
+        Rx2         .cleanUpFinal  ();
+        FlavorHelper.cleanUpRxFinal();
+        CommonRx    .cleanUpFinal  ();
 
-        CoreLogger.GestureHandler.cleanUp();
-        if (Build.VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) CoreLogger.VideoRecorder.cleanUp();
-        CoreLogger.cleanUp();
+        CoreLogger.GestureHandler.cleanUpFinal();
+        if (Build.VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) CoreLogger.VideoRecorder.cleanUpFinal();
+        CoreLogger.cleanUpFinal();
+    }
+
+    /**
+     * Makes Yakhont cleanup on switching Activities; called from {@code initDefault} (see weaver.config).
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static void cleanUpComponents() {
+        UiModule                      .cleanUp();
+        CoreLogger                    .cleanUp();
     }
 
     /**
@@ -2648,19 +2663,6 @@ public class Core implements DefaultLifecycleObserver {
             };
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static ViewHandlerSnackbar getSnackbarViewHandler(
-                final ViewModifier viewModifier, final ViewHandlerSnackbar previous, final boolean chain) {
-            return viewModifier == null ? null: new ViewHandlerSnackbar() {
-                @SuppressWarnings("unused")
-                @Override
-                public void modify(final View view, final ViewHandler viewHandler) {
-                    if (chain && previous != null) previous.modify(view, viewHandler);
-                    viewModifier.modify(view, viewHandler);
-                }
-            };
-        }
-
         /**
          * Builds and shows {@link Snackbar} with Views customization possibilities (please refer to
          * {@link #setViewHandler}).
@@ -2670,8 +2672,6 @@ public class Core implements DefaultLifecycleObserver {
          * <p>By default calls {@link Activity#onActivityResult} (see {@link #setRequestCode}).
          */
         public static class SnackbarBuilder {
-
-            private final      WeakReference<Activity>  mActivity;
 
             @IdRes
             private            int                      mViewId                         = Core.NOT_VALID_VIEW_ID;
@@ -2697,17 +2697,13 @@ public class Core implements DefaultLifecycleObserver {
             @ColorInt
             private            int                      mActionColor                    = Core.NOT_VALID_COLOR;
 
-            private            ViewHandlerSnackbar      mViewHandler;
-            private            boolean                  mViewHandlerChain;
+            private final      List<ViewModifier>       mViewModifiers                  = new ArrayList<>();
+            private            boolean                  mViewHandlersChain;
 
             /**
              * Initialises a newly created {@code SnackbarBuilder} object.
-             *
-             * @param activity
-             *        The Activity (or null for the current one)
              */
-            public SnackbarBuilder(final Activity activity) {
-                mActivity        = activity == null ? null: new WeakReference<>(activity);
+            public SnackbarBuilder() {
             }
 
             /**
@@ -2726,6 +2722,8 @@ public class Core implements DefaultLifecycleObserver {
 
             /**
              * Sets the {@link View} for {@link Snackbar#make}.
+             *
+             * <p>Note: use it ONLY if your {@code SnackbarBuilder} is some method's local variable.
              *
              * @param view
              *        The View
@@ -2925,22 +2923,36 @@ public class Core implements DefaultLifecycleObserver {
              */
             @SuppressWarnings("unused")
             public SnackbarBuilder setViewHandler(final ViewModifier viewModifier) {
-                mViewHandler = viewModifier == null ? null: getSnackbarViewHandler(viewModifier,
-                        mViewHandler, mViewHandlerChain);
+                if (viewModifier == null)
+                    mViewModifiers.clear();
+                else if (mViewHandlersChain || mViewModifiers.size() == 0)
+                    mViewModifiers.add(viewModifier);
+                else
+                    mViewModifiers.set(0, viewModifier);
                 return this;
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-            public SnackbarBuilder setViewHandlerChain(final boolean viewHandlerChain) {
-                mViewHandlerChain = viewHandlerChain;
+            public SnackbarBuilder setViewHandlerChain(final boolean viewHandlersChain) {
+                mViewHandlersChain = viewHandlersChain;
                 return this;
             }
 
             private Snackbar run(final boolean show) {
-                return UiModule.showSnackbar(mActivity == null ? null: mActivity.get(), mViewId,
+                final ViewHandlerSnackbar viewHandlerSnackbar = mViewModifiers.size() == 0 ? null:
+                        new ViewHandlerSnackbar() {
+                            @SuppressWarnings("unused")
+                            @Override
+                            public void modify(final View view, final ViewHandler viewHandler) {
+                                for (int i = 0; i < mViewModifiers.size(); i++)
+                                    mViewModifiers.get(i).modify(view, viewHandler);
+                            }
+                        };
+
+                return UiModule.showSnackbar(Utils.getCurrentActivity(), mViewId,
                         mView == null ? null: mView.get(), mTextId, mText, mMaxLines, mDuration,
                         mRequestCode, mData, mActionTextId, mActionText, mAction, mActionColors,
-                        mActionColorId, mActionColor, mViewHandler, show);
+                        mActionColorId, mActionColor, viewHandlerSnackbar, show);
             }
 
             /**
