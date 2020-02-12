@@ -58,10 +58,11 @@ all you need is just to provide permission-specific on-granted-callbacks (please
 [dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)).
 
 And all that jazz works from services, too (please refer to
-[demo service](yakhont-demo-service/src/main/java/akha/yakhont/demosimple/MainService.java) for more info).
+[demo service](yakhont-demo-service/src/main/java/akha/yakhont/demoservice/MainService.java) for more info).
 
 Endless adapter (paging). Configuration changes (e.g. portrait / landscape) surviving.
-Transparent gestures recognition / handling. For logging - video / audio recording possibility. And more. 
+Transparent gestures recognition / handling (transparent means: unrecognized gestures will not be consumed).
+For logging - video / audio recording possibility. And more. 
 
 In sum, as I told - you can make the whole data loading in just one line of code (plus your callbacks - if any).
 
@@ -95,8 +96,8 @@ In addition, there are powerful utility classes which includes:
 sending logcat error reports (with screenshots and DB copies) on just shaking device (or making Z-gesture), 
 stack traces, byte[] logging and more.
 - video / audio recording (also via shaking device or making Z-gesture - for more info please refer to the logger mentioned above).
-- transparent gestures recognition / handling (i.e. can be used, say, with 
-[RecyclerView](https://developer.android.com/reference/androidx/recyclerview/widget/RecyclerView.html) - also, implemented in logger). 
+- transparent gestures recognition / handling without [GestureOverlayView](https://developer.android.com/reference/android/gesture/GestureOverlayView.html)
+ (i.e. can be used, say, with [RecyclerView](https://developer.android.com/reference/androidx/recyclerview/widget/RecyclerView.html) - also, implemented in logger). 
 - more about gestures: you can record and load your own ones (and provide your own handlers for them).
 - [reflection](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreReflection.html)
 with extended collections support, methods comparing and handling (say, find list of overridden methods), etc.  

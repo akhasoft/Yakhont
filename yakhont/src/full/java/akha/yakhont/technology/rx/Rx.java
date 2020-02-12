@@ -64,7 +64,7 @@ public class Rx<D> extends CommonRx<D> {
     private static boolean                      sIsErrorHandlerDefined;
 
     /**
-     * Makes Rx cleanup; normally called from {@link Core#cleanUpFinal()}.
+     * Makes Rx cleanup; called from {@link Core#cleanUpFinal()}.
      */
     public static void cleanUpFinal() {
         try {

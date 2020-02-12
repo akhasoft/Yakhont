@@ -48,7 +48,6 @@ import akha.yakhont.technology.Dagger2;
 import akha.yakhont.technology.Dagger2.Parameters;
 import akha.yakhont.technology.Dagger2.UiModule;
 import akha.yakhont.technology.Dagger2.UiModule.ViewHandler;
-import akha.yakhont.technology.Dagger2.UiModule.ViewHandlerSnackbar;
 import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.Rx2;
@@ -149,7 +148,6 @@ import java.util.zip.ZipOutputStream;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.snackbar.Snackbar.Callback;   // for javadoc
 
 /**
  * The base class for the Yakhont library. Normally initialized automatically, via Yakhont Weaver,
@@ -928,8 +926,7 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings("WeakerAccess")
     public static void cleanUpComponents() {
-        UiModule                      .cleanUp();
-        CoreLogger                    .cleanUp();
+        CoreLogger.cleanUp();
     }
 
     /**
@@ -2578,59 +2575,6 @@ public class Core implements DefaultLifecycleObserver {
             UiModule.showSnackbar(resId, duration);
         }
 
-        /**
-         * Adds Snackbar to Snackbar's queue.
-         *
-         * @param snackbar
-         *        The Snackbar
-         *
-         * @return  {@code true} if added successfully, {@code false} otherwise
-         */
-        @SuppressWarnings("unused")
-        public static boolean addToSnackbarsQueue(final Snackbar snackbar) {
-            return UiModule.addToSnackbarsQueue(snackbar, null, null,
-                    null, true, null, null, null);
-        }
-
-        /**
-         * Adds Snackbar to Snackbar's queue.
-         *
-         * @param snackbar
-         *        The Snackbar
-         *
-         * @param requestCode
-         *        The request code to call {@link Activity#onActivityResult} (or null for no call)
-         *
-         * @param intent
-         *        The intent to pass to {@link Activity#onActivityResult} (or null)
-         *
-         * @param activity
-         *        The Activity (or null for default one)
-         *
-         * @param actionNoDefaultHandler
-         *        {@code false} to call {@link Activity#onActivityResult} in case of
-         *        {@link Callback#DISMISS_EVENT_ACTION}, {@code true} otherwise
-         *
-         * @param countDownLatch
-         *        The {@link CountDownLatch} (if any) to wait until run the next {@link Snackbar} from queue
-         *
-         * @param countDownLatchTimeout
-         *        The {@link CountDownLatch} timeout (or null)
-         *
-         * @param id
-         *        The Snackbar's ID (or null)
-         *
-         * @return  {@code true} if added successfully, {@code false} otherwise
-         */
-        @SuppressWarnings("unused")
-        public static boolean addToSnackbarsQueue(
-                final Snackbar snackbar, final Integer requestCode, final Intent intent, final Activity activity,
-                final boolean actionNoDefaultHandler, final CountDownLatch countDownLatch,
-                final Long countDownLatchTimeout, final String id) {
-            return UiModule.addToSnackbarsQueue(snackbar, requestCode, intent, activity,
-                    actionNoDefaultHandler, countDownLatch, countDownLatchTimeout, id);
-        }
-
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static int getColor(@ColorRes final int id) {
             return getColor(id, null);
@@ -2933,26 +2877,16 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-            public SnackbarBuilder setViewHandlerChain(final boolean viewHandlersChain) {
+            public SnackbarBuilder setViewHandlersChain(final boolean viewHandlersChain) {
                 mViewHandlersChain = viewHandlersChain;
                 return this;
             }
 
             private Snackbar run(final boolean show) {
-                final ViewHandlerSnackbar viewHandlerSnackbar = mViewModifiers.size() == 0 ? null:
-                        new ViewHandlerSnackbar() {
-                            @SuppressWarnings("unused")
-                            @Override
-                            public void modify(final View view, final ViewHandler viewHandler) {
-                                for (int i = 0; i < mViewModifiers.size(); i++)
-                                    mViewModifiers.get(i).modify(view, viewHandler);
-                            }
-                        };
-
-                return UiModule.showSnackbar(Utils.getCurrentActivity(), mViewId,
-                        mView == null ? null: mView.get(), mTextId, mText, mMaxLines, mDuration,
-                        mRequestCode, mData, mActionTextId, mActionText, mAction, mActionColors,
-                        mActionColorId, mActionColor, viewHandlerSnackbar, show);
+                return UiModule.showSnackbar(mViewId, mView == null ? null: mView.get(),
+                        mTextId, mText, mMaxLines, mDuration, mRequestCode, mData,
+                        mActionTextId, mActionText, mAction, mActionColors, mActionColorId, mActionColor,
+                        mViewModifiers, show);
             }
 
             /**
@@ -2966,7 +2900,7 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             /**
-             * Creates and shows the {@link Snackbar}.
+             * Creates and shows (or put in queue) the {@link Snackbar}.
              *
              * @return  The created and shown {@link Snackbar} (or null)
              */

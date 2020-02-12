@@ -131,8 +131,8 @@ ext {
 
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.1.0'
-    projectLibVerCoreCore                                       =  '1.1.0'
-    projectLibVerFragmentFragment                               =  '1.2.0'
+    projectLibVerCoreCore                                       =  '1.2.0'
+    projectLibVerFragmentFragment                               =  '1.2.1'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
     projectLibVerLegacyLegacyPreferenceV14                      =  '1.0.0'
@@ -146,9 +146,9 @@ ext {
     projectLibVerPreferencePreference                           =  '1.1.0-beta01'
     projectLibVerRecyclerViewRecyclerView                       =  '1.1.0'
 
-    projectLibVerNotxMaterialMaterial                           =  '1.0.0'
+    projectLibVerNotxMaterialMaterial                           =  '1.1.0'
 
-    projectLibVerKotlinCoreCore                                 =  '1.1.0'
+    projectLibVerKotlinCoreCore                                 =  '1.2.0'
     projectLibVerKotlinDatabindingCompiler                      =  '3.1.4'
     projectLibVerKotlinLifecycleLifecycleViewmodel              =  '2.2.0'
     projectLibVerKotlinLifecycleLifecycleReactiveStreams        =  '2.2.0'

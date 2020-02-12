@@ -31,6 +31,7 @@ import android.content.Intent;
 import android.gesture.Gesture;
 import android.gesture.GestureLibraries;
 import android.gesture.GestureLibrary;
+import android.gesture.GestureOverlayView;                      // for javadoc
 import android.gesture.GesturePoint;
 import android.gesture.GestureStroke;
 import android.gesture.Prediction;
@@ -1514,7 +1515,7 @@ public class CoreLogger {
                         .setDuration(Snackbar.LENGTH_INDEFINITE)
                         .setRequestCode(Utils.getRequestCode(RequestCodes.LOGGER_VIDEO))
 
-                        .setViewHandlerChain(true)
+                        .setViewHandlersChain(true)
                         .setViewHandler(Utils.getDefaultSnackbarViewModifier())
 
                         .setActionTextId(akha.yakhont.R.string.yakhont_record_video_ok)
@@ -1541,8 +1542,8 @@ public class CoreLogger {
      * Very simple gesture handler; allows to set the gestures recognition threshold and doesn't consume
      * unrecognized gestures (i.e. could be used, say, with {@link RecyclerView}).
      * <br>If you need more than one gesture libraries (2, 5, 100, ...) - just create 2-5-100
-     * GestureHandlers and work with them in, say, {@link Activity#dispatchTouchEvent}.
-     * <br>Could be useful if you have many gestures and want special threshold for each of them.
+     * GestureHandlers and work with them in, say, {@link Activity#dispatchTouchEvent}
+     * (could be useful if you have many gestures and want special threshold for each of them).
      * <br>Usage example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
@@ -1579,6 +1580,8 @@ public class CoreLogger {
      * </pre>
      *
      * Also contains some helper methods for gestures libraries loading.
+     *
+     * <p>Note: implementation doesn't use {@link GestureOverlayView}.
      */
     @SuppressWarnings("WeakerAccess")
     public static class GestureHandler {
@@ -1748,10 +1751,10 @@ public class CoreLogger {
          *
          * @return  {@code true} if this event was consumed, {@code false} otherwise
          */
-        @SuppressWarnings("UnusedReturnValue")
+        @SuppressWarnings({"UnusedReturnValue", "ConstantConditions"})
         public boolean handle(@NonNull final MotionEvent event) {
             boolean result = false;
-            if (mLibrary == null || mHandlers == null || mHandlers.size() == 0) return false;
+            if (mLibrary == null || mHandlers == null || mHandlers.size() == 0) return result;
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:           // fall through
@@ -2498,6 +2501,8 @@ public class CoreLogger {
      *
      * Audio recording can be switched off by the dynamic permission {@link permission#RECORD_AUDIO} -
      * just don't provide it :-)
+     *
+     * To balance the video size and quality, use {@link #setVideoBitRate} (or {@link #setVideoBitRateQuality}).
      */
     @SuppressWarnings("WeakerAccess")
     @TargetApi  (      Build.VERSION_CODES.LOLLIPOP)
@@ -3447,6 +3452,8 @@ public class CoreLogger {
         /**
          * Sets video bitrate (overrides {@link #setVideoBitRateQuality}).
          *
+         * <p>Use it to balance the video size and quality.
+         *
          * @param value
          *        The video bitrate
          *
@@ -3460,21 +3467,24 @@ public class CoreLogger {
          */
         @SuppressWarnings("unused")
         public static void setVideoBitRate(final int value) {
-            sVideoBitRate = value;
+            sVideoBitRate     = value;
+            sVideoBitRateHigh = null ;
         }
 
         /**
-         * Sets video bitrate quality ({@link #VIDEO_BIT_RATE_HIGH} or {@link #VIDEO_BIT_RATE_LOW}).
+         * Sets video bitrate quality (simplified version of {@link #setVideoBitRate}).
          *
          * @param value
-         *        The video bitrate quality
+         *        {@code true} for {@link #VIDEO_BIT_RATE_HIGH}, {@code false} for {@link #VIDEO_BIT_RATE_LOW}
          *
          * @see #setVideoBitRate
          */
         @SuppressWarnings("unused")
         public static void setVideoBitRateQuality(final boolean value) {
-            if (sVideoBitRate != null) logError("video bitrate is already defined");
-            sVideoBitRateHigh = value;
+            if (sVideoBitRate == null)
+                sVideoBitRateHigh = value;
+            else
+                logError("video bitrate is already defined: " + sVideoBitRate);
         }
 
         /**

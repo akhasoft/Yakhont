@@ -31,6 +31,8 @@ import akha.yakhont.location.GoogleLocationClientNew;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.location.LocationCallbacks.LocationClient;
 import akha.yakhont.technology.Dagger2.UiModule;
+import akha.yakhont.technology.Dagger2.UiModule.ViewHandlerSnackbar;
+import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -413,14 +415,8 @@ public interface Dagger2 {
             init();
         }
 
-        // should be called on switching Activities
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void cleanUp() {
-            BaseSnackbar.init();
-        }
-
         private static void init() {
-            cleanUp();
+            BaseSnackbar.init();
         }
 
         /**
@@ -498,45 +494,6 @@ public interface Dagger2 {
             return baseDialog instanceof BaseSnackbar;
         }
 
-        /**
-         * Adds Snackbar to Snackbar's queue.
-         *
-         * @param snackbar
-         *        The Snackbar
-         *
-         * @param requestCode
-         *        The request code to call {@link Activity#onActivityResult} (or null for no call)
-         *
-         * @param intent
-         *        The intent to pass to {@link Activity#onActivityResult} (or null)
-         *
-         * @param activity
-         *        The Activity (or null for default one)
-         *
-         * @param actionNoDefaultHandler
-         *        {@code false} to call {@link Activity#onActivityResult} in case of
-         *        {@link Callback#DISMISS_EVENT_ACTION}, {@code true} otherwise
-         *
-         * @param countDownLatch
-         *        The {@link CountDownLatch} (if any) to wait until run the next {@link Snackbar} from queue
-         *
-         * @param countDownLatchTimeout
-         *        The {@link CountDownLatch} timeout (or null)
-         *
-         * @param id
-         *        The Snackbar's ID (or null)
-         *
-         * @return  {@code true} if added successfully, {@code false} otherwise
-         */
-        public static boolean addToSnackbarsQueue(
-                final Snackbar snackbar, final Integer requestCode, final Intent intent, final Activity activity,
-                final boolean actionNoDefaultHandler, final CountDownLatch countDownLatch,
-                final Long countDownLatchTimeout, final String id) {
-            return BaseSnackbar.add(snackbar, requestCode, intent, activity == null ? null:
-                    new WeakReference<>(activity), actionNoDefaultHandler, countDownLatch,
-                    countDownLatchTimeout, id, null);
-        }
-
         /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
         @Provides @Named(UI_ALERT_PERMISSION)
         public BaseDialog providePermissionAlert(final Parameters parameters) {
@@ -564,8 +521,11 @@ public interface Dagger2 {
          * @return  The alert component
          */
         protected BaseDialog getPermissionAlert(final Integer requestCode, final Integer duration) {
+            final List<ViewModifier> viewModifiers = new ArrayList<>();
+            viewModifiers.add(Utils.getDefaultSnackbarViewModifier());
+
             return new BaseSnackbar(duration, requestCode)
-                    .setViewHandler(getSnackbarViewHandler(Utils.getDefaultSnackbarViewModifier()))
+                    .setViewModifiers(viewModifiers)
 
                     .setActionText(R.string.yakhont_alert_ok)
                     .setActionTextColor(Utils.getDefaultSnackbarActionColor())
@@ -576,15 +536,6 @@ public interface Dagger2 {
                             return "permission alert CountDownLatch";
                         }
                     }, COUNTDOWN_LATCH_TIMEOUT);
-        }
-
-        private static ViewHandlerSnackbar getSnackbarViewHandler(final ViewModifier viewModifier) {
-            return viewModifier == null ? null: new ViewHandlerSnackbar() {
-                @Override
-                public void modify(final View view, final ViewHandler viewHandler) {
-                    viewModifier.modify(view, viewHandler);
-                }
-            };
         }
 
         private static boolean handle(final boolean release, final BaseDialog baseDialog,
@@ -719,13 +670,13 @@ public interface Dagger2 {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static Snackbar showSnackbar(final Activity activity, @IdRes final int viewId, final View view,
+        public static Snackbar showSnackbar(@IdRes final int viewId, final View view,
                                             @StringRes final int textId, final String text, final Integer maxLines,
                                             final Integer duration, final Integer requestCode, final Intent data,
                                             @StringRes final int actionTextId, final String actionText,
                                             final View.OnClickListener actionListener, final ColorStateList actionColors,
                                             final @ColorRes int actionColorId, final @ColorInt int actionColor,
-                                            final ViewHandlerSnackbar viewHandler, final boolean show) {
+                                            final List<ViewModifier> viewModifiers, final boolean show) {
             final String errMessage = getErrMessage("Snackbar", textId, text);
 
             final Snackbar[] snackbar = new Snackbar[] {null};
@@ -735,7 +686,7 @@ public interface Dagger2 {
                         .setMaxLines         (maxLines      )
 
                         .setView             (view          )
-                        .setViewHandler      (viewHandler   )
+                        .setViewModifiers    (viewModifiers )
 
                         .setActionText       (actionText    )
                         .setActionText       (actionTextId  )
@@ -745,7 +696,7 @@ public interface Dagger2 {
                         .setActionTextColorId(actionColorId )
                         .setActionTextColor  (actionColors  )
 
-                        .start(activity, text, data, snackbar, show);
+                        .start(text, data, snackbar, show);
 
                 if (!result) CoreLogger.logError(errMessage);
             }
@@ -991,19 +942,97 @@ class BaseSnackbar implements BaseDialog {
 
     private static class QueueEntry {
 
-        private    final Snackbar                 mSnackbar;
-        private    final CountDownLatch           mCountDownLatch;
-        private    final String                   mId;
+        @StringRes
+        private    final int                            mTextId;
+        private    final String                         mText;
+        private    final String                         mTextDefault;
 
-        private QueueEntry(final Snackbar snackbar, final CountDownLatch countDownLatch, final String id) {
-            mSnackbar           = snackbar;
-            mCountDownLatch     = countDownLatch;
-            mId                 = id;
+        @IdRes
+        private    final int                            mViewId;
+        private    final View                           mView;
+
+        @StringRes
+        private    final int                            mActionStringId;
+        private    final String                         mActionString;
+
+        @ColorInt
+        private    final int                            mColorAction;
+        @ColorRes
+        private    final int                            mColorIdAction;
+        private    final ColorStateList                 mColorsAction;
+
+        private    final Integer                        mRequestCode;
+        private    final Intent                         mIntent;
+        private    final View.OnClickListener           mListener;
+        private    final Integer                        mDuration;
+        private    final Integer                        mMaxLines;
+        private    final List<ViewModifier>             mViewModifiers;
+        private    final Long                           mCountDownLatchTimeout;
+        private    final WeakReference<QueueEntry[]>    mQueueEntry;
+
+        private          WeakReference<Snackbar>        mSnackbar;
+        private    final CountDownLatch                 mCountDownLatch;
+        private    final String                         mId;
+
+        private QueueEntry(final String text, final String textDefault, @StringRes final int textId,
+                           final View view, @IdRes final int viewId,
+                           final Integer requestCode, final Intent intent, final String id,
+                           final View.OnClickListener listener, final Integer duration,
+                           final String actionString, @StringRes int actionStringId,
+                           final Integer maxLines, final List<ViewModifier> viewModifiers,
+                           final ColorStateList colorsAction, @ColorInt final int colorAction,
+                           @ColorRes final int colorIdAction, final QueueEntry[] queueEntry,
+                           final Long countDownLatchTimeout, final CountDownLatch countDownLatch) {
+            mTextId                 = textId;
+            mText                   = text;
+            mTextDefault            = textDefault;
+
+            mViewId                 = viewId;
+            mView                   = view;
+
+            mActionStringId         = actionStringId;
+            mActionString           = actionString;
+
+            mColorAction            = colorAction;
+            mColorIdAction          = colorIdAction;
+            mColorsAction           = colorsAction;
+
+            mQueueEntry             = queueEntry == null ? null: new WeakReference<>(queueEntry);
+
+            mRequestCode            = requestCode;
+            mIntent                 = intent;
+            mListener               = listener;
+            mDuration               = duration;
+            mMaxLines               = maxLines;
+            mViewModifiers          = viewModifiers;
+            mCountDownLatchTimeout  = countDownLatchTimeout;
+
+            mCountDownLatch         = countDownLatch;
+            mId                     = id;
+        }
+
+        private Snackbar validateSnackbar() {
+            final String              [] textFinal = new String              [1];
+            final View.OnClickListener[] listener  = new View.OnClickListener[1];
+            final Integer             [] duration  = new Integer             [1];
+
+            listener[0] = mListener;
+            duration[0] = mDuration;
+
+            return makeSnackbar(mText, mTextDefault, mTextId, textFinal, mView, mViewId, mRequestCode,
+                    mIntent, listener, duration, mActionString, mActionStringId, mMaxLines, mViewModifiers,
+                    mColorsAction, mColorAction, mColorIdAction, mCountDownLatchTimeout, mQueueEntry);
+        }
+
+        private Snackbar getSnackbar() {
+            final Snackbar snackbar = validateSnackbar();
+            if (snackbar != null) mSnackbar = new WeakReference<>(snackbar);
+            return snackbar;
         }
     }
 
     private static final String                   UNKNOWN_TEXT      = "N/A";
-    private static final int                      MAX_MAX_LINES     = 8;
+    private static final int                      MAX_MAX_LINES     =     8;
 
     private static       String                   sText;
     private static       LinkedList<QueueEntry>   sQueue;
@@ -1017,9 +1046,8 @@ class BaseSnackbar implements BaseDialog {
     private              Integer                  mDuration;
     private              Integer                  mMaxLines;
 
-    // compiler issue
-    private              Dagger2.UiModule.ViewHandlerSnackbar
-                                                  mViewHandler;
+    private final        List<ViewModifier>       mViewModifiers    = new ArrayList<>();
+
     @ColorRes
     private              int                      mColorIdAction;
     @ColorInt
@@ -1037,15 +1065,13 @@ class BaseSnackbar implements BaseDialog {
     private              View.OnClickListener     mListener;
     private        final Integer                  mRequestCode;
 
-    private              WeakReference<Activity>  mActivity;
     private              Intent                   mIntent;
 
     private              CountDownLatch           mCountDownLatch;
     private              Long                     mCountDownLatchTimeout;
     private              String                   mId;
 
-    private              QueueEntry               mSnackbar;
-    private              String                   mText;
+    private        final QueueEntry[]             mQueueEntry       = new QueueEntry[1];
 
     static {
         sQueueLock                                                  = new Object();
@@ -1211,78 +1237,61 @@ class BaseSnackbar implements BaseDialog {
         return this;
     }
 
-    BaseSnackbar setViewHandler(final Dagger2.UiModule.ViewHandlerSnackbar viewHandler) {
-        mViewHandler        = viewHandler;
+    BaseSnackbar setViewModifiers(final List<ViewModifier> viewModifiers) {
+        mViewModifiers.clear();
+        if (viewModifiers != null && viewModifiers.size() > 0)
+            mViewModifiers.addAll(viewModifiers);
         return this;
     }
 
     @SuppressWarnings("SameParameterValue")
-    private void onActivityResult(final int resultCode) {
-        Helper.onActivityResult(mActivity.get(), mIntent, mRequestCode, resultCode);
-    }
-
-    private void setColors(final Context context) {
-        final Snackbar snackbar = mSnackbar.mSnackbar;
-
-        if (mColorsAction != null) {
-            if (mColorAction != Core.NOT_VALID_COLOR || mColorIdAction != Core.NOT_VALID_RES_ID)
-                CoreLogger.logWarning("ColorStateList != null so Snackbar action color " +
-                        "will be ignored, Snackbar text: " + mText);
-            snackbar.setActionTextColor(mColorsAction);
-        }
-        else if (mColorAction != Core.NOT_VALID_COLOR) {
-            if (mColorIdAction != Core.NOT_VALID_RES_ID)
-                CoreLogger.logWarning("mColorAction != null so Snackbar action color ID " +
-                        "will be ignored, Snackbar text: " + mText);
-            snackbar.setActionTextColor(mColorAction);
-        }
-        else if (mColorIdAction != Core.NOT_VALID_RES_ID)
-            snackbar.setActionTextColor(ContextCompat.getColor(context, mColorIdAction));
+    private static void onActivityResult(final Intent intent,
+                                         final Integer  requestCode, final int resultCode) {
+        Helper.onActivityResult(Utils.getCurrentActivity(), intent, requestCode, resultCode);
     }
 
     @Override
     public boolean start(final Activity activity, final String text, final Intent data) {
-        final boolean result = start(activity, text, data, new Snackbar[] {null}, true);
-        if (!result) CoreLogger.logError("can't start Snackbar with text: " + text);
+        final Snackbar[] snackbar = new Snackbar[] {null};
+        final boolean    result   = start(text, data, snackbar, true);
+        if (!result) CoreLogger.logError("can't start Snackbar with text: " +
+                getSnackbarText(text, snackbar[0]));
         return result;
     }
 
-    boolean start(Activity activity, final String text, final Intent data, final Snackbar[] snackbar,
+    boolean start(final String text, final Intent data, final Snackbar[] snackbar,
                   final boolean show) {
-        if (activity == null) {
-            CoreLogger.logWarning("BaseSnackbar.start(): activity == null");
-            activity = Utils.getCurrentActivity();
-        }
         try {
-            mActivity   = new WeakReference<>(activity);
-            mIntent     = data;
-
+            mIntent = data;
             return start(text, snackbar, show);
         }
         catch (Exception exception) {
-            CoreLogger.log("failed Snackbar with text: " + text, exception);
+            CoreLogger.log("failed Snackbar with text: " + getSnackbarText(text, snackbar[0]), exception);
             return false;
         }
     }
 
     // enable swipe-to-dismiss for non-CoordinatorLayout containers
     @SuppressLint("ClickableViewAccessibility")
-    private void enableSwipeToDismiss(final Activity activity, final TextView textView) {
-        if (mSnackbar.mSnackbar.getView().getLayoutParams() instanceof CoordinatorLayout.LayoutParams) return;
+    private static void enableSwipeToDismiss(final Activity activity, final Snackbar snackbar, final TextView textView) {
+        if (snackbar.getView().getLayoutParams() instanceof CoordinatorLayout.LayoutParams) return;
 
         CoreLogger.log("enable Snackbar swipe-to-dismiss");
-        textView.setOnTouchListener(new SwipeToDismissHandler(activity));
+        textView.setOnTouchListener(new SwipeToDismissHandler(activity, snackbar));
     }
 
-    private class SwipeToDismissHandler extends GestureDetector.SimpleOnGestureListener
+    private static class SwipeToDismissHandler extends GestureDetector.SimpleOnGestureListener
             implements View.OnTouchListener {
 
         private static final int                        THRESHOLD_X             = 64;
         private static final int                        THRESHOLD_VELOCITY      = 64;
 
         private              GestureDetector            mGestureDetector;
+        private final        Snackbar                   mSnackbar;
 
-        private SwipeToDismissHandler(final Context context) {
+        private SwipeToDismissHandler(final Context context, final Snackbar snackbar) {
+            mSnackbar = snackbar;
+
             Utils.postToMainLoop(new Runnable() {
                 @Override
                 public void run() {
@@ -1312,107 +1321,165 @@ class BaseSnackbar implements BaseDialog {
         public boolean onFling(final MotionEvent event1, final MotionEvent event2,
                                final float velocityX, final float velocityY) {
             if (event2.getX() - event1.getX() >= THRESHOLD_X && velocityX >= THRESHOLD_VELOCITY)
-                mSnackbar.mSnackbar.dismiss();
+                mSnackbar.dismiss();
             return true;
         }
     }
 
-    private boolean start(final String text, final Snackbar[] snackbar, final boolean show) {
-        final Activity activity = mActivity.get();
+    private boolean start(final String text, final Snackbar[] result, final boolean show) {
+
+        final String              [] textFinal = new String              [1];
+        final View.OnClickListener[] listener  = new View.OnClickListener[1];
+        final Integer             [] duration  = new Integer             [1];
+
+        listener[0] = mListener;
+        duration[0] = mDuration;
+
+        final Snackbar snackbar = makeSnackbar(text, mString, mStringId, textFinal, mView, mViewId,
+                mRequestCode, mIntent, listener, duration, mActionString, mActionStringId,
+                mMaxLines, mViewModifiers, mColorsAction, mColorAction, mColorIdAction,
+                mCountDownLatchTimeout, new WeakReference<>(mQueueEntry));
+
+        if (snackbar == null) return false;
+
+        if (mRequestCode != null && mListener == null) mListener = listener[0];
+        if (mDuration    == null                     ) mDuration = duration[0];
+
+        result[0] = snackbar;
+
+        if (show) synchronized (sQueueLock) {
+            if (hasSnackbars()) {
+                final boolean resultAdd = addNotSync(text, mString, mStringId, mView, mViewId,
+                        mRequestCode, mIntent, mId, mListener, mDuration, mActionString,
+                        mActionStringId, mMaxLines, mViewModifiers, mColorsAction, mColorAction,
+                        mColorIdAction, mQueueEntry, mCountDownLatchTimeout, mCountDownLatch);
+                if (!resultAdd)
+                    CoreLogger.logError("can't add (not sync) Snackbar to queue, text: " +
+                            getSnackbarText(text, mString, mStringId));
+            }
+            else
+                show(result[0], text);
+        }
+        return true;
+    }
+
+    private static Snackbar makeSnackbar(final String text, final String textDefault,
+                                         @StringRes final int textId, final String[] textFinal,
+                                         final View viewToUse, @IdRes final int viewId,
+                                         final Integer requestCode, final Intent intent,
+                                         final View.OnClickListener[] listener, final Integer[] duration,
+                                         final String actionString, @StringRes int actionStringId,
+                                         final Integer maxLines, final List<ViewModifier> viewModifiers,
+                                         final ColorStateList colorsAction, @ColorInt final int colorAction,
+                                         @ColorRes final int colorIdAction, final Long countDownLatchTimeout,
+                                         final WeakReference<QueueEntry[]> queueEntry) {
+        final Activity activity = Utils.getCurrentActivity();
         if (activity == null) {
-            CoreLogger.logError("starting Snackbar: activity == null");
-            return false;
+            CoreLogger.logError("making Snackbar: activity == null");
+            return null;
         }
 
-        String                                      finalText = text;
-        if (finalText == null)                      finalText = mString;
-        if (finalText == null &&
-                mStringId != Core.NOT_VALID_RES_ID) finalText = activity.getString(mStringId);
+        textFinal[0] = getSnackbarText(text, textDefault, textId);
 
-        mText = finalText;
+        if (!Dagger2.UiModule.validate(textFinal[0])) return null;
 
-        if (!Dagger2.UiModule.validate(finalText)) return false;
+        if (viewToUse != null && viewId != Core.NOT_VALID_RES_ID)
+            CoreLogger.logError("View is already defined, so View ID " + CoreLogger.getResourceDescription(viewId) +
+                    " will be ignored for Snackbar with text: " + textFinal[0]);
 
-        if (mView != null && mViewId != Core.NOT_VALID_RES_ID)
-            CoreLogger.logError("View is already defined, so View ID " + CoreLogger.getResourceDescription(mViewId) +
-                    " will be ignored for Snackbar with text: " + mText);
-
-        final View view = mView != null ? mView: ViewHelper.getViewForSnackbar(activity, mViewId);
+        final View view = viewToUse != null ? viewToUse: ViewHelper.getViewForSnackbar(activity, viewId);
         if (view == null) {
-            CoreLogger.logError("View is null, can not show Snackbar with text: " + mText);
-            return false;
+            CoreLogger.logError("View is null, can not show Snackbar with text: " + textFinal[0]);
+            return null;
         }
 
-        if (mRequestCode != null && mListener == null)
+        if (requestCode != null && listener[0] == null)
             //noinspection Convert2Lambda
-            mListener = new View.OnClickListener() {
+            listener[0] = new View.OnClickListener() {
                 @Override
                 public void onClick(final View view) {
-                    onActivityResult(Activity.RESULT_OK);
+                    onActivityResult(intent, requestCode, Activity.RESULT_OK);
                 }
             };
 
-        if (mDuration == null) {
-            if (mListener != null)
-                mDuration = Snackbar.LENGTH_INDEFINITE;
+        if (duration[0] == null) {
+            if (listener[0] != null)
+                duration[0] = Snackbar.LENGTH_INDEFINITE;
             else {
                 CoreLogger.logError("duration is not defined, set to LENGTH_LONG " +
-                        "for Snackbar with text: " + mText);
-                mDuration = Snackbar.LENGTH_LONG;
+                        "for Snackbar with text: " + textFinal[0]);
+                duration[0] = Snackbar.LENGTH_LONG;
             }
         }
 
-        if (mSnackbar != null)          // should never happen
-            CoreLogger.logError("Snackbar != null for Snackbar with text: " + mText);
-
-        //noinspection ConstantConditions
-        snackbar[0] = Snackbar.make(view, finalText, mDuration);
-        mSnackbar   = new QueueEntry(snackbar[0], mCountDownLatch, mId);
+        final Snackbar snackbar = Snackbar.make(view, textFinal[0], duration[0]);
 
         boolean actionSet = false;
-        if (mListener != null) {
-            if (mActionStringId != Core.NOT_VALID_RES_ID && mActionString != null)
+        if (listener[0] != null) {
+            if (actionStringId != Core.NOT_VALID_RES_ID && actionString != null)
                 CoreLogger.logWarning("Both action string and action string ID were set; " +
-                        "action string ID will be ignored for Snackbar with text: " + mText);
+                        "action string ID will be ignored for Snackbar with text: " + textFinal[0]);
 
-            if (mActionString != null)
-                snackbar[0].setAction(mActionString, mListener);
+            if (actionString != null)
+                snackbar.setAction(actionString, listener[0]);
             else {
-                if (mActionStringId == Core.NOT_VALID_RES_ID)
+                if (actionStringId == Core.NOT_VALID_RES_ID)
                     CoreLogger.logError("neither action string nor action string ID were " +
-                            "not defined for Snackbar with text: " + mText);
+                            "not defined for Snackbar with text: " + textFinal[0]);
                 else {
-                    snackbar[0].setAction(mActionStringId, mListener);
+                    snackbar.setAction(actionStringId, listener[0]);
                     actionSet = true;
                 }
             }
         }
 
-        final TextView textView = Dagger2.UiModule.ViewHandlerSnackbar.getTextView(snackbar[0]);
+        final TextView textView = ViewHandlerSnackbar.getTextView(snackbar);
         if (textView == null)
-            CoreLogger.logError("can't find TextView for Snackbar with text: " + mText);
+            CoreLogger.logError("can't find TextView for Snackbar with text: " + textFinal[0]);
         else {
-            if (mMaxLines != null)
-                if (mMaxLines > 0 && mMaxLines <= MAX_MAX_LINES)
-                    textView.setMaxLines(mMaxLines);
+            if (maxLines != null)
+                if (maxLines > 0 && maxLines <= MAX_MAX_LINES)
+                    textView.setMaxLines(maxLines);
                 else
-                    CoreLogger.logError("wrong maxLines " + mMaxLines +
-                            " for Snackbar's TextView with text: " + mText);
+                    CoreLogger.logError("wrong maxLines " + maxLines +
+                            " for Snackbar's TextView with text: " + textFinal[0]);
 
-            enableSwipeToDismiss(activity, textView);
+            enableSwipeToDismiss(activity, snackbar, textView);
         }
 
-        if (mViewHandler != null) {
-            mViewHandler.setTextView(textView);
+        final ViewHandlerSnackbar viewHandler = viewModifiers.size() == 0 ? null:
+                new UiModule.ViewHandlerSnackbar() {
+                    @SuppressWarnings("unused")
+                    @Override
+                    public void modify(final View view, final UiModule.ViewHandler viewHandler) {
+                        for (int i = 0; i < viewModifiers.size(); i++)
+                            viewModifiers.get(i).modify(view, viewHandler);
+                    }
+                };
+        if (viewHandler != null) {
+            viewHandler.setTextView(textView);
 
-            if (!mViewHandler.wrapper(snackbar[0].getView()))
-                CoreLogger.log("failed View customization for Snackbar with text: " + mText);
+            if (!viewHandler.wrapper(snackbar.getView()))
+                CoreLogger.log("failed View customization for Snackbar with text: " + textFinal[0]);
         }
 
-        setColors(activity);
+        if (colorsAction != null) {
+            if (colorAction != Core.NOT_VALID_COLOR || colorIdAction != Core.NOT_VALID_RES_ID)
+                CoreLogger.logWarning("ColorStateList != null so Snackbar action color " +
+                        "will be ignored, Snackbar text: " + textFinal[0]);
+            snackbar.setActionTextColor(colorsAction);
+        }
+        else if (colorAction  != Core.NOT_VALID_COLOR ) {
+            if (colorIdAction != Core.NOT_VALID_RES_ID)
+                CoreLogger.logWarning("mColorAction != null so Snackbar action color ID " +
+                        "will be ignored, Snackbar text: " + textFinal[0]);
+            snackbar.setActionTextColor(colorAction);
+        }
+        else if (colorIdAction != Core.NOT_VALID_RES_ID)
+            snackbar.setActionTextColor(ContextCompat.getColor(activity, colorIdAction));
 
-        snackbar[0].addCallback(new BaseCallback(mRequestCode, mIntent, mCountDownLatchTimeout,
-                mActivity, actionSet, new Callable<Collection<String>>() {
+        snackbar.addCallback(new BaseCallback(requestCode, intent, countDownLatchTimeout,
+                actionSet, new Callable<Collection<String>>() {
             @Override
             public Collection<String> call() {
                 synchronized (sQueueLock) {
@@ -1431,19 +1498,13 @@ class BaseSnackbar implements BaseDialog {
             @SuppressLint("SwitchIntDef")
             @Override
             public void onDismissed(final Snackbar snackbar, final int event) {
-                mSnackbar = null;
+                final QueueEntry[] tmp = queueEntry == null ? null: queueEntry.get();
+                if (tmp != null) tmp[0] = null;
                 super.onDismissed(snackbar, event);
             }
         });
 
-        if (show) synchronized (sQueueLock) {
-            if (hasSnackbars())
-                addNotSync(snackbar[0], mText, mCountDownLatch, mId);
-            else
-                show(snackbar[0], text);
-        }
-
-        return true;
+        return snackbar;
     }
 
     private static void show(final Snackbar snackbar, final String text) {
@@ -1451,50 +1512,45 @@ class BaseSnackbar implements BaseDialog {
         snackbar.show();
     }
 
-    private static boolean addNotSync(final Snackbar snackbar, String text,
-                                      final CountDownLatch countDownLatch, final String id) {
-        if (snackbar == null) {
+    private static boolean addNotSync(final String text, final String textDefault, @StringRes final int textId,
+                                      final View view, @IdRes final int viewId,
+                                      final Integer requestCode, final Intent intent, final String id,
+                                      final View.OnClickListener listener, final Integer duration,
+                                      final String actionString, @StringRes int actionStringId,
+                                      final Integer maxLines, final List<ViewModifier> viewModifiers,
+                                      final ColorStateList colorsAction, @ColorInt final int colorAction,
+                                      @ColorRes final int colorIdAction, final QueueEntry[] queueEntry,
+                                      final Long countDownLatchTimeout, final CountDownLatch countDownLatch) {
+        final QueueEntry entry = new QueueEntry(text, textDefault, textId, view, viewId, requestCode,
+                intent, id, listener, duration, actionString, actionStringId, maxLines, viewModifiers,
+                colorsAction, colorAction, colorIdAction, queueEntry, countDownLatchTimeout, countDownLatch);
+        if (entry.validateSnackbar() == null) {
             CoreLogger.logError("Snackbar == null");
             return false;
         }
-        final QueueEntry entry = new QueueEntry(snackbar, countDownLatch, id);
 
         if (sQueue.offer(entry))
             CoreLogger.log(text == null ? Level.WARNING : CoreLogger.getDefaultLevel(),
-                    "Snackbar added to queue, text: " + text);
+                    "Snackbar added to queue, text: " + getSnackbarText(text, textDefault, textId));
         else
-            CoreLogger.logError("can't add Snackbar to queue, text: " + text);
+            CoreLogger.logError("can't add Snackbar to queue, text: " + getSnackbarText(text, textDefault, textId));
 
         return true;
-    }
-
-    static boolean add(final Snackbar snackbar, final Integer requestCode, final Intent intent,
-                       final WeakReference<Activity> activity, final boolean actionNoDefaultHandler,
-                       final CountDownLatch countDownLatch, final Long countDownLatchTimeout, final String id,
-                       @SuppressWarnings("SameParameterValue") final Callable<Collection<String>> stopList) {
-        if (snackbar != null) snackbar.addCallback(new BaseCallback(requestCode, intent,
-                countDownLatchTimeout, activity, actionNoDefaultHandler, stopList));
-        synchronized (sQueueLock) {
-            return addNotSync(snackbar, getSnackbarText(snackbar, UNKNOWN_TEXT), countDownLatch, id);
-        }
     }
 
     private static class BaseCallback extends Snackbar.Callback {
 
         private     final Integer                       mRequestCode;
         private     final Intent                        mIntent;
-        private     final WeakReference<Activity>       mActivity;
         private     final boolean                       mActionNoDefaultHandler;
         private     final Long                          mCountDownLatchTimeout;
         private     final Callable<Collection<String>>  mStopList;
 
         private BaseCallback(final Integer requestCode, final Intent intent, final Long timeout,
-                             final WeakReference<Activity> activity, final boolean actionNoDefaultHandler,
-                             final Callable<Collection<String>> stopList) {
+                             final boolean actionNoDefaultHandler, final Callable<Collection<String>> stopList) {
             mRequestCode                = requestCode;
             mIntent                     = intent;
             mCountDownLatchTimeout      = timeout;
-            mActivity                   = activity;
             mActionNoDefaultHandler     = actionNoDefaultHandler;
             mStopList                   = stopList;
         }
@@ -1515,7 +1571,7 @@ class BaseSnackbar implements BaseDialog {
                         if (sQueue.size() > 0) {
                             final List<String> list = new ArrayList<>();
                             for (final QueueEntry entry: sQueue)
-                                list.add(getSnackbarText(entry.mSnackbar, "text is " + UNKNOWN_TEXT));
+                                list.add(getSnackbarText(entry.getSnackbar(), "text is " + UNKNOWN_TEXT));
 
                             if (list.size() > 0)
                                 CoreLogger.logError("the following queued Snackbars will be removed " +
@@ -1561,7 +1617,7 @@ class BaseSnackbar implements BaseDialog {
         private void onDismiss(final int code) {
             if (mRequestCode != null && !(
                     code == UiModule.SNACKBAR_DISMISSED_REASON_ACTION && mActionNoDefaultHandler))
-                Helper.onActivityResult(mActivity.get(), mIntent, mRequestCode, code);
+                Helper.onActivityResult(Utils.getCurrentActivity(), mIntent, mRequestCode, code);
 
             if (code == UiModule.SNACKBAR_DISMISSED_REASON_CONSECUTIVE) return;
 
@@ -1574,7 +1630,7 @@ class BaseSnackbar implements BaseDialog {
                     }
                     if (entry == null) return;
 
-                    final String text = getSnackbarText(entry.mSnackbar, UNKNOWN_TEXT);
+                    final String text = getSnackbarText(entry.getSnackbar());
 
                     if (entry.mCountDownLatch != null) {
                         CoreLogger.log("Snackbar waiting on latch, text: " + text);
@@ -1597,7 +1653,7 @@ class BaseSnackbar implements BaseDialog {
                                     }
                         }
                     }
-                    show(entry.mSnackbar, text);
+                    show(entry.getSnackbar(), text);
 
                     CoreLogger.log("Snackbar shown from queue, text: " + text);
                 }
@@ -1616,9 +1672,28 @@ class BaseSnackbar implements BaseDialog {
         }
     }
 
+    private static String getSnackbarText(final String text, final Snackbar snackbar) {
+        return text != null ? text: getSnackbarText(snackbar);
+    }
+
     private static String getSnackbarText(final Snackbar snackbar, final String defValue) {
-        final TextView view = UiModule.ViewHandlerSnackbar.getTextView(snackbar);
+        final TextView view = ViewHandlerSnackbar.getTextView(snackbar);
         return view == null ? defValue: view.getText().toString();
+    }
+
+    private static String getSnackbarText(final Snackbar snackbar) {
+        return getSnackbarText(snackbar, UNKNOWN_TEXT);
+    }
+
+    private static String getSnackbarText(final String text, final String textDefault, @StringRes final int textId) {
+        try {
+            return text != null ? text: textDefault != null ? textDefault: textId != Core.NOT_VALID_RES_ID
+                    ? Objects.requireNonNull(Utils.getApplication()).getString(textId): null;
+        }
+        catch (Exception exception) {
+            CoreLogger.log(exception);
+            return null;
+        }
     }
 
     @Override
@@ -1634,9 +1709,12 @@ class BaseSnackbar implements BaseDialog {
         }
 
         try {
-            if (mSnackbar != null) {
-                mSnackbar.mSnackbar.dismiss();
-                mSnackbar = null;
+            if (mQueueEntry[0] != null) {
+                if (mQueueEntry[0].mSnackbar != null) {
+                    final Snackbar snackbar = mQueueEntry[0].mSnackbar.get();
+                    if (snackbar != null) snackbar.dismiss();
+                }
+                mQueueEntry[0] = null;
             }
         }
         catch (Exception exception) {

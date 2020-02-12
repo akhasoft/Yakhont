@@ -1033,7 +1033,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         .setTextId(akha.yakhont.R.string.yakhont_loader_alert)
                         .setDuration(sSnackbarDuration != null ? sSnackbarDuration: Snackbar.LENGTH_LONG)
 
-                        .setViewHandlerChain(true)
+                        .setViewHandlersChain(true)
                         .setViewHandler(Utils.getDefaultSnackbarViewModifier())
 
                         .setActionTextId(akha.yakhont.R.string.yakhont_alert_yes)
