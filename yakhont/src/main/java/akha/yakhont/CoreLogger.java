@@ -2513,22 +2513,22 @@ public class CoreLogger {
         private static final int                        INDEX_AUDIO              =  0;
         private static final int                        INDEX_VIDEO              =  1;
 
-        private static final int                        CYC_BAR_AWAIT_TIMEOUT    =  3000;  // ms
+        private static final int                        CYC_BAR_AWAIT_TIMEOUT    = 3000;    // ms
 
         /** Suitable bit rate for 1080p (the value is {@value}). */
         public  static final int                        VIDEO_BIT_RATE_1080      = (int) (4.5 * 1024 * 1024);
         /** Suitable bit rate for 720p (the value is {@value}). */
         public  static final int                        VIDEO_BIT_RATE_720       = (int) (2.5 * 1024 * 1024);
         /** Suitable bit rate for 480p (the value is {@value}). */
-        public  static final int                        VIDEO_BIT_RATE_480       =              1024 * 1024;
+        public  static final int                        VIDEO_BIT_RATE_480       =              1024 * 1024 ;
         /** Suitable bit rate for 360p (the value is {@value}). */
-        public  static final int                        VIDEO_BIT_RATE_360       =               740 * 1024;
+        public  static final int                        VIDEO_BIT_RATE_360       =               740 * 1024 ;
         /** Suitable bit rate for 240p (the value is {@value}). */
-        public  static final int                        VIDEO_BIT_RATE_240       =               400 * 1024;
+        public  static final int                        VIDEO_BIT_RATE_240       =               400 * 1024 ;
         /** Not-bad quality bit rate (the value is {@value}). */
         public  static final int                        VIDEO_BIT_RATE_HIGH      = (int) (6.8 * 1024 * 1024);
         /** File-size-economic bit rate (the value is {@value}). */
-        public  static final int                        VIDEO_BIT_RATE_LOW       =               128 * 1024;
+        public  static final int                        VIDEO_BIT_RATE_LOW       =               128 * 1024 ;
 
         private static final int                        VIDEO_BIT_RATE_DEFAULT   = VIDEO_BIT_RATE_240;
 
@@ -2791,7 +2791,7 @@ public class CoreLogger {
             if (!isRunning()) return null;
 
             final boolean ok = isOk();
-            if (ok)  showToast(Utils.getCurrentActivity(), R.string.yakhont_record_video_stop);
+            if (ok)  showToast(R.string.yakhont_record_video_stop);
             log(ok ? getDefaultLevel(): Level.WARNING, "about to stop video recording, result: " + ok);
 
             final Level level = getDefaultLevel();
@@ -2888,7 +2888,7 @@ public class CoreLogger {
                         sMediaProjection = sMediaProjectionManager.getMediaProjection(resultCode, data);
                         startRecording(activity, useAudio);
 
-                        showToast(activity, R.string.yakhont_record_video_info);
+                        showToast(R.string.yakhont_record_video_info);
                         log("starting video recording...");
                     }
                     catch (Exception exception) {
@@ -2901,8 +2901,8 @@ public class CoreLogger {
             }
         }
 
-        private static void showToast(@NonNull final Activity activity, @StringRes final int textId) {
-            if (sWarnings) new Utils.ToastBuilder(activity)
+        private static void showToast(@StringRes final int textId) {
+            if (sWarnings) new Utils.ToastBuilder()
                     .setTextId(textId)
                     .setDuration(Toast.LENGTH_SHORT)
                     .show();

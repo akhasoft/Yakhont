@@ -123,7 +123,7 @@ ext {
     projectLibVerRxJava2                                        =  '2.2.8'
 
     projectLibVerPaging                                         =  '2.1.1'
-    projectLibVerRoom                                           =  '2.2.3'
+    projectLibVerRoom                                           =  '2.2.4'
 
     projectLibVerDagger                                         =  '2.22.1'
 
@@ -132,7 +132,7 @@ ext {
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.1.0'
     projectLibVerCoreCore                                       =  '1.2.0'
-    projectLibVerFragmentFragment                               =  '1.2.1'
+    projectLibVerFragmentFragment                               =  '1.2.2'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
     projectLibVerLegacyLegacyPreferenceV14                      =  '1.0.0'

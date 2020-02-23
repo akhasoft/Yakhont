@@ -185,10 +185,12 @@ import com.google.android.material.snackbar.Snackbar;
 public class Core implements DefaultLifecycleObserver {
 
     /** Not valid resource ID (the value is {@value}). */
-    @AnyRes public static final int                     NOT_VALID_RES_ID            = 0;
+    @AnyRes
+    public static final int                             NOT_VALID_RES_ID            = 0;
 
     /** Not valid View ID (the value is {@value}). */
-    @IdRes  public static final int                     NOT_VALID_VIEW_ID           = View.NO_ID;
+    @IdRes
+    public static final int                             NOT_VALID_VIEW_ID           = View.NO_ID;
 
     /** Not valid color (the value is {@value}). */
     @IdRes  public static final int                     NOT_VALID_COLOR             = Integer.MAX_VALUE;
@@ -258,9 +260,6 @@ public class Core implements DefaultLifecycleObserver {
         /**
          * Starts data load dialog.
          *
-         * @param context
-         *        The {@link Activity}
-         *
          * @param text
          *        The text to display
          *
@@ -269,7 +268,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  {@code true} if dialog was started successfully, {@code false} otherwise
          */
-        boolean start(Activity context, String text, Intent data);
+        boolean start(String text, Intent data);
 
         /**
          * Stops data load dialog.
@@ -926,6 +925,7 @@ public class Core implements DefaultLifecycleObserver {
      */
     @SuppressWarnings("WeakerAccess")
     public static void cleanUpComponents() {
+        UiModule  .cleanUp();
         CoreLogger.cleanUp();
     }
 
@@ -2360,11 +2360,8 @@ public class Core implements DefaultLifecycleObserver {
          */
         public static class ToastBuilder {
 
-            private final      WeakReference<Context>   mContext;
-
             @LayoutRes
-            private            int                      mViewId                         = Core.NOT_VALID_RES_ID;
-            private            WeakReference<View>      mView;
+            private            Integer                  mViewLayoutId;
 
             @StringRes
             private            int                      mTextId                         = Core.NOT_VALID_RES_ID;
@@ -2382,40 +2379,22 @@ public class Core implements DefaultLifecycleObserver {
 
             /**
              * Initialises a newly created {@code ToastBuilder} object.
-             *
-             * @param context
-             *        The Context (or null for the default one)
              */
             @SuppressWarnings("unused")
-            public ToastBuilder(final Context context) {
-                mContext          = context == null ? null: new WeakReference<>(context);
+            public ToastBuilder() {
             }
 
             /**
              * Sets the Toast's {@link View}.
              *
-             * @param viewId
-             *        The View ID
+             * @param viewLayoutId
+             *        The View's layout ID
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
             @SuppressWarnings("unused")
-            public ToastBuilder setViewId(@LayoutRes final int viewId) {
-                mViewId           = viewId;
-                return this;
-            }
-
-            /**
-             * Sets the Toast's {@link View}.
-             *
-             * @param view
-             *        The View
-             *
-             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
-             */
-            @SuppressWarnings("unused")
-            public ToastBuilder setView(final View view) {
-                mView             = view == null ? null: new WeakReference<>(view);
+            public ToastBuilder setViewLayoutId(@LayoutRes final int viewLayoutId) {
+                mViewLayoutId     = viewLayoutId;
                 return this;
             }
 
@@ -2518,9 +2497,8 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             private Toast run(final boolean show) {
-                return UiModule.showToast(mContext == null ? null: mContext.get(), mViewId,
-                        mView == null ? null: mView.get(), mTextId, mText, mDuration,
-                        mRequestCode, mData, mGravity, mXOffset, mYOffset,
+                return UiModule.showToast(mViewLayoutId != null ? mViewLayoutId: Core.NOT_VALID_RES_ID,
+                        mTextId, mText, mDuration, mRequestCode, mData, mGravity, mXOffset, mYOffset,
                         mHorizontalMargin, mVerticalMargin, show);
             }
 
@@ -2618,7 +2596,7 @@ public class Core implements DefaultLifecycleObserver {
         public static class SnackbarBuilder {
 
             @IdRes
-            private            int                      mViewId                         = Core.NOT_VALID_VIEW_ID;
+            private            Integer                  mViewId                         = Core.NOT_VALID_VIEW_ID;
             private            WeakReference<View>      mView;
 
             @StringRes
@@ -2654,12 +2632,12 @@ public class Core implements DefaultLifecycleObserver {
              * Sets the {@link View} for {@link Snackbar#make}.
              *
              * @param viewId
-             *        The View ID
+             *        The View ID (or null for default one)
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
             @SuppressWarnings("unused")
-            public SnackbarBuilder setViewId(@IdRes final int viewId) {
+            public SnackbarBuilder setViewId(@IdRes final Integer viewId) {
                 mViewId          = viewId;
                 return this;
             }
@@ -2667,13 +2645,15 @@ public class Core implements DefaultLifecycleObserver {
             /**
              * Sets the {@link View} for {@link Snackbar#make}.
              *
-             * <p>Note: use it ONLY if your {@code SnackbarBuilder} is some method's local variable.
+             * <p>Note: use it for Snackbars which should be shown immediately
+             * (ignoring Snackbar's queue), e.g. Snackbars based on {@link Dialog}'s Views.
              *
              * @param view
              *        The View
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
+            @SuppressWarnings("UnusedReturnValue")
             public SnackbarBuilder setView(final View view) {
                 mView            = view == null ? null: new WeakReference<>(view);
                 return this;
@@ -2883,10 +2863,10 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             private Snackbar run(final boolean show) {
-                return UiModule.showSnackbar(mViewId, mView == null ? null: mView.get(),
+                return UiModule.showSnackbar(mView == null ? null: mView.get(), mViewId,
                         mTextId, mText, mMaxLines, mDuration, mRequestCode, mData,
-                        mActionTextId, mActionText, mAction, mActionColors, mActionColorId, mActionColor,
-                        mViewModifiers, show);
+                        mActionTextId, mActionText, mAction, mActionColors, mActionColorId,
+                        mActionColor, mViewModifiers, show);
             }
 
             /**

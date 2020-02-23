@@ -32,7 +32,6 @@ import akha.yakhont.Core.Utils.RetainDialogFragment;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseCacheAdapter.ViewBinder;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog;
-import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault;
 import akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefaultDialog;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.BaseViewModel;
@@ -573,12 +572,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             mConfirm = view.findViewById(R.id.progress_confirm);
 
 //          normally such call should be enough - but here we handle the 'confirm' flag, so see below...
-//          return ProgressDefault.handle(builder.setView(view).create(), view);
+//          return ProgressDefaultDialog.handle(builder.setView(view).create(), view);
 
-            return ProgressDefault.handle(builder.setView(view).create(), () -> {
+            return ProgressDefaultDialog.handle(builder.setView(view).create(), () -> {
                 if (mConfirm.isChecked()) {
                     BaseViewModel.get(BaseViewModel.DEFAULT_KEY).getData().confirm(getActivity(), view);
-//                  BaseViewModel.get(DEMO_VIEWMODEL_KEY).getData().confirm(getActivity(), view);
+//                  BaseViewModel.get(DEMO_VIEWMODEL_KEY       ).getData().confirm(getActivity(), view);
                     return true;
                 }
                 Utils.showToast(R.string.yakhont_loader_cancelled, Toast.LENGTH_LONG);

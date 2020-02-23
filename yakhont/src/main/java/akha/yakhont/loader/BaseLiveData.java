@@ -368,7 +368,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             // again an ugly hack :-) (4000 is for Toast.LENGTH_SHORT - according to Toast sources)
             if (sToastStartTime + 4000 + DEFAULT_GUI_DELAY >= getCurrentTime()) return;
 
-            mToast.get().start(null, makeErrorMessage(baseResponse), null);
+            mToast.get().start(makeErrorMessage(baseResponse), null);
             sToastStartTime = getCurrentTime();
         }
     }
@@ -459,7 +459,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     public void run() {
                         synchronized (mLockLoading) {
                             if (mLoading.get() && !mLoadParameters.mParameters.getNoProgress())
-                                mBaseDialog.start(activity, text, data);
+                                mBaseDialog.start(text, data);
                         }
                     }
 
@@ -902,7 +902,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The {@link Activity}
              *
              * @param view
-             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
+             *        The view for {@link Snackbar} (or null if you're not going to use it)
              *
              * @return  {@code true} if data load canceling confirmation supported, {@code false} otherwise
              *
@@ -994,8 +994,10 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     CoreLogger.logError("Snackbar's duration " + sSnackbarDuration +
                             " will be ignored 'cause SnackbarBuilder is already set");
 
+                //todo - add in javadoc about: setView() clears Snackbar queue
                 final SnackbarBuilder snackbarBuilder = sSnackbarBuilder != null ? sSnackbarBuilder:
-                        getDefaultSnackbarBuilder(activity).setView(view);
+                        getDefaultSnackbarBuilder(activity);
+                adjustSnackbarBuilder(snackbarBuilder, view);
 
                 mSnackbar = snackbarBuilder.show();
 
@@ -1007,6 +1009,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 });
 
                 return true;
+            }
+
+            /** @exclude */ @SuppressWarnings("JavaDoc")
+            protected void adjustSnackbarBuilder(final SnackbarBuilder snackbarBuilder, final View view) {
+                if (view != null) snackbarBuilder.setViewId(view.getId());
             }
 
             /**
@@ -1088,117 +1095,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             public static void setToastViewHandler(final ViewModifier viewModifier) {
                 sToastViewModifier = viewModifier;
             }
-
-            /**
-             * Adjusts {@link Dialog} to properly work with {@link Snackbar} (the {@link Callable#call}
-             * should return value for the {@link OnKeyListener#onKey} - normally {@code true}).
-             *
-             * @param dialog
-             *        The {@link Dialog}
-             *
-             * @param callback
-             *        The callback (if  null - the {@link Callable#call} will return {@code false})
-             *
-             * @return  The handled {@link Dialog}
-             */
-            public static Dialog handle(@NonNull final Dialog dialog, final Callable<Boolean> callback) {
-                //noinspection Convert2Lambda
-                dialog.setOnKeyListener(new OnKeyListener() {
-                    @Override
-                    public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
-                        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP)
-                            if (callback != null) return Utils.safeRunBoolean(callback);
-                        return false;
-                    }
-                });
-                return dialog;
-            }
-
-            /**
-             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
-             *
-             * @param dialog
-             *        The {@link Dialog}
-             *
-             * @param view
-             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
-             *
-             * @param key
-             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
-             *        for more info); could be null (for default value)
-
-             * @return  The handled {@link Dialog}
-             */
-            public static Dialog handle(@NonNull final Dialog dialog, final View view, final String key) {
-                return handle(dialog, createCallable(BaseViewModel.get(key), null, view));
-            }
-
-            /**
-             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
-             *
-             * @param dialog
-             *        The {@link Dialog}
-             *
-             * @param view
-             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
-             *
-             * @param activity
-             *        The {@link Activity}
-             *
-             * @param key
-             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
-             *        for more info); could be null (for default value)
-             *
-             * @return  The handled {@link Dialog}
-             */
-            public static Dialog handle(@NonNull final Dialog dialog, final View view,
-                                        final Activity activity, final String key) {
-                return handle(dialog, createCallable(BaseViewModel.get(
-                        BaseViewModel.cast(activity, null), key), activity, view));
-            }
-
-            /**
-             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
-             *
-             * @param dialog
-             *        The {@link Dialog}
-             *
-             * @param view
-             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
-             *
-             * @param fragment
-             *        The {@link Fragment}
-             *
-             * @param key
-             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
-             *        for more info); could be null (for default value)
-             *
-             * @return  The handled {@link Dialog}
-             */
-            public static Dialog handle(@NonNull final Dialog dialog, final View view,
-                                        final Fragment fragment, final String key) {
-                return handle(dialog, createCallable(BaseViewModel.get(fragment, key),
-                        fragment.getActivity(), view));
-            }
-
-            private static Callable<Boolean> createCallable(final BaseViewModel baseViewModel,
-                                                            final Activity activity, final View view) {
-                if (baseViewModel == null)
-                    CoreLogger.logWarning("can't create Callable dor Dialog handling");
-
-                return baseViewModel == null ? null: new Callable<Boolean>() {
-                    @Override
-                    public Boolean call() {
-                        return baseViewModel.getData().confirm(activity, view);
-                    }
-
-                    @NonNull
-                    @Override
-                    public String toString() {
-                        return "BaseViewModel.getData().confirm()";
-                    }
-                };
-            }
         }
 
         /**
@@ -1275,6 +1171,127 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             @SuppressWarnings("unused")
             public String getTag() {
                 return mTag;
+            }
+
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+            @Override
+            protected void adjustSnackbarBuilder(final SnackbarBuilder snackbarBuilder, final View view) {
+                snackbarBuilder.setView(view);
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar} (the {@link Callable#call}
+             * should return value for the {@link OnKeyListener#onKey} - normally {@code true}).
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param callback
+             *        The callback (if  null - the {@link Callable#call} will return {@code false})
+             *
+             * @return  The handled {@link Dialog}
+             */
+            @SuppressWarnings("WeakerAccess")
+            public static Dialog handle(@NonNull final Dialog dialog, final Callable<Boolean> callback) {
+                //noinspection Convert2Lambda
+                dialog.setOnKeyListener(new OnKeyListener() {
+                    @Override
+                    public boolean onKey(DialogInterface dialog, int keyCode, KeyEvent event) {
+                        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_UP)
+                            if (callback != null) return Utils.safeRunBoolean(callback);
+                        return false;
+                    }
+                });
+                return dialog;
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param view
+             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
+             *
+             * @param key
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+             *        for more info); could be null (for default value)
+
+             * @return  The handled {@link Dialog}
+             */
+            @SuppressWarnings("unused")
+            public static Dialog handle(@NonNull final Dialog dialog, final View view, final String key) {
+                return handle(dialog, createCallable(BaseViewModel.get(key), null, view));
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param view
+             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
+             *
+             * @param activity
+             *        The {@link Activity}
+             *
+             * @param key
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+             *        for more info); could be null (for default value)
+             *
+             * @return  The handled {@link Dialog}
+             */
+            @SuppressWarnings("unused")
+            public static Dialog handle(@NonNull final Dialog dialog, final View view,
+                                        final Activity activity, final String key) {
+                return handle(dialog, createCallable(BaseViewModel.get(
+                        BaseViewModel.cast(activity, null), key), activity, view));
+            }
+
+            /**
+             * Adjusts {@link Dialog} to properly work with {@link Snackbar}.
+             *
+             * @param dialog
+             *        The {@link Dialog}
+             *
+             * @param view
+             *        The {@link Dialog}'s view (or null if you're not going to use {@link Snackbar})
+             *
+             * @param fragment
+             *        The {@link Fragment}
+             *
+             * @param key
+             *        The {@link BaseViewModel} key (please refer to {@link ViewModelProvider#get(String, Class)}
+             *        for more info); could be null (for default value)
+             *
+             * @return  The handled {@link Dialog}
+             */
+            @SuppressWarnings("unused")
+            public static Dialog handle(@NonNull final Dialog dialog, final View view,
+                                        final Fragment fragment, final String key) {
+                return handle(dialog, createCallable(BaseViewModel.get(fragment, key),
+                        fragment.getActivity(), view));
+            }
+
+            private static Callable<Boolean> createCallable(final BaseViewModel baseViewModel,
+                                                            final Activity activity, final View view) {
+                if (baseViewModel == null)
+                    CoreLogger.logWarning("can't create Callable dor Dialog handling");
+
+                return baseViewModel == null ? null: new Callable<Boolean>() {
+                    @Override
+                    public Boolean call() {
+                        return baseViewModel.getData().confirm(activity, view);
+                    }
+
+                    @NonNull
+                    @Override
+                    public String toString() {
+                        return "BaseViewModel.getData().confirm()";
+                    }
+                };
             }
         }
 
@@ -1526,7 +1543,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          */
         @SuppressWarnings("unused")
         @Override
-        public boolean start(final Activity context, final String text, final Intent data) {
+        public boolean start(final String text, final Intent data) {
             start(text);
             return true;
         }
