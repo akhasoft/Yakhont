@@ -310,7 +310,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
         tableName = Utils.replaceSpecialChars(tableName);
 
-        // noinspection ConstantConditions
         tableName = tableName.length() > MAX_TABLE_NAME_LENGTH ?
                 tableName.substring(MAX_TABLE_NAME_LENGTH - tableName.length()): tableName;
 

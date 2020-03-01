@@ -875,7 +875,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
 
         CoreLogger.log("startActivityForResultExceptionHandler failed", exception);
 
-        locationCallbacks.mToastProvider.get().start(activity, activity.getString(
+        locationCallbacks.mToastProvider.get().start(activity.getString(
                 akha.yakhont.R.string.yakhont_location_error), null);
     }
 }

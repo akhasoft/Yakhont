@@ -159,7 +159,7 @@ dependencies {
         exclude group:  "com.google.code.gson", module: "gson"
     }
 
-    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
+    implementation      "io.reactivex.rxjava3:rxjava:$projectLibVerRxJava3"
     implementation      "io.reactivex:rxjava:$projectLibVerRxJava"
 
     implementation      "com.github.akhasoft:yakhont-full:$projectVerName@aar"

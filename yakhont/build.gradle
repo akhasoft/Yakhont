@@ -194,7 +194,8 @@ dependencies {
     fullApi             "com.squareup.okhttp:okhttp:$projectLibVerDefault"
     fullApi             "com.squareup.okhttp:okhttp-urlconnection:$projectLibVerDefault"
 
-    api                 "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
+//  api                 "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
+    api                 "io.reactivex.rxjava3:rxjava:$projectLibVerRxJava3"
     fullApi             "io.reactivex:rxjava:$projectLibVerRxJava"
 }
 

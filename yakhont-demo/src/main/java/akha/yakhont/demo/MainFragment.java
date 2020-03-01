@@ -525,7 +525,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     }
 
     // we need such class only to handle the 'confirm' flag - otherwise use 'ProgressDefaultDialog'
-    private class ProgressDemo extends ProgressDefaultDialog {
+    private static class ProgressDemo extends ProgressDefaultDialog {
 
         private ProgressDemo() {
             super(ProgressDialogFragment.class);

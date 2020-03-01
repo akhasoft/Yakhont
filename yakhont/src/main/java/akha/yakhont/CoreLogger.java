@@ -3020,7 +3020,7 @@ public class CoreLogger {
 
         private static long getAudioTime() {
             final long result = System.nanoTime() / 1000;
-            return result < sPrevAudioTime ? sPrevAudioTime: result;
+            return Math.max(result, sPrevAudioTime);
         }
 
         private static void encodeAudio(final ByteBuffer buffer, final int length, final long time) {

@@ -1387,7 +1387,7 @@ class BaseSnackbar implements BaseDialog {
         }
 
         if (sQueue.offer(entry))
-            CoreLogger.log(text == null ? Level.WARNING : CoreLogger.getDefaultLevel(),
+            CoreLogger.log(text == null ? Level.WARNING: CoreLogger.getDefaultLevel(),
                     "Snackbar added to queue, text: " + getSnackbarText(text, textDefault, textId));
         else
             CoreLogger.logError("can't add Snackbar to queue, text: " + getSnackbarText(text, textDefault, textId));
@@ -1914,7 +1914,7 @@ class BaseToast implements BaseDialog {
                 final Activity activity = Utils.getCurrentActivity();
 
                 if (activity != null) {
-                    final int delay = isStandardDuration(mDuration) ? DELAY_STANDARD : mDuration + DELAY_ADD;
+                    final int delay = isStandardDuration(mDuration) ? DELAY_STANDARD: mDuration + DELAY_ADD;
                     CoreLogger.log("BaseToast onActivityResult() delay " + delay +
                             " for Toast: " + getToastDescription(text));
 

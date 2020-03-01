@@ -255,7 +255,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
 
         if (!result.hasResolution()) {
             if (!mSystemErrorDialog) {
-                if (activity != null) mToast.get().start(activity, activity.getString(
+                if (activity != null) mToast.get().start(activity.getString(
                         akha.yakhont.R.string.yakhont_location_error_connection), null);
 
                 clearResolvingError();

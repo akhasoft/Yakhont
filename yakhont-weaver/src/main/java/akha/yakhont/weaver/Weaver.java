@@ -393,7 +393,7 @@ public class Weaver {
     }
 
     private Action getAction(String methodData) {
-        return Action.values()[Integer.valueOf(methodData.substring(0, 1))];
+        return Action.values()[Integer.parseInt(methodData.substring(0, 1))];
     }
 
     private String getActionDescription(String methodData) {

@@ -217,7 +217,9 @@ public class SlideShow {
 
         fragment.getDemoGuiHelper().onSlideShow(showSlides);
         
+        @SuppressWarnings("IntegerDivisionInFloatingPointContext")
         float centerX = mContainer.getWidth()  / 2;
+        @SuppressWarnings("IntegerDivisionInFloatingPointContext")
         float centerY = mContainer.getHeight() / 2;
 
         Rotate3dAnimation rotation = new Rotate3dAnimation(showSlides ? 0: 180, 90, centerX, centerY, DEPTH_Z, true);
@@ -274,7 +276,9 @@ public class SlideShow {
         }
 
         public void run() {
+            @SuppressWarnings("IntegerDivisionInFloatingPointContext")
             float centerX = mContainer.getWidth()  / 2;
+            @SuppressWarnings("IntegerDivisionInFloatingPointContext")
             float centerY = mContainer.getHeight() / 2;
 
             if (mShowSlides) {

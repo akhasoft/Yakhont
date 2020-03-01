@@ -24,6 +24,7 @@ import akha.yakhont.callback.BaseCallbacks.BaseCacheCallbacks;
 import akha.yakhont.callback.BaseCallbacks.BaseLifecycleProceed;
 import akha.yakhont.callback.lifecycle.BaseFragmentLifecycleProceed.BaseFragmentCallbacks;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application.ActivityLifecycleCallbacks;
@@ -688,8 +689,8 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
             setOrientation(activity);
         }
 
-        /** @exclude */
-        @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        @SuppressLint("SourceLockedOrientationActivity")
         public static void setOrientation(@NonNull final Activity activity) {
             final Core.Orientation orientation = Utils.getOrientationToSet(activity);
             switch (orientation) {

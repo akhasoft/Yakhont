@@ -983,7 +983,7 @@ public abstract class BaseLoaderWrapper<D> {
                 BaseViewModel.getViewModels(viewModelStoreOwner);
 
         final Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> result =
-                set != null && !set.isEmpty() ? set: BaseViewModel.getViewModels(mViewModelStore);
+                !set.isEmpty() ? set: BaseViewModel.getViewModels(mViewModelStore);
 
         if (result == null) CoreLogger.log("getModels() returns null");
         return result;

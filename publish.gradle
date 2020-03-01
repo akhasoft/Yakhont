@@ -377,7 +377,7 @@ if (isAndroidApp || isAndroidLib) {
                                                             from android.sourceSets[flavorName + 'Release'].res .srcDirs }
                 }
 
-                if (variant.getBuildType().isMinifyEnabled()) { from variant.mappingFile }
+                if (variant.getBuildType().isMinifyEnabled()) { from variant.mappingFileProvider }
 
                 archiveBaseName         = getPropertyExt('publishedArtifactId')
                 archiveAppendix         = appendixValue

@@ -88,6 +88,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
  */
 public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
+    @SuppressWarnings("CharsetObjectCanBeUsed")
     private static final Charset                UTF8            = Charset.forName("UTF-8");
 
     private static final Callback               EMPTY_CALLBACK  = new Callback() {

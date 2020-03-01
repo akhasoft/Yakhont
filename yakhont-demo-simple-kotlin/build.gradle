@@ -154,7 +154,7 @@ dependencies {
     implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
     implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
-    implementation      "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
+    implementation      "io.reactivex.rxjava3:rxjava:$projectLibVerRxJava3"
 
     implementation      "com.github.akhasoft:yakhont:$projectVerName@aar"
 }

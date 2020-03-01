@@ -896,13 +896,13 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             void hide();
 
             /**
-             * Confirms data load canceling.
+             * Confirms data loading canceling.
              *
              * @param activity
              *        The {@link Activity}
              *
              * @param view
-             *        The view for {@link Snackbar} (or null if you're not going to use it)
+             *        The view for {@link Snackbar} (or null for default one)
              *
              * @return  {@code true} if data load canceling confirmation supported, {@code false} otherwise
              *
@@ -1600,7 +1600,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             if (force) {
                 final Collection<BaseViewModel<?>> models = BaseViewModel.getViewModels(
                         BaseViewModel.cast(activity, null), true, CoreLogger.getDefaultLevel());
-                if (models == null) {
+                if (models.size() == 0) {
                     CoreLogger.logWarning("only current BaseLiveData loading will be " +
                             "stopped 'cause of unsupported Activity " + CoreLogger.getDescription(activity));
                     cancel();

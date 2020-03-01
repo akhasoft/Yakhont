@@ -258,7 +258,7 @@ public class Core implements DefaultLifecycleObserver {
     public interface BaseDialog {
 
         /**
-         * Starts data load dialog.
+         * Starts data loading dialog.
          *
          * @param text
          *        The text to display
@@ -1030,11 +1030,8 @@ public class Core implements DefaultLifecycleObserver {
 
     @TargetApi  (      Build.VERSION_CODES.ICE_CREAM_SANDWICH)
     @RequiresApi(api = Build.VERSION_CODES.ICE_CREAM_SANDWICH)
-    private class ApplicationCallbacks2 extends ApplicationCallbacks implements ComponentCallbacks2 {
+    private static class ApplicationCallbacks2 extends ApplicationCallbacks implements ComponentCallbacks2 {
 
-        /**
-         * Please refer to the base method description.
-         */
         @Override
         public void onTrimMemory(int level) {
             CoreLogger.log(Utils.getOnTrimMemoryLevel(level),
@@ -1042,11 +1039,8 @@ public class Core implements DefaultLifecycleObserver {
         }
     }
 
-    private class ApplicationCallbacks extends BaseListeners implements ComponentCallbacks {
+    private static class ApplicationCallbacks extends BaseListeners implements ComponentCallbacks {
 
-        /**
-         * Please refer to the base method description.
-         */
         @Override
         public void onConfigurationChanged(@NonNull final Configuration newConfig) {
             try {
@@ -1082,9 +1076,6 @@ public class Core implements DefaultLifecycleObserver {
                 });
         }
 
-        /**
-         * Please refer to the base method description.
-         */
         @Override
         public void onLowMemory() {
             CoreLogger.log(Utils.getOnLowMemoryLevel(), "low memory");
@@ -1110,7 +1101,7 @@ public class Core implements DefaultLifecycleObserver {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "InnerClassMayBeStatic"})
     private class Init extends BaseListeners {
 
         private              String                     mBaseUri;

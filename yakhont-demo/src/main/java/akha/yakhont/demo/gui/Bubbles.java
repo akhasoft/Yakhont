@@ -162,7 +162,7 @@ public class Bubbles {
     private static int getBubblesInterval() {
         int interval    = sRandom.nextInt((int) (BUBBLES_INTERVAL_MAX * 1000));
         int intervalMin = (int) (BUBBLES_INTERVAL_MIN * 1000);
-        return interval < intervalMin ? intervalMin: interval;
+        return Math.max(interval, intervalMin);
     }
 
     public static void setState(final boolean cancel, final boolean clear) {
@@ -291,7 +291,9 @@ public class Bubbles {
         //noinspection SuspiciousNameCombination
         textView.getLayoutParams().height = viewWidth;
 
+        //noinspection IntegerDivisionInFloatingPointContext
         textView.setPivotX(viewWidth  / 2);
+        //noinspection IntegerDivisionInFloatingPointContext
         textView.setPivotY(viewHeight / 2);
 
         textView.setLeft(0);

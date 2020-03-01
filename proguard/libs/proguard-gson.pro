@@ -15,6 +15,6 @@
 -keep class com.google.gson.stream.** { *; }
 
 # added by akha
--dontnote com.google.gson.internal.UnsafeAllocator
--dontnote com.google.gson.stream.**
--dontnote sun.misc.Unsafe
+# -dontnote com.google.gson.internal.UnsafeAllocator
+# -dontnote com.google.gson.stream.**
+# -dontnote sun.misc.Unsafe

@@ -30,23 +30,23 @@ import androidx.annotation.NonNull;
 
 import java.lang.reflect.Method;
 
-import io.reactivex.BackpressureStrategy;
-import io.reactivex.Completable;
-import io.reactivex.Flowable;
-import io.reactivex.Maybe;
-import io.reactivex.Observable;
-import io.reactivex.Observer;
-import io.reactivex.Single;
-import io.reactivex.disposables.CompositeDisposable;
-import io.reactivex.disposables.Disposable;
-import io.reactivex.functions.Consumer;
-import io.reactivex.internal.functions.Functions;
-import io.reactivex.internal.subscriptions.EmptySubscription;
-import io.reactivex.observers.DisposableObserver;
-import io.reactivex.observers.DisposableSingleObserver;
-import io.reactivex.plugins.RxJavaPlugins;
-import io.reactivex.subscribers.DisposableSubscriber;
-import io.reactivex.subscribers.SafeSubscriber;
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Observer;
+import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.CompositeDisposable;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.functions.Consumer;
+import io.reactivex.rxjava3.internal.functions.Functions;
+import io.reactivex.rxjava3.internal.subscriptions.EmptySubscription;
+import io.reactivex.rxjava3.observers.DisposableObserver;
+import io.reactivex.rxjava3.observers.DisposableSingleObserver;
+import io.reactivex.rxjava3.plugins.RxJavaPlugins;
+import io.reactivex.rxjava3.subscribers.DisposableSubscriber;
+import io.reactivex.rxjava3.subscribers.SafeSubscriber;
 
 /**
  * The component to work with {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>}.
@@ -118,7 +118,7 @@ public class Rx2<D> extends CommonRx<D> {
         //noinspection Convert2Lambda
         setErrorHandler(new Consumer<Throwable>() {
             @Override
-            public void accept(@io.reactivex.annotations.NonNull Throwable throwable) {
+            public void accept(Throwable throwable) {
                 CoreLogger.log("RxJavaPlugins Error handler", throwable);
             }
         });
@@ -278,7 +278,7 @@ public class Rx2<D> extends CommonRx<D> {
         //noinspection Convert2Lambda
         return new Consumer<D>() {
             @Override
-            public void accept(@io.reactivex.annotations.NonNull D data) {
+            public void accept(D data) {
                 Utils.safeRun(new Runnable() {
                     @Override
                     public void run() {
@@ -300,7 +300,7 @@ public class Rx2<D> extends CommonRx<D> {
         //noinspection Convert2Lambda
         return new Consumer<Throwable>() {
             @Override
-            public void accept(@io.reactivex.annotations.NonNull Throwable throwable) {
+            public void accept(Throwable throwable) {
                 Utils.safeRun(new Runnable() {
                     @Override
                     public void run() {

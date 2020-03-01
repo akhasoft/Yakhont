@@ -208,7 +208,7 @@ public class CorePermissions implements ConfigurationChangedListener {
         mAlert = mAlertProvider.get();
         UiModule.setId(mAlert, getPermissionId(permissions[0]));
 
-        if (mAlert.start(activity, mRationale, getIntent(mViewId, permissions[0])))
+        if (mAlert.start(mRationale, getIntent(mViewId, permissions[0])))
             CoreLogger.log("started rationale alert dialog for permissions " +
                     rationalePermissionsDesc);
         else
@@ -648,7 +648,7 @@ public class CorePermissions implements ConfigurationChangedListener {
             return null;
         }
 
-        if (!corePermissions.mAlertDenied.start(activity, permissions.length == 1 ?
+        if (!corePermissions.mAlertDenied.start(permissions.length == 1 ?
                         activity.getString(R.string.yakhont_permission_denied_alert):
                         activity.getString(R.string.yakhont_permissions_denied_alert),
                 getIntent(corePermissions.mViewId, null))) {
