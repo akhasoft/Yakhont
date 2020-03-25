@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -196,7 +196,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     /**
      * For internal use only.
      *
-     * <p>As Martin Fowler pointed out, {@link <a href="http://martinfowler.com/ieeeSoftware/published.pdf">"Yet there’s something
+     * <p>As Martin Fowler pointed out, {@link <a href="https://martinfowler.com/ieeeSoftware/published.pdf">"Yet there’s something
      * to be said for the public–published distinction being more important than the more common public–private distinction."</a>}
      */
     public interface BaseCursorAdapter extends ListAdapter, SpinnerAdapter, Filterable {
@@ -1194,16 +1194,28 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         try {
             imageView.setImageResource(Integer.parseInt(strValue));
         }
-        catch (NumberFormatException exception) {
+        catch (NumberFormatException numberFormatException) {
             if (sUseGlide) {
                 if (context == null) context = Utils.getCurrentActivity();
                 if (context != null) {
-                    Glide.with(context).load(strValue).into(imageView);
-                    return;
+                    try {
+                        Glide.with(context).load(strValue).into(imageView);
+                        return;
+                    }
+                    catch (Exception exception) {
+                        CoreLogger.logWarning("about to use Picasso 'cause Glide failed for image: " +
+                                strValue, exception);
+                    }
                 }
-                CoreLogger.logWarning("about to use Picasso 'cause of null Context");
+                else
+                    CoreLogger.logWarning("about to use Picasso 'cause of null Context");
             }
-            Picasso.get().load(strValue).into(imageView);
+            try {
+                Picasso.get().load(strValue).into(imageView);
+            }
+            catch (Exception exception) {
+                CoreLogger.logError("Picasso failed for image: " + strValue, exception);
+            }
         }
     }
 

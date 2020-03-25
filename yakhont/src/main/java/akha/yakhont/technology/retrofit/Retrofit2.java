@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -29,21 +29,41 @@ import akha.yakhont.technology.rx.BaseRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
-import akha.yakhont.technology.rx.Rx2;
+import akha.yakhont.technology.rx.Rx3;
+import akha.yakhont.technology.rx.Rx3.Rx3Disposable;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.io.IOException;
+import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
+import io.reactivex.rxjava3.core.BackpressureStrategy;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Flowable;
+import io.reactivex.rxjava3.core.Maybe;
+import io.reactivex.rxjava3.core.Observable;
+import io.reactivex.rxjava3.core.Observer;
+import io.reactivex.rxjava3.core.Scheduler;
+import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.disposables.Disposable;
+import io.reactivex.rxjava3.exceptions.CompositeException;
+import io.reactivex.rxjava3.exceptions.Exceptions;
+import io.reactivex.rxjava3.plugins.RxJavaPlugins;
+
+import okhttp3.ConnectionSpec;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
 import okhttp3.HttpUrl;
@@ -60,6 +80,7 @@ import okio.BufferedSource;
 import okio.GzipSource;
 
 import retrofit2.Call;
+import retrofit2.CallAdapter;
 import retrofit2.CallAdapter.Factory;
 import retrofit2.Callback;
 import retrofit2.Converter;
@@ -67,12 +88,13 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.Retrofit.Builder;
 import retrofit2.adapter.rxjava.RxJavaCallAdapterFactory;
+import retrofit2.adapter.rxjava2.Result;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 /**
  * The component to work with
- * {@link <a href="http://square.github.io/retrofit/2.x/retrofit/">Retrofit</a>} 2.x APIs.
+ * {@link <a href="https://square.github.io/retrofit/2.x/retrofit/">Retrofit</a>} 2.x APIs.
  *
  * <p>Every loader should have unique Retrofit2 object; don't share it with other loaders.
  *
@@ -257,24 +279,24 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
             final CallbackRx<D> callbackRx = getRxWrapper(callback);
 
-            final Object resultRx2 = Rx2.handle(proxy, method, args, callbackRx);
-            if (resultRx2 != null) {
+            final Object resultRx3 = Rx3.handle(proxy, method, args, callbackRx);
+            if (resultRx3 != null) {
 
                 setCancelHandler(new Runnable() {
                     @Override
                     public void run() {
-                        Rx2.cancel(resultRx2);
+                        Rx3.cancel(resultRx3);
                     }
 
                     @NonNull
                     @Override
                     public String toString() {
-                        return "Retrofit2 - Rx2.cancel()";
+                        return "Retrofit2 - Rx3.cancel()";
                     }
                 });
 
-                getRx2DisposableHandler(rx).add(resultRx2);
-                return resultRx2;
+                getRxDisposableHandler(rx).add(resultRx3);
+                return resultRx3;
             }
 
             final Object resultRx = FlavorHelper.handleRx(proxy, method, args, callbackRx);
@@ -308,9 +330,9 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static <R, E, D> Rx2.Rx2Disposable getRx2DisposableHandler(final LoaderRx<R, E, D> rx) {
+    public static <R, E, D> Rx3Disposable getRxDisposableHandler(final LoaderRx<R, E, D> rx) {
         checkRxComponent(rx);
-        return rx == null ? CommonRx.getRx2DisposableHandlerAnonymous(): rx.getRx().getRx2DisposableHandler();
+        return rx == null ? CommonRx.getRxDisposableHandlerAnonymous(): rx.getRx().getRxDisposableHandler();
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -494,16 +516,15 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Factory getFactoryRx(final boolean factoryRx) {
+    protected Factory getFactoryRx(final Callable<Factory> callable) {
         try {
-            return factoryRx ? RxJavaCallAdapterFactory .createAsync():
-                               RxJava2CallAdapterFactory.createAsync();
+            return callable.call();
         }
         catch (NoClassDefFoundError error) {    // in most cases it's ok
             CoreLogger.log(CoreLogger.getDefaultLevel(), "getFactory can't find class", error);
         }
         catch (Exception exception) {
-            CoreLogger.log("getFactory failed", exception);
+            CoreLogger.log("getFactory failed for " + callable, exception);
         }
         return null;
     }
@@ -538,8 +559,42 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 .addConverterFactory(factory != null ? factory: GsonConverterFactory.create())
                 .baseUrl(retrofitBase);
 
-        addFactory(builder, getFactoryRx(false));     // RxJava2CallAdapterFactory
-        addFactory(builder, getFactoryRx(true ));     // RxJavaCallAdapterFactory
+        addFactory(builder, getFactoryRx(new Callable<Factory>() {
+            @Override
+            public Factory call() {
+                return RxJava3CallAdapterFactoryTmp.createAsync();
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "RxJava3CallAdapterFactoryTmp.createAsync()";
+            }
+        }));
+        addFactory(builder, getFactoryRx(new Callable<Factory>() {
+            @Override
+            public Factory call() {
+                return RxJava2CallAdapterFactory.createAsync();
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "RxJava2CallAdapterFactory.createAsync()";
+            }
+        }));
+        addFactory(builder, getFactoryRx(new Callable<Factory>() {
+            @Override
+            public Factory call() {
+                return RxJavaCallAdapterFactory.createAsync();
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "RxJavaCallAdapterFactory.createAsync()";
+            }
+        }));
 
         return builder;
     }
@@ -587,6 +642,11 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 .connectTimeout(Core.adjustTimeout(connectTimeout), TimeUnit.MILLISECONDS)
                 .readTimeout   (Core.adjustTimeout(readTimeout   ), TimeUnit.MILLISECONDS)
                 .writeTimeout  (Core.adjustTimeout(writeTimeout  ), TimeUnit.MILLISECONDS);
+
+        builder.connectionSpecs(Arrays.asList(
+                ConnectionSpec.MODERN_TLS,
+                ConnectionSpec.COMPATIBLE_TLS,
+                ConnectionSpec.CLEARTEXT));
 
         final HttpLoggingInterceptor logger = new HttpLoggingInterceptor( /* LOGGER */ );
         logger.setLevel(CoreLogger.isFullInfo() ?
@@ -878,7 +938,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             final BufferedSource source = body.source();
             source.request(Long.MAX_VALUE);
 
-            Buffer buffer = source.getBuffer();
+            Buffer buffer = source.buffer();
             if ("gzip".equalsIgnoreCase(response.headers().get("Content-Encoding"))) {
                 GzipSource gzip = null;
                 //noinspection TryFinallyCanBeTryWithResources
@@ -911,6 +971,416 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
+    // temp solution (quick hack of Retrofit sources) - waiting for official Retrofit RxJava3 support
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static class RxJava3CallAdapterFactoryTmp extends Factory {
+
+        @Nullable
+        private final Scheduler mScheduler;
+        private final boolean                                   mIsAsync;
+
+        @SuppressWarnings("unused")
+        public static RxJava3CallAdapterFactoryTmp create() {
+            return new RxJava3CallAdapterFactoryTmp(null, false);
+        }
+
+        @SuppressWarnings("WeakerAccess")
+        public static RxJava3CallAdapterFactoryTmp createAsync() {
+            return new RxJava3CallAdapterFactoryTmp(null, true);
+        }
+
+        @SuppressWarnings("unused")
+        public static RxJava3CallAdapterFactoryTmp createWithScheduler(final Scheduler scheduler) {
+            if (scheduler == null) throw new NullPointerException("scheduler == null");
+            return new RxJava3CallAdapterFactoryTmp(scheduler, false);
+        }
+
+        @SuppressWarnings("SameParameterValue")
+        private RxJava3CallAdapterFactoryTmp(@Nullable final Scheduler scheduler, final boolean isAsync) {
+            mScheduler  = scheduler;
+            mIsAsync    = isAsync;
+        }
+
+        @Nullable
+        @Override
+        public CallAdapter<?, ?> get(final Type returnType, final Annotation[] annotations,
+                                     final Retrofit retrofit) {
+            final Class<?> rawType = getRawType(returnType);
+
+            if (rawType == Completable.class) {
+                // comment from Retrofit team:
+                //   Completable is not parameterized (which is what the rest of this method deals with)
+                //   so it can only be created with a single configuration.
+                return new RxJava3CallAdapterTmp(Void.class, mScheduler, mIsAsync, false,
+                        true, false, false, false, true);
+            }
+
+            final boolean isFlowable    = rawType == Flowable.class;
+            final boolean isSingle      = rawType == Single.class;
+            final boolean isMaybe       = rawType == Maybe.class;
+
+            if (rawType != Observable.class && !isFlowable && !isSingle && !isMaybe) return null;
+
+            boolean isResult = false;
+            boolean isBody   = false;
+
+            final Type responseType;
+            if (!(returnType instanceof ParameterizedType)) {
+                final String name = isFlowable ? "Flowable": isSingle ? "Single": isMaybe ? "Maybe": "Observable";
+                throw new IllegalStateException(name + " return type must be parameterized"
+                        + " as " + name + "<Foo> or " + name + "<? extends Foo>");
+            }
+
+            final Type observableType = getParameterUpperBound(0, (ParameterizedType) returnType);
+            final Class<?> rawObservableType = getRawType(observableType);
+
+            if (rawObservableType == Response.class) {
+                if (!(observableType instanceof ParameterizedType))
+                    throw new IllegalStateException("Response must be parameterized"
+                            + " as Response<Foo> or Response<? extends Foo>");
+                responseType = getParameterUpperBound(0, (ParameterizedType) observableType);
+            }
+            else if (rawObservableType == Result.class) {
+                if (!(observableType instanceof ParameterizedType))
+                    throw new IllegalStateException("Result must be parameterized"
+                            + " as Result<Foo> or Result<? extends Foo>");
+                responseType = getParameterUpperBound(0, (ParameterizedType) observableType);
+                isResult = true;
+            }
+            else {
+                responseType = observableType;
+                isBody = true;
+            }
+
+            return new RxJava3CallAdapterTmp(responseType, mScheduler, mIsAsync, isResult, isBody,
+                    isFlowable, isSingle, isMaybe, false);
+        }
+    }
+
+    // temp solution (quick hack of Retrofit sources) - waiting for official Retrofit RxJava3 support
+    private static class RxJava3CallAdapterTmp<R> implements CallAdapter<R, Object> {
+
+        @Nullable
+        private final Scheduler                                 mScheduler;
+        private final Type                                      mResponseType;
+        private final boolean                                   mIsAsync;
+        private final boolean                                   mIsResult;
+        private final boolean                                   mIsBody;
+        private final boolean                                   mIsFlowable;
+        private final boolean                                   mIsSingle;
+        private final boolean                                   mIsMaybe;
+        private final boolean                                   mIsCompletable;
+
+        private RxJava3CallAdapterTmp(final Type responseType, final @Nullable Scheduler scheduler,
+                                      final boolean isAsync, final boolean isResult, final boolean isBody,
+                                      final boolean isFlowable, final boolean isSingle,
+                                      final boolean isMaybe, final boolean isCompletable) {
+            mResponseType   = responseType;
+            mScheduler      = scheduler;
+            mIsAsync        = isAsync;
+            mIsResult       = isResult;
+            mIsBody         = isBody;
+            mIsFlowable     = isFlowable;
+            mIsSingle       = isSingle;
+            mIsMaybe        = isMaybe;
+            mIsCompletable  = isCompletable;
+        }
+
+        @Override
+        public Type responseType() {
+            return mResponseType;
+        }
+
+        @Override
+        public Object adapt(final Call<R> call) {
+            final Observable<Response<R>> responseObservable = mIsAsync
+                    ? new CallEnqueueObservableTmp<>(call)
+                    : new CallExecuteObservableTmp<>(call);
+
+            Observable<?> observable;
+            if (mIsResult)
+                observable = new ResultObservableTmp<>(responseObservable);
+            else if (mIsBody)
+                observable = new BodyObservableTmp<>(responseObservable);
+            else
+                observable = responseObservable;
+
+            if (mScheduler != null)
+                observable = observable.subscribeOn(mScheduler);
+
+            if (mIsFlowable)
+                return observable.toFlowable(BackpressureStrategy.LATEST);
+
+            if (mIsSingle)
+                return observable.singleOrError();
+            if (mIsMaybe)
+                return observable.singleElement();
+            if (mIsCompletable)
+                return observable.ignoreElements();
+
+            return RxJavaPlugins.onAssembly(observable);
+        }
+    }
+
+    // temp solution (quick hack of Retrofit sources) - waiting for official Retrofit RxJava3 support
+    private static class CallExecuteObservableTmp<T> extends Observable<Response<T>> {
+
+        private final Call<T>                                   mOriginalCall;
+
+        private CallExecuteObservableTmp(final Call<T> originalCall) {
+            mOriginalCall = originalCall;
+        }
+
+        @Override
+        protected void subscribeActual(final Observer<? super Response<T>> observer) {
+            // comment from Retrofit team:
+            //   Since Call is a one-shot type, clone it for each new observer.
+            final Call<T> call = mOriginalCall.clone();
+            final CallDisposable disposable = new CallDisposable(call);
+
+            observer.onSubscribe(disposable);
+            if (disposable.isDisposed()) return;
+
+            boolean terminated = false;
+            try {
+                Response<T> response = call.execute();
+
+                if (!disposable.isDisposed())
+                    observer.onNext(response);
+                if (!disposable.isDisposed()) {
+                    terminated = true;
+                    observer.onComplete();
+                }
+            }
+            catch (Throwable throwable) {
+                handleAdapterThrowable(observer, throwable, terminated, disposable.isDisposed());
+            }
+        }
+
+        private static final class CallDisposable implements Disposable {
+
+            private final    Call<?>                            mCall;
+            private volatile boolean                            mDisposed;
+
+            private CallDisposable(final Call<?> call) {
+                mCall = call;
+            }
+
+            @Override
+            public void dispose() {
+                mDisposed = true;
+                mCall.cancel();
+            }
+
+            @Override
+            public boolean isDisposed() {
+                return mDisposed;
+            }
+        }
+    }
+
+    private static void handleAdapterThrowable(final Observer<?> observer, final Throwable throwable,
+                                               final boolean terminated, final boolean disposed) {
+        Exceptions.throwIfFatal(throwable);
+
+        if      (terminated) RxJavaPlugins.onError(throwable);
+        else if (!disposed ) handleAdapterThrowable(observer, throwable);
+    }
+
+    private static void handleAdapterThrowable(final Observer<?> observer, final Throwable throwable) {
+        try {
+            observer.onError(throwable);
+        }
+        catch (Throwable innerThrowable) {
+            Exceptions.throwIfFatal(innerThrowable);
+            RxJavaPlugins.onError(new CompositeException(throwable, innerThrowable));
+        }
+    }
+
+    // temp solution (quick hack of Retrofit sources) - waiting for official Retrofit RxJava3 support
+    private static class CallEnqueueObservableTmp<T> extends Observable<Response<T>> {
+
+        private final Call<T>                                   mOriginalCall;
+
+        private CallEnqueueObservableTmp(final Call<T> originalCall) {
+            mOriginalCall = originalCall;
+        }
+
+        @Override
+        protected void subscribeActual(final Observer<? super Response<T>> observer) {
+            // comment from Retrofit team:
+            //   Since Call is a one-shot type, clone it for each new observer.
+            final Call<T> call = mOriginalCall.clone();
+            final CallCallback<T> callback = new CallCallback<>(call, observer);
+            observer.onSubscribe(callback);
+
+            if (!callback.isDisposed()) call.enqueue(callback);
+        }
+
+        private static final class CallCallback<T> implements Disposable, Callback<T> {
+
+            private final    Call<?>                            mCall;
+            private final    Observer<? super Response<T>>      mObserver;
+            private volatile boolean                            mDisposed;
+            private          boolean                            mTerminated;
+
+            private CallCallback(final Call<?> call, final Observer<? super Response<T>> observer) {
+                mCall       = call;
+                mObserver   = observer;
+            }
+
+            @Override
+            public void onResponse(final Call<T> call, final Response<T> response) {
+                if (mDisposed) return;
+
+                try {
+                    mObserver.onNext(response);
+
+                    if (!mDisposed) {
+                        mTerminated = true;
+                        mObserver.onComplete();
+                    }
+                }
+                catch (Throwable throwable) {
+                    handleAdapterThrowable(mObserver, throwable, mTerminated, mDisposed);
+                }
+            }
+
+            @Override
+            public void onFailure(final Call<T> call, final Throwable throwable) {
+                if (call.isCanceled()) return;
+                handleAdapterThrowable(mObserver, throwable);
+            }
+
+            @Override
+            public void dispose() {
+                mDisposed = true;
+                mCall.cancel();
+            }
+
+            @Override
+            public boolean isDisposed() {
+                return mDisposed;
+            }
+        }
+    }
+
+    // temp solution (quick hack of Retrofit sources) - waiting for official Retrofit RxJava3 support
+    private static class BodyObservableTmp<T> extends Observable<T> {
+
+        private final Observable<Response<T>>                   mUpStream;
+
+        private BodyObservableTmp(final Observable<Response<T>> upStream) {
+            mUpStream = upStream;
+        }
+
+        @Override
+        protected void subscribeActual(final Observer<? super T> observer) {
+            mUpStream.subscribe(new BodyObserver<>(observer));
+        }
+
+        private static class BodyObserver<R> implements Observer<Response<R>> {
+
+            private final Observer<? super R>                   mObserver;
+            private boolean                                     mTerminated;
+
+            private BodyObserver(final Observer<? super R> observer) {
+                mObserver = observer;
+            }
+
+            @Override
+            public void onSubscribe(final Disposable disposable) {
+                mObserver.onSubscribe(disposable);
+            }
+
+            @Override
+            public void onNext(final Response<R> response) {
+                if (response.isSuccessful())
+                    mObserver.onNext(response.body());
+                else {
+                    mTerminated = true;
+
+                    @SuppressWarnings("deprecation")
+                    Throwable throwable = new retrofit2.adapter.rxjava2.HttpException(response);
+                    handleAdapterThrowable(mObserver, throwable);
+                }
+            }
+
+            @Override
+            public void onComplete() {
+                if (!mTerminated) mObserver.onComplete();
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                if (!mTerminated)
+                    mObserver.onError(throwable);
+                else {
+                    // comment from Retrofit team:
+                    //   This should never happen! onNext handles and forwards errors automatically.
+                    Throwable broken = new AssertionError(
+                            "This should never happen! Report as a bug with the full stacktrace.");
+                    //noinspection UnnecessaryInitCause Two-arg AssertionError constructor is 1.7+ only.
+                    broken.initCause(throwable);
+                    RxJavaPlugins.onError(broken);
+                }
+            }
+        }
+    }
+
+    // temp solution (quick hack of Retrofit sources) - waiting for official Retrofit RxJava3 support
+    private static class ResultObservableTmp<T> extends Observable<Result<T>> {
+
+        private final Observable<Response<T>>                   mUpStream;
+
+        private ResultObservableTmp(final Observable<Response<T>> upStream) {
+            mUpStream = upStream;
+        }
+
+        @Override
+        protected void subscribeActual(final Observer<? super Result<T>> observer) {
+            mUpStream.subscribe(new ResultObserver<>(observer));
+        }
+
+        private static class ResultObserver<R> implements Observer<Response<R>> {
+
+            private final Observer<? super Result<R>>           mObserver;
+
+            private ResultObserver(final Observer<? super Result<R>> observer) {
+                mObserver = observer;
+            }
+
+            @Override
+            public void onSubscribe(final Disposable disposable) {
+                mObserver.onSubscribe(disposable);
+            }
+
+            @Override
+            public void onNext(final Response<R> response) {
+                mObserver.onNext(Result.response(response));
+            }
+
+            @Override
+            public void onError(final Throwable throwable) {
+                try {
+                    mObserver.onNext(Result.error(throwable));
+                }
+                catch (Throwable innerThrowable) {
+                    handleAdapterThrowable(mObserver, innerThrowable);
+                    return;
+                }
+                mObserver.onComplete();
+            }
+
+            @Override
+            public void onComplete() {
+                mObserver.onComplete();
+            }
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
     /**
      * Extends the {@link LoaderRx} class to provide Retrofit 2 support.
      *
@@ -930,29 +1400,27 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         /**
          * Initialises a newly created {@code Retrofit2Rx} object.
          *
-         * @param isRx2
-         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
-         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         * @param version
+         *        The one of supported RxJava versions
          */
         @SuppressWarnings("unused")
-        public Retrofit2Rx(final boolean isRx2) {
-            super(isRx2);
+        public Retrofit2Rx(final RxVersions version) {
+            super(version);
         }
 
         /**
          * Initialises a newly created {@code Retrofit2Rx} object.
          *
-         * @param isRx2
-         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
-         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         * @param version
+         *        The one of supported RxJava versions
          *
          * @param isSingle
          *        {@code true} if {@link CommonRx}
          *        either emits one value only or an error notification, {@code false} otherwise
          */
         @SuppressWarnings("unused")
-        public Retrofit2Rx(final boolean isRx2, final boolean isSingle) {
-            super(isRx2, isSingle);
+        public Retrofit2Rx(final RxVersions version, final boolean isSingle) {
+            super(version, isSingle);
         }
 
         /**

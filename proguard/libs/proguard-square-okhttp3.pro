@@ -1,6 +1,4 @@
-# initially copied from https://github.com/square/okhttp
-
-# now from OkHttp GitHub
+# from https://github.com/square/okhttp/blob/master/okhttp/src/main/resources/META-INF/proguard/okhttp3.pro
 
 # JSR 305 annotations are for embedding nullability information.
 -dontwarn javax.annotation.**
@@ -11,13 +9,5 @@
 # Animal Sniffer compileOnly dependency to ensure APIs are compatible with older versions of Java.
 -dontwarn org.codehaus.mojo.animal_sniffer.*
 
-
-# added by akha
-# for yakhont-demo
--dontnote dalvik.system.CloseGuard
--dontnote com.android.org.conscrypt.SSLParametersImpl
--dontnote com.android.org.conscrypt.OpenSSLSocketImpl
--dontnote org.apache.harmony.xnet.provider.jsse.SSLParametersImpl
--dontnote org.conscrypt.Conscrypt
--dontnote org.conscrypt.ConscryptEngineSocket
--dontnote sun.security.ssl.SSLContextImpl
+# OkHttp platform used only on JVM and when Conscrypt dependency is available.
+-dontwarn okhttp3.internal.platform.ConscryptPlatform

@@ -6,7 +6,7 @@
      you may not use this file except in compliance with the License.
      You may obtain a copy of the License at
 
-          http://www.apache.org/licenses/LICENSE-2.0
+          https://www.apache.org/licenses/LICENSE-2.0
 
      Unless required by applicable law or agreed to in writing, software
      distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,4 +18,8 @@
 <resources>
     <string name="app_name"        >Яхонт: простое демо на Котлин</string>
     <string name="list_title_beers">Лучшие сорта бельгийского пива</string>
+    <string name="demo_description">Есть возможность записывать\n
+        аудио / видео (и отправлять по почте) -\n
+        просто сделайте Z-жест (или встряхните устройство)
+    </string>
 </resources>

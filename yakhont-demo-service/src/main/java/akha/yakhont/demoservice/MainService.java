@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -89,7 +89,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
         ////////
         // normally it should be enough - but here we have the local client, so see below...
 
-        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData,
+        Retrofit2Loader.start("https://...", Retrofit2Api.class, Retrofit2Api::getData,
                 null, loaderCallbacks, null, this);
 
         ////////
@@ -103,7 +103,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
                     @Override
                     public void onNext(List<Data> data) {
                         // your code here, for example:
-                        Log.e("yakhont", "Rx2.onNext(): " + data.get(0).getTitle());
+                        Log.e("yakhont", "Rx3.onNext(): " + data.get(0).getTitle());
                     }
 
                     @Override

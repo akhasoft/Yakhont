@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import akha.yakhont.CoreReflection;
 import akha.yakhont.FlavorHelper.FlavorCommonRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
+import akha.yakhont.technology.rx.BaseRx.RxVersions;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
 import android.annotation.SuppressLint;
@@ -61,19 +62,22 @@ public class Rx<D> extends CommonRx<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final boolean                     mHasProducer;
 
-    private static boolean                      sIsErrorHandlerDefined;
-
     /**
      * Makes Rx cleanup; called from {@link Core#cleanUpFinal()}.
      */
     public static void cleanUpFinal() {
-        try {
-            RxJavaHooks.setOnError(null);
-            sIsErrorHandlerDefined = false;
-        }
-        catch (Exception exception) {
-            CoreLogger.log(exception);
-        }
+        cleanUpFinal(new Runnable() {
+            @Override
+            public void run() {
+                RxJavaHooks.setOnError(null);
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "RxJavaHooks.setOnError(null)";
+            }
+        });
     }
 
     /**
@@ -95,7 +99,7 @@ public class Rx<D> extends CommonRx<D> {
     @SuppressLint("RestrictedApi")
     @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
     public Rx(final boolean nullable, final boolean hasProducer) {
-        super("Rx", !isErrorHandlerDefined());
+        super("Rx", !isErrorHandlerDefined(), RxVersions.VERSION_1);
 
         mIsNullable             = nullable;
         mHasProducer            = hasProducer;
@@ -147,8 +151,18 @@ public class Rx<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static void setErrorHandler(final Action1<Throwable> handler) {
-        RxJavaHooks.setOnError(handler);
-        sIsErrorHandlerDefined = true;
+        setErrorHandler(new Runnable() {
+            @Override
+            public void run() {
+                RxJavaHooks.setOnError(handler);
+            }
+
+            @NonNull
+            @Override
+            public String toString() {
+                return "RxJavaHooks.setOnError(handler)";
+            }
+        });
     }
 
     /**
@@ -158,7 +172,7 @@ public class Rx<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static void setErrorHandlerDefault() {
-        sIsErrorHandlerDefined = true;
+        setErrorHandlerDefaultBase();
     }
 
     /**
@@ -170,7 +184,7 @@ public class Rx<D> extends CommonRx<D> {
      */
     @SuppressWarnings("WeakerAccess")
     public static boolean isErrorHandlerDefined() {
-        return sIsErrorHandlerDefined;
+        return isErrorHandlerDefinedBase();
     }
 
     /**
@@ -274,15 +288,8 @@ public class Rx<D> extends CommonRx<D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     public static <D> Subscription handle(final Object handler, final Method method, final Object[] args,
                                           final CallbackRx<D> callback) throws Exception {
-        if (handler == null) {
-            CoreLogger.logError("handler == null");
-            return null;
-        }
-        if (method == null) {
-            CoreLogger.logError("method == null");
-            return null;
-        }
-        final Class<?> returnType = method.getReturnType();
+        final Class<?> returnType = getHandleReturnType(handler, method);
+        if (returnType == null) return null;
 
         if (Observable.class.isAssignableFrom(returnType)) {
             final Observable<D> result = CoreReflection.invokeSafe(handler, method, args);
@@ -297,28 +304,13 @@ public class Rx<D> extends CommonRx<D> {
         return null;
     }
 
-    private static void checkNull(final Object result, final String msg) throws Exception {
-        if (result == null) throw new Exception(msg);
-    }
-
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected static <D> Action1<D> getHandlerData(@NonNull final CallbackRx<D> callback) {
         //noinspection Anonymous2MethodRef,Convert2Lambda
         return new Action1<D>() {
             @Override
             public void call(final D data) {
-                Utils.safeRun(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onResult(data);
-                    }
-
-                    @NonNull
-                    @Override
-                    public String toString() {
-                        return "Rx - CallbackRx.onResult()";
-                    }
-                });
+                Utils.safeRun(getHandlerRunnable(true, callback, data, null, "Rx"));
             }
         };
     }
@@ -329,18 +321,7 @@ public class Rx<D> extends CommonRx<D> {
         return new Action1<Throwable>() {
             @Override
             public void call(final Throwable throwable) {
-                Utils.safeRun(new Runnable() {
-                    @Override
-                    public void run() {
-                        callback.onError(throwable);
-                    }
-
-                    @NonNull
-                    @Override
-                    public String toString() {
-                        return "Rx - CallbackRx.onError()";
-                    }
-                });
+                Utils.safeRun(getHandlerRunnable(false, callback, null, throwable, "Rx"));
             }
         };
     }
@@ -367,9 +348,7 @@ public class Rx<D> extends CommonRx<D> {
     @SuppressWarnings("WeakerAccess")
     public static <D> Subscription handle(final Observable<D> observable, final CallbackRx<D> callback,
                                           final boolean isSafe) {
-        if (observable == null) CoreLogger.logError("observable == null");
-        if (callback   == null) CoreLogger.logError("callback == null");
-
+        handleCheck(observable, callback, "observable");
         return observable == null || callback == null ? null: isSafe ?
                 observable.subscribe(getHandlerData(callback), getHandlerError(callback)):
                 observable.doOnError(getHandlerError(callback)).doOnNext(getHandlerData(callback)).subscribe();
@@ -417,9 +396,7 @@ public class Rx<D> extends CommonRx<D> {
     @SuppressWarnings("WeakerAccess")
     public static <D> Subscription handle(final Single<D> single, final CallbackRx<D> callback,
                                           final boolean isSafe) {
-        if (single   == null) CoreLogger.logError("single == null");
-        if (callback == null) CoreLogger.logError("callback == null");
-
+        handleCheck(single, callback, "single");
         return single == null || callback == null ? null: isSafe ?
                 single.subscribe(getHandlerData(callback), getHandlerError(callback)):
                 single.doOnError(getHandlerError(callback)).doOnSuccess(getHandlerData(callback)).subscribe();

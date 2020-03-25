@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -1390,7 +1390,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *     private Retrofit2&lt;Retrofit2Api, YourData[]&gt; getRetrofit() {
      *         // something like this
      *         return new Retrofit2&lt;YourRetrofit, YourData[]&gt;().init(
-     *             YourRetrofit.class, "http://...");
+     *             YourRetrofit.class, "https://...");
      *     }
      * }
      * </pre>
@@ -3038,11 +3038,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * import akha.yakhont.technology.retrofit.Retrofit2;
          * import akha.yakhont.technology.rx.Rx;
-         * import akha.yakhont.technology.rx.Rx2;
+         * import akha.yakhont.technology.rx.Rx3;
          *
          * // define your Activity or Fragment, create your builder (e.g. Retrofit2CoreLoadBuilder)
          *
-         * // for typical Retrofit2 (Rx2 / Rx / Call) - but for such simple Retrofit2 calls
+         * // for typical Retrofit2 (Rx / Call) - but for such simple Retrofit2 calls
          * //   it's better to use 'setRequester(YourRetrofit::getDataRx)'
          * builder.setRequesterRaw(callback -&gt; {
          *     builder.getApi(callback).getDataRx();
@@ -3053,9 +3053,15 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *     builder.getApi(null).getData("your parameter").enqueue(callback);
          * }
          *
+         * // for raw Retrofit2 Rx3 ('getApi()' takes null)
+         * builder.setRequesterRaw(callback -&gt; {
+         *     builder.getRxDisposableHandler().add(Rx3.handle(
+         *         builder.getApi(null).getDataRx(), Retrofit2.getRxWrapper(callback)));
+         * }
+         *
          * // for raw Retrofit2 Rx2 ('getApi()' takes null)
          * builder.setRequesterRaw(callback -&gt; {
-         *     builder.getRx2DisposableHandler().add(Rx2.handle(
+         *     builder.getRxDisposableHandler().add(Rx2.handle(
          *         builder.getApi(null).getDataRx(), Retrofit2.getRxWrapper(callback)));
          * }
          *

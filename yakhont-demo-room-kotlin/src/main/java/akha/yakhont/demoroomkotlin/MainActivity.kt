@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -94,7 +94,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7)
+        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 12)
 
         setDebugLogging(BuildConfig.DEBUG)      // optional
 
@@ -118,7 +118,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         client = LocalOkHttpClient2(retrofit2)
         retrofit2.init(Retrofit2Api::class.java, "http://localhost/", client)
 
-        Retrofit2Loader.adjust<List<Beer>>(Retrofit2CoreLoadBuilder(retrofit2)
+        Retrofit2Loader.adjust(Retrofit2CoreLoadBuilder(retrofit2)
                 .setRequester{it.data}
                 .setDataBinding(BR.beer)
 //              .setBaseViewModelKey(DEMO_VIEWMODEL_KEY)
@@ -139,6 +139,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
     private fun getRx(): SubscriberRx<List<Beer>> {
         return object: SubscriberRx<List<Beer>>() {
+
             override fun onNext(data: List<Beer>?) {
                 // your code here
             }

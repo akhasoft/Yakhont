@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -24,6 +24,7 @@ import kotlinx.android.synthetic.main.activity_main.locationView
 import kotlinx.android.synthetic.main.activity_main.recyclerView
 
 import akha.yakhont.Core
+import akha.yakhont.Core.Utils
 import akha.yakhont.CoreLogger
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener
 import akha.yakhont.callback.annotation.CallbacksInherited
@@ -60,6 +61,8 @@ class MainActivity: AppCompatActivity(), LocationListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7)
+
         setDebugLogging(BuildConfig.DEBUG)      // optional
 
         setLocation()
@@ -69,7 +72,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         ////////
         // normally it should be enough - but here we have the local client, so see below...
 
-        Retrofit2Loader.start<Retrofit2Api>("http://...", Retrofit2Api::class.java, {it.data},
+        Retrofit2Loader.start<Retrofit2Api>("https://...", Retrofit2Api::class.java, {it.data},
                 BR.beer, savedInstanceState)
 
         ////////
@@ -85,7 +88,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
                 null /*DEMO_VIEWMODEL_KEY*/, BR.beer, LocalOkHttpClient2(retrofit2)
 
                     // just to demo the progress GUI - comment it out if not needed
-                    .setEmulatedNetworkDelay(7)
+                    .setEmulatedNetworkDelay(12)
 
                 , retrofit2, getRx(), null, { view, _ -> handleItemClick(view) }, null).start()
         }

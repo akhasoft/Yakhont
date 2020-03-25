@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,7 +26,7 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.location.LocationCallbacks;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
-import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
+import akha.yakhont.technology.rx.Rx3.Rx3Disposable;
 
 import android.app.Activity;
 import android.location.Location;
@@ -36,24 +36,38 @@ import androidx.annotation.RestrictTo;
 import androidx.annotation.RestrictTo.Scope;
 
 import java.lang.ref.WeakReference;
+import java.lang.reflect.Method;
 import java.util.Set;
 
 /**
- * The base component to work with {@link <a href="http://reactivex.io/">Rx</a>}.
+ * The base component to work with {@link <a href="https://reactivex.io/">Rx</a>}.
  * <p>
- * Supports both {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
- * and {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>}.
+ * Supports all {@link <a href="https://github.com/ReactiveX/RxJava/">RxJava</a>} versions.
  *
  * @param <D>
  *        The data type
  *
- * @see Rx2
+ * @see Rx3
  * @see LoaderRx
  * @see LocationRx
  *
  * @author akha
  */
 public abstract class BaseRx<D> {
+
+    /**
+     * The supported RxJava versions.
+     */
+    public enum RxVersions {
+        /** Please refer to {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}.   */
+        @SuppressWarnings("unused")
+        VERSION_1,
+        /** Please refer to {@link <a href="https://github.com/ReactiveX/RxJava/tree/2.x">RxJava 2</a>}. */
+        @SuppressWarnings("unused")
+        VERSION_2,
+        /** Please refer to {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 3</a>}.          */
+        VERSION_3
+    }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final boolean                     mIsSingle;
@@ -322,13 +336,12 @@ public abstract class BaseRx<D> {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * The base component to implement both {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>} and
-     * {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>} support.
+     * The base component to implement {@link <a href="https://github.com/ReactiveX/RxJava">RxJava</a>} support.
      *
      * @param <D>
      *        The data type
      *
-     * @see Rx2
+     * @see Rx3
      */
     public static abstract class CommonRx<D> {
 
@@ -339,14 +352,19 @@ public abstract class BaseRx<D> {
         protected       BaseRx<D>               mBaseRx;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected final Rx2Disposable           mRx2Disposable      = new Rx2Disposable();
+        protected final Rx3Disposable           mRxDisposable       = new Rx3Disposable();
 
         // for anonymous Rx
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-        protected static Rx2Disposable          sRx2Disposable;
+        protected static Rx3Disposable          sRxDisposable;
 
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected static boolean                sSafe;
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static boolean                sIsErrorHandlerDefined;
+
+        private   static RxVersions             sVersion;
 
         static {
             init();
@@ -360,8 +378,93 @@ public abstract class BaseRx<D> {
         }
 
         private static void init() {
-            sRx2Disposable  = new Rx2Disposable();
-            sSafe           = true;
+            sRxDisposable           = new Rx3Disposable();
+            sIsErrorHandlerDefined  = false;
+            sVersion                = null;
+            sSafe                   = true;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static void cleanUpFinal(final Runnable runnable) {
+            Utils.safeRun(runnable);
+            sIsErrorHandlerDefined = false;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static void setErrorHandler(final Runnable runnable) {
+            sIsErrorHandlerDefined = Utils.safeRun(runnable);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static void setErrorHandlerDefaultBase() {
+            sIsErrorHandlerDefined = true;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static boolean isErrorHandlerDefinedBase() {
+            return sIsErrorHandlerDefined;
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static void checkNull(final Object result, final String msg) throws Exception {
+            if (result == null) throw new Exception(msg);
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static Class<?> getHandleReturnType(final Object handler, final Method method) {
+            if (handler == null) {
+                CoreLogger.logError("handler == null");
+                return null;
+            }
+            if (method == null) {
+                CoreLogger.logError("method == null");
+                return null;
+            }
+            return method.getReturnType();
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static <D> Runnable getHandlerRunnable(final boolean ok, @NonNull final CallbackRx<D> callback,
+                                                         final D data, final Throwable throwable,
+                                                         @SuppressWarnings("SameParameterValue") final String prefix) {
+            return new Runnable() {
+                @Override
+                public void run() {
+                    if (ok)
+                        callback.onResult(data);
+                    else
+                        callback.onError(throwable);
+                }
+
+                @NonNull
+                @Override
+                public String toString() {
+                    return prefix + " - CallbackRx.on" + (ok ? "Result": "Error") + "()";
+                }
+            };
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        protected static <D> void handleCheck(final Object object, final CallbackRx<D> callback, final String name) {
+            if (object   == null) CoreLogger.logError(name +  " == null");
+            if (callback == null) CoreLogger.logError("callback == null");
+        }
+
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "BooleanMethodIsAlwaysInverted", "WeakerAccess"})
+        protected boolean checkNullObserver(final Object observer) {
+            if (observer == null) CoreLogger.logError("observer is null");
+            return observer != null;
+        }
+
+        /**
+         * Gets the Rx version in use.
+         *
+         * @return  The Rx version
+         */
+        @SuppressWarnings("unused")
+        public static RxVersions getVersion() {
+            if (sVersion == null) CoreLogger.logError("unknown Rx version");    // should never happen
+            return sVersion;
         }
 
         /**
@@ -372,11 +475,16 @@ public abstract class BaseRx<D> {
          *
          * @param nOk
          *        The error message trigger
+         *
+         * @param version
+         *        The Rx version
          */
         @SuppressWarnings("WeakerAccess")
         @RestrictTo(Scope.LIBRARY)
         protected CommonRx(@SuppressWarnings("SameParameterValue") @NonNull final String errMgsParam,
-                           final boolean nOk) {
+                           final boolean nOk,
+                           @SuppressWarnings("SameParameterValue") final RxVersions version) {
+            sVersion = version;
             if (nOk) CoreLogger.logError(String.format(
                     "in your application initialization code please call "                   +
                     "'Core.setRxUncaughtExceptionBehavior()' (or any of '%s.setErrorHandler*()'" +
@@ -389,25 +497,25 @@ public abstract class BaseRx<D> {
         }
 
         /**
-         * Returns the {@link Rx2Disposable} component.
+         * Returns the {@link Rx3Disposable} component.
          *
-         * @return  The {@link Rx2Disposable}
+         * @return  The {@link Rx3Disposable}
          *
          * @see #unsubscribe()
          */
-        public Rx2Disposable getRx2DisposableHandler() {
-            return mRx2Disposable;
+        public Rx3Disposable getRxDisposableHandler() {
+            return mRxDisposable;
         }
 
         /**
-         * Returns the anonymous {@link Rx2Disposable} component.
+         * Returns the anonymous {@link Rx3Disposable} component.
          *
-         * @return  The {@link Rx2Disposable}
+         * @return  The {@link Rx3Disposable}
          *
          * @see #unsubscribeAnonymous()
          */
-        public static Rx2Disposable getRx2DisposableHandlerAnonymous() {
-            return sRx2Disposable;
+        public static Rx3Disposable getRxDisposableHandlerAnonymous() {
+            return sRxDisposable;
         }
 
         /**
@@ -415,8 +523,8 @@ public abstract class BaseRx<D> {
          */
         @SuppressWarnings("WeakerAccess")
         public void unsubscribe() {
-            mRx2Disposable .unsubscribe();
-            mFlavorCommonRx.unsubscribe();          // Rx 1 support in full version
+            mRxDisposable  .unsubscribe();
+            mFlavorCommonRx.unsubscribe();          // Rx1 support in full version
         }
 
         /**
@@ -427,9 +535,9 @@ public abstract class BaseRx<D> {
         public static void unsubscribeAnonymous() {
             final String msg ="about to unregister anonymous %s";
 
-            if (sRx2Disposable.notEmpty()) {
+            if (sRxDisposable.notEmpty()) {
                 CoreLogger.logWarning(String.format(msg, "disposables"));
-                sRx2Disposable.unsubscribe();
+                sRxDisposable.unsubscribe();
             }
 
             FlavorCommonRx.unsubscribeAnonymous(msg);
@@ -443,8 +551,10 @@ public abstract class BaseRx<D> {
          *
          * @return  {@code true} if given Rx component supports nulls, {@code false} otherwise
          */
-        @SuppressWarnings("SameReturnValue")
-        protected abstract boolean isNullable();
+        @SuppressWarnings({"SameReturnValue", "WeakerAccess"})
+        protected boolean isNullable() {
+            return false;
+        }
 
         /**
          * Please refer to {@link BaseRx#isSingle BaseRx.isSingle()} description.
@@ -581,33 +691,28 @@ public abstract class BaseRx<D> {
 
         /**
          * Initialises a newly created {@code LocationRx} object.
-         * <p>
-         * Note: experimental.
          */
         @SuppressWarnings("unused")
         public LocationRx() {
-            this(true, null);
+            this(RxVersions.VERSION_3, null);
         }
 
         /**
          * Initialises a newly created {@code LocationRx} object.
          *
-         * @param isRx2
-         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
-         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         * @param version
+         *        The one of supported RxJava versions
          *
          * @param activity
          *        The Activity
          */
         @SuppressWarnings({"SameParameterValue", "WeakerAccess"})
-        public LocationRx(final boolean isRx2, final Activity activity) {
-            this(FlavorHelper.getCommonRx(isRx2), activity);
+        public LocationRx(final RxVersions version, final Activity activity) {
+            this(FlavorHelper.getCommonRx(version), activity);
         }
 
         /**
          * Initialises a newly created {@code LocationRx} object.
-         * <p>
-         * Note: experimental.
          *
          * @param commonRx
          *        The {@link CommonRx} to use
@@ -647,11 +752,9 @@ public abstract class BaseRx<D> {
         @Override
         public Location getResult() {
             Activity activity = null;
-            if (mActivity != null) {
-                activity = mActivity.get();
-                if (activity == null)
-                    CoreLogger.logWarning("activity is null, let's try to use the current one");
-            }
+            if (mActivity != null) activity = mActivity.get();
+            if (activity == null)
+                CoreLogger.logWarning("activity is null, let's try to use the current one");
             return LocationCallbacks.getCurrentLocation(
                     activity != null ? activity: LocationCallbacks.getActivity());
         }
@@ -699,7 +802,7 @@ public abstract class BaseRx<D> {
      *     private Retrofit2&lt;YourRetrofit, YourData[]&gt; getRetrofit() {
      *         // something like this
      *         return new Retrofit2&lt;YourRetrofit, YourData[]&gt;().init(
-     *             YourRetrofit.class, "http://...");
+     *             YourRetrofit.class, "https://...");
      *     }
      *
      *     &#064;Override
@@ -734,34 +837,32 @@ public abstract class BaseRx<D> {
          */
         @SuppressWarnings("WeakerAccess")
         public LoaderRx() {
-            this(true);
+            this(RxVersions.VERSION_3);
         }
 
         /**
          * Initialises a newly created {@code LoaderRx} object.
          *
-         * @param isRx2
-         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
-         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         * @param version
+         *        The one of supported RxJava versions
          */
         @SuppressWarnings("WeakerAccess")
-        public LoaderRx(final boolean isRx2) {
-            this(isRx2, DEFAULT_MODE_SINGLE);
+        public LoaderRx(final RxVersions version) {
+            this(version, DEFAULT_MODE_SINGLE);
         }
 
         /**
          * Initialises a newly created {@code LoaderRx} object.
          *
-         * @param isRx2
-         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
-         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         * @param version
+         *        The one of supported RxJava versions
          *
          * @param isSingle
          *        {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
          */
         @SuppressWarnings({"WeakerAccess"})
-        public LoaderRx(final boolean isRx2, final boolean isSingle) {
-            this(FlavorHelper.getCommonRx(isRx2), isSingle);
+        public LoaderRx(final RxVersions version, final boolean isSingle) {
+            this(FlavorHelper.getCommonRx(version), isSingle);
         }
 
         /**

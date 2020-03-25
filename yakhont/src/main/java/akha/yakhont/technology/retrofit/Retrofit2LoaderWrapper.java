@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -39,10 +39,11 @@ import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoader;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;   // for javadoc
 import akha.yakhont.technology.retrofit.Retrofit2.BodyCache;
 import akha.yakhont.technology.retrofit.Retrofit2.Retrofit2Rx;
+import akha.yakhont.technology.rx.BaseRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
-import akha.yakhont.technology.rx.Rx2.Rx2Disposable;
+import akha.yakhont.technology.rx.Rx3.Rx3Disposable;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -194,9 +195,15 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         }
         // java.lang.ClassCastException: Couldn't convert result of type
         // io.reactivex.internal.observers.LambdaObserver to io.reactivex.Observable
+        // or
+        // java.lang.ClassCastException: Couldn't convert result of type
+        // io.reactivex.rxjava3.internal.observers.LambdaObserver to io.reactivex.rxjava3.core.Observable
         catch (ClassCastException exception) {
-            Utils.check(exception, "io.reactivex.internal.");
-            CoreLogger.log(Level.WARNING, "it seems an API bug", exception);
+            // ugly hack for nasty bug :-)
+            final String message = exception.getMessage();
+            if (message == null || !message.contains(".internal.observers.LambdaObserver to io.reactivex."))
+                throw exception;
+            CoreLogger.log(Level.WARNING, "it seems a Rx API bug", exception);
         }
         return null;
     }
@@ -512,13 +519,13 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         }
 
         /**
-         * Returns the {@link Rx2Disposable} component.
+         * Returns the {@link Rx3Disposable} component.
          *
-         * @return  The {@link Rx2Disposable}
+         * @return  The {@link Rx3Disposable}
          */
         @SuppressWarnings("unused")
-        public Rx2Disposable getRx2DisposableHandler() {
-            return Retrofit2.getRx2DisposableHandler(mRx);
+        public Rx3Disposable getRxDisposableHandler() {
+            return Retrofit2.getRxDisposableHandler(mRx);
         }
 
         /**
@@ -559,7 +566,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
      *         // your code here: setContentView(...), RecyclerView.setLayoutManager(...) etc.
      *
-     *         Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id, savedInstanceState);
+     *         Retrofit2Loader.start("https://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id, savedInstanceState);
      *     }
      * }
      * </pre>
@@ -1224,7 +1231,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         }
 
         private static <D> Retrofit2Rx getRx(final SubscriberRx<D> rx, boolean isSingle) {
-            return rx == null ? null: new Retrofit2Rx<D>(true, isSingle).subscribeSimple(rx);
+            return rx == null ? null: new Retrofit2Rx<D>(BaseRx.RxVersions.VERSION_3, isSingle).subscribeSimple(rx);
         }
 
         /**

@@ -16,6 +16,10 @@
 }
 
 # added by akha
+
+# for Rx3
+-dontwarn java.util.concurrent.Flow*
+
 # for yakhont-demo
 -dontnote rx.internal.util.PlatformDependent
 

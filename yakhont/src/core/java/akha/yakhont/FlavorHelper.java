@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -19,7 +19,8 @@ package akha.yakhont;
 import akha.yakhont.technology.rx.BaseRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
-import akha.yakhont.technology.rx.Rx2;
+import akha.yakhont.technology.rx.BaseRx.RxVersions;
+import akha.yakhont.technology.rx.Rx3;
 
 import androidx.annotation.NonNull;
 
@@ -50,13 +51,13 @@ public class FlavorHelper {
     }
 
     @SuppressWarnings({"EmptyMethod", "unused"})
-    public static void cancelRx(final Object subscription) {
+    public static void cancelRx(final Object object) {
     }
 
-    public static <D> CommonRx<D> getCommonRx(final boolean isRx2) {
-        if (isRx2) return new Rx2<>();
+    public static <D> CommonRx<D> getCommonRx(final RxVersions version) {
+        if (version.equals(RxVersions.VERSION_3)) return new Rx3<>();
 
-        CoreLogger.logError("for Rx 1 support please use the full version of Yakhont");
+        CoreLogger.logError("for Rx / Rx2 support please use the full version of Yakhont");
         return null;
     }
 

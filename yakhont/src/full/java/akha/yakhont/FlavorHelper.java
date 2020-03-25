@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,9 +20,11 @@ import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.rx.BaseRx;
 import akha.yakhont.technology.rx.BaseRx.CallbackRx;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
+import akha.yakhont.technology.rx.BaseRx.RxVersions;
 import akha.yakhont.technology.rx.Rx;
 import akha.yakhont.technology.rx.Rx.RxSubscription;
 import akha.yakhont.technology.rx.Rx2;
+import akha.yakhont.technology.rx.Rx3;
 
 import androidx.annotation.NonNull;
 
@@ -35,28 +37,59 @@ public class FlavorHelper {                    // full
     }
 
     public static void cleanUpRxFinal() {
-        Rx.cleanUpFinal();
+        Rx .cleanUpFinal();
+        Rx2.cleanUpFinal();
     }
 
     public static void setRxErrorHandlerDefault() {
-        Rx.setErrorHandlerDefault();
+        Rx .setErrorHandlerDefault();
+        Rx2.setErrorHandlerDefault();
     }
 
     public static void setRxErrorHandlerJustLog() {
-        Rx.setErrorHandlerJustLog();
+        Rx .setErrorHandlerJustLog();
+        Rx2.setErrorHandlerJustLog();
+    }
+
+    private static void checkVersion(final RxVersions version, final RxVersions versionReal) {
+        if (version != null && !version.equals(versionReal))
+            CoreLogger.logError("RxJava error: declared " + version + ", but actually is " + versionReal);
     }
 
     public static <D> Object handleRx(final Object handler, final Method method, final Object[] args,
                                       final CallbackRx<D> callback) throws Exception {
-        return Rx.handle(handler, method, args, callback);
+        final RxVersions version = CommonRx.getVersion();
+
+        Object result = Rx2.handle(handler, method, args, callback);
+        if (result != null) {
+            checkVersion(version, RxVersions.VERSION_2);
+            return result;
+        }
+
+        result = Rx.handle(handler, method, args, callback);
+        if (result != null)
+            checkVersion(version, RxVersions.VERSION_1);
+
+        return result;
     }
 
-    public static void cancelRx(final Object subscription) {
-        Rx.cancel(subscription);
+    public static void cancelRx(final Object object) {
+        Rx2.cancel(object);
+        Rx .cancel(object);
     }
 
-    public static <D> CommonRx<D> getCommonRx(final boolean isRx2) {
-        return isRx2 ? new Rx2<>(): new Rx<>();
+    public static <D> CommonRx<D> getCommonRx(final RxVersions version) {
+        switch (version) {
+            case VERSION_1:
+                return new Rx <>();
+            case VERSION_2:
+                return new Rx2<>();
+            case VERSION_3:
+                return new Rx3<>();
+            default:                // should never happen
+                CoreLogger.logError("getCommonRx(): wrong RxVersion " + version);
+                return null;
+        }
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")

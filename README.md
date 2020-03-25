@@ -4,7 +4,7 @@
      you may not use this file except in compliance with the License.
      You may obtain a copy of the License at
 
-          http://www.apache.org/licenses/LICENSE-2.0
+          https://www.apache.org/licenses/LICENSE-2.0
 
      Unless required by applicable law or agreed to in writing, software
      distributed under the License is distributed on an "AS IS" BASIS,
@@ -51,7 +51,7 @@ callbacks - for Yakhont it's enough. Please refer to
 [demo paging](yakhont-demo-simple/src/main/java/akha/yakhont/demosimple/MainActivity.java),
 [demo kotlin](yakhont-demo-simple-kotlin/src/main/java/akha/yakhont/demosimplekotlin/MainActivity.kt) and
 [demo Room kotlin](yakhont-demo-room-kotlin/src/main/java/akha/yakhont/demoroomkotlin/MainActivity.kt)
-for working examples.
+for working examples (don't be surprised - RxJava3 for Retrofit2 is supported too, via Yakhont port of Retrofit2 / RxJava2 adapter).
 
 What else? Dynamic permissions? Requested and handled fully automatically,
 all you need is just to provide permission-specific on-granted-callbacks (please refer to
@@ -70,11 +70,11 @@ In sum, as I told - you can make the whole data loading in just one line of code
 
 - [Tell Me More](https://github.com/akhasoft/Yakhont#more-info)
 - [Feature List](https://github.com/akhasoft/Yakhont#feature-list)
-- [Demos and Releases](https://github.com/akhasoft/Yakhont#demo-and-releases)
+- [Demos and Releases](https://github.com/akhasoft/Yakhont#demos-and-releases)
 - [Versions](https://github.com/akhasoft/Yakhont#versions)
 - [Usage](https://github.com/akhasoft/Yakhont#usage)
 - [Weaver](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)
-- [Proguard](https://github.com/akhasoft/Yakhont#proguard)
+- [R8 / Proguard](https://github.com/akhasoft/Yakhont#r8-proguard)
 - [Build](https://github.com/akhasoft/Yakhont#build)
 - [Communication](https://github.com/akhasoft/Yakhont#communication)
 - [Information and Documentation](https://github.com/akhasoft/Yakhont#information-and-documentation)
@@ -161,7 +161,7 @@ In short, the data loading features are:
 - automatic and fully transparent cache
 - forced timeouts 
 - [RxJava](https://github.com/ReactiveX/RxJava) support
-- [Retrofit](https://square.github.io/retrofit/2.x/retrofit/) support
+- [Retrofit](https://square.github.io/retrofit/2.x/retrofit/) support (including RxJava3 - via Yakhont port of Retrofit2 / RxJava2 adapter)
 - pull-to-refresh
 - configuration changes (e.g. portrait / landscape) surviving support
 - progress GUI with loading cancellation possibility (yes, fully customizable too)
@@ -177,7 +177,8 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments are supported: it's not necessary to derive 
 them from some predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 560 KB (except the _full_ version, which is about 660 KB).
+The Yakhont AAR is about 590 KB (except the _full_ version, which is about 700 KB).
+Please use R8 / ProGuard to reduce size of your application and remove code which is not used.
 
 Yakhont supports Android 4.0 (API level 14) and above ('cause support library requires API level 14 as a minimum).
 
@@ -212,7 +213,7 @@ The most complex demo with tons of customization.
 ## Versions
 
 - _core_: main functionality
-- _full_: core + Rx1 support + debug classes for Activities and Fragments
+- _full_: core + RxJava 1 / 2 support + debug classes for Activities and Fragments
 
 ## Usage
 
@@ -255,8 +256,8 @@ dependencies {
 //  implementation    'com.github.akhasoft:yakhont-full:1.2.01'
 
 //  and if you're going to customize Yakhont using build-in Dagger 2:
-    implementation      'com.google.dagger:dagger:2.22.1'           // (or higher)
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.22.1'  // (or higher)
+    implementation      'com.google.dagger:dagger:2.27'             // (or higher)
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.27'    // (or higher)
 //  for Kotlin: please replace 'annotationProcessor' with 'kapt' and add
 //  kapt                'com.android.databinding:compiler:3.1.4'    // (or higher)
 }
@@ -342,7 +343,7 @@ Yakhont library - just specify "weaverAddConfig = false" and provide your own co
 
 Please refer to [weaver.config](yakhont/weaver.config) for more details.
 
-## Proguard
+## R8 / Proguard
 
 ProGuard directives are included in the Yakhont libraries. The Android Plugin for Gradle
 automatically appends these directives to your ProGuard configuration.
@@ -365,17 +366,14 @@ buildTypes {
     release {
         minifyEnabled true
 
-        proguardFile 'proguard-google-play-services.pro'
-        proguardFile 'proguard-support-design.pro'
         proguardFile 'proguard-gson.pro'
         proguardFile 'proguard-rx-java.pro'
+        proguardFile 'proguard-square-glide.pro'
         proguardFile 'proguard-square-okhttp.pro'
         proguardFile 'proguard-square-okhttp3.pro'
         proguardFile 'proguard-square-okio.pro'
-        proguardFile 'proguard-square-picasso.pro'
         proguardFile 'proguard-square-retrofit.pro'
         proguardFile 'proguard-square-retrofit2.pro'
-        proguardFile 'proguard-support-v7-appcompat.pro'
 
         // and (optionally)
         proguardFile 'proguard-project.pro'
@@ -443,7 +441,7 @@ For bugs, questions and discussions please use the
     you may not use this file except in compliance with the License.
     You may obtain a copy of the License at
     
-       http://www.apache.org/licenses/LICENSE-2.0
+       https://www.apache.org/licenses/LICENSE-2.0
     
     Unless required by applicable law or agreed to in writing, software
     distributed under the License is distributed on an "AS IS" BASIS,

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,6 +20,7 @@ import akha.yakhont.demosimple.model.Data;
 import akha.yakhont.demosimple.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core;
+import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.CoreLoadHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.adapter.BaseRecyclerViewAdapter.OnItemClickListener;
@@ -96,6 +97,8 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7);
+
         setDebugLogging(BuildConfig.DEBUG);         // optional
 
         setLocation();                              // device orientation changing support
@@ -105,7 +108,7 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
         ////////
         // normally it should be enough - but here we have the local client, so see below...
 
-        Retrofit2Loader.start("http://...", Retrofit2Api.class, Retrofit2Api::getData,
+        Retrofit2Loader.start("https://...", Retrofit2Api.class, Retrofit2Api::getData,
                 null, this, BR.data,
                 (Callable<DemoDataSource>) DemoDataSource::new, null, savedInstanceState);
 

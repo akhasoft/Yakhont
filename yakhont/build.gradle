@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,11 +33,12 @@ ext {
     publishedVersion            =   verName
 
     projectDefaultFlavor        =  'core'
-    projectJavaDocLinks         = ['http://google.github.io/dagger/api/latest/'             ,
+    projectJavaDocLinks         = ['https://google.github.io/dagger/api/latest/'            ,
                                    'http://reactivex.io/RxJava/1.x/javadoc/'                ,
                                    'http://reactivex.io/RxJava/2.x/javadoc/'                ,
-                                   'http://square.github.io/retrofit/1.x/retrofit/'         ,
-                                   'http://square.github.io/retrofit/2.x/retrofit/']
+                                   'http://reactivex.io/RxJava/3.x/javadoc/'                ,
+                                   'https://square.github.io/retrofit/1.x/retrofit/'        ,
+                                   'https://square.github.io/retrofit/2.x/retrofit/']
 }
 
 def dependenciesStrategy = { DependencyResolveDetails details ->
@@ -184,8 +185,12 @@ dependencies {
     }
     api                 "com.squareup.retrofit2:converter-gson:$projectLibVerDefault"
 
-    api                 "com.squareup.retrofit2:adapter-rxjava:$projectLibVerDefault"
-    api                 "com.squareup.retrofit2:adapter-rxjava2:$projectLibVerDefault"
+    api                ("com.squareup.retrofit2:adapter-rxjava:$projectLibVerDefault") {
+        exclude group:  "io.reactivex",         module: "rxjava"
+    }
+    api                ("com.squareup.retrofit2:adapter-rxjava2:$projectLibVerDefault") {
+        exclude group:  "io.reactivex.rxjava2", module: "rxjava"
+    }
 
     api                 "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
     api                 "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
@@ -194,9 +199,9 @@ dependencies {
     fullApi             "com.squareup.okhttp:okhttp:$projectLibVerDefault"
     fullApi             "com.squareup.okhttp:okhttp-urlconnection:$projectLibVerDefault"
 
-//  api                 "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
     api                 "io.reactivex.rxjava3:rxjava:$projectLibVerRxJava3"
-    fullApi             "io.reactivex:rxjava:$projectLibVerRxJava"
+    api                 "io.reactivex.rxjava2:rxjava:$projectLibVerRxJava2"
+    api                 "io.reactivex:rxjava:$projectLibVerRxJava"
 }
 
 apply from: '../publish.gradle'

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -118,7 +118,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         }
 
         // for normal HTTP requests it's much simpler - just something like this:
-//      mRetrofit2 = new Retrofit2<Retrofit2Api, List<Beer>>().init(Retrofit2Api.class, "http://...");
+//      mRetrofit2 = new Retrofit2<Retrofit2Api, List<Beer>>().init(Retrofit2Api.class, "https://...");
     }
 
     private void setEmulatedNetworkDelay() {
@@ -184,21 +184,27 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 /* or
                 // usage examples ('raw' means: without default Yakhont pre- and postprocessing)
                 .setRequesterRaw(callback -> {
-                    // typical call for Retrofit2 (Rx2 / Rx / Call) - but for such simple calls
+                    // typical call for Retrofit2 / Rx3 - but for such simple calls
                     //   it's better to use 'setRequester(Retrofit2Api::getDataRx)'
 //                  builder.getApi(callback).getDataRx();
 
-                    // raw call ('getApi()' takes null) for Retrofit2 with Rx2
-                    //   it's exactly the same as 'setRequester(Retrofit2Api::getDataRx)' below
-                    //   and 'getApi(callback).getDataRx()' above
-                    builder.getRx2DisposableHandler().add(
-                            akha.yakhont.technology.rx.Rx2.handle(builder.getApi(null).getDataRx(),
+                    // raw call ('getApi()' takes null) for Retrofit2 with Rx3
+                    //   it's exactly the same as 'setRequester(Retrofit2Api::getDataRx)'
+                    //   and 'builder.getApi(callback).getDataRx()' above
+                    builder.getRx3DisposableHandler().add(
+                            akha.yakhont.technology.rx.Rx3.handle(builder.getApi(null).getDataRx(),
                                     Retrofit2.getRxWrapper(callback)));
 
+                    // raw call ('getApi()' takes null) for Retrofit2 with Rx2
+                    //   don't forget to set MainActivity.USE_RX_VERSION = RxVersions.VERSION_2
+//                  builder.getRx2DisposableHandler().add(
+//                          akha.yakhont.technology.rx.Rx2.handle(builder.getApi(null).getDataRx2(),
+//                                  Retrofit2.getRxWrapper(callback)));
+
                     // raw call ('getApi()' takes null) for Retrofit2 with Rx
-                    //   don't forget to set MainActivity.USE_RX_JAVA_2 = false
+                    //   don't forget to set MainActivity.USE_RX_VERSION = RxVersions.VERSION_1
 //                  akha.yakhont.technology.rx.Rx.getRxSubscriptionHandler(builder.getRx()).add(
-//                          akha.yakhont.technology.rx.Rx.handle(builder.getApi(null).getDataOldRx(),
+//                          akha.yakhont.technology.rx.Rx.handle(builder.getApi(null).getDataRx1(),
 //                                  Retrofit2.getRxWrapper(callback)));
 
                     // raw call ('getApi()' takes null) for Retrofit2 without Rx
@@ -351,7 +357,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         boolean singleRx = false;
 
         if (getMainActivity().isRetrofit2()) {
-            mRxRetrofit2 = new Retrofit2Rx<>(getMainActivity().isRxJava2(), singleRx);
+            mRxRetrofit2 = new Retrofit2Rx<>(getMainActivity().getRxVersion(), singleRx);
 
             mRxRetrofit2.subscribeSimple(new SubscriberRx<List<Beer>>() {
                 @Override
@@ -366,7 +372,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             });
         }
         else {
-            mRxRetrofit = new RetrofitRx<>(getMainActivity().isRxJava2(), singleRx);
+            mRxRetrofit = new RetrofitRx<>(getMainActivity().getRxVersion(), singleRx);
 
             mRxRetrofit.subscribeSimple(new SubscriberRx<List<BeerDefault>>() {
                 @Override

@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -33,6 +33,7 @@ import akha.yakhont.technology.Dagger2.LocationModule;
 import akha.yakhont.technology.Dagger2.Parameters;
 import akha.yakhont.technology.Dagger2.UiModule;
 import akha.yakhont.technology.rx.BaseRx.LocationRx;
+import akha.yakhont.technology.rx.BaseRx.RxVersions;
 import akha.yakhont.technology.rx.BaseRx.SubscriberRx;
 
 import android.location.Location;
@@ -53,10 +54,10 @@ import dagger.Module;
 @CallbacksInherited( /* value = */ LocationCallbacks.class /* , properties = R.string.permissions_rationale_demo */ )
 public class MainActivity extends AppCompatActivity implements LocationListener /* optional */ {
 
-    // well, it's also possible to use all that stuff (versions 1 and 2) simultaneously
+    // well, it's also possible to use all that stuff (versions 1 - 3) simultaneously
     // but I wouldn't like to mess the demo with such kind of extravaganza
     private static final boolean            USE_RETROFIT_2                  = true;
-    private static final boolean            USE_RX_JAVA_2                   = true;
+    private static final RxVersions         USE_RX_VERSION                  = RxVersions.VERSION_3;
 
     private static final boolean            USE_GOOGLE_LOCATION_OLD_API     = false;
     private static final boolean            USE_SNACKBAR_ISO_TOAST          = false;
@@ -90,6 +91,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7);
 
         initLocationRx();   // optional
 /*
@@ -127,8 +130,8 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     private              LocationRx         mRx;
 
     @SuppressWarnings("SameReturnValue")
-    public boolean isRxJava2() {
-        return USE_RX_JAVA_2;
+    public RxVersions getRxVersion() {
+        return USE_RX_VERSION;
     }
 
     private void initLocationRx() {
@@ -136,7 +139,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         if (mLocationCallbacks == null) return;
 
         // unsubscribe handled by Yakhont
-        mRx = new LocationRx(isRxJava2(), this).subscribe(new SubscriberRx<Location>() {
+        mRx = new LocationRx(getRxVersion(), this).subscribe(new SubscriberRx<Location>() {
             @Override
             public void onNext(Location location) {
                 CoreLogger.log("LocationRx: " + location);

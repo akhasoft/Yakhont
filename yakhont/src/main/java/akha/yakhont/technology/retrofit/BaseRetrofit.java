@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -34,10 +34,10 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 
 /**
- * The base component to work with {@link <a href="http://square.github.io/retrofit/">Retrofit</a>}.
+ * The base component to work with {@link <a href="https://square.github.io/retrofit/">Retrofit</a>}.
  * <p>
- * Supports both {@link <a href="http://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>}
- * and {@link <a href="http://square.github.io/retrofit/2.x/retrofit/">Retrofit 2</a>}.
+ * Supports both {@link <a href="https://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>}
+ * and {@link <a href="https://square.github.io/retrofit/2.x/retrofit/">Retrofit 2</a>}.
  *
  * <p>Every loader should have unique Retrofit2 (or Retrofit) object; don't share it with other loaders.
  *
@@ -52,7 +52,7 @@ import java.util.Map;
  * public static Retrofit2&lt;YourRetrofit, YourData[]&gt; getRetrofit() {
  *     // something like this
  *     return new Retrofit2&lt;YourRetrofit, YourData[]&gt;().init(
- *         YourRetrofit.class, "http://...");
+ *         YourRetrofit.class, "https://...");
  * }
  * </pre>
  *

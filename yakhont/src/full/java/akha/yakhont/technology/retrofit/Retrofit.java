@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -23,6 +23,7 @@ import akha.yakhont.loader.BaseResponse;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.CoreLoad;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
 import akha.yakhont.technology.rx.BaseRx.LoaderRx;
+import akha.yakhont.technology.rx.BaseRx.RxVersions;
 
 import androidx.annotation.IntRange;
 import androidx.annotation.NonNull;
@@ -48,7 +49,7 @@ import retrofit.YakhontRestAdapter;
 
 /**
  * The component to work with
- * {@link <a href="http://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>} 1.x APIs.
+ * {@link <a href="https://square.github.io/retrofit/1.x/retrofit/">Retrofit</a>} 1.x APIs.
  *
  * <p>Every loader should have unique Retrofit object; don't share it with other loaders.
  *
@@ -343,27 +344,25 @@ public class Retrofit<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         /**
          * Initialises a newly created {@code RetrofitRx} object.
          *
-         * @param isRx2
-         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
-         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         * @param version
+         *        The one of supported RxJava versions
          */
-        public RetrofitRx(final boolean isRx2) {
-            super(isRx2);
+        public RetrofitRx(final RxVersions version) {
+            super(version);
         }
 
         /**
          * Initialises a newly created {@code RetrofitRx} object.
          *
-         * @param isRx2
-         *        {@code true} for using {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 2</a>},
-         *        {@code false} for {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}
+         * @param version
+         *        The one of supported RxJava versions
          *
          * @param isSingle
          *        {@code true} if {@link CommonRx}
          *        either emits one value only or an error notification, {@code false} otherwise
          */
-        public RetrofitRx(final boolean isRx2, final boolean isSingle) {
-            super(isRx2, isSingle);
+        public RetrofitRx(final RxVersions version, final boolean isSingle) {
+            super(version, isSingle);
         }
 
         /**

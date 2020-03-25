@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -20,7 +20,7 @@ import akha.yakhont.demo.model.Beer;
 
 import java.util.List;
 
-import io.reactivex.Observable;
+import io.reactivex.rxjava3.core.Observable;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
@@ -28,15 +28,19 @@ import retrofit2.http.Query;
 
 public interface Retrofit2Api {
 
+    @SuppressWarnings("UnusedReturnValue")
     @GET("/data")
-    @SuppressWarnings("unused")
-    Observable<List<Beer>>      getDataRx   ();  // Flowable, Maybe and Single works too
+    Observable<List<Beer>>              getDataRx   ();  // Flowable, Maybe and Single works too
 
     @GET("/data")
     @SuppressWarnings("unused")
-    rx.Observable<List<Beer>>   getDataOldRx();  // Single works too
+    io.reactivex.Observable<List<Beer>> getDataRx2  ();  // Flowable, Maybe and Single works too
 
     @GET("/data")
     @SuppressWarnings("unused")
-    Call<List<Beer>>            getData(@Query("not_used") String notUsed /* just for demo */ );
+    rx.Observable<List<Beer>>           getDataRx1  ();  // Single works too
+
+    @GET("/data")
+    @SuppressWarnings("unused")
+    Call<List<Beer>>                    getData(@Query("not_used") String notUsed /* just for demo */ );
 }

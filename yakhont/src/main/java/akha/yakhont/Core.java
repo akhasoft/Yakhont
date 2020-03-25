@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -50,7 +50,7 @@ import akha.yakhont.technology.Dagger2.UiModule;
 import akha.yakhont.technology.Dagger2.UiModule.ViewHandler;
 import akha.yakhont.technology.Dagger2.UiModule.ViewModifier;
 import akha.yakhont.technology.rx.BaseRx.CommonRx;
-import akha.yakhont.technology.rx.Rx2;
+import akha.yakhont.technology.rx.Rx3;
 
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
@@ -593,12 +593,12 @@ public class Core implements DefaultLifecycleObserver {
     @SuppressWarnings("unused")
     public static void setRxUncaughtExceptionBehavior(final boolean terminate) {
         if (terminate) {
-            FlavorHelper.setRxErrorHandlerDefault();    // Rx 1 support in full version
-            Rx2         .setErrorHandlerDefault();
+            FlavorHelper.setRxErrorHandlerDefault();    // Rx / Rx2 support is in full version
+            Rx3         .setErrorHandlerDefault();
         }
         else {
-            FlavorHelper.setRxErrorHandlerJustLog();    // Rx 1 support in full version
-            Rx2         .setErrorHandlerJustLog();
+            FlavorHelper.setRxErrorHandlerJustLog();    // Rx / Rx2 support is in full version
+            Rx3         .setErrorHandlerJustLog();
         }
         CommonRx.setSafeFlag(!terminate);
     }
@@ -911,7 +911,7 @@ public class Core implements DefaultLifecycleObserver {
         Parameters.cleanUpFinal();
         UiModule  .cleanUpFinal();
 
-        Rx2         .cleanUpFinal  ();
+        Rx3         .cleanUpFinal  ();
         FlavorHelper.cleanUpRxFinal();
         CommonRx    .cleanUpFinal  ();
 
@@ -1642,14 +1642,6 @@ public class Core implements DefaultLifecycleObserver {
         public static boolean safeRunBoolean(final Callable<Boolean> callable) {
             final Boolean result = safeRun(callable);
             return result == null ? false: result;
-        }
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-        public static void check(@NonNull final RuntimeException exception,
-                                 @NonNull final String           text) throws RuntimeException {
-            final String message = exception.getMessage();
-            if (message == null || !message.contains(text))
-                throw exception;
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
