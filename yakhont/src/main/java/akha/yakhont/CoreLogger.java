@@ -3576,4 +3576,17 @@ public class CoreLogger {
         return object == null ? "null": object instanceof Object[] ?
                 Arrays.deepToString((Object[]) object): object.toString();
     }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static Level getLogDebugLevel(@NonNull final Object object, @NonNull final String name,
+                                                  final Object... args) {
+        return ((LogDebug) CoreReflection.getAnnotationMethod(object, LogDebug.class, name, args)).value();
+    }
+
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    public static String getLogDebugDescription(@NonNull final Object object, @NonNull final String name,
+                                                final Object value, final Object... args) {
+        return String.format("object: %s, method: %s, return value: %s, arguments: %s", getDescription(object),
+                name, value, Arrays.deepToString(args));
+    }
 }

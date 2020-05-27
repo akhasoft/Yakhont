@@ -524,7 +524,7 @@ public abstract class BaseRx<D> {
         @SuppressWarnings("WeakerAccess")
         public void unsubscribe() {
             mRxDisposable  .unsubscribe();
-            mFlavorCommonRx.unsubscribe();          // Rx1 support in full version
+            mFlavorCommonRx.unsubscribe();          // RxJava 1 / 2 support is in full version
         }
 
         /**
@@ -649,7 +649,7 @@ public abstract class BaseRx<D> {
      *     protected void onCreate(Bundle savedInstanceState) {
      *         super.onCreate(savedInstanceState);
      *
-     *         // your code here: setContentView(...) etc.
+     *         // your code here: setContentView(...), etc.
      *
      *         mLocationCallbacks = LocationCallbacks.getLocationCallbacks(this);
      *

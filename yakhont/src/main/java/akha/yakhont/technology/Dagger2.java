@@ -112,7 +112,7 @@ import dagger.Provides;
  *
  *         super.onCreate(savedInstanceState);
  *
- *         // your code here: setContentView(...) etc.
+ *         // your code here: setContentView(...), etc.
  *     }
  *
  *     // default implementation - customize only modules you need

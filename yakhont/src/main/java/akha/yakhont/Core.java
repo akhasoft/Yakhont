@@ -161,7 +161,7 @@ import com.google.android.material.snackbar.Snackbar;
  *
  *     super.onCreate(savedInstanceState);
  *
- *     // your code here: setContentView(...) etc.
+ *     // your code here: setContentView(...), etc.
  * }
  * </pre>
  *
@@ -193,7 +193,8 @@ public class Core implements DefaultLifecycleObserver {
     public static final int                             NOT_VALID_VIEW_ID           = View.NO_ID;
 
     /** Not valid color (the value is {@value}). */
-    @IdRes  public static final int                     NOT_VALID_COLOR             = Integer.MAX_VALUE;
+    @IdRes
+    public static final int                             NOT_VALID_COLOR             = Integer.MAX_VALUE;
 
     private static final String                         BASE_URI                    = "content://%s.provider";
     @SuppressWarnings("unused")
@@ -441,7 +442,7 @@ public class Core implements DefaultLifecycleObserver {
      *
      *         super.onCreate(savedInstanceState);
      *
-     *         // your code here: setContentView(...) etc.
+     *         // your code here: setContentView(...), etc.
      *     }
      *
      *     // default implementation - customize only modules you need
@@ -2101,7 +2102,7 @@ public class Core implements DefaultLifecycleObserver {
             return zip(null, zipFile, srcFiles);
         }
 
-        private static final int                        ZIP_BUFFER_SIZE                 = 2048;
+        private static final int                        ZIP_BUFFER_SIZE                 = 8192;
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static boolean zip(final Map<String, Exception> errors,
@@ -2336,6 +2337,8 @@ public class Core implements DefaultLifecycleObserver {
             UiModule.showToastExt(viewId, duration);
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /**
          * Builds and shows {@link Toast} with custom duration (please refer to {@link #setDuration}).
          *
@@ -2506,6 +2509,8 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /**
          * Shows {@link Snackbar} using default {@link View} of the current {@link Activity}.
          *
@@ -2567,6 +2572,8 @@ public class Core implements DefaultLifecycleObserver {
                 }
             };
         }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
 
         /**
          * Builds and shows {@link Snackbar} with Views customization possibilities (please refer to
@@ -2872,6 +2879,8 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static class RequestCodesHandler {
 
@@ -2932,6 +2941,8 @@ public class Core implements DefaultLifecycleObserver {
                         RequestCodes.UNKNOWN: REQUEST_CODES_VALUES[requestCode];
             }
         }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static class ExecutorHelper {
@@ -3082,6 +3093,8 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /**
          * Helper class for handling the Back key in ActionMode
          * (in {@code BaseActivity} it's already done). For example (in Activity):
@@ -3147,6 +3160,8 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /**
          *  The API for measured view layout adjusting.
          *
@@ -3163,6 +3178,8 @@ public class Core implements DefaultLifecycleObserver {
              */
             void adjustMeasuredView(View view);
         }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
 
         /**
          * The callback helper for calling
@@ -3208,6 +3225,8 @@ public class Core implements DefaultLifecycleObserver {
                                                 @NonNull final View                 view) {
             ViewHelper.onAdjustMeasuredView(container, view);
         }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static class ViewHelper {
@@ -3446,6 +3465,8 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /** @exclude */ @SuppressWarnings("JavaDoc")
         public static class TypeHelper {
 
@@ -3523,6 +3544,8 @@ public class Core implements DefaultLifecycleObserver {
             }
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /**
          * Intended to use with {@link #cursorHelper} method.
          */
@@ -3540,6 +3563,8 @@ public class Core implements DefaultLifecycleObserver {
              */
             boolean handle(Cursor cursor);
         }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
 
         /**
          * Helper method to work with {@code Cursor} objects. Iterates through all cursor rows (if any)
@@ -3736,6 +3761,8 @@ public class Core implements DefaultLifecycleObserver {
             return result;
         }
 
+        ////////////////////////////////////////////////////////////////////////////////////////////
+
         /**
          * Implements the {@code DialogFragment} which is not destroyed after screen orientation
          * changing (actually it's a Google API bug workaround).
@@ -3799,6 +3826,8 @@ public class Core implements DefaultLifecycleObserver {
                 return mStore.get(key);
             }
         }
+
+        ////////////////////////////////////////////////////////////////////////////////////////////
 
         /**
          * Helper class for {@code CoreLoad} interface.

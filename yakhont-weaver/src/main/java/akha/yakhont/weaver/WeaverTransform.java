@@ -170,7 +170,7 @@ public class WeaverTransform extends com.android.build.api.transform.Transform {
                 FileUtils.copyDirectory(dirInput.getFile(), dest);
 
                 try {
-                    new Weaver().run(mDebug, mApplicationId, dest.getCanonicalPath(), classPath.toString(),
+                    Weaver.run(mDebug, mApplicationId, dest.getCanonicalPath(), classPath.toString(),
                             mBootClassPath, mAddConfig, mConfigFiles);
                 }
                 catch (CannotCompileException | NotFoundException exception) {

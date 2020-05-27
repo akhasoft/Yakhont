@@ -564,7 +564,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
      *
      *         super.onCreate(savedInstanceState);
 
-     *         // your code here: setContentView(...), RecyclerView.setLayoutManager(...) etc.
+     *         // your code here: setContentView(...), RecyclerView.setLayoutManager(...), etc.
      *
      *         Retrofit2Loader.start("https://...", Retrofit2Api.class, Retrofit2Api::getData, BR.id, savedInstanceState);
      *     }

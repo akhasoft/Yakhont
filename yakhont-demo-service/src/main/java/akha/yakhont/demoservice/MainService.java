@@ -20,6 +20,7 @@ import akha.yakhont.demoservice.model.Data;
 import akha.yakhont.demoservice.retrofit.LocalOkHttpClient2;
 import akha.yakhont.demoservice.retrofit.Retrofit2Api;
 
+import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;
@@ -40,6 +41,8 @@ import java.util.concurrent.CountDownLatch;
 
 public class MainService extends IntentService implements ViewModelStoreOwner {
 
+    private static final String TAG = "yakhont";
+
     private final ViewModelStore mViewModelStore = new ViewModelStore();
 
     @NonNull
@@ -52,18 +55,29 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
         super("MainService");
     }
 
-    @SuppressWarnings("EmptyMethod")
+    @akha.yakhont.LogDebug(akha.yakhont.CoreLogger.Level.WARNING) //todo
     @Override
     public void onCreate() {
         // uncomment if you're going to use Rx; for more info please refer to
         //   https://github.com/ReactiveX/RxJava/wiki/What's-different-in-2.0#error-handling
-//      akha.yakhont.Core.setRxUncaughtExceptionBehavior(false);    // not terminate
+//      Core.setRxUncaughtExceptionBehavior(false);    // not terminate
 
         super.onCreate();
 
+        try {
+            Utils.getInvertedColor(0); //todo method
+        }
+        catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+            e.printStackTrace();
+        }
+
 //      setDebugLogging(BuildConfig.DEBUG);         // optional
+
+        demoWildcards();
     }
 
+    @akha.yakhont.LogDebug //todo
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -73,7 +87,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
                     @Override
                     public void onLoadFinished(List<Data> data, Source source) {
                         // your code here, for example:
-                        Log.e("yakhont", "onLoadFinished(): " + data.get(0).getTitle());
+                        Log.e(TAG, "onLoadFinished(): " + data.get(0).getTitle());
 
                         countDownLatch.countDown();
                     }
@@ -115,7 +129,49 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
                 loaderCallbacks, null, this,
                 new LocalOkHttpClient2(retrofit2) /* .setEmulatedNetworkDelay(3) */ , retrofit2);
 
-        // prevents service destroying before receiving data
+        // prevents service destroying before data receiving
         Utils.await(countDownLatch);
+    }
+
+    @SuppressWarnings({"SameParameterValue", "unused"})
+    private void setDebugLogging(boolean debug) {
+        if (debug) Core.setFullLoggingInfo(true);
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    // for Yakhont Weaver wildcards demo only
+
+    private void demoWildcards() {
+        akha.yakhont.CoreLogger.setMaxLogLineLength(80); //todo
+        DemoWildcards.demoStatic();
+        DemoWildcards demo = new DemoWildcards();
+        demo.demo();
+
+        DemoWildcards.DemoWildcardsInner demoInner = demo.new DemoWildcardsInner();
+        demoInner.demoInner1();
+        demoInner.demoInner2();
+
+        // new methods (created by Yakhont Weaver)
+        try {
+            DemoWildcards.DemoWildcardsInner.class.getMethod("x").invoke(demoInner);
+            DemoWildcards.DemoWildcardsInner.class.getMethod("y").invoke(demoInner);
+            DemoWildcards                   .class.getMethod("z",
+                    String.class, int.class).invoke(demoInner, "", 0);
+        }
+        catch (Exception e) {       // should never happen
+            Log.e(TAG, "wildcards handling error", e);
+        }
+    }
+
+    private static class DemoWildcards {
+
+        private static void demoStatic() {}
+        private        void demo      () {}
+
+        private class DemoWildcardsInner {
+
+            private void demoInner1() {}
+                    void demoInner2() {}
+        }
     }
 }

@@ -65,7 +65,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
 
     /**
      * Initialises a newly created {@code ValuesCacheAdapterWrapper} object. The data binding goes by default:
-     * cursor's column {@link BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title etc.
+     * cursor's column {@link BaseColumns#_ID _ID} binds to view with R.id._id, column "title" - to R.id.title, etc.
      *
      * @param context
      *        The {@code Activity}

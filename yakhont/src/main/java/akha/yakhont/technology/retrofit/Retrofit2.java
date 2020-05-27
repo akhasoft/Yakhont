@@ -518,13 +518,10 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected Factory getFactoryRx(final Callable<Factory> callable) {
         try {
-            return callable.call();
+            return Utils.safeRun(callable);
         }
-        catch (NoClassDefFoundError error) {    // in most cases it's ok
+        catch (NoClassDefFoundError error) {    // normally it's ok
             CoreLogger.log(CoreLogger.getDefaultLevel(), "getFactory can't find class", error);
-        }
-        catch (Exception exception) {
-            CoreLogger.log("getFactory failed for " + callable, exception);
         }
         return null;
     }
@@ -976,7 +973,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     public static class RxJava3CallAdapterFactoryTmp extends Factory {
 
         @Nullable
-        private final Scheduler mScheduler;
+        private final Scheduler                                 mScheduler;
         private final boolean                                   mIsAsync;
 
         @SuppressWarnings("unused")

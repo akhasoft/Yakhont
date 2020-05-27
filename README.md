@@ -16,7 +16,7 @@
 <div align="center">
     <table><tr>
         <td width="45%" align="left">Яхонт делает невозможное</td>
-        <td><img src="https://akhasoft.github.io/yakhont/library/core/logo.png"></td>
+        <td><img src="https://akhasoft.github.io/yakhont/1.2.01/library/core/logo.png"></td>
         <td width="45%" align="right">Yakhont - break limits now</td>
     </tr></table>
 </div>         
@@ -55,7 +55,7 @@ for working examples (don't be surprised - RxJava3 for Retrofit2 is supported to
 
 What else? Dynamic permissions? Requested and handled fully automatically,
 all you need is just to provide permission-specific on-granted-callbacks (please refer to
-[dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)).
+[dynamic permissions handling](https://akhasoft.github.io/yakhont/1.2.01/library/core/akha/yakhont/CorePermissions.html)).
 
 And all that jazz works from services, too (please refer to
 [demo service](yakhont-demo-service/src/main/java/akha/yakhont/demoservice/MainService.java) for more info).
@@ -68,22 +68,21 @@ In sum, as I told - you can make the whole data loading in just one line of code
 
 ## Table of Contents
 
-- [Tell Me More](https://github.com/akhasoft/Yakhont#more-info)
-- [Feature List](https://github.com/akhasoft/Yakhont#feature-list)
-- [Demos and Releases](https://github.com/akhasoft/Yakhont#demos-and-releases)
-- [Versions](https://github.com/akhasoft/Yakhont#versions)
-- [Usage](https://github.com/akhasoft/Yakhont#usage)
-- [Weaver](https://github.com/akhasoft/Yakhont#weaver-usage-and-configuration)
-- [R8 / Proguard](https://github.com/akhasoft/Yakhont#r8-proguard)
-- [Build](https://github.com/akhasoft/Yakhont#build)
-- [Communication](https://github.com/akhasoft/Yakhont#communication)
-- [Information and Documentation](https://github.com/akhasoft/Yakhont#information-and-documentation)
-- [Known Issues](https://github.com/akhasoft/Yakhont#known-issues)
-- [Bugs and Feedback](https://github.com/akhasoft/Yakhont#bugs-and-feedback)
-- [License](https://github.com/akhasoft/Yakhont#license)
+- [Features](https://github.com/akhasoft/Yakhont/tree/dev#features)
+- [Demos](https://github.com/akhasoft/Yakhont/tree/dev#demos)
+- [Releases](https://github.com/akhasoft/Yakhont/tree/dev#releases)
+- [Versions](https://github.com/akhasoft/Yakhont/tree/dev#versions)
+- [Usage](https://github.com/akhasoft/Yakhont/tree/dev#usage)
+- [Weaver](https://github.com/akhasoft/Yakhont/tree/dev#weaver-usage-and-configuration)
+- [R8 / Proguard](https://github.com/akhasoft/Yakhont/tree/dev#r8--proguard)
+- [Build](https://github.com/akhasoft/Yakhont/tree/dev#build)
+- [Communication](https://github.com/akhasoft/Yakhont/tree/dev#communication)
+- [Information and Documentation](https://github.com/akhasoft/Yakhont/tree/dev#information-and-documentation)
+- [Known Issues](https://github.com/akhasoft/Yakhont/tree/dev#known-issues)
+- [Bugs and Feedback](https://github.com/akhasoft/Yakhont/tree/dev#bugs-and-feedback)
+- [License](https://github.com/akhasoft/Yakhont/tree/dev#license)
 
-<a href="#more-info" name="more-info"></a>
-Some more info about Yakhont. 
+Some more info about Yakhont.
 
 If you want to use your own cache (say, Room), adapter or whatever - yes, you can (please refer to 
 [demo room kotlin](yakhont-demo-room-kotlin/src/main/java/akha/yakhont/demoroomkotlin)
@@ -91,15 +90,15 @@ for the working example).
 
 In addition, there are powerful utility classes which includes:
 - completely transparent (but fully customizable) 
-[dynamic permissions handling](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CorePermissions.html)
-- extended [logger](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreLogger.html): 
+[dynamic permissions handling](https://akhasoft.github.io/yakhont/1.2.01/library/core/akha/yakhont/CorePermissions.html)
+- extended [logger](https://akhasoft.github.io/yakhont/1.2.01/library/core/akha/yakhont/CoreLogger.html):
 sending logcat error reports (with screenshots and DB copies) on just shaking device (or making Z-gesture), 
 stack traces, byte[] logging and more.
 - video / audio recording (also via shaking device or making Z-gesture - for more info please refer to the logger mentioned above).
 - transparent gestures recognition / handling without [GestureOverlayView](https://developer.android.com/reference/android/gesture/GestureOverlayView.html)
  (i.e. can be used, say, with [RecyclerView](https://developer.android.com/reference/androidx/recyclerview/widget/RecyclerView.html) - also, implemented in logger). 
 - more about gestures: you can record and load your own ones (and provide your own handlers for them).
-- [reflection](https://akhasoft.github.io/yakhont/library/core/akha/yakhont/CoreReflection.html)
+- [reflection](https://akhasoft.github.io/yakhont/1.2.01/library/core/akha/yakhont/CoreReflection.html)
 with extended collections support, methods comparing and handling (say, find list of overridden methods), etc.  
 
 And weaving. Imagine, your want to add in all your Activities / Fragments something like this: 
@@ -115,8 +114,9 @@ public class YourActivity extends Activity {
 ```
 
 Just put such call in weaver.config - and Yakhont Weaver will add it to all classes you need
-(via changing already compiled code with [Javassist](https://www.javassist.org/)). Both Java and Kotlin supported.
-And last but not least - Yakhont Weaver supports any applications (i.e. you can use it without Yakhont library).
+(via changing already compiled code with [Javassist](https://www.javassist.org/)). Both Java and Kotlin are supported.
+Wildcards for classes and packages are supported.
+And last but not least - Yakhont Weaver supports any applications (i.e. you can use it even without Yakhont library).
 
 All-in-one magic mentioned above uses this trick extensively (please refer to
 [weaver.config](yakhont/weaver.config) for more details).
@@ -188,14 +188,13 @@ requires API level 14 in any case (please refer to
 [Android Developers Blog](https://android-developers.googleblog.com/2016/11/google-play-services-and-firebase-for-android-will-support-api-level-14-at-minimum.html)
 for more information).
 
-## Feature List
+## Features
 
 The detailed feature list is available [here](https://github.com/akhasoft/Yakhont/wiki).
 
-## Demos and Releases
+## Demos
 
-Releases are available [here](https://github.com/akhasoft/Yakhont/releases),
-demo applications can be downloaded from the
+Demo applications can be downloaded from the
 [latest release](https://github.com/akhasoft/Yakhont/releases/latest).
 
 1. [demo simple kotlin](https://github.com/akhasoft/Yakhont/releases/download/v1.2.01/yakhont-demo.apk):
@@ -209,6 +208,12 @@ The endless adapter demo (based on [Google paging library](https://developer.and
 The simple demo which loads some data - but from [service](https://developer.android.com/reference/android/app/Service.html).
 5. [main demo](https://github.com/akhasoft/Yakhont/releases/download/v1.2.01/yakhont-demo.apk):
 The most complex demo with tons of customization.
+
+## Releases
+
+Releases are available [here](https://github.com/akhasoft/Yakhont/releases) (and
+[jcenter](https://jcenter.bintray.com/com/github/akhasoft/) /
+[mavenCentral](https://oss.sonatype.org/content/repositories/releases/com/github/akhasoft/), of course).
 
 ## Versions
 
@@ -341,7 +346,10 @@ to replace default configuration with yours (even if null).
 The Yakhont Weaver is a standalone utility which means it can be used in any application even without 
 Yakhont library - just specify "weaverAddConfig = false" and provide your own configuration file.
 
-Please refer to [weaver.config](yakhont/weaver.config) for more details.
+And yes - for classes and packages names wildcards ('*', '?', '**') are supported.
+
+Please refer to the [Weaver](https://akhasoft.github.io/yakhont/1.2.01/weaver/akha/yakhont/weaver/Weaver.html)  
+and the [weaver.config](yakhont/weaver.config) for more info and working examples.
 
 ## R8 / Proguard
 

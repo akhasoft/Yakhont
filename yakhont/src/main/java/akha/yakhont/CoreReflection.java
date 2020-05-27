@@ -31,6 +31,7 @@ import androidx.collection.ArraySet;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Array;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -102,25 +103,6 @@ public class CoreReflection {
     }
 
     /**
-     * Same as {@link Class#newInstance()} but never throws exceptions.
-     *
-     * @param <T>
-     *        The type of data to return
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T createSafe(@NonNull final Class cls) {
-        CoreLogger.log(String.format("about to create instance of class %s",
-                CoreLogger.getDescription(cls)));
-        try {
-            return (T) cls.newInstance();
-        }
-        catch (Throwable throwable) {
-            CoreLogger.log(throwable);
-            return null;
-        }
-    }
-
-    /**
      * Same as {@link #invoke(Object, String, Object...)} but never throws exceptions.
      */
     @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
@@ -164,14 +146,65 @@ public class CoreReflection {
     @SuppressWarnings("WeakerAccess")
     public static <T> T invoke(@NonNull final Object object, @NonNull final String methodName, final Object... args)
             throws IllegalAccessException, InvocationTargetException, ExceptionInInitializerError {
+        final Method method = findMethod(Level.ERROR, object, methodName, getClassesFromArgs(args));
+        //noinspection RedundantTypeArguments
+        return method == null ? null: CoreReflection.<T>invoke(getObject(object), method, args);
+    }
 
+    /**
+     * Creates new object.
+     *
+     * @param cls
+     *        The object's class
+     *
+     * @param args
+     *        The constructor's arguments
+     *
+     * @param <T>
+     *        The type of object to return
+     *
+     * @return  The new object
+     *
+     * @throws  IllegalAccessException
+     *          please refer to the exception description
+     *
+     * @throws  InstantiationException
+     *          please refer to the exception description
+     *
+     * @throws  InvocationTargetException
+     *          please refer to the exception description
+     *
+     * @throws  ExceptionInInitializerError
+     *          please refer to the error description
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <T> T create(@NonNull final Class<?> cls, final Object... args)
+            throws IllegalAccessException, InvocationTargetException, InstantiationException,
+            ExceptionInInitializerError {
+        final Constructor<?> constructor = findConstructor(Level.ERROR, cls, getClassesFromArgs(args));
+        //noinspection RedundantTypeArguments
+        return constructor == null ? null: CoreReflection.<T>create(constructor, args);
+    }
+
+    private static Class[] getClassesFromArgs(final Object... args) {
         final Class[] classes = new Class[args == null ? 0: args.length];
         for (int i = 0; i < classes.length; i++)
             classes[i] = args[i] == null ? null: args[i].getClass();
+        return classes;
+    }
 
-        final Method method = findMethod(Level.ERROR, object, methodName, classes);
-        //noinspection RedundantTypeArguments
-        return method == null ? null: CoreReflection.<T>invoke(getObject(object), method, args);
+    /**
+     * Same as {@link #create(Class, Object...)} but never throws exceptions.
+     */
+    @SuppressWarnings("unused")
+    public static <T> T createSafe(@NonNull final Class<?> cls, final Object... args) {
+        try {
+            return create(cls, args);
+        }
+        catch (Throwable throwable) {
+            CoreLogger.log(throwable);
+            return null;
+        }
     }
 
     /**
@@ -184,7 +217,7 @@ public class CoreReflection {
      *        The method
      *
      * @param args
-     *        The method arguments
+     *        The method's arguments
      *
      * @param <T>
      *        The type of data to return
@@ -221,7 +254,7 @@ public class CoreReflection {
                 return result;
             }
             catch (Throwable throwable) {
-                CoreLogger.log(CoreLogger.getDefaultLevel(), "failed invoke " + method.getName(), throwable);
+                CoreLogger.log(CoreLogger.getDefaultLevel(), "failed to invoke " + method.getName(), throwable);
                 throw throwable;
             }
             finally {
@@ -229,7 +262,7 @@ public class CoreReflection {
             }
         }
         catch (RuntimeException exception) {
-            CoreLogger.log("failed invoke " + method.getName(), exception);
+            CoreLogger.log("failed to invoke " + method.getName(), exception);
             return null;
         }
     }
@@ -249,27 +282,130 @@ public class CoreReflection {
     }
 
     /**
+     * Same as {@link #create(Constructor, Object...)} but never throws exceptions.
+     */
+    @SuppressWarnings("unused")
+    public static <T> T createSafe(@NonNull final Constructor<?> constructor, final Object... args) {
+        try {
+            return create(constructor, args);
+        }
+        catch (Throwable throwable) {
+            CoreLogger.log(throwable);
+            return null;
+        }
+    }
+
+    /**
+     * Creates new object using given constructor.
+     *
+     * @param constructor
+     *        The constructor
+     *
+     * @param args
+     *        The constructor's arguments
+     *
+     * @param <T>
+     *        The type of object to return
+     *
+     * @return  The new object
+     *
+     * @throws  IllegalAccessException
+     *          please refer to the exception description
+     *
+     * @throws  InstantiationException
+     *          please refer to the exception description
+     *
+     * @throws  InvocationTargetException
+     *          please refer to the exception description
+     *
+     * @throws  ExceptionInInitializerError
+     *          please refer to the error description
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static <T> T create(final Constructor<?> constructor, final Object... args)
+            throws IllegalAccessException, InvocationTargetException, InstantiationException,
+            ExceptionInInitializerError {
+        checkForNull(constructor, "constructor == null");
+
+        CoreLogger.log(String.format("about to create object with constructor %s",
+                CoreLogger.getDescription(constructor)));
+
+        try {
+            final boolean accessible = constructor.isAccessible();
+            if (!accessible) {
+                CoreLogger.logWarning("constructor is not accessible");
+                constructor.setAccessible(true);
+            }
+
+            try {
+                @SuppressWarnings("unchecked")
+                final T result = (T) constructor.newInstance(args);
+                return result;
+            }
+            catch (Throwable throwable) {
+                CoreLogger.log(CoreLogger.getDefaultLevel(), "failed to create object with constructor " +
+                        CoreLogger.getDescription(constructor), throwable);
+                throw throwable;
+            }
+            finally {
+                if (!accessible) constructor.setAccessible(false);
+            }
+        }
+        catch (RuntimeException exception) {
+            CoreLogger.log("failed to create object with constructor " +
+                    CoreLogger.getDescription(constructor), exception);
+            return null;
+        }
+    }
+
+    /**
      * Finds method to invoke (unboxing supported).
      *
      * @param object
      *        The object (or object's class) on which to find method
      *
      * @param methodName
-     *        The method name
+     *        The method's name
      *
      * @param args
-     *        The method arguments
+     *        The method's arguments
      *
-     * @return  The method object or null (if not found)
+     * @return  The {@link Method} or null (if not found)
      */
     @SuppressWarnings("WeakerAccess")
     public static Method findMethod(@NonNull final Object object,
-                                    @NonNull final String methodName, @NonNull final Class... args) {
+                                    @NonNull final String methodName, final Class... args) {
         return findMethod(Level.WARNING, object, methodName, args);
     }
 
-    private static Method findMethod(Level level, @NonNull final Object object,
-                                     @NonNull final String methodName, @NonNull final Class... args) {
+    /**
+     * Finds method to invoke (unboxing supported).
+     *
+     * @param object
+     *        The object (or object's class) on which to find method
+     *
+     * @param methodName
+     *        The method's name
+     *
+     * @param args
+     *        The method's arguments
+     *
+     * @return  The {@link Method} or null (if not found)
+     */
+    @SuppressWarnings("unused")
+    public static Method findMethod(@NonNull final Object object,
+                                    @NonNull final String methodName, final Object... args) {
+        return findMethod(object, methodName, getClassesFromArgs(args));
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static Method findMethod(final Level level, @NonNull final Object object,
+                                     @NonNull final String methodName, final Object... args) {
+        return findMethod(level, object, methodName, getClassesFromArgs(args));
+    }
+
+    private static Method findMethod(final Level level, @NonNull final Object object,
+                                     @NonNull final String methodName, Class... args) {
         Class<?> tmpClass = getClass(object);
         try {
             return tmpClass.getMethod(methodName, args);
@@ -278,6 +414,7 @@ public class CoreReflection {
             CoreLogger.log(CoreLogger.getDefaultLevel(), "Class.getMethod('" + methodName +
                     "') failed", exception);
         }
+        if (args == null) args = new Class[0];
 
         //noinspection ConditionalBreakInInfiniteLoop
         for (;;) {
@@ -289,27 +426,100 @@ public class CoreReflection {
                 final Class<?>[] params = method.getParameterTypes();
                 if (args.length != params.length) continue;
 
-                if (args.length == 0) return method;
-
-                for (int i = 0; i < params.length; i++) {
-                    Class<?> currentClass = args[i];
-
-                    if (params[i].isPrimitive()) {
-                        if (currentClass == null) break;
-
-                        if (UNBOXING.containsKey(currentClass)) currentClass = UNBOXING.get(currentClass);
-                    }
-                    if (currentClass != null && !params[i].isAssignableFrom(currentClass)) break;
-
-                    if (i == params.length - 1) return method;
-                }
+                if (findHelper(params, args)) return method;
             }
+
             if ((tmpClass = tmpClass.getSuperclass()) == null) break;
         }
 
         CoreLogger.log(level,"class " + CoreLogger.getDescription(getClass(object)) +
                 ", method " + methodName + " not found");
         return null;
+    }
+
+    /**
+     * Finds constructor to create object (unboxing supported).
+     *
+     * @param cls
+     *        The class on which to find constructor
+     *
+     * @param args
+     *        The constructor's arguments
+     *
+     * @return  The {@link Constructor} or null (if not found)
+     */
+    @SuppressWarnings({"unused", "WeakerAccess"})
+    public static Constructor<?> findConstructor(@NonNull final Class<?> cls, final Class... args) {
+        return findConstructor(Level.WARNING, cls, args);
+    }
+
+    /**
+     * Finds constructor to create object (unboxing supported).
+     *
+     * @param cls
+     *        The class on which to find constructor
+     *
+     * @param args
+     *        The constructor's arguments
+     *
+     * @return  The {@link Constructor} or null (if not found)
+     */
+    @SuppressWarnings("unused")
+    public static Constructor<?> findConstructor(@NonNull final Class<?> cls, final Object... args) {
+        return findConstructor(cls, getClassesFromArgs(args));
+    }
+
+    @SuppressWarnings("SameParameterValue")
+    private static Constructor<?> findConstructor(final Level level, @NonNull final Class<?> cls,
+                                                  final Object... args) {
+        return findConstructor(level, cls, getClassesFromArgs(args));
+    }
+
+    private static Constructor<?> findConstructor(final Level level, @NonNull Class<?> cls, Class... args) {
+        try {
+            return cls.getConstructor(args);
+        }
+        catch (/*NoSuchMethod*/Exception exception) {
+            CoreLogger.log(CoreLogger.getDefaultLevel(), "Class.getConstructor() failed", exception);
+        }
+        if (args == null) args = new Class[0];
+
+        Class<?> tmpClass = cls;
+        //noinspection ConditionalBreakInInfiniteLoop
+        for (;;) {
+            final Constructor<?>[] constructors = tmpClass.getDeclaredConstructors();
+
+            for (final Constructor<?> constructor: constructors) {
+                final Class<?>[] params = constructor.getParameterTypes();
+                if (args.length != params.length) continue;
+
+                if (findHelper(params, args)) return constructor;
+            }
+
+            if ((tmpClass = tmpClass.getSuperclass()) == null) break;
+        }
+
+        CoreLogger.log(level,"class " + CoreLogger.getDescription(cls) + ", constructor not found");
+        return null;
+    }
+
+    private static boolean findHelper(@NonNull final Class<?>[] params, final Class<?>[] args) {
+        if (args == null || args.length == 0) return true;
+
+        for (int i = 0; i < params.length; i++) {
+            Class<?> currentClass = args[i];
+
+            if (params[i].isPrimitive()) {
+                if (currentClass == null) break;
+
+                if (UNBOXING.containsKey(currentClass)) currentClass = UNBOXING.get(currentClass);
+            }
+            if (currentClass != null && !params[i].isAssignableFrom(currentClass)) break;
+
+            if (i == params.length - 1) return true;
+        }
+
+        return false;
     }
 
     /**
@@ -906,7 +1116,7 @@ public class CoreReflection {
             return methods;
         }
 
-        Class tmpClass = methodsClass;
+        Class<?> tmpClass = methodsClass;
         for (;;) {
             final Method[] tmpMethods = tmpClass.getDeclaredMethods();
             for (final Method method: tmpMethods) {
@@ -1208,8 +1418,8 @@ public class CoreReflection {
                                               final Boolean includeStatic, final Boolean includeSynthetic) {
         final Map<String, Field > map = Utils.newMap();
 
-        final Class fieldsClass = object.getClass();    // not getClass(object)
-        Class tmpClass = fieldsClass;
+        final Class<?> fieldsClass = object.getClass();         // not getClass(object)
+        Class<?> tmpClass = fieldsClass;
         for (;;) {
             final Field[] fields = tmpClass.getDeclaredFields();
             for (final Field field: fields) {
@@ -1257,16 +1467,180 @@ public class CoreReflection {
      * Gets the object's annotation.
      *
      * @param object
-     *        The object (or object's class) on which to get this annotation
+     *        The object (or object's class) on which to get annotation
      *
      * @param annotation
      *        The annotation class
      *
-     * @return  The annotation object or null (if not found)
+     * @return  The {@link Annotation} or null (if not found)
      */
     public static Annotation getAnnotation(@NonNull final Object object,
                                            @NonNull final Class<? extends Annotation> annotation) {
         return ((Class<?>) getClass(object)).getAnnotation(annotation);
+    }
+
+    /**
+     * Gets the constructor's annotation.
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param constructor
+     *        The constructor on which to get annotation
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static Annotation getAnnotationConstructor(@NonNull final Class<? extends Annotation> annotation,
+                                                      final Constructor<?> constructor) {
+        checkForNull(constructor, "constructor == null");
+        return constructor.getAnnotation(annotation);
+    }
+
+    /**
+     * Gets the constructor's annotation.
+     *
+     * @param cls
+     *        The class on which to get annotation
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param args
+     *        The constructor's arguments
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    @SuppressWarnings("unused")
+    public static Annotation getAnnotationConstructor(@NonNull Class<?> cls,
+                                                      @NonNull final Class<? extends Annotation> annotation,
+                                                               final Object... args) {
+        return getAnnotationConstructor(annotation, findConstructor(Level.ERROR, cls, args));
+    }
+
+    /**
+     * Gets the constructor's annotation.
+     *
+     * @param cls
+     *        The class on which to get annotation
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param args
+     *        The constructor's arguments
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    @SuppressWarnings("unused")
+    public static Annotation getAnnotationConstructor(@NonNull Class<?> cls,
+                                                      @NonNull final Class<? extends Annotation> annotation,
+                                                               final Class... args) {
+        return getAnnotationConstructor(annotation, findConstructor(Level.ERROR, cls, args));
+    }
+
+    /**
+     * Gets the method's annotation.
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param method
+     *        The method
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static Annotation getAnnotationMethod(@NonNull final Class<? extends Annotation> annotation,
+                                                          final Method method) {
+        checkForNull(method, "method == null");
+        return method.getAnnotation(annotation);
+    }
+
+    /**
+     * Gets the method's annotation.
+     *
+     * @param object
+     *        The object (or object's class) on which to get method's annotation
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param methodName
+     *        The method's name
+     *
+     * @param args
+     *        The method's arguments
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    public static Annotation getAnnotationMethod(@NonNull final Object object,
+                                                 @NonNull final Class<? extends Annotation> annotation,
+                                                 @NonNull final String methodName, final Object... args) {
+        return getAnnotationMethod(annotation, findMethod(Level.ERROR, object, methodName, args));
+    }
+
+    /**
+     * Gets the method's annotation.
+     *
+     * @param object
+     *        The object (or object's class) on which to get method's annotation
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param methodName
+     *        The method's name
+     *
+     * @param args
+     *        The method's arguments
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    @SuppressWarnings("unused")
+    public static Annotation getAnnotationMethod(@NonNull final Object object,
+                                                 @NonNull final Class<? extends Annotation> annotation,
+                                                 @NonNull final String methodName, final Class... args) {
+        return getAnnotationMethod(annotation, findMethod(Level.ERROR, object, methodName, args));
+    }
+
+    /**
+     * Gets the field's annotation.
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param field
+     *        The field
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    @SuppressWarnings("WeakerAccess")
+    public static Annotation getAnnotationField(@NonNull final Class<? extends Annotation> annotation,
+                                                         final Field field) {
+        checkForNull(field, "field == null");
+        return field.getAnnotation(annotation);
+    }
+
+    /**
+     * Gets the field's annotation.
+     *
+     * @param object
+     *        The object (or object's class) on which to get field's annotation
+     *
+     * @param annotation
+     *        The annotation class
+     *
+     * @param fieldName
+     *        The field's name
+     *
+     * @return  The {@link Annotation} or null (if not found)
+     */
+    @SuppressWarnings("unused")
+    public static Annotation getAnnotationField(@NonNull final Object object,
+                                                @NonNull final Class<? extends Annotation> annotation,
+                                                @NonNull final String fieldName) {
+        return getAnnotationField(annotation, findField(object, fieldName));
     }
 
     /**

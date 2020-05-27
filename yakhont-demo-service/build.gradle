@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import akha.yakhont.weaver.Weaver
+
 buildscript {
     repositories {
         jcenter()
@@ -159,6 +161,7 @@ dependencies {
     implementation      "com.github.akhasoft:yakhont:$projectVerName@aar"
 }
 
+//todo switch off and test jars weaving
 // let's build release (or debug) only - just to reduce building time
 android.variantFilter { variant ->
     if (variant.buildType.name == (projectConfig == projectDebug ? 'release': 'debug')) {
@@ -166,23 +169,26 @@ android.variantFilter { variant ->
     }
 }
 
-// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
-String weaverConfigFiles = null
-String pkg = android.defaultConfig.applicationId
+// null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
+String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
+
+    afterEvaluate {     // just for JARs weaving demo
+        Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
+    }
+
     javaCompile.doLast {
-        //noinspection UnnecessaryQualifiedReference
-        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
-                javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
+        String destDir = javaCompile.destinationDir.toString()
+        Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, destDir,
+                javaCompile.classpath.asPath + File.pathSeparator + destDir,    // for wildcards weaving demo only
                 android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }
 
-/* if (by some reason) you're about to use the deprecated Transform API, you can try the following:
-//noinspection GroovyAssignabilityCheck, UnnecessaryQualifiedReference
-android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, android.defaultConfig.applicationId,
+/* if by some reason you're about to use the deprecated Transform API, you can try the following:
+android.registerTransform(new akha.yakhont.weaver.WeaverTransform(weaverDebug, pkg,
         android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles))
 */

@@ -16,6 +16,8 @@
 
 package akha.yakhont;
 
+import akha.yakhont.CoreLogger.Level;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -29,12 +31,15 @@ import java.lang.annotation.Target;
  * <br>{@code LogDebug} works via the Yakhont Weaver, the code to execute defined in the 'weaver.config'
  * (and you can redefine it whatever way you want - 'cause it's just a string which Yakhont Weaver
  * compiles just before weaving).
- * <br>Note: actual compilation performed by the
+ * <br>Note: for compilation Yakhont Weaver uses the
  * {@link <a href="http://jboss-javassist.github.io/javassist/">Javassist</a>} library.
  *
  * @author akha
  */
+@SuppressWarnings("WeakerAccess")
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 public @interface LogDebug {
+    /** The logging level. */
+    Level value() default Level.ERROR;
 }

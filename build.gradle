@@ -15,7 +15,7 @@
  */
 
 buildscript {
-    ext.kotlinVersion       = '1.3.71'
+    ext.kotlinVersion       = '1.3.72'
 
     repositories {
         mavenCentral()
@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:3.6.1"
+        classpath "com.android.tools.build:gradle:3.6.3"
 
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
@@ -105,6 +105,7 @@ ext {
     projectLibVerLeakCanary                                     =  '2.1'
 
     // temp Retrofit RxJava3 adapter should be updated after changing version
+    //todo: upgrade
     projectLibVerRetrofit2                                      =  '2.6.4'      // should be 2.6.x
     projectLibVerRetrofit                                       =  '1.9.0'
 
@@ -126,11 +127,15 @@ ext {
     projectLibVerDagger                                         =  '2.27'
 
     projectLibVerJavassist                                      =  '3.27.0-GA'
+    projectLibVerGuava                                          = '28.2-jre'
+    projectLibVerCommonsIo                                      =  '2.6'
+    projectLibVerTransformApi                                   =  '1.5.0'
+    projectLibVerJunit                                          =  '5.6.1'
 
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.1.0'
     projectLibVerCoreCore                                       =  '1.2.0'
-    projectLibVerFragmentFragment                               =  '1.2.3'
+    projectLibVerFragmentFragment                               =  '1.2.4'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
     projectLibVerLegacyLegacyPreferenceV14                      =  '1.0.0'
