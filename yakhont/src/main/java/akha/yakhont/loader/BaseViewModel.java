@@ -457,6 +457,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("rawtypes")
     @Override
     protected void onCleared() {
         if (mData instanceof CacheLiveData) ((CacheLiveData) mData).closeCursor();
@@ -1807,6 +1808,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
                         new BaseLiveData <>(mDataLoader, mBaseDialog):
                         new CacheLiveData<>(mDataLoader, mBaseDialog, mTableName, mUriResolver);
                 if (mData instanceof CacheLiveData && mDataSourceProducer != null)
+                    //noinspection rawtypes
                     ((CacheLiveData) mData).setMerge(true);
             }
 

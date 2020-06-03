@@ -67,10 +67,10 @@ import java.util.Set;
  */
 public class CoreReflection {
 
-    private static final Map<Class, Class>                  UNBOXING;
+    private static final Map<Class<?>, Class<?>>            UNBOXING;
 
     static {
-        final Map<Class, Class> unboxing = new HashMap<>();
+        final Map<Class<?>, Class<?>> unboxing = new HashMap<>();
 
         unboxing.put(Boolean  .class,   boolean.class);
 
@@ -90,8 +90,8 @@ public class CoreReflection {
     private CoreReflection() {
     }
 
-    private static Class getClass(@NonNull final Object object) {
-        return object instanceof Class ? (Class) object: object.getClass();
+    private static Class<?> getClass(@NonNull final Object object) {
+        return object instanceof Class<?> ? (Class<?>) object: object.getClass();
     }
 
     private static Object getObject(@NonNull final Object object) {
@@ -186,8 +186,8 @@ public class CoreReflection {
         return constructor == null ? null: CoreReflection.<T>create(constructor, args);
     }
 
-    private static Class[] getClassesFromArgs(final Object... args) {
-        final Class[] classes = new Class[args == null ? 0: args.length];
+    private static Class<?>[] getClassesFromArgs(final Object... args) {
+        final Class<?>[] classes = new Class<?>[args == null ? 0: args.length];
         for (int i = 0; i < classes.length; i++)
             classes[i] = args[i] == null ? null: args[i].getClass();
         return classes;
@@ -374,7 +374,7 @@ public class CoreReflection {
      */
     @SuppressWarnings("WeakerAccess")
     public static Method findMethod(@NonNull final Object object,
-                                    @NonNull final String methodName, final Class... args) {
+                                    @NonNull final String methodName, final Class<?>... args) {
         return findMethod(Level.WARNING, object, methodName, args);
     }
 
@@ -405,7 +405,7 @@ public class CoreReflection {
     }
 
     private static Method findMethod(final Level level, @NonNull final Object object,
-                                     @NonNull final String methodName, Class... args) {
+                                     @NonNull final String methodName, Class<?>... args) {
         Class<?> tmpClass = getClass(object);
         try {
             return tmpClass.getMethod(methodName, args);
@@ -414,7 +414,7 @@ public class CoreReflection {
             CoreLogger.log(CoreLogger.getDefaultLevel(), "Class.getMethod('" + methodName +
                     "') failed", exception);
         }
-        if (args == null) args = new Class[0];
+        if (args == null) args = new Class<?>[0];
 
         //noinspection ConditionalBreakInInfiniteLoop
         for (;;) {
@@ -449,7 +449,7 @@ public class CoreReflection {
      * @return  The {@link Constructor} or null (if not found)
      */
     @SuppressWarnings({"unused", "WeakerAccess"})
-    public static Constructor<?> findConstructor(@NonNull final Class<?> cls, final Class... args) {
+    public static Constructor<?> findConstructor(@NonNull final Class<?> cls, final Class<?>... args) {
         return findConstructor(Level.WARNING, cls, args);
     }
 
@@ -475,14 +475,14 @@ public class CoreReflection {
         return findConstructor(level, cls, getClassesFromArgs(args));
     }
 
-    private static Constructor<?> findConstructor(final Level level, @NonNull Class<?> cls, Class... args) {
+    private static Constructor<?> findConstructor(final Level level, @NonNull Class<?> cls, Class<?>... args) {
         try {
             return cls.getConstructor(args);
         }
         catch (/*NoSuchMethod*/Exception exception) {
             CoreLogger.log(CoreLogger.getDefaultLevel(), "Class.getConstructor() failed", exception);
         }
-        if (args == null) args = new Class[0];
+        if (args == null) args = new Class<?>[0];
 
         Class<?> tmpClass = cls;
         //noinspection ConditionalBreakInInfiniteLoop
@@ -560,7 +560,7 @@ public class CoreReflection {
      *
      * @return  the object's size
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "rawtypes"})
     public static int getSize(@NonNull final Object object) {
         final Class<?> cls = getClass(object);
 
@@ -594,6 +594,7 @@ public class CoreReflection {
      *
      * @return  The list of objects (or null)
      */
+    @SuppressWarnings("rawtypes")
     public static List<Object> getObjects(final Object object, final boolean handleSingles) {
         if (object == null) {
             CoreLogger.logWarning("getObjects(): parameter is null");
@@ -741,6 +742,7 @@ public class CoreReflection {
      *
      * @return  The object at given position (or null)
      */
+    @SuppressWarnings("rawtypes")
     public static Object getObject(final Object object, final int position) {
         if (object == null) {
             CoreLogger.logWarning("getObject(): object is null");
@@ -858,7 +860,7 @@ public class CoreReflection {
      *
      * @return  The merged data (or null)
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public static Object mergeObjects(Object object1, Object object2) {
         if (object1 == null) return object2;
         if (object2 == null) return object1;
@@ -901,8 +903,8 @@ public class CoreReflection {
         if (cls1.isArray()) {
             if (!isNotSingle(object2)) size2 = 1;
 
-            final int     size1 = Array.getLength(object1);
-            final Class   type1 = cls1.getComponentType();
+            final int      size1 = Array.getLength(object1);
+            final Class<?> type1 = cls1.getComponentType();
 
             if (type1 == null) {        // should never happen
                 CoreLogger.logError("can't find component type for " +
@@ -1180,7 +1182,7 @@ public class CoreReflection {
      */
     @SuppressWarnings("WeakerAccess")
     public static Field findField(@NonNull final Object object, @NonNull final String fieldName) {
-        Class tmpClass = getClass(object);
+        Class<?> tmpClass = getClass(object);
 
         //noinspection ConditionalBreakInInfiniteLoop
         for (;;) {
@@ -1457,7 +1459,7 @@ public class CoreReflection {
         return set;
     }
 
-    private static String adjustFieldName(@NonNull final String name, @NonNull final Class cls) {
+    private static String adjustFieldName(@NonNull final String name, @NonNull final Class<?> cls) {
         return String.format("%s.%s", cls.getName(), name);
     }
 
@@ -1476,7 +1478,7 @@ public class CoreReflection {
      */
     public static Annotation getAnnotation(@NonNull final Object object,
                                            @NonNull final Class<? extends Annotation> annotation) {
-        return ((Class<?>) getClass(object)).getAnnotation(annotation);
+        return getClass(object).getAnnotation(annotation);
     }
 
     /**
@@ -1535,7 +1537,7 @@ public class CoreReflection {
     @SuppressWarnings("unused")
     public static Annotation getAnnotationConstructor(@NonNull Class<?> cls,
                                                       @NonNull final Class<? extends Annotation> annotation,
-                                                               final Class... args) {
+                                                               final Class<?>... args) {
         return getAnnotationConstructor(annotation, findConstructor(Level.ERROR, cls, args));
     }
 
@@ -1600,7 +1602,7 @@ public class CoreReflection {
     @SuppressWarnings("unused")
     public static Annotation getAnnotationMethod(@NonNull final Object object,
                                                  @NonNull final Class<? extends Annotation> annotation,
-                                                 @NonNull final String methodName, final Class... args) {
+                                                 @NonNull final String methodName, final Class<?>... args) {
         return getAnnotationMethod(annotation, findMethod(Level.ERROR, object, methodName, args));
     }
 
@@ -1657,7 +1659,7 @@ public class CoreReflection {
     @SuppressWarnings("unused")
     public static boolean isAnnotated(@NonNull final Object object,
                                       @NonNull final Class<? extends Annotation> annotation) {
-        return ((Class<?>) getClass(object)).isAnnotationPresent(annotation);
+        return getClass(object).isAnnotationPresent(annotation);
     }
 
     /**
@@ -1680,7 +1682,7 @@ public class CoreReflection {
     @SuppressWarnings("unused")
     public static boolean isAnnotatedMethod(@NonNull final Object object,
                                             @NonNull final Class<? extends Annotation> annotation,
-                                            @NonNull final String methodName, @NonNull final Class... args) {
+                                            @NonNull final String methodName, @NonNull final Class<?>... args) {
         final Method method = findMethod(Level.ERROR, object, methodName, args);
         checkForNull(method, "method == null");
 

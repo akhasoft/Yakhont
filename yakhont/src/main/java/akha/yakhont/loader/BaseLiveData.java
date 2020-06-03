@@ -330,6 +330,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return;
         }
 
+        @SuppressWarnings("rawtypes")
         final BaseResponse baseResponse = (BaseResponse) result;
 
         final Object error = baseResponse.getError();
@@ -360,7 +361,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         displayError(null, notDisplayErrors);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "rawtypes"})
     protected void displayError(final BaseResponse baseResponse, final boolean notDisplayErrors) {
         if (notDisplayErrors) return;
 
@@ -378,7 +379,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected String makeErrorMessage(@SuppressWarnings("unused") final BaseResponse baseResponse) {
+    protected String makeErrorMessage(@SuppressWarnings({"unused", "rawtypes"}) final BaseResponse baseResponse) {
         return Objects.requireNonNull(Utils.getApplication()).getString(akha.yakhont.R.string.yakhont_loader_error);
     }
 
@@ -498,7 +499,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             CoreLogger.logError("wrong progress delay " + progressDelay + ", should be > 0");
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private static <D> D castBaseResponse(@NonNull final BaseResponse baseResponse) {
         return (D) baseResponse;
     }
@@ -686,6 +687,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             Utils.close(mCursor);
         }
 
+        @SuppressWarnings("rawtypes")
         private void onCompleteHelper(final boolean success, D result) {
             String selection = null;
             if (result instanceof BaseResponse) {
@@ -765,7 +767,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             return castBaseResponse(new BaseResponse<>(parameters, Source.CACHE));
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "rawtypes"})
         protected D handleCursor(final D result, @NonNull final Cursor cursor) {
             if (!(result instanceof BaseResponse)) return result;
 
@@ -788,6 +790,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                 return;
             }
             if (result instanceof BaseResponse) {
+                @SuppressWarnings("rawtypes")
                 final Source source = ((BaseResponse) result).getSource();
                 if (source != Source.NETWORK) {
                     CoreLogger.log("wrong data source to cache (should be NETWORK): " + source);
@@ -1104,7 +1107,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             private static final Random             RANDOM                  = new Random();
 
-            private final        Class              mClass;
+            private final        Class<?>           mClass;
             private              DialogFragment     mProgress;
             private              String             mTag;
 
@@ -1115,7 +1118,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        The {@link DialogFragment} class
              */
             @SuppressWarnings("unused")
-            public ProgressDefaultDialog(@NonNull final Class cls) {
+            public ProgressDefaultDialog(@NonNull final Class<?> cls) {
                 mClass = cls;
             }
 
@@ -1275,6 +1278,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         fragment.getActivity(), view));
             }
 
+            @SuppressWarnings("rawtypes")
             private static Callable<Boolean> createCallable(final BaseViewModel baseViewModel,
                                                             final Activity activity, final View view) {
                 if (baseViewModel == null)

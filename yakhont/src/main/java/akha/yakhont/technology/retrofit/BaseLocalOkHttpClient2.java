@@ -83,7 +83,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
     protected final Charset             mCharset;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final String              mMediaType;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "rawtypes"})
     protected final Retrofit2           mRetrofit2;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected       int                 mEmulatedNetworkDelay;
@@ -102,7 +102,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      * @param retrofit2
      *        The {@code Retrofit2} component (or null)
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "rawtypes"})
     public BaseLocalOkHttpClient2(final Retrofit2 retrofit2) {
         this(retrofit2, null, null);
     }
@@ -122,7 +122,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      * @see #getContent
      */
     @SuppressWarnings("WeakerAccess")
-    public BaseLocalOkHttpClient2(final Retrofit2 retrofit2,
+    public BaseLocalOkHttpClient2(@SuppressWarnings("rawtypes") final Retrofit2 retrofit2,
                                   final String mediaType, final Charset charset) {
         mMediaType  = mediaType;
         mCharset    = charset;
@@ -289,23 +289,25 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
     /**
      * Please refer to the base method description.
      */
+    @NonNull
     @Override
-    public WebSocket newWebSocket(final Request request, final WebSocketListener listener) {
+    public WebSocket newWebSocket(final Request request, @NonNull final WebSocketListener listener) {
         return new WebSocket() {
-            @Override public void    cancel   (                           ) {                 }
-            @Override public boolean close    (final int i, final String s) { return    true; }
-            @Override public long    queueSize(                           ) { return       0; }
-            @Override public Request request  (                           ) { return request; }
-            @Override public boolean send     (final ByteString b         ) { return    true; }
-            @Override public boolean send     (final String s             ) { return    true; }
+            @Override          public void    cancel   (                           ) {                 }
+            @Override          public boolean close    (final int i, final String s) { return    true; }
+            @Override          public long    queueSize(                           ) { return       0; }
+            @Override @NonNull public Request request  (                           ) { return request; }
+            @Override          public boolean send     (@NonNull final ByteString b) { return    true; }
+            @Override          public boolean send     (@NonNull final String s    ) { return    true; }
         };
     }
 
     /**
      * Please refer to the base method description.
      */
+    @NonNull
     @Override
-    public Call newCall(final Request request) {
+    public Call newCall(@NonNull final Request request) {
         return new CallI(request);
     }
 
@@ -318,6 +320,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
             mRequest = request;
         }
 
+        @NonNull
         @Override
         public Response execute() throws IOException {
             final Response response = handle(mRequest);
@@ -335,7 +338,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
         }
 
         @Override
-        public void enqueue(final Callback callback) {
+        public void enqueue(@NonNull final Callback callback) {
             final Runnable runnable = new Runnable() {
                 @Override
                 public void run() {
@@ -384,12 +387,12 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
         }
 
         @NonNull  @SuppressWarnings("MethodDoesntCallSuperMethod")
-        @Override public Call    clone     () { return new CallI(mRequest); }
-        @Override public void    cancel    () {                             }
-        @Override public boolean isCanceled() { return               false; }
-        @Override public boolean isExecuted() { return               false; }
-        @Override public Request request   () { return            mRequest; }
-        @Override public Timeout timeout   () { return        Timeout.NONE; }
+        @Override          public Call    clone     () { return new CallI(mRequest); }
+        @Override          public void    cancel    () {                             }
+        @Override          public boolean isCanceled() { return               false; }
+        @Override          public boolean isExecuted() { return               false; }
+        @Override @NonNull public Request request   () { return            mRequest; }
+        @Override @NonNull public Timeout timeout   () { return        Timeout.NONE; }
 
         private class ChainI implements Chain {
 
@@ -402,14 +405,23 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
 
             @Nullable   // for application interceptors this is always null
             @Override public Connection connection          (                             ) { return       null; }
+            @NonNull
             @Override public Call       call                (                             ) { return CallI.this; }
             @Override public int        connectTimeoutMillis(                             ) { return          0; }
-            @Override public Response   proceed             (final Request r              ) { return  mResponse; }
+            @NonNull
+            @Override public Response   proceed             (@NonNull final Request r     ) { return  mResponse; }
             @Override public int        readTimeoutMillis   (                             ) { return          0; }
+            @NonNull
             @Override public Request    request             (                             ) { return   mRequest; }
-            @Override public Chain      withConnectTimeout  (final int i, final TimeUnit t) { return       this; }
-            @Override public Chain      withReadTimeout     (final int i, final TimeUnit t) { return       this; }
-            @Override public Chain      withWriteTimeout    (final int i, final TimeUnit t) { return       this; }
+            @NonNull
+            @Override public Chain      withConnectTimeout  (final int i, @NonNull final TimeUnit t)
+                                                                                            { return       this; }
+            @NonNull
+            @Override public Chain      withReadTimeout     (final int i, @NonNull final TimeUnit t)
+                                                                                            { return       this; }
+            @NonNull
+            @Override public Chain      withWriteTimeout    (final int i, @NonNull final TimeUnit t)
+                                                                                            { return       this; }
             @Override public int        writeTimeoutMillis  (                             ) { return          0; }
         }
     }

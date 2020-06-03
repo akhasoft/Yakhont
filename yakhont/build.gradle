@@ -103,8 +103,8 @@ android {
         abortOnError            false
     }
 
-    dataBinding {
-        enabled                 true
+    buildFeatures {
+        dataBinding             true
     }
 
     buildTypes {
@@ -126,11 +126,10 @@ android {
     }
 
     libraryVariants.all { variant ->
-        String prefix = variant.getVariantData().getVariantConfiguration().getFlavorName() +
-            variant.buildType.name.capitalize()
-        configurations.getByName(prefix + 'UnitTestCompileClasspath')              
+        String prefix = variant.getFlavorName() + variant.buildType.name.capitalize()
+        configurations.getByName(prefix + 'UnitTestCompileClasspath')
                                                      .resolutionStrategy.eachDependency dependenciesStrategy
-        configurations.getByName(prefix + 'UnitTestRuntimeClasspath')              
+        configurations.getByName(prefix + 'UnitTestRuntimeClasspath')
                                                      .resolutionStrategy.eachDependency dependenciesStrategy
         variant.getCompileConfiguration()            .resolutionStrategy.eachDependency dependenciesStrategy
         variant.runtimeConfiguration                 .resolutionStrategy.eachDependency dependenciesStrategy

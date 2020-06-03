@@ -2039,7 +2039,7 @@ public class Core implements DefaultLifecycleObserver {
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
         @NonNull
-        public static String getTag(@NonNull final Class cls) {
+        public static String getTag(@NonNull final Class<?> cls) {
             return getTag(cls.getSimpleName());
         }
 
@@ -3507,7 +3507,7 @@ public class Core implements DefaultLifecycleObserver {
             public static boolean isCollection(final Type type) {
                 final Type typeRaw = getParameterizedRawType(type);
                 CoreLogger.log("typeRaw: " + typeRaw);
-                return typeRaw instanceof Class && Collection.class.isAssignableFrom((Class) typeRaw);
+                return typeRaw instanceof Class && Collection.class.isAssignableFrom((Class<?>) typeRaw);
             }
 
             /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -3517,7 +3517,7 @@ public class Core implements DefaultLifecycleObserver {
                 CoreLogger.log("typeMethod  : " + typeMethod  );
 
                 if (typeResponse instanceof Class) {
-                    final Class classResponse = (Class) typeResponse;
+                    final Class<?> classResponse = (Class<?>) typeResponse;
                     final boolean result = typeResponse.equals(typeMethod) ||
                             (classResponse.isArray() && typeMethod instanceof GenericArrayType &&
                                     getGenericComponentType(typeMethod).equals(
@@ -3895,7 +3895,7 @@ public class Core implements DefaultLifecycleObserver {
 
              * @see #setPagingCallbacks
              */
-            @SuppressWarnings({"unused"})
+            @SuppressWarnings({"unused", "rawtypes"})
             public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad<E,    D> coreLoad,
                                                                   final LoaderCallback<D> callback,
                                                                   final Runnable          callbackError,
@@ -3945,7 +3945,7 @@ public class Core implements DefaultLifecycleObserver {
                 });
             }
 
-            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "rawtypes"})
             public static <D> Runnable getPagingDefaultErrorCallback(
                     final CacheLiveData liveData, final BaseLoaderWrapper loader, final LoaderCallback<D> callback) {
 
@@ -4108,7 +4108,7 @@ public class Core implements DefaultLifecycleObserver {
 
                 CoreLogger.log("about to invalidate DataSources");
 
-                for (final BaseLoaderWrapper baseLoaderWrapper: loaders)
+                for (final BaseLoaderWrapper<?> baseLoaderWrapper: loaders)
                     baseLoaderWrapper.invalidateDataSource(activity);
 
                 return coreLoad;

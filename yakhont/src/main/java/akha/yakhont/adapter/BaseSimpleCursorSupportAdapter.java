@@ -44,6 +44,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
     private final WeakReference<Context>    mContext;
 
     private BaseCacheAdapter.ViewBinder     mViewBinder;
+    @SuppressWarnings("rawtypes")
     private BaseCacheAdapter.DataConverter  mDataConverter;
 
     /**
@@ -114,7 +115,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         mViewBinder = viewBinder;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "rawtypes"})
     @Override
     public void setDataConverter(final BaseCacheAdapter.DataConverter dataConverter) {
         checkDataConverter(dataConverter, mDataConverter);
@@ -160,7 +161,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         return true;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "rawtypes"})
     public static void checkDataConverter(final BaseCacheAdapter.DataConverter newDataConverter,
                                           final BaseCacheAdapter.DataConverter oldDataConverter) {
         if (newDataConverter == null)
@@ -169,7 +170,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
             CoreLogger.logError("DataConverter was already set to " + oldDataConverter);
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "rawtypes"})
     public static Cursor swapCursor(final BaseCacheAdapter.DataConverter dataConverter, Cursor cursor) {
         if (dataConverter == null)
             CoreLogger.logError("mDataConverter == null");

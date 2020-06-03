@@ -16,7 +16,10 @@
 -->
 
 <lint>
-    <issue id="IconLauncherShape" severity="ignore" />
+    <issue id="IconLauncherShape"       severity="ignore" />
+
+    <issue id="ObsoleteLintCustomCheck" severity="ignore" />
+
     <issue id="UnusedResources">
         <ignore path="res/layout/recycler_item.xml" />
     </issue>

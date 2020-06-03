@@ -16,5 +16,7 @@
 -->
 
 <lint>
-    <issue id="IconLauncherShape" severity="ignore" />
+    <issue id="IconLauncherShape"       severity="ignore" />
+
+    <issue id="ObsoleteLintCustomCheck" severity="ignore" />
 </lint>

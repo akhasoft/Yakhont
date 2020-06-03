@@ -187,12 +187,12 @@ public abstract class BaseRetrofit<T, B, C, D> {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     protected abstract C getEmptyCallback();
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void makeBogusRequest(@NonNull final Requester requester) {
         requester.makeRequest(getEmptyCallback());
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "rawtypes"})
     public Method getMethod(@NonNull final Requester requester) {
         mBaseHandler.mMethod = null;
 

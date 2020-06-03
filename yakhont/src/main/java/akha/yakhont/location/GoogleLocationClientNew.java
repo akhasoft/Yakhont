@@ -335,7 +335,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      */
     @SuppressWarnings({"WeakerAccess", "SameParameterValue"})
     public static PendingIntent createPendingIntentBroadcast(@NonNull final Activity activity,
-                                                             @NonNull final Class    classBroadcast,
+                                                             @NonNull final Class<?> classBroadcast,
                                                              @NonNull final String   action,
                                                                       final int      requestCode) {
         return PendingIntent.getBroadcast(activity, requestCode, new Intent(activity, classBroadcast)
@@ -360,7 +360,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      */
     @SuppressWarnings("unused")
     public static PendingIntent createPendingIntentBroadcast(@NonNull final Activity activity,
-                                                             @NonNull final Class    classBroadcast) {
+                                                             @NonNull final Class<?> classBroadcast) {
         return createPendingIntentBroadcast(activity, classBroadcast, INTENT_DEFAULT_ACTION, INTENT_DEFAULT_CODE);
     }
 
@@ -385,7 +385,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
     @SuppressWarnings({"WeakerAccess", "SameParameterValue"})
     @SuppressLint("ObsoleteSdkInt")
     public static PendingIntent createPendingIntentService(@NonNull final Activity activity,
-                                                           @NonNull final Class    classService,
+                                                           @NonNull final Class<?> classService,
                                                            @NonNull final String   action,
                                                                     final int      requestCode) {
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.N_MR1) {
@@ -414,7 +414,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      */
     @SuppressWarnings("unused")
     public static PendingIntent createPendingIntentService(@NonNull final Activity activity,
-                                                           @NonNull final Class    classService) {
+                                                           @NonNull final Class<?> classService) {
         return createPendingIntentService(activity, classService, INTENT_DEFAULT_ACTION, INTENT_DEFAULT_CODE);
     }
 

@@ -315,6 +315,7 @@ public interface Dagger2 {
         @SuppressWarnings("WeakerAccess")
         protected Validator getCallbacksValidator() {
             return new Validator() {
+                @SuppressWarnings("rawtypes")
                 @Override
                 public boolean validate(Object object, Class<? extends BaseCallbacks>[] callbackClasses) {
                     if (callbackClasses == null || callbackClasses.length == 0) return true;
@@ -330,6 +331,7 @@ public interface Dagger2 {
                     return result;
                 }
 
+                @SuppressWarnings("rawtypes")
                 private boolean validate(Object object, Class<? extends BaseCallbacks> tmpClass) {
                     if (!tmpClass.equals(LocationCallbacks.class)) return true;
 

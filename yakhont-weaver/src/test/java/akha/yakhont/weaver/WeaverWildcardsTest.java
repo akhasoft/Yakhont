@@ -363,17 +363,21 @@ class WeaverWildcardsTest {
 
     private static class TestA {
 
+        @SuppressWarnings({"EmptyMethod", "unused"})
         protected void test() {
         }
 
+        @SuppressWarnings({"EmptyMethod", "RedundantThrows", "unused"})
         public void testVoidException() throws Exception {
         }
 
+        @SuppressWarnings({"SameReturnValue", "RedundantThrows", "unused"})
         protected int testInt(int i, int j) throws Exception {
             return 0;
         }
     }
 
+    @SuppressWarnings("unused")
     private static class TestB extends TestA {
     }
 }

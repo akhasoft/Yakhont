@@ -204,7 +204,7 @@ public abstract class BaseLoaderWrapper<D> {
          *
          * @return  The data to store
          */
-        Collection<ContentValues> getValues(String string, byte[] bytes, Class cls, long pageId);
+        Collection<ContentValues> getValues(String string, byte[] bytes, Class<?> cls, long pageId);
 
         /**
          * Converts cursor to data.
@@ -516,8 +516,8 @@ public abstract class BaseLoaderWrapper<D> {
      * @return  The {@code BaseLoaderWrapper} object or null (if not found)
      */
     @SuppressWarnings("WeakerAccess")
-    public BaseLoaderWrapper findLoader(final Collection<BaseLoaderWrapper<?>> loaders) {
-        for (final BaseLoaderWrapper baseLoaderWrapper: loaders)
+    public BaseLoaderWrapper<?> findLoader(final Collection<BaseLoaderWrapper<?>> loaders) {
+        for (final BaseLoaderWrapper<?> baseLoaderWrapper: loaders)
             if (baseLoaderWrapper.mLoaderId.equals(mLoaderId)) {
                 CoreLogger.log("found loader with id " + mLoaderId);
                 return baseLoaderWrapper;
@@ -575,13 +575,13 @@ public abstract class BaseLoaderWrapper<D> {
 
         if (parameters == null || parameters.getLoaderId() == null) {
             boolean result = true;
-            for (final BaseLoaderWrapper loader: loaders)
+            for (final BaseLoaderWrapper<?> loader: loaders)
                 if (!loader.start(viewModelStoreOwner, parameters)) result = false;
             return result;
         }
         else {
             final String id = parameters.getLoaderId();
-            for (final BaseLoaderWrapper loader: loaders)
+            for (final BaseLoaderWrapper<?> loader: loaders)
                 if (loader.getLoaderId().equals(id))
                     return loader.start(viewModelStoreOwner, parameters);
             CoreLogger.logError("invalid loader ID: " + id);
@@ -713,7 +713,7 @@ public abstract class BaseLoaderWrapper<D> {
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected Converter getConverter() {
+    protected Converter<?> getConverter() {
         return null;
     }
 
@@ -1028,7 +1028,7 @@ public abstract class BaseLoaderWrapper<D> {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     protected abstract D getStubData();
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void setValue(final BaseViewModel model) {
         model.getData().setValue(getStubData());
     }
@@ -1090,6 +1090,7 @@ public abstract class BaseLoaderWrapper<D> {
         final BaseViewModel<?> model = findViewModel(BaseViewModel.cast(activity, null));
         if (!(model instanceof PagingViewModel)) return false;
 
+        @SuppressWarnings("rawtypes")
         final boolean result = ((PagingViewModel) model).invalidateDataSource();
         if (!result) CoreLogger.logWarning("can't invalidate DataSource");
         return result;
@@ -1195,7 +1196,7 @@ public abstract class BaseLoaderWrapper<D> {
             final String id = parameters.getLoaderId();
 
             boolean found = false;
-            for (final BaseLoaderWrapper loader: loaders)
+            for (final BaseLoaderWrapper<?> loader: loaders)
                 if (loader.mLoaderId.equals(id)) {
                     found = true;
                     break;
@@ -1209,7 +1210,7 @@ public abstract class BaseLoaderWrapper<D> {
         final CountDownLatch countDownLatch = new CountDownLatch(
                 parameters != null && parameters.getLoaderId() != null ? 1: loaders.size());
 
-        for (final BaseLoaderWrapper loader: loaders)
+        for (final BaseLoaderWrapper<?> loader: loaders)
             if (checkId(parameters, loader.mLoaderId))
                 loader.setCountDownLatch(countDownLatch);
 
@@ -1217,7 +1218,7 @@ public abstract class BaseLoaderWrapper<D> {
         Utils.runInBackground(new Runnable() {
             @Override
             public void run() {
-                for (final BaseLoaderWrapper loader: loaders)
+                for (final BaseLoaderWrapper<?> loader: loaders)
                     if (checkId(parameters, loader.mLoaderId))
                         if (!loader.start(viewModelStoreOwner, parameters)) result[0] = false;
             }
@@ -1231,7 +1232,7 @@ public abstract class BaseLoaderWrapper<D> {
 
         Utils.await(countDownLatch);
 
-        for (final BaseLoaderWrapper loader: loaders)
+        for (final BaseLoaderWrapper<?> loader: loaders)
             if (checkId(parameters, loader.mLoaderId))
                 loader.setCountDownLatch(null);
 
@@ -1306,12 +1307,12 @@ public abstract class BaseLoaderWrapper<D> {
         private static final int                            ID_SWIPE_LAYOUT             =
                 akha.yakhont.R.id.yakhont_swipe_refresh_layout;
 
-        private final OnRefreshListenerHelper               mOnRefreshListener;
+        private final OnRefreshListenerHelper<?>            mOnRefreshListener;
 
         private final WeakReference<SwipeRefreshLayout>     mSwipeRefreshLayout;
 
         @SuppressWarnings("unused")
-        private SwipeToRefreshWrapper(@NonNull final OnRefreshListenerHelper           onRefreshListener,
+        private SwipeToRefreshWrapper(@NonNull final OnRefreshListenerHelper<?>        onRefreshListener,
                                       @NonNull final WeakReference<SwipeRefreshLayout> swipeRefreshLayout) {
             mOnRefreshListener  = onRefreshListener;
             mSwipeRefreshLayout = swipeRefreshLayout;
@@ -1567,6 +1568,7 @@ public abstract class BaseLoaderWrapper<D> {
 
             final BaseViewModel<?> baseViewModel = baseLoaderWrapper.findViewModel(BaseViewModel.cast(activity, null));
             if (baseViewModel instanceof PagingViewModel)
+                //noinspection rawtypes
                 ((PagingViewModel) baseViewModel).setOnSwipeToRefresh(new Runnable() {
                     @Override
                     public void run() {

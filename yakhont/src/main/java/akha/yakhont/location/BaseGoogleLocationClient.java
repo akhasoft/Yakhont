@@ -404,7 +404,6 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
             mSmallestDisplacement = savedInstanceState.getFloat(ARG_REQUEST_SMALLEST_DISPLACEMENT);
 
         if (savedInstanceState.keySet().contains                       (ARG_LOCATION      ))
-            //noinspection RedundantCast
             setLocation((Location)   savedInstanceState.getParcelable  (ARG_LOCATION      ));
         if (savedInstanceState.keySet().contains                       (ARG_TIME          ))
             mLastUpdateTime = (Date) savedInstanceState.getSerializable(ARG_TIME          );
@@ -682,7 +681,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
                 ? CoreLogger.getDefaultLevel(): Level.ERROR;
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "rawtypes"})
     protected void log(final Task task, final String caller) {
         final String callerTxt = ", called from: " + caller;
         if (task == null) {

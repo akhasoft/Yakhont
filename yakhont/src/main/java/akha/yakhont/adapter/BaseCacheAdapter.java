@@ -206,7 +206,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /** @exclude */ @SuppressWarnings("JavaDoc")
         void setAdapterViewBinder(ViewBinder viewBinder);
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "rawtypes"})
         void setDataConverter(DataConverter dataConverter);
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -1055,13 +1055,16 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         private void report(final String msg) {
             CoreLogger.logWarning(msg);
         }
+
         /** Please refer to the base method description. */
-        @Override public void setAdapterViewBinder(final ViewBinder v                ) {
-            report("setAdapterViewBinder: ignored arg " + v);
+        @Override public void setAdapterViewBinder(final ViewBinder viewBinder  ) {
+            report("setAdapterViewBinder: ignored arg " + viewBinder);
         }
+
         /** Please refer to the base method description. */
-        @Override public void setDataConverter(final DataConverter d                 ) {
-            report("setDataConverter: ignored arg " + d);
+        @SuppressWarnings("rawtypes")
+        @Override public void setDataConverter(final DataConverter dataConverter) {
+            report("setDataConverter: ignored arg " + dataConverter);
         }
 
         /** Please refer to the base method description. */

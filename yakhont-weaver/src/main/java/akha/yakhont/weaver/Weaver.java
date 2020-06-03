@@ -44,12 +44,14 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -108,66 +110,71 @@ import javassist.NotFoundException;
 @SuppressWarnings({"WeakerAccess", "unused"})
 public class Weaver {
 
-    private static final String     COMMENT                  = "#"            ;
-    private static final String     IGNORE_SIGNATURE         = "(<all>)"      ;
-    private static final String     HANDLE_LIB               = "<lib>"        ;
-    private static final String     ALIAS_METHOD             = "$method"      ;
-    private static final String     ALIAS_CLASS              = "$cls"         ;
-    private static final String     DEFAULT_CONFIG_FILE      = "weaver.config";
+    private static final String      COMMENT                  = "#"            ;
+    private static final String      IGNORE_SIGNATURE         = "(<all>)"      ;
+    private static final String      HANDLE_LIB               = "<lib>"        ;
+    private static final String      ALIAS_METHOD             = "$method"      ;
+    private static final String      ALIAS_CLASS              = "$cls"         ;
+    private static final String      DEFAULT_CONFIG_FILE      = "weaver.config";
+    private static final String      DEFAULT_MODULE           = "app"          ;
 
-    private static final String     TMP_PREFIX               = "_tmp_yakhont_weaver_"             ;
-    private static final String     TMP_BACKUP               = "./" + TMP_PREFIX + "backup.txt"   ;
-    private static final String     TMP_TO_HANDLE            = "./" + TMP_PREFIX + "to_handle.txt";
-    private static final String     TMP_CLASS_MAP            = "./" + TMP_PREFIX + "class_map.txt";
-    private static final String     TMP_CLASSES              = "./" + TMP_PREFIX + "classes.txt"  ;
+    private static final String      TMP_PREFIX               = "_tmp_yakhont_weaver_"                ;
+    private static final String      TMP_BACKUP               = "./" + TMP_PREFIX + "backup.txt"      ;
+    private static final String      TMP_TO_HANDLE            = "./" + TMP_PREFIX + "to_handle.txt"   ;
+    private static final String      TMP_CLASS_MAP            = "./" + TMP_PREFIX + "class_map.txt"   ;
+    private static final String      TMP_CLASSES              = "./" + TMP_PREFIX + "classes.txt"     ;
+    private static final String      TMP_FLAG_SCRIPT          = "./" + TMP_PREFIX + "flag_script.txt" ;
+    private static final String      TMP_FLAG_1ST_PASS        = "./" + TMP_PREFIX + "flag_1st.txt"    ;
 
-    private static final String     GRADLE_PROPS_FILE        = "gradle.properties"             ;
-    private static final String     GRADLE_PROPS_BACKUP      = TMP_PREFIX + GRADLE_PROPS_FILE  ;
-    private static final String     GRADLE_PROP_JETIFIER     = "android.enableJetifier"        ;
-    private static final String     GRADLE_PROP_JETIFIER_OFF = GRADLE_PROP_JETIFIER + "=false" ;
+    private static final String      GRADLE_PROPS_FILE        = "gradle.properties"            ;
+    private static final String      GRADLE_PROPS_BACKUP      = TMP_PREFIX + GRADLE_PROPS_FILE ;
+    private static final String      GRADLE_PROP_JETIFIER     = "android.enableJetifier"       ;
+    private static final String      GRADLE_PROP_JETIFIER_OFF = GRADLE_PROP_JETIFIER + "=false";
 
-    private static final String     CONDITION_DEBUG          = "_D";
-    private static final String     CONDITION_RELEASE        = "_R";
+    private static final String      CONDITION_DEBUG          = "_D";
+    private static final String      CONDITION_RELEASE        = "_R";
 
-    private static final String     MSG_TITLE                = "Yakhont Weaver"                   ;
-    private static final String     MSG_ERROR                = "  *** " + MSG_TITLE + " error: "  ;
-    private static final String     MSG_WARNING              = "  *** " + MSG_TITLE + " warning: ";
+    private static final String      MSG_TITLE                = "Yakhont Weaver"                   ;
+    private static final String      MSG_ERROR                = "  *** " + MSG_TITLE + " error: "  ;
+    private static final String      MSG_WARNING              = "  *** " + MSG_TITLE + " warning: ";
 
-    private static final int        ACTION                   = 0;
-    private static final int        ACTION_TOKEN             = 1;
-    private static final int        ACTION_CODE              = 2;
-    private static final int        ACTION_METHOD            = 3;
-    private static final int        ACTION_SIZE              = 4;
+    private static final int         ACTION                   = 0;
+    private static final int         ACTION_TOKEN             = 1;
+    private static final int         ACTION_CODE              = 2;
+    private static final int         ACTION_METHOD            = 3;
+    private static final int         ACTION_SIZE              = 4;
 
-    private static final String     sNewLine                 = System.getProperty("line.separator");
+    private static final String      sNewLine                 = System.getProperty("line.separator");
 
     private        final Map<String, Map<String,    List<String[]>>>
-                                    mMethodsToWeave          = new LinkedHashMap<>();
+                                     mMethodsToWeave         = new LinkedHashMap<>();
     private        final Map<String, Map<String,    List<String[]>>>
-                                    mLibMethodsToWeave       = new LinkedHashMap<>();
+                                     mLibMethodsToWeave      = new LinkedHashMap<>();
     private        final Map<String, Map<Condition, List<String[]>>>
-                                    mAnnotations             = new LinkedHashMap<>();
+                                     mAnnotations            = new LinkedHashMap<>();
 
     private        final Map<String, String>
-                                    mBackup                  = new       HashMap<>();
+                                     mBackup                 = new       HashMap<>();
     private        final Map<String, String>
-                                    mToHandle                = new       HashMap<>();
+                                     mToHandle               = new       HashMap<>();
     private              Map<String, String[]>
-                                    mClassMap;
+                                     mClassMap                                      ;
 
     @SuppressWarnings("UnstableApiUsage")
     private              ImmutableSet<ClassInfo>
-                                    mAllClasses;
+                                     mAllClasses      ;
     private              WildCardsHandler
-                                    mWildCardsHandler;
+                                     mWildCardsHandler;
 
-    private String                  mPackageName;
-    private String                  mClassPath;
-    private String                  mBootClassPath;
+    private static final Set<String> sWarnings               = new       HashSet<>();
 
-    private boolean                 mDebug;
-    private boolean                 mDebugBuild;
-    private boolean                 mUpdated;
+    private              String      mPackageName  ;
+    private              String      mClassPath    ;
+    private              String      mBootClassPath;
+
+    private              boolean     mDebug        ;
+    private              boolean     mDebugBuild   ;
+    private              boolean     mUpdated      ;
 
     private enum Action {
         INSERT_BEFORE,
@@ -211,7 +218,15 @@ public class Weaver {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     protected static void logError(String message) {
-        log(false, MSG_ERROR + message);
+        log(false, sNewLine + MSG_ERROR   + message);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected static void logWarning(String message) {
+        if (sWarnings.contains(message)) return;
+        sWarnings.add(message);
+
+        log(false, sNewLine + MSG_WARNING + message);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -225,13 +240,21 @@ public class Weaver {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
+    protected static void log2ndPass(String prefix, String message) {
+        if (!checkFlag(TMP_FLAG_1ST_PASS))
+            log(false, (prefix == null ? "": prefix) + MSG_TITLE + ": " + message);
+    }
+
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     public static void main(String[] args) throws IOException {
+        String module = args.length > 1 ? args[1]: DEFAULT_MODULE;
+
         switch (args[0]) {
             case "0":
-                switchOffJetifier(args[1]);
+                switchOffJetifier(module);
                 break;
             case "1":
-                restoreJetifier  (args[1]);
+                restoreJetifier  (module);
                 break;
             case "2":
                 weaveJars();
@@ -251,8 +274,7 @@ public class Weaver {
             String   jar = tmp[1];
 
             if (jar.substring(jar.lastIndexOf(File.separator) + 1).startsWith("jetified-"))
-                log(false, sNewLine + MSG_WARNING +
-                        "jetified JARs are not supported - '" + jar + "'");
+                logWarning("jetified JARs are not supported - '" + jar + "'");
 
             int pos = cls.length() - 6;
             classMap.put(cls.substring(0, pos), new String[] {cls.substring(pos), jar});
@@ -262,6 +284,8 @@ public class Weaver {
     }
 
     private static void weaveJars() throws IOException {
+        delete(TMP_FLAG_1ST_PASS);
+
         Map<String, String[]> classMap   = getClassMap();
         ArcHandler            arcHandler = new ArcHandler(false);
 
@@ -272,19 +296,24 @@ public class Weaver {
             String[] data = classMap.get(cls);
 
             if (data == null)
-                logError("can't find jar for class '" + cls + "'");
+                logError("can't find jar for class " + getClassName(cls));
 
             else if (arcHandler.replace(data[1], cls + data[0], file))
-                logForce(sNewLine, "'" + data[1] + "' was updated with class '" +
-                        cls.replace('/', '.') + "'" + sNewLine);
+                logForce(sNewLine, "'" + data[1] + "' was updated with class " +
+                        getClassName(cls) + sNewLine);
 
             delete(tmp[2]);
         }
     }
 
+    private static String getClassName(String cls) {
+        return "'" + cls.replace('/', '.') + "'";
+    }
+
     private static void restoreJars() {
-        delete(TMP_CLASS_MAP);
-        delete(TMP_TO_HANDLE);
+        delete(TMP_CLASS_MAP  );
+        delete(TMP_TO_HANDLE  );
+        delete(TMP_FLAG_SCRIPT); //todo remove flag file?
 
         File backup = new File(TMP_BACKUP);
         if (!backup.exists()) return;
@@ -312,10 +341,9 @@ public class Weaver {
             }
             if (ok) delete(backup);
 
-            File tmpClasses = new File(TMP_CLASSES);
-            for (String line: read(tmpClasses))
+            for (String line: read(TMP_CLASSES))
                 delete(line);
-            delete(tmpClasses);
+            delete(TMP_CLASSES);
         }
         catch (IOException exception) {
             exception.printStackTrace();
@@ -345,12 +373,26 @@ public class Weaver {
         if (result) logForce("Android Jetifier successfully restored" + sNewLine);
     }
 
+    private static void createFlag(String name) throws IOException {
+        File flag = new File(name);
+        if (!flag.createNewFile()) logError("can't create '" + flag.getAbsolutePath() + "'");
+    }
+
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    private static boolean checkFlag(String name) {
+        return new File(name).exists();
+    }
+
     private static void switchOffJetifier(String path) throws IOException {
         logForce("about to temporarily switch off Android Jetifier for '" + path + "'..." + sNewLine);
+
         delete(TMP_CLASS_MAP);
         delete(TMP_CLASSES  );
         delete(TMP_TO_HANDLE);
         delete(TMP_BACKUP   );
+
+        createFlag(TMP_FLAG_SCRIPT  );
+        createFlag(TMP_FLAG_1ST_PASS);
 
         File   properties     = new File(path, GRADLE_PROPS_FILE);
         String propertiesPath = properties.getAbsolutePath();
@@ -440,8 +482,8 @@ public class Weaver {
      *          please refer to the exception description
      */
     @Deprecated
-    public static void run(boolean debug, String packageName, String classesDir,
-                           String classPath, String bootClassPath, boolean addConfig, String... configFiles)
+    public static void run(boolean debug, String packageName, String classesDir, String classPath,
+                           String bootClassPath, boolean addConfig, String... configFiles)
             throws NotFoundException, CannotCompileException, IOException {
         if (classesDir.endsWith("debug"))
             run(true, debug, packageName, classesDir, classPath, bootClassPath,
@@ -450,7 +492,7 @@ public class Weaver {
             run(false, debug, packageName, classesDir, classPath, bootClassPath,
                     addConfig, configFiles);
         else
-            logError("can not detect build type");
+            logError("can't detect build type");
     }
 
     /**
@@ -490,7 +532,7 @@ public class Weaver {
     public static void run(boolean debugBuild, boolean debug, String packageName, String classesDirs,
                            String classPath, String bootClassPath, boolean addConfig, String... configFiles)
             throws NotFoundException, CannotCompileException, IOException {
-        logForce(sNewLine, "weaving classes in [" + classesDirs + "]...");
+        log2ndPass(sNewLine, "weaving classes in [" + classesDirs + "]...");
 
         try {
             new Weaver().run(debugBuild, debug, packageName, classesDirs, classPath, bootClassPath,
@@ -502,9 +544,9 @@ public class Weaver {
         }
     }
 
-    private void run(boolean debugBuild, boolean debug, String packageName,
-                     String classesDirs, String classPath, String bootClassPath, String[] configFiles,
-                     boolean addConfig) throws NotFoundException, CannotCompileException, IOException {
+    private void run(boolean debugBuild, boolean debug, String packageName, String classesDirs,
+                     String classPath, String bootClassPath, String[] configFiles, boolean addConfig)
+            throws NotFoundException, CannotCompileException, IOException {
         mUpdated    = false;
 
         mDebugBuild = debugBuild;
@@ -517,6 +559,8 @@ public class Weaver {
 
         mPackageName   = packageName;
         log(sNewLine + "package name: " + packageName);
+
+        sWarnings         .clear();
 
         mAnnotations      .clear();
         mMethodsToWeave   .clear();
@@ -565,7 +609,7 @@ public class Weaver {
         write(mBackup  , TMP_BACKUP   );
 
         if (mMethodsToWeave.size() + mLibMethodsToWeave.size() + mAnnotations.size() > 0 && !mUpdated)
-            log(false, sNewLine + MSG_WARNING + "no classes to weave");
+            logWarning("no classes to weave");
     }
 
     private static void write(Map<String, String> map, String file) {
@@ -673,14 +717,14 @@ public class Weaver {
 
         String lastPattern = patterns.get(patterns.size() - 1);
 
-        int dotPos = lastPattern.indexOf('.');
-        if (dotPos >= 0)
-            tmpPatterns.add(lastPattern.substring(0, dotPos));
+        idx = lastPattern.indexOf('.');
+        if (idx >= 0)
+            tmpPatterns.add(lastPattern.substring(0, idx));
         else {
             logError("invalid pattern: '" + pattern + "'");
             return;
         }
-        String methodPattern = lastPattern.substring(dotPos + 1).trim();
+        String methodPattern = lastPattern.substring(idx + 1).trim();
 
         logAddHeader(pattern);
 
@@ -692,12 +736,12 @@ public class Weaver {
     }
 
     private void logAddHeader(String pattern) {
-        log(false, sNewLine + sNewLine + MSG_TITLE + " added for pattern '" +
-                pattern + "':");
+        if (!checkFlag(TMP_FLAG_1ST_PASS)) log(false, sNewLine + sNewLine +
+                MSG_TITLE + " added for pattern '" + pattern + "':");
     }
 
     private void logAddResults(boolean[] found) {
-        if (!found[0]) log(false, "  nothing");
+        if (!found[0] && !checkFlag(TMP_FLAG_1ST_PASS)) log(false, "  nothing");
     }
 
     private static boolean hasWildCards(String string) {
@@ -706,8 +750,7 @@ public class Weaver {
 
     private static int getClassOffset(List<String> tokens, String line) throws CannotCompileException {
         for (int i = 0; i < tokens.size(); i++)
-            if (tokens.get(i).contains("."))
-                return i;
+            if (tokens.get(i).contains(".")) return i;
         throw new CannotCompileException("error - invalid line: " + line);
     }
 
@@ -737,12 +780,12 @@ public class Weaver {
         }
 
         String methodPattern;
-        String name          = tokens.get(getClassOffset(tokens, line));
+        String name       = tokens.get(getClassOffset(tokens, line));
 
-        int methodDotPos     = WildCardsHandler.getMethodDotPos(name);
+        int methodDotPos  = WildCardsHandler.getMethodDotPos(name);
         if (methodDotPos >= 0) {
-            classPattern     = name.substring(0, methodDotPos);
-            methodPattern    = name.substring(methodDotPos + 1).trim();
+            classPattern  = name.substring(0, methodDotPos);
+            methodPattern = name.substring(methodDotPos + 1).trim();
         }
         else {              // should never happen
             logError("can't get classes list for handling wildcards");
@@ -783,14 +826,15 @@ public class Weaver {
         tokens.set(0, className + "." + methodName);
         parseConfigHelper(mapM, mapA, tokens, line);
         found[0] = true;
-        log(false, "  " + tokens.get(getClassOffset(tokens, line)));
+        if (!checkFlag(TMP_FLAG_1ST_PASS))
+            log(false, "  " + tokens.get(getClassOffset(tokens, line)));
     }
 
     private void parseConfigHelper(Map<String, Map<String   , List<String[]>>> mapM,
                                    Map<String, Map<Condition, List<String[]>>> mapA,
                                    List<String> tokens, String line) throws CannotCompileException {
-        Action  action;
-        String  actionToken = tokens.get(tokens.size() - 2);
+        Action action;
+        String actionToken = tokens.get(tokens.size() - 2);
 
         switch (actionToken.toLowerCase()) {
             case "before":
@@ -985,6 +1029,11 @@ public class Weaver {
         classDest.writeFile(newClassDir);
         if (!lib) return;
 
+        if (!checkFlag(TMP_FLAG_SCRIPT)) {
+            delete(newClassDir);
+            return;
+        }
+
         write(TMP_CLASSES, newClassDir);
 
         String className = classDest.getName();
@@ -992,8 +1041,9 @@ public class Weaver {
         className = className.replace('.', '/');
 
         String[] data = mClassMap == null ? null: mClassMap.get(className);
-        if (data == null)
-            logError("can't find class '" + className + "' in the class map");
+        if (data == null) {
+            if (mClassMap != null) logError("can't find class " + getClassName(className) + " in the class map");
+        }
         else {
             String jar = data[1];
 
@@ -1001,8 +1051,8 @@ public class Weaver {
                 File   jarFile = new File(jar);
                 String jarName = jarFile.getName();
 
-                File backup = File.createTempFile(jarName.substring(0, jarName.lastIndexOf('.')),
-                        jar.substring(jar.length() - 4));
+                File backup = File.createTempFile(jarName.substring(
+                        0, jarName.lastIndexOf('.') + 1), jar.substring(jar.length() - 4));
                 backupAndRestore(jarFile, backup);
 
                 String backupName = backup.getAbsolutePath();
@@ -1035,13 +1085,15 @@ public class Weaver {
     }
 
     private void handleMethods(CtClass clsDest, ClassPool pool, String destClassName,
-                               Map<String, Map<String, List<String[]>>> methods)
-            throws NotFoundException, CannotCompileException {
+                               Map<String, Map<String, List<String[]>>> methods) throws NotFoundException {
         if (methods.isEmpty()) return;
 
         for (String className: methods.keySet()) {
             CtClass clsSrc = pool.getOrNull(className);
-            if (clsSrc == null) throw new CannotCompileException("error - can not find class: " + className);
+            if (clsSrc == null) {
+                logWarning("can't find class '" + className + "'");
+            	continue;
+            }
 
             if (clsDest.subclassOf(clsSrc)) {
                 log(sNewLine + "--- class to weave: " + destClassName + " (based on " +
@@ -1139,8 +1191,9 @@ public class Weaver {
         String className = "\"" + method.getDeclaringClass().getName() + "\"";
 
         if (Modifier.isStatic(method.getModifiers()) && methodData.contains("$0")) {
-            logForce(sNewLine, "for static method '" + method.getName() +
-                    "' parameter $0 in code to weave will be changed to the class name " + className);
+            log2ndPass(sNewLine, "for static method '" + method.getName() +
+                    "' parameter $0 in code to weave will be changed to the class name " +
+                    className.replace('\"', '\''));
             methodData = methodData.replace("$0", className);
         }
 
@@ -1180,9 +1233,8 @@ public class Weaver {
         }
     }
 
-    private void insertMethods(Map<String, Map<String, List<String[]>>> methods,
-                               CtClass clsDest, CtClass clsSrc, String methodName, ClassPool pool)
-            throws NotFoundException, CannotCompileException {
+    private void insertMethods(Map<String, Map<String, List<String[]>>> methods, CtClass clsDest,
+                               CtClass clsSrc, String methodName, ClassPool pool) throws NotFoundException {
         List<String[]> methodData = methods.get(clsSrc.getName()).get(methodName);
 
         for (int i = methodData.size() - 1; i >= 0; i--)
@@ -1192,10 +1244,8 @@ public class Weaver {
             insertMethods(clsDest, clsSrc, methodName, pool, methodData.get(i), false);
     }
 
-    private void insertMethods(CtClass clsDest, CtClass clsSrc, String method,
-                               ClassPool classPool, String[] methodData, boolean before)
-            throws NotFoundException, CannotCompileException {
-
+    private void insertMethods(CtClass clsDest, CtClass clsSrc, String method, ClassPool classPool,
+                               String[] methodData, boolean before) throws NotFoundException {
         int posParenthesis = method.indexOf('(');
         String methodName = posParenthesis < 0 ? method: method.substring(0, posParenthesis);
         CtMethod[] methods = clsSrc.getDeclaredMethods(methodName);
@@ -1211,10 +1261,15 @@ public class Weaver {
         if (methods.length == 0 && before) {
             String newMethod = methodData[ACTION_METHOD] == null ?
                     "public void " + methodName + "() {}": methodData[ACTION_METHOD];
-            logForce(sNewLine, "new method '" + newMethod.substring(0, newMethod
-                    .indexOf('{')).trim() + "' will be created in class '" + clsSrc.getName() + "'");
+            log2ndPass(sNewLine, "new method '" + newMethod.substring(0, newMethod
+                    .indexOf('{')).trim() + "' will be created in the class '" + clsSrc.getName() + "'");
 
-            methods = new CtMethod[] { CtNewMethod.make(newMethod, clsSrc) };
+            try {
+                methods = new CtMethod[] {CtNewMethod.make(newMethod, clsSrc)};
+            }
+            catch (CannotCompileException exception) {
+                logWarning(exception.getMessage());
+            }
             isNew = true;
         }
         if (methods.length == 0) return;
@@ -1236,13 +1291,18 @@ public class Weaver {
             catch (NotFoundException ignored) {     // sometimes swallowing Exceptions is acceptable
             }
 
-            if (methodDest != null)
-                weave(methodDest, methodData, classPool, before);
-            else {
-                String newMethod = getNewMethod(classPool, methodSrc, methodData, clsDest, isNew);
-                log(sNewLine + "about to add method " + method + sNewLine +
-                        " method body: " + newMethod);
-                clsDest.addMethod(CtNewMethod.make(newMethod, clsDest));
+            try {
+                if (methodDest != null)
+                    weave(methodDest, methodData, classPool, before);
+                else {
+                    String newMethod = getNewMethod(classPool, methodSrc, methodData, clsDest, isNew);
+                    log(sNewLine + "about to add method " + method + sNewLine +
+                            " method body: " + newMethod);
+                    clsDest.addMethod(CtNewMethod.make(newMethod, clsDest));
+                }
+            }
+            catch (CannotCompileException exception) {
+                logWarning(exception.getMessage());
             }
         }
     }
@@ -1883,7 +1943,7 @@ public class Weaver {
                 zipInputStream = new ZipInputStream(new BufferedInputStream(new FileInputStream(zip)));
             }
             catch (FileNotFoundException exception) {
-                log(false, sNewLine + MSG_WARNING + "can't find '" + zip + "'");
+                logWarning("can't find '" + zip + "'");
                 return;
             }
 

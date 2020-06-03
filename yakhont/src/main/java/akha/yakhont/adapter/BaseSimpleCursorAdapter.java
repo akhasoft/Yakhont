@@ -44,6 +44,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
     private final WeakReference<Context>    mContext;
 
     private BaseCacheAdapter.ViewBinder     mViewBinder;
+    @SuppressWarnings("rawtypes")
     private BaseCacheAdapter.DataConverter  mDataConverter;
 
     /**
@@ -114,7 +115,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
         mViewBinder = viewBinder;
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "rawtypes"})
     @Override
     public void setDataConverter(final BaseCacheAdapter.DataConverter dataConverter) {
         BaseSimpleCursorSupportAdapter.checkDataConverter(dataConverter, mDataConverter);

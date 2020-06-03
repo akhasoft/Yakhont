@@ -273,7 +273,7 @@ if (isAndroidApp || isAndroidLib) {
 
     android.variantFilter { variant ->
         //noinspection ChangeToOperator
-        if ((variant.buildType.name.equals('debug')   &&  makeReleaseBuilds) ||
+        if ((variant.buildType.name.equals('debug'  ) &&  makeReleaseBuilds) ||
             (variant.buildType.name.equals('release') && !makeReleaseBuilds)) {
             
             variant.setIgnore(true)
@@ -290,8 +290,7 @@ if (isAndroidApp || isAndroidLib) {
 
             String defFlavorName = getPropertyExt('projectDefaultFlavor') 
 
-            String flavorName = defFlavorName == 'release' ? 'release':
-                    variant.getVariantData().getVariantConfiguration().getFlavorName()
+            String flavorName = defFlavorName == 'release' ? 'release': variant.getFlavorName()
 
             boolean isDefaultFlavor     = flavorName == defFlavorName
             String  appendixValue       = isDefaultFlavor ? null: flavorName
@@ -336,7 +335,7 @@ if (isAndroidApp || isAndroidLib) {
                 //noinspection GroovyAssignabilityCheck
                 task.from               docsDest
 
-                task.baseName           = getPropertyExt('publishedArtifactId')
+                task.archiveBaseName    = getPropertyExt('publishedArtifactId')
                 task.appendix           = appendixValue
                 task.classifier         = classifierJavadoc
             }

@@ -1200,12 +1200,12 @@ public class CoreLogger {
     @NonNull
     public static String getDescription(final Object object) {
         return object == null ? "null": getDescription(object instanceof Class ?
-                (Class) object: object.getClass()) + ", toString(): " + object;
+                (Class<?>) object: object.getClass()) + ", toString(): " + object;
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     @NonNull
-    public static String getDescription(Class cls) {
+    public static String getDescription(Class<?> cls) {
         if (cls == null) return "null";
         final StringBuilder data = new StringBuilder();
 
@@ -1215,11 +1215,11 @@ public class CoreLogger {
             if (TextUtils.isEmpty(name)) {          // anonymous
                 name = cls.getName();
                 if (Object.class.equals(cls.getSuperclass())) {
-                    final Class[] interfaces = cls.getInterfaces();
+                    final Class<?>[] interfaces = cls.getInterfaces();
 
                     if (interfaces.length > 0) {
                         final StringBuilder tmp = new StringBuilder().append(name).append(" (");
-                        for (final Class clsInterface: interfaces)
+                        for (final Class<?> clsInterface: interfaces)
                             tmp.append(clsInterface.getSimpleName()).append(", ");
                         name = tmp.delete(tmp.length() - 2, tmp.length()).append(")").toString();
                     }

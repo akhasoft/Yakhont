@@ -365,6 +365,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
             }
             final List<ContentValues> result = new ArrayList<>();
 
+            @SuppressWarnings("rawtypes")
             final Iterator iterator = ((Collection) data).iterator();
 
             //noinspection WhileLoopReplaceableByForEach

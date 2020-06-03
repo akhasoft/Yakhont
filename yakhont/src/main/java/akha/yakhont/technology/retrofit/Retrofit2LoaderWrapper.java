@@ -181,13 +181,13 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         try {
             mRequester.makeRequest(new Callback<D>() {
                 @Override
-                public void onResponse(final Call<D> call, final Response<D> response) {
+                public void onResponse(@NonNull final Call<D> call, @NonNull final Response<D> response) {
                     mRetrofit.clearCall();
                     onSuccess(call, response, baseViewModel);
                 }
 
                 @Override
-                public void onFailure(final Call<D> call, final Throwable throwable) {
+                public void onFailure(@NonNull final Call<D> call, @NonNull final Throwable throwable) {
                     mRetrofit.clearCall();
                     onError(call, null, throwable, baseViewModel);
                 }
@@ -272,7 +272,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         onError(call, response, new Exception("error code " + code), baseViewModel);
     }
 
-    private Collection<ContentValues> getDataForCache(@NonNull final Class type) {
+    private Collection<ContentValues> getDataForCache(@NonNull final Class<?> type) {
         final BodyCache data = mRetrofit.getData();
         if (data == null)
             CoreLogger.logError("no data to cache found; if you're using your own " +
@@ -290,6 +290,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         try {
             final retrofit2.Converter<ResponseBody, D> converter =
                     mRetrofit.getRetrofit().responseBodyConverter(type, EMPTY_ANNOTATIONS);
+            //noinspection ConstantConditions
             if (converter == null) CoreLogger.logError("can't find converter for type " + type);
             return converter;
         }
@@ -1189,10 +1190,8 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             if (viewModelKey           != null) builder.setBaseViewModelKey(viewModelKey);
 
             if (rx                     != null) {
-                if (isRxSingle == null) isRxSingle = dataSourceProducer == null && noSwipeToRefresh;
-                @SuppressWarnings("unchecked")
-                final Retrofit2Rx<D> tmp = getRx(rx, isRxSingle);
-                builder.setRx(tmp);
+                if (isRxSingle == null)  isRxSingle = dataSourceProducer == null && noSwipeToRefresh;
+                setRx(builder, getRx(rx, isRxSingle));
             }
             if (loaderCallbacks        != null) builder.setLoaderCallbacks(loaderCallbacks);
 
@@ -1230,6 +1229,12 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             return builder.create();
         }
 
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        private static <R, D> void setRx(Retrofit2CoreLoadBuilder<D, R> builder, Retrofit2Rx retrofit2Rx) {
+            builder.setRx(retrofit2Rx);
+        }
+
+        @SuppressWarnings("rawtypes")
         private static <D> Retrofit2Rx getRx(final SubscriberRx<D> rx, boolean isSingle) {
             return rx == null ? null: new Retrofit2Rx<D>(BaseRx.RxVersions.VERSION_3, isSingle).subscribeSimple(rx);
         }
@@ -1338,6 +1343,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             @SuppressWarnings("unchecked")
             final CoreLoad<E, D> coreLoad = (CoreLoad<E, D>) coreLoads.iterator().next();
 
+            //noinspection rawtypes
             CoreLoadBuilder.setAdapter(CoreLoadBuilder.getList(),
                     (BaseResponseLoaderWrapper) CoreLoadHelper.getLoader(coreLoad));
 
@@ -1382,7 +1388,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          *
          * @return  The {@link CoreLoad}
          */
-        @SuppressWarnings("unchecked")          // Rx, LoaderCallbacks
+        @SuppressWarnings({"unchecked", "rawtypes"})          // Rx, LoaderCallbacks
         public static <E, D> CoreLoad<E, D> getExistingLoader(final String viewModelKey, final Activity activity,
                                                               final OnItemClickListener  onItemClickListener,
                                                               final SubscriberRx<D>      rx,

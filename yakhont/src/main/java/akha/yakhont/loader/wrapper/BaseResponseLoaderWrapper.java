@@ -293,7 +293,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return;
         }
 
-        for (final BaseLoaderWrapper baseLoaderWrapper: coreLoad.getLoaders())
+        for (final BaseLoaderWrapper<?> baseLoaderWrapper: coreLoad.getLoaders())
             if (baseLoaderWrapper instanceof BaseResponseLoaderWrapper)
                 Utils.clearCache(baseLoaderWrapper.getTableName());
     }
@@ -320,9 +320,10 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("rawtypes")
     @Override
-    public BaseLoaderWrapper findLoader(final Collection<BaseLoaderWrapper<?>> loaders) {
-        final BaseLoaderWrapper baseLoaderWrapper = super.findLoader(loaders);
+    public BaseLoaderWrapper<?> findLoader(final Collection<BaseLoaderWrapper<?>> loaders) {
+        final BaseLoaderWrapper<?> baseLoaderWrapper = super.findLoader(loaders);
 
         if (baseLoaderWrapper instanceof BaseResponseLoaderWrapper) {
             final String table = ((BaseResponseLoaderWrapper) baseLoaderWrapper).mTableName;
@@ -629,7 +630,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Override
-    protected Converter getConverter() {
+    protected Converter<?> getConverter() {
         return mConverter;
     }
 
@@ -1270,7 +1271,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             private void logMethod() {
                 CoreLogger.log(mMethod == null ? Level.ERROR: CoreLogger.getDefaultLevel(), "for type " +
                         (mTypeResponse == null ? "null": mTypeResponse instanceof Class ?
-                        ((Class) mTypeResponse).getName(): mTypeResponse) + " method == " + mMethod);
+                        ((Class<?>) mTypeResponse).getName(): mTypeResponse) + " method == " + mMethod);
             }
         }
 
@@ -1551,7 +1552,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     public static class CoreLoader<E, D> implements CoreLoad<E, D>, ViewModelStoreOwner {
 
         // for default ViewModelStoreOwner only
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "rawtypes"})
         public        static CoreLoader                         INSTANCE;
 
         private       static CoreLoadViewModelStore             sViewModelStore;
@@ -1570,7 +1571,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             init();
         }
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"unchecked", "rawtypes"})
         private static void init() {
             INSTANCE            = new CoreLoader(Collections.unmodifiableList(Collections.EMPTY_LIST));
             sViewModelStore     = new CoreLoadViewModelStore();
@@ -1605,7 +1606,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
                 return false;
             }
 
-            final BaseLoaderWrapper foundLoader = loader.findLoader(mLoaders);
+            final BaseLoaderWrapper<?> foundLoader = loader.findLoader(mLoaders);
             if (foundLoader != null)
                 if (replace) {
                     CoreLogger.logWarning("existing loader will be replaced: " + foundLoader);
@@ -1628,7 +1629,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         public CoreLoad<E, D> cancelLoading(final Activity activity) {
             CoreLogger.logWarning("about to cancel loading");
 
-            for (final BaseLoaderWrapper baseLoaderWrapper: mLoaders)
+            for (final BaseLoaderWrapper<?> baseLoaderWrapper: mLoaders)
                 baseLoaderWrapper.cancelRequest(Level.WARNING);
 
             if (!isGoBackOnCancelLoading() || activity == null) return this;
@@ -2114,7 +2115,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return id != Core.NOT_VALID_RES_ID ? id: resources.getIdentifier(name, defType, defPackage);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "WeakerAccess"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "WeakerAccess", "rawtypes"})
         protected void customizeAdapterWrapper(@NonNull final Activity activity, @NonNull final CoreLoad coreLoad,
                                                @NonNull final View list, @LayoutRes final int item) {
         }
@@ -2246,6 +2247,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return list;
         }
 
+        @SuppressWarnings("rawtypes")
         private View create(@NonNull final Activity activity, final Fragment fragment,
                             @NonNull final CoreLoad coreLoad) {
             final View list = getList(activity, fragment, mListViewId);
@@ -2276,6 +2278,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return list;
         }
 
+        @SuppressWarnings("rawtypes")
         private static boolean setAdapter(final View list, @NonNull final BaseCacheAdapterWrapper adapter,
                                           final boolean paging, @IdRes final int listViewId) {
             if      (list instanceof ListView)
@@ -2295,7 +2298,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return true;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue", "rawtypes"})
         public static boolean setAdapter(final View list, final BaseResponseLoaderWrapper loader) {
             if (loader == null) {
                 CoreLogger.logError("loader == null");
@@ -3177,7 +3180,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return Arrays.toString(data);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "rawtypes"})
         @Override
         protected void customizeAdapterWrapper(@NonNull final Activity activity, @NonNull final CoreLoad coreLoad,
                                                @NonNull final View list, @LayoutRes final int item) {

@@ -64,14 +64,6 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
 
         super.onCreate();
 
-        try {
-            Utils.getInvertedColor(0); //todo method
-        }
-        catch (Exception e) {
-            Log.e(TAG, e.getMessage());
-            e.printStackTrace();
-        }
-
 //      setDebugLogging(BuildConfig.DEBUG);         // optional
 
         demoWildcards();
@@ -139,10 +131,13 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // for Yakhont Weaver wildcards demo only
+    // for Yakhont Weaver wildcards and jars patching demo
+
+    public static void demo(String cls, String method) {
+        Log.e(TAG, "--- Yakhont test libs, class: " + cls + ", method: " + method);
+    }
 
     private void demoWildcards() {
-        akha.yakhont.CoreLogger.setMaxLogLineLength(80); //todo
         DemoWildcards.demoStatic();
         DemoWildcards demo = new DemoWildcards();
         demo.demo();
@@ -153,24 +148,32 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
 
         // new methods (created by Yakhont Weaver)
         try {
+            //noinspection JavaReflectionMemberAccess
             DemoWildcards.DemoWildcardsInner.class.getMethod("x").invoke(demoInner);
+            //noinspection JavaReflectionMemberAccess
             DemoWildcards.DemoWildcardsInner.class.getMethod("y").invoke(demoInner);
+            //noinspection JavaReflectionMemberAccess
             DemoWildcards                   .class.getMethod("z",
                     String.class, int.class).invoke(demoInner, "", 0);
         }
-        catch (Exception e) {       // should never happen
-            Log.e(TAG, "wildcards handling error", e);
+        catch (Exception exception) {       // should never happen
+            Log.e(TAG, "wildcards handling error", exception);
         }
     }
 
     private static class DemoWildcards {
 
+        @SuppressWarnings("EmptyMethod")
         private static void demoStatic() {}
+        @SuppressWarnings("EmptyMethod")
         private        void demo      () {}
 
+        @SuppressWarnings("InnerClassMayBeStatic")
         private class DemoWildcardsInner {
 
+            @SuppressWarnings("EmptyMethod")
             private void demoInner1() {}
+            @SuppressWarnings("EmptyMethod")
                     void demoInner2() {}
         }
     }

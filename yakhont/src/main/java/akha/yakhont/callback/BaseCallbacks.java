@@ -182,7 +182,7 @@ public abstract class BaseCallbacks<T> {
          *
          * @return  {@code true} if validation was successful, {@code false} otherwise
          */
-        @SuppressWarnings("UnusedReturnValue")
+        @SuppressWarnings({"UnusedReturnValue", "rawtypes"})
         boolean validate(Object object, Class<? extends BaseCallbacks>[] callbackClasses);
     }
 
@@ -226,7 +226,7 @@ public abstract class BaseCallbacks<T> {
      *
      * @return  This {@code BaseCallbacks} object
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "rawtypes"})
     public BaseCallbacks setForceProceed(final boolean forceProceed) {
         mForceProceed = forceProceed;
         return this;
@@ -325,7 +325,7 @@ public abstract class BaseCallbacks<T> {
      * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
      */
     @SuppressWarnings("unused")
-    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass,
+    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class<?> callbackClass,
                                       @NonNull final BaseCallbacks<T> callback) {
         return proceed(object, callbackClass, callback, false, null);
     }
@@ -354,7 +354,7 @@ public abstract class BaseCallbacks<T> {
      * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
      */
     @SuppressWarnings("WeakerAccess")
-    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class callbackClass,
+    public static <T> boolean proceed(@NonNull final T object, @NonNull final Class<?> callbackClass,
                                       @NonNull final BaseCallbacks<T> callback,
                                       final boolean forceProceed, final Map<T, Boolean> cache) {
         log("start checking", callbackClass);
@@ -391,11 +391,12 @@ public abstract class BaseCallbacks<T> {
         return true;
     }
 
-    private static void log(@NonNull final String text, @NonNull final Class callbackClass) {
+    private static void log(@NonNull final String text, @NonNull final Class<?> callbackClass) {
         CoreLogger.log(String.format(FORMAT, text, callbackClass.getName()));
     }
 
-    private static <T> boolean isProceed(@NonNull final T object, @NonNull final Class callbackClass,
+    @SuppressWarnings("rawtypes")
+    private static <T> boolean isProceed(@NonNull final T object, @NonNull final Class<?> callbackClass,
                                          @NonNull final BaseCallbacks<T> callback) {
         Annotation
         annotation = CoreReflection.getAnnotation(object, CallbacksInherited.class);
@@ -419,7 +420,8 @@ public abstract class BaseCallbacks<T> {
         return isFound(object, callbacks, callbackClass, callback, parameters, properties);
     }
 
-    private static <T> boolean isReject(@NonNull final T object, @NonNull final Class callbackClass,
+    @SuppressWarnings("rawtypes")
+    private static <T> boolean isReject(@NonNull final T object, @NonNull final Class<?> callbackClass,
                                         @NonNull final BaseCallbacks<T> callback) {
 
         Annotation
@@ -444,9 +446,10 @@ public abstract class BaseCallbacks<T> {
         return isFound(object, callbacks, callbackClass, callback, parameters, properties);
     }
 
+    @SuppressWarnings("rawtypes")
     private static <T> boolean isFound(@NonNull final T                                object,
                                                 final Class<? extends BaseCallbacks>[] callbackClasses,
-                                       @NonNull final Class                            callbackClass,
+                                       @NonNull final Class<?>                         callbackClass,
                                                 final BaseCallbacks<T>                 callback,
                                                 final String[]                         parameters,
                                                 final int[]                            properties) {
@@ -557,7 +560,7 @@ public abstract class BaseCallbacks<T> {
          *
          * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
          */
-        @SuppressWarnings({"SameParameterValue", "SameReturnValue"})
+        @SuppressWarnings({"SameParameterValue", "SameReturnValue", "rawtypes"})
         public static <C extends BaseCacheCallbacks, D> boolean register(
                 @NonNull final Map<C, D> callbacksMap, @NonNull final C callbacks, @NonNull final D data) {
             callbacks.onRegister();
@@ -752,7 +755,7 @@ public abstract class BaseCallbacks<T> {
          *
          * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
          */
-        @SuppressWarnings({"WeakerAccess", "SameReturnValue", "SameParameterValue"})
+        @SuppressWarnings({"WeakerAccess", "SameReturnValue", "SameParameterValue", "rawtypes"})
         public static <E extends Enum<E>, C extends BaseCacheCallbacks> boolean register(
                 @NonNull final Map<C, Set<E>> callbacksMap, @NonNull final C callbacks,
                 @NonNull final Class<E> type, @NonNull final Map<String, E> namesMap,
@@ -764,6 +767,7 @@ public abstract class BaseCallbacks<T> {
             return register(callbacksMap, callbacks, lifeCycles);
         }
 
+        @SuppressWarnings("rawtypes")
         @NonNull
         private static <E extends Enum<E>, C extends BaseCacheCallbacks> Set<E> getImplementedCallbacks(
                 @NonNull final C callbacks, @NonNull final Class<E> type, @NonNull final Map<String, E> namesMap,
@@ -771,7 +775,7 @@ public abstract class BaseCallbacks<T> {
 
             final EnumSet<E> lifeCycles = EnumSet.noneOf(type);
 
-            final Class callbacksClass = callbacks.getClass();
+            final Class<?> callbacksClass = callbacks.getClass();
 
             final List<Method> methods = CoreReflection.findOverriddenMethods(callbacksClass, baseClass);
             for (final Method method: methods) {

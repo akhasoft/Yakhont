@@ -113,9 +113,55 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     @SuppressWarnings("CharsetObjectCanBeUsed")
     private static final Charset                UTF8            = Charset.forName("UTF-8");
 
+    @SuppressWarnings("rawtypes")
     private static final Callback               EMPTY_CALLBACK  = new Callback() {
-        @Override public void onResponse(final Call call, final Response  response ) {}
-        @Override public void onFailure (final Call call, final Throwable throwable) {}
+        @Override public void onResponse(@NonNull final Call call, @NonNull final Response  response ) {}
+        @Override public void onFailure (@NonNull final Call call, @NonNull final Throwable throwable) {}
+    };
+
+    @SuppressWarnings("rawtypes")
+    private static final Call                   EMPTY_CALL      = new Call() {
+
+        @NonNull
+        @Override
+        public Response execute() {
+            throw new RuntimeException("EMPTY_CALL.execute()");
+        }
+
+        @Override
+        public void enqueue(@NonNull Callback callback) {
+        }
+
+        @Override
+        public boolean isExecuted() {
+            return false;
+        }
+
+        @Override
+        public void cancel() {
+        }
+
+        @Override
+        public boolean isCanceled() {
+            return false;
+        }
+
+        @NonNull
+        @Override
+        public Call clone() {
+            throw new RuntimeException("EMPTY_CALL.clone()");
+        }
+
+        @NonNull
+        @Override
+        public Request request() {
+            throw new RuntimeException("EMPTY_CALL.request()");
+        }
+
+        @Override
+        public String toString() {
+            return "empty Call";
+        }
     };
 
     private              BodyCache              mData;
@@ -360,9 +406,10 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             @Override
             public void onResult(final D result) {
                 Utils.safeRun(new Runnable() {
+                    @SuppressWarnings("unchecked")
                     @Override
                     public void run() {
-                        callback.onResponse(null, Response.success(result));
+                        callback.onResponse(EMPTY_CALL, Response.success(result));
                     }
 
                     @NonNull
@@ -377,9 +424,10 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             @Override
             public void onError(final Throwable throwable) {
                 Utils.safeRun(new Runnable() {
+                                  @SuppressWarnings("unchecked")
                                   @Override
                                   public void run() {
-                                      callback.onFailure(null, throwable);
+                                      callback.onFailure(EMPTY_CALL, throwable);
                                   }
 
                                   @NonNull
@@ -653,8 +701,9 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         if (headers != null && !headers.isEmpty())
             //noinspection Convert2Lambda
             builder.addInterceptor(new Interceptor() {
+                @NonNull
                 @Override
-                public okhttp3.Response intercept(final Chain chain) throws IOException {
+                public okhttp3.Response intercept(@NonNull final Chain chain) throws IOException {
                     final Request.Builder requestBuilder = chain.request().newBuilder();
 
                     for (final Map.Entry<String, String> header: headers.entrySet())
@@ -672,12 +721,13 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 private final Map<HttpUrl, List<Cookie>> mCookieStore = Utils.newMap();
 
                 @Override
-                public void saveFromResponse(HttpUrl url, List<Cookie> cookies) {
+                public void saveFromResponse(@NonNull HttpUrl url, @NonNull List<Cookie> cookies) {
                     mCookieStore.put(url, cookies);
                 }
 
+                @NonNull
                 @Override
-                public List<Cookie> loadForRequest(HttpUrl url) {
+                public List<Cookie> loadForRequest(@NonNull HttpUrl url) {
                     List<Cookie> list = mCookieStore.get(url);
                     //noinspection Convert2Diamond
                     list = list != null ? new ArrayList<>(list): new ArrayList<Cookie>();
@@ -781,6 +831,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         /**
          * Please refer to the base method description.
          */
+        @NonNull
         @Override
         public okhttp3.Response intercept(final Chain chain) throws IOException {
             final Request request = chain.request();
@@ -1000,14 +1051,16 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
 
         @Nullable
         @Override
-        public CallAdapter<?, ?> get(final Type returnType, final Annotation[] annotations,
-                                     final Retrofit retrofit) {
+        public CallAdapter<?, ?> get(@NonNull final Type         returnType,
+                                     @NonNull final Annotation[] annotations,
+                                     @NonNull final Retrofit     retrofit) {
             final Class<?> rawType = getRawType(returnType);
 
             if (rawType == Completable.class) {
                 // comment from Retrofit team:
                 //   Completable is not parameterized (which is what the rest of this method deals with)
                 //   so it can only be created with a single configuration.
+                //noinspection rawtypes
                 return new RxJava3CallAdapterTmp(Void.class, mScheduler, mIsAsync, false,
                         true, false, false, false, true);
             }
@@ -1049,6 +1102,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 isBody = true;
             }
 
+            //noinspection rawtypes
             return new RxJava3CallAdapterTmp(responseType, mScheduler, mIsAsync, isResult, isBody,
                     isFlowable, isSingle, isMaybe, false);
         }
@@ -1083,13 +1137,15 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             mIsCompletable  = isCompletable;
         }
 
+        @NonNull
         @Override
         public Type responseType() {
             return mResponseType;
         }
 
+        @NonNull
         @Override
-        public Object adapt(final Call<R> call) {
+        public Object adapt(@NonNull final Call<R> call) {
             final Observable<Response<R>> responseObservable = mIsAsync
                     ? new CallEnqueueObservableTmp<>(call)
                     : new CallExecuteObservableTmp<>(call);
@@ -1227,7 +1283,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             }
 
             @Override
-            public void onResponse(final Call<T> call, final Response<T> response) {
+            public void onResponse(@NonNull final Call<T> call, @NonNull final Response<T> response) {
                 if (mDisposed) return;
 
                 try {
@@ -1244,7 +1300,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             }
 
             @Override
-            public void onFailure(final Call<T> call, final Throwable throwable) {
+            public void onFailure(final Call<T> call, @NonNull final Throwable throwable) {
                 if (call.isCanceled()) return;
                 handleAdapterThrowable(mObserver, throwable);
             }

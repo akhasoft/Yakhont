@@ -60,7 +60,7 @@ public class BaseConverter<D> implements Converter<D> {
 
     private static final byte[]                     EMPTY_BYTES               = new byte[0];
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "rawtypes"})
     protected               Class                   mClass;
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -72,7 +72,7 @@ public class BaseConverter<D> implements Converter<D> {
     public BaseConverter() {
     }
 
-    private static byte[] getClassBytes(@NonNull final Class cls) {
+    private static byte[] getClassBytes(@NonNull final Class<?> cls) {
         try {
             final ByteArrayOutputStream bytes  = new ByteArrayOutputStream();
             final ObjectOutputStream    stream = new ObjectOutputStream(bytes);
@@ -86,14 +86,14 @@ public class BaseConverter<D> implements Converter<D> {
         return EMPTY_BYTES;
     }
 
-    private static Class getClass(final byte[] data) {
+    private static Class<?> getClass(final byte[] data) {
         if (data == null) {
             CoreLogger.logWarning("bytes for class == null");
             return null;
         }
         try {
             final ObjectInputStream stream = new ObjectInputStream(new ByteArrayInputStream(data));
-            final Class cls = (Class) stream.readObject();
+            final Class<?> cls = (Class<?>) stream.readObject();
             stream.close();
             return cls;
         }
@@ -103,11 +103,11 @@ public class BaseConverter<D> implements Converter<D> {
         return null;
     }
 
-    private static String getClassString(@NonNull final Class cls) {
+    private static String getClassString(@NonNull final Class<?> cls) {
         return cls.getName();
     }
 
-    private static Class getClass(final String data) {
+    private static Class<?> getClass(final String data) {
         if (data == null) {
             CoreLogger.logWarning("string for class == null");
             return null;
@@ -141,6 +141,7 @@ public class BaseConverter<D> implements Converter<D> {
     /**
      * Please refer to the base method description.
      */
+    @SuppressWarnings("rawtypes")
     @Override
     public Collection<ContentValues> getValues(final String string, final byte[] bytes,
                                                final Class cls, final long pageId) {

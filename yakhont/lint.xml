@@ -16,8 +16,5 @@
 -->
 
 <lint>
-    <issue id="InvalidPackage">
-        <ignore regexp="okio-1.13.0.jar"    />
-        <ignore regexp="retrofit-2.3.0.jar" />
-    </issue>
+    <issue id="ObsoleteLintCustomCheck" severity="ignore" />
 </lint>
