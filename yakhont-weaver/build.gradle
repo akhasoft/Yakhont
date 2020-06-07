@@ -32,8 +32,8 @@ ext {
 sourceSets {
     main {
         resources {
-            srcDirs  = ['../yakhont'                ]
-            includes = ['weaver.config', 'weave.bat']
+            srcDirs  = ['../yakhont'                         ]
+            includes = ['weaver.config', 'weave.bat', 'weave']
         }
     }
 }

@@ -173,7 +173,7 @@ android.variantFilter { variant ->
 }
 
 // null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
-String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
+String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
@@ -182,7 +182,7 @@ android.applicationVariants.all { variant ->
         //noinspection UnnecessaryQualifiedReference
         akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
                 javaCompile.destinationDir.toString() + File.pathSeparator + buildDir.toString() +
-                        '/tmp/kotlin-classes/'.replace('/', File.separator) +
+                        kotlinDir.replace('/', File.separator) +
                         (projectConfig == projectDebug ? 'debug': 'release'),
                 javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
                 weaverAddConfig, weaverConfigFiles)

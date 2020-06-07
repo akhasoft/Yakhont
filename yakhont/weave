@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+#  Copyright (C) 2015-2020 akha, a.k.a. Alexander Kharitonov
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#       https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+
+echo
+echo 'Yakhont Weaver script for patching jars, usage: weave _cp _mn, where'
+echo '  _cp - Java class path (should include Yakhont Weaver and Javassist),'
+echo '  _mn - Android project module name to weave (skip for the default one).'
+echo
+echo 'Should be called from the root project directory.'
+echo
+
+if [ "$2" == "" ]; then
+  YAKHONT_WEAVED_MODULE=app
+else
+  YAKHONT_WEAVED_MODULE=$2
+fi
+
+# Create the jar's temp class map
+java -cp $1 akha.yakhont.weaver.Weaver 0 $YAKHONT_WEAVED_MODULE
+gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean
+java -cp $1 akha.yakhont.weaver.Weaver 1 $YAKHONT_WEAVED_MODULE
+
+# Handle configs and patch jars
+gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:build
+java -cp $1 akha.yakhont.weaver.Weaver 2
+
+# Build application and restore jars
+gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean $YAKHONT_WEAVED_MODULE:build
+java -cp $1 akha.yakhont.weaver.Weaver 3

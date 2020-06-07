@@ -66,6 +66,9 @@ For logging - video / audio recording possibility. And more.
 
 In sum, as I told - you can make the whole data loading in just one line of code (plus your callbacks - if any).
 
+And last but not least - Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time.
+Just one line in the 'weaver.config'. Sapienti sat.
+
 ## Table of Contents
 
 - [Features](https://github.com/akhasoft/Yakhont/tree/dev#features)
@@ -335,18 +338,19 @@ android.applicationVariants.all { variant ->
 
 ## Weaver: usage and configuration
 
-The Yakhont Weaver is a small but powerful utility which manipulates the compiled Java (and Kotlin) bytecode
+The Yakhont Weaver is a powerful utility which manipulates the compiled Java (and Kotlin) bytecode
 (e.g. in Yakhont demo applications it customizes "Activity.onCreate()" and other callbacks).
 
-By default, the Yakhont Weaver uses configuration from it's JAR, but you can provide your own
+The Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time and supports wildcards for classes and packages.
+Please refer to the Yakhont Weaver's javadoc and the default 'weather.config' for more info.
+
+By default, the Yakhont Weaver uses configuration and scripts from it's JAR, but you can provide your own
 configuration file(s) as a parameter (see above). The "weaverAddConfig = true" means adding your
 configuration (if not null) to the default one; "weaverAddConfig = false" forces the Yakhont Weaver
 to replace default configuration with yours (even if null).
 
 The Yakhont Weaver is a standalone utility which means it can be used in any application even without 
 Yakhont library - just specify "weaverAddConfig = false" and provide your own configuration file.
-
-And yes - for classes and packages names wildcards ('*', '?', '**') are supported.
 
 Please refer to the [Weaver](https://akhasoft.github.io/yakhont/1.2.01/weaver/akha/yakhont/weaver/Weaver.html)  
 and the [weaver.config](yakhont/weaver.config) for more info and working examples.

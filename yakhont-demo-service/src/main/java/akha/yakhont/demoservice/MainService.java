@@ -133,6 +133,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // for Yakhont Weaver wildcards and jars patching demo
 
+    @SuppressWarnings("unused")
     public static void demo(String cls, String method) {
         Log.e(TAG, "--- Yakhont test libs, class: " + cls + ", method: " + method);
     }

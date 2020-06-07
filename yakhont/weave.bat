@@ -25,20 +25,20 @@ echo Should be called from the root project directory.
 echo.
 
 if "%2"=="" (
-  set yakhont_weaving_module=app
+  set yakhont_weaved_module=app
 ) else (
-  set yakhont_weaving_module=%2
+  set yakhont_weaved_module=%2
 )
 
 rem Create the jar's temp class map
-java -cp %1 akha.yakhont.weaver.Weaver 0 %yakhont_weaving_module%
-call gradlew --configure-on-demand %yakhont_weaving_module%:clean                                | find /v "> Task :"
-java -cp %1 akha.yakhont.weaver.Weaver 1 %yakhont_weaving_module%
+java -cp %1 akha.yakhont.weaver.Weaver 0 %yakhont_weaved_module%
+call gradlew --configure-on-demand %yakhont_weaved_module%:clean                               | find /v "> Task :"
+java -cp %1 akha.yakhont.weaver.Weaver 1 %yakhont_weaved_module%
 
 rem Handle configs and patch jars
-call gradlew --configure-on-demand %yakhont_weaving_module%:build                                | find /v "> Task :"
+call gradlew --configure-on-demand %yakhont_weaved_module%:build                               | find /v "> Task :"
 java -cp %1 akha.yakhont.weaver.Weaver 2
 
 rem Build application and restore jars
-call gradlew --configure-on-demand %yakhont_weaving_module%:clean %yakhont_weaving_module%:build | find /v "> Task :"
+call gradlew --configure-on-demand %yakhont_weaved_module%:clean %yakhont_weaved_module%:build | find /v "> Task :"
 java -cp %1 akha.yakhont.weaver.Weaver 3

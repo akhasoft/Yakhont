@@ -74,27 +74,42 @@ import javassist.NotFoundException;
  * according to configuration file info; both explicit method callbacks declarations and
  * declarations via annotations (which defines callbacks for the annotated methods) can be used.
  *
+ * <p>JARs weaving supported via &lt;lib&gt; prefix - e.g. we can patch 'Retrofit' JAR
+ * (see example in the default 'weather.config').
+ * <p>To do this, the build process should be run from the command line -
+ * and Yakhont Weaver provides reference scripts implementation (the 'weave' and the 'weave.bat').
+ *
+ * <p>For Windows it could be something like this:
+ *   <br>&lt;path to the jar executable&gt; xf "&lt;path to the Yakhont Weaver jar&gt;" weave.bat
+ *   <br>call weave.bat "&lt;path to the Yakhont Weaver jar&gt;;&lt;path to the javassist jar&gt;" [optional module name, default is 'app']
+ *   <br>del weave.bat
+ *
+ * <p>For Unix something like following should work:
+ *   <br>&lt;path to the jar executable&gt; xf &lt;path to the Yakhont Weaver jar&gt; weave
+ *   <br>./weave &lt;path to the Yakhont Weaver jar&gt;:&lt;path to the javassist jar&gt; [optional module name, default is 'app']
+ *   <br>rm ./weave
+ *
+ * <p>And well, any JAR can be patched this way - except signed ones ('cause of file's checksums).
+ *
  * <p>It's also possible to add new methods to already existing classes - please refer to the default
  * 'weaver.config' for more info.
  *
- * <p>For class, method and package names wildcards are supported: '*' (many symbols), '?' (one symbol)
+ * <p>For class, method and package names wildcards are also supported: '*' (many symbols), '?' (one symbol)
  * and '**' ('*' + all following packages - and yes, you can use '**' with packages only).
  *
  * <p>Wildcards support implemented via {@link <a href="https://github.com/google/guava">Guava</a>}'s
  * {@link <a href="https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/reflect/ClassPath.html">ClassPath</a>}.
  * It marked as {@link <a href="https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/annotations/Beta.html">Beta</a>},
  * but what does it mean?
+ *
  * <p>Quote from Guava documentation for
  * {@link <a href="https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/annotations/Beta.html">Beta</a>}:
  * <br>"Note that the presence of this annotation implies nothing about the quality or
  * performance of the API in question, only the fact that it is not 'API-frozen'.
- * <br>It is generally safe for applications to depend on beta APIs, at the cost of some extra work during upgrades.".
+ * <br>It is generally safe for applications to depend on beta APIs, at the cost of some extra work during upgrades."
  *
  * <p>So, as you can see, in this case "Beta" doesn't mean the bad quality of the code - it just means
  * thе Guava's API is subject to change. No problem: if it will change, I'll just update the Weaver - and that's all.
- *
- * <p>Note: the {@link <a href="https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/reflect/ClassPath.html">ClassPath</a>}'s
- * documentation says that only class files and JARs are supported; in <code>Weaver</code>, AARs supported too.
  *
  * <p>One more note: weaving of the generated classes (libraries like {@link <a href="https://dagger.dev/">Dagger 2</a>},
  * {@link <a href="https://developer.android.com/topic/libraries/data-binding">Data Binding</a>}, etc.)
@@ -103,7 +118,8 @@ import javassist.NotFoundException;
  * <p>For more info and working examples please refer to the default 'weaver.config' configuration file
  * (e.g. new methods should be created with the 'before' keyword and without wildcards).
  *
- * <p>And last but not least - the Weaver supports any applications (i.e. you can use it even without Yakhont library).
+ * <p>And last but not least - the Yakhont Weaver supports any Java / Kotlin applications
+ * (i.e. you can use it even without Yakhont library).
  *
  * @author akha
  */
@@ -147,26 +163,26 @@ public class Weaver {
     private static final String      sNewLine                 = System.getProperty("line.separator");
 
     private        final Map<String, Map<String,    List<String[]>>>
-                                     mMethodsToWeave         = new LinkedHashMap<>();
+            mMethodsToWeave          = new LinkedHashMap<>();
     private        final Map<String, Map<String,    List<String[]>>>
-                                     mLibMethodsToWeave      = new LinkedHashMap<>();
+            mLibMethodsToWeave       = new LinkedHashMap<>();
     private        final Map<String, Map<Condition, List<String[]>>>
-                                     mAnnotations            = new LinkedHashMap<>();
+            mAnnotations             = new LinkedHashMap<>();
 
     private        final Map<String, String>
-                                     mBackup                 = new       HashMap<>();
+            mBackup                  = new       HashMap<>();
     private        final Map<String, String>
-                                     mToHandle               = new       HashMap<>();
+            mToHandle                = new       HashMap<>();
     private              Map<String, String[]>
-                                     mClassMap                                      ;
+            mClassMap                                       ;
 
     @SuppressWarnings("UnstableApiUsage")
     private              ImmutableSet<ClassInfo>
-                                     mAllClasses      ;
+            mAllClasses      ;
     private              WildCardsHandler
-                                     mWildCardsHandler;
+            mWildCardsHandler;
 
-    private static final Set<String> sWarnings               = new       HashSet<>();
+    private static final Set<String> sWarnings                = new       HashSet<>();
 
     private              String      mPackageName  ;
     private              String      mClassPath    ;
@@ -887,7 +903,7 @@ public class Weaver {
 
     private static boolean isAnnotation(String methodName) {
         return methodName.length() == 0             ||
-               methodName.equals(CONDITION_RELEASE) || methodName.equals(CONDITION_DEBUG);
+                methodName.equals(CONDITION_RELEASE) || methodName.equals(CONDITION_DEBUG);
     }
 
     private <T> void put(String className, T key, Action action, String actionToken,
@@ -1092,7 +1108,7 @@ public class Weaver {
             CtClass clsSrc = pool.getOrNull(className);
             if (clsSrc == null) {
                 logWarning("can't find class '" + className + "'");
-            	continue;
+                continue;
             }
 
             if (clsDest.subclassOf(clsSrc)) {
@@ -1139,7 +1155,7 @@ public class Weaver {
                 for (int j = 0; j < conditions.size(); j++) {
                     Condition condition = conditions.get(j);
                     if (!mDebugBuild && condition == Condition.DEBUG ||
-                         mDebugBuild && condition == Condition.RELEASE) continue;
+                            mDebugBuild && condition == Condition.RELEASE) continue;
 
                     List<String[]> methodData = map.get(conditions.get(j));
                     if (before) Collections.reverse(methodData);
@@ -1206,7 +1222,7 @@ public class Weaver {
 
         Action action = getAction(methodData);
         if (!before && action == Action.INSERT_BEFORE ||
-             before && action != Action.INSERT_BEFORE) return;
+                before && action != Action.INSERT_BEFORE) return;
 
         methodData[ACTION_CODE] = adjustMethodData(method, methodData[ACTION_CODE], method.getName());
 
@@ -1226,7 +1242,7 @@ public class Weaver {
                 break;
             case CATCH:
                 method.addCatch    (methodData[ACTION_CODE ], classPool.get(
-                                    methodData[ACTION_TOKEN]), "$e");
+                        methodData[ACTION_TOKEN]), "$e");
                 break;
             default:        // should never happen
                 throw new CannotCompileException("error - unknown action: " + action);
@@ -1445,8 +1461,8 @@ public class Weaver {
         private static final String     URL_PREFIX           = "file:///"   ;
         private static final String     MASK_ALL_PACKAGES    = "**"         ;
         private static final String[]   ANNOTATIONS_SUFFIXES = new String[] {".",
-                                                                             "." + CONDITION_DEBUG,
-                                                                             "." + CONDITION_RELEASE};
+                "." + CONDITION_DEBUG,
+                "." + CONDITION_RELEASE};
 
         private        final List<File> mTmpJars             = new ArrayList<>();
         private        final List<URL > mUrls                = new ArrayList<>();
@@ -1520,7 +1536,7 @@ public class Weaver {
 
             for (int i = 0; i < lastSize; i++)
                 if (!matches(patternList.get(patternList.size() - lastSize + i),
-                                nameList.get(nameList   .size() - lastSize + i))) return false;
+                        nameList.get(nameList   .size() - lastSize + i))) return false;
             return true;
         }
 
@@ -1604,7 +1620,7 @@ public class Weaver {
 
         @SuppressWarnings("UnstableApiUsage")
         public List<Class<?>> getDeclaredClassesAll(  List<String   > patterns,
-                @SuppressWarnings("SpellCheckingInspection") List<ClassInfo> classInfos) {
+                                                      @SuppressWarnings("SpellCheckingInspection") List<ClassInfo> classInfos) {
 
             List<Class<?>> allClasses = new ArrayList<>();
             for (ClassInfo classinfo: classInfos) {
@@ -1650,7 +1666,7 @@ public class Weaver {
             for (;;) {
                 for (Class<?> tmp: tmpClass.getDeclaredClasses()) {
                     if ((tmp.isAnonymousClass() || tmp.isInterface() ||
-                         tmp.isPrimitive     () || tmp.isArray    ())) continue;
+                            tmp.isPrimitive     () || tmp.isArray    ())) continue;
 
                     String key = getName(tmp);
 
@@ -2012,7 +2028,7 @@ public class Weaver {
 
         private static String getEntryName(String name) {
             return name.equals(CLASSES) ? name: !name.startsWith(LIBS) ? null:
-                   name.equals(LIBS)    ? null:  name.substring (LIBS.length());
+                    name.equals(LIBS)    ? null:  name.substring (LIBS.length());
         }
 
         private File getZipEntry(ZipInputStream zipInputStream, String entryName, String extension) {
