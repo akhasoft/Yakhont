@@ -179,11 +179,14 @@ dependencies {
 
     api                 "androidx.paging:paging-runtime:$projectLibVerPaging"
 
+    //noinspection GradleDependency
     api                ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
+    //noinspection GradleDependency
     api                 "com.squareup.retrofit2:converter-gson:$projectLibVerDefault"
 
+    //noinspection GradleDependency
     api                ("com.squareup.retrofit2:adapter-rxjava:$projectLibVerDefault") {
         exclude group:  "io.reactivex",         module: "rxjava"
     }
@@ -191,6 +194,7 @@ dependencies {
         exclude group:  "io.reactivex.rxjava2", module: "rxjava"
     }
 
+    //noinspection GradleDependency
     api                 "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
     api                 "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 

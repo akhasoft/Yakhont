@@ -137,13 +137,16 @@ dependencies {
 
     implementation      "com.google.code.gson:gson:$projectLibVerGson"
 
+    //noinspection GradleDependency
     implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
+    //noinspection GradleDependency
     implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerDefault") {
         exclude group:  "com.google.code.gson", module: "gson"
     }
 
+    //noinspection GradleDependency
     implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
     implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
 
@@ -157,6 +160,7 @@ dependencies {
 // for demo simple let's build both release and debug - just to be sure the weaver is working fine
 
 // null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
+//   or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/your_1.config' /*, ...*/ }
 String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 

@@ -16,11 +16,13 @@
 
 package akha.yakhont.demoservice;
 
+import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.LogDebug;
 import akha.yakhont.demoservice.model.Data;
 import akha.yakhont.demoservice.retrofit.LocalOkHttpClient2;
 import akha.yakhont.demoservice.retrofit.Retrofit2Api;
 
-import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;
@@ -55,7 +57,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
         super("MainService");
     }
 
-    @akha.yakhont.LogDebug(akha.yakhont.CoreLogger.Level.WARNING) //todo
+    @LogDebug                       // debug method demo (logs parameters and return value)
     @Override
     public void onCreate() {
         // uncomment if you're going to use Rx; for more info please refer to
@@ -64,12 +66,10 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
 
         super.onCreate();
 
-//      setDebugLogging(BuildConfig.DEBUG);         // optional
-
-        demoWildcards();
+        demoWildcardsAndJarsWeaving();
     }
 
-    @akha.yakhont.LogDebug //todo
+    @LogDebug(Level.WARNING)        // debug method demo (logs parameters and return value)
     @Override
     protected void onHandleIntent(@Nullable Intent intent) {
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -125,20 +125,17 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
         Utils.await(countDownLatch);
     }
 
-    @SuppressWarnings({"SameParameterValue", "unused"})
-    private void setDebugLogging(boolean debug) {
-        if (debug) Core.setFullLoggingInfo(true);
-    }
-
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // for Yakhont Weaver wildcards and jars patching demo
+    // for Yakhont Weaver wildcards and jars weaving demo
 
     @SuppressWarnings("unused")
-    public static void demo(String cls, String method) {
-        Log.e(TAG, "--- Yakhont test libs, class: " + cls + ", method: " + method);
+    public static void demo(String msg, String cls, String method) {
+        Log.e(TAG, msg + ", class: " + cls + ", method: " + method);
     }
 
-    private void demoWildcards() {
+    private void demoWildcardsAndJarsWeaving() {
+        CoreLogger.setLogLevel(CoreLogger.Level.WARNING);
+
         DemoWildcards.demoStatic();
         DemoWildcards demo = new DemoWildcards();
         demo.demo();
@@ -147,7 +144,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
         demoInner.demoInner1();
         demoInner.demoInner2();
 
-        // new methods (created by Yakhont Weaver)
+        // new methods (created by the Yakhont Weaver)
         try {
             //noinspection JavaReflectionMemberAccess
             DemoWildcards.DemoWildcardsInner.class.getMethod("x").invoke(demoInner);
@@ -155,10 +152,10 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
             DemoWildcards.DemoWildcardsInner.class.getMethod("y").invoke(demoInner);
             //noinspection JavaReflectionMemberAccess
             DemoWildcards                   .class.getMethod("z",
-                    String.class, int.class).invoke(demoInner, "", 0);
+                    String.class, int.class).invoke(demo, "", 0);
         }
         catch (Exception exception) {       // should never happen
-            Log.e(TAG, "wildcards handling error", exception);
+            Log.e(TAG, "new methods invocation error", exception);
         }
     }
 

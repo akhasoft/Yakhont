@@ -167,16 +167,6 @@ public class BaseActivity extends Activity {        // don't modify this line: i
         super.onBackPressed();
     }
 
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-@Override
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-public boolean onChildClick(final android.widget.ExpandableListView parent, final View view,
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-                            final int groupPosition, final int childPosition, final long id) {
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", groupPosition " + groupPosition +
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-            ", childPosition " + childPosition + ", id " + id, false);
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-    return super.onChildClick(parent, view, groupPosition, childPosition, id);
-    //YakhontPreprocessor:addToGenerated-ExpandableListActivity-}
-
     /**
      * Please refer to the base method description.
      */
@@ -273,23 +263,6 @@ public class BaseActivity extends Activity {        // don't modify this line: i
         super.onDetachedFromWindow();
     }
 
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-@Override
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-public void onHeaderClick(final android.preference.PreferenceActivity.Header header, final int position) {
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() + ", position " + position, false);
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-    super.onHeaderClick(header, position);
-    //YakhontPreprocessor:addToGenerated-PreferenceActivity-}
-
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-/** Please refer to the base method description. */
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-@CallSuper
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-@Override
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-protected void onListItemClick(final android.widget.ListView list, final View view, final int position, final long id) {
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-    CoreLogger.log(getDebugLevel(), getDebugMessage() +
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-            ", position " + position + ", id " + id, false);
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-    super.onListItemClick(list, view, position, id);
-    //YakhontPreprocessor:addToGenerated-ListActivity,LauncherActivity,PreferenceActivity-}
-
     /**
      * Please refer to the base method description.
      */
@@ -310,17 +283,6 @@ public class BaseActivity extends Activity {        // don't modify this line: i
         CoreLogger.log(getDebugLevel(), getDebugMessage(), false);
 
         return super.onNavigateUp();
-    }
-
-    /**
-     * Please refer to the base method description.
-     */
-    @CallSuper
-    @Override
-    public boolean onNavigateUpFromChild(final Activity child) {
-        CoreLogger.log(getDebugLevel(), getDebugMessage() + ", child " + child, false);
-
-        return super.onNavigateUpFromChild(child);
     }
 
     /**

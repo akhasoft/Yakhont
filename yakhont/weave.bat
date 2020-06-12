@@ -17,7 +17,9 @@ rem limitations under the License.
 rem ****
 
 echo.
-echo Yakhont Weaver script for patching jars, usage: weave.bat "_cp" _mn, where
+echo The Yakhont Weaver patching jars script reference implementation.
+echo.
+echo Usage: weave.bat "_cp" _mn, where
 echo   _cp - Java class path (should include Yakhont Weaver and Javassist),
 echo   _mn - Android project module name to weave (skip for the default one).
 echo.

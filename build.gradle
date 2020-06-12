@@ -87,8 +87,8 @@ ext {
     projectResConfigs       = ['en', 'ru']
 
     projectVerSdkMin                                            =  14
-    projectVerSdk                                               =  29
-    projectVerBuildTools                                        = '29.0.3'
+    projectVerSdk                                               =  30
+    projectVerBuildTools                                        = '30.0.0'
 
     projectVerName                                              =  '1.2.01'
     projectVerCode                                              =   1020010

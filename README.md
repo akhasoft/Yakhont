@@ -66,7 +66,7 @@ For logging - video / audio recording possibility. And more.
 
 In sum, as I told - you can make the whole data loading in just one line of code (plus your callbacks - if any).
 
-And last but not least - Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time.
+And last but not least - the Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time.
 Just one line in the 'weaver.config'. Sapienti sat.
 
 ## Table of Contents
@@ -275,17 +275,20 @@ dependencies {
 
     4.1. For Java:
 ```groovy
-// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
-// or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/yourWeaver.config' /*, ...*/ }
-String weaverConfigFiles = null
-
-String pkg = android.defaultConfig.applicationId
+// null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
+//   or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/your_1.config' /*, ...*/ }
+String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
+
+    afterEvaluate {
+        akha.yakhont.weaver.Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
+    }
+
     javaCompile.doLast {
-        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
+        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString(), 
             javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
             weaverAddConfig, weaverConfigFiles)
@@ -294,20 +297,23 @@ android.applicationVariants.all { variant ->
 ```
       4.2. For Kotlin (and Java - optionally):
 ```groovy
-// use default config (or provide something like "projectDir.absolutePath + '/yourWeaver.config'")
-// or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/yourWeaver.config' /*, ...*/ }
-String weaverConfigFiles = null
-
-String pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
+// null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
+//   or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/your_1.config' /*, ...*/ }
+String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile  = variant.javaCompileProvider.get()
+
+    afterEvaluate {
+        akha.yakhont.weaver.Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
+    }
+
     javaCompile.doLast {
         String kotlinBase    = buildDir.toString()  + kotlinDir.replace('/', File.separator)
         String kotlinClasses = kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
         
-        new akha.yakhont.weaver.Weaver().run(variant.buildType.name == 'debug', weaverDebug, pkg,
+        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
             javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
             weaverAddConfig, weaverConfigFiles)
@@ -341,7 +347,8 @@ android.applicationVariants.all { variant ->
 The Yakhont Weaver is a powerful utility which manipulates the compiled Java (and Kotlin) bytecode
 (e.g. in Yakhont demo applications it customizes "Activity.onCreate()" and other callbacks).
 
-The Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time and supports wildcards for classes and packages.
+The Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time and supports wildcards
+for classes, methods and packages.
 Please refer to the Yakhont Weaver's javadoc and the default 'weather.config' for more info.
 
 By default, the Yakhont Weaver uses configuration and scripts from it's JAR, but you can provide your own

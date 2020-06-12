@@ -74,8 +74,11 @@ import javassist.NotFoundException;
  * according to configuration file info; both explicit method callbacks declarations and
  * declarations via annotations (which defines callbacks for the annotated methods) can be used.
  *
+ * <p>By default, the Yakhont Weaver handles your own classes. So, 'android.app.Activity.onResume ...' in config means:
+ * weave 'onResume' method in all your Activities that extend 'android.app.Activity'.
+ *
  * <p>JARs weaving supported via &lt;lib&gt; prefix - e.g. we can patch 'Retrofit' JAR
- * (see example in the default 'weather.config').
+ * (see demo in the default 'weather.config').
  * <p>To do this, the build process should be run from the command line -
  * and Yakhont Weaver provides reference scripts implementation (the 'weave' and the 'weave.bat').
  *
@@ -89,12 +92,12 @@ import javassist.NotFoundException;
  *   <br>./weave &lt;path to the Yakhont Weaver jar&gt;:&lt;path to the javassist jar&gt; [optional module name, default is 'app']
  *   <br>rm ./weave
  *
- * <p>And well, any JAR can be patched this way - except signed ones ('cause of file's checksums).
+ * <p>And well, any JAR can be patched this way - except signed ones ('cause of classes checksums).
  *
  * <p>It's also possible to add new methods to already existing classes - please refer to the default
  * 'weaver.config' for more info.
  *
- * <p>For class, method and package names wildcards are also supported: '*' (many symbols), '?' (one symbol)
+ * <p>For classes, methods and packages names wildcards are also supported: '*' (many symbols), '?' (one symbol)
  * and '**' ('*' + all following packages - and yes, you can use '**' with packages only).
  *
  * <p>Wildcards support implemented via {@link <a href="https://github.com/google/guava">Guava</a>}'s
@@ -163,24 +166,24 @@ public class Weaver {
     private static final String      sNewLine                 = System.getProperty("line.separator");
 
     private        final Map<String, Map<String,    List<String[]>>>
-            mMethodsToWeave          = new LinkedHashMap<>();
+                                     mMethodsToWeave          = new LinkedHashMap<>();
     private        final Map<String, Map<String,    List<String[]>>>
-            mLibMethodsToWeave       = new LinkedHashMap<>();
+                                     mLibMethodsToWeave       = new LinkedHashMap<>();
     private        final Map<String, Map<Condition, List<String[]>>>
-            mAnnotations             = new LinkedHashMap<>();
+                                     mAnnotations             = new LinkedHashMap<>();
 
     private        final Map<String, String>
-            mBackup                  = new       HashMap<>();
+                                     mBackup                  = new       HashMap<>();
     private        final Map<String, String>
-            mToHandle                = new       HashMap<>();
+                                     mToHandle                = new       HashMap<>();
     private              Map<String, String[]>
-            mClassMap                                       ;
+                                     mClassMap                                       ;
 
     @SuppressWarnings("UnstableApiUsage")
     private              ImmutableSet<ClassInfo>
-            mAllClasses      ;
+                                     mAllClasses                                     ;
     private              WildCardsHandler
-            mWildCardsHandler;
+                                     mWildCardsHandler                               ;
 
     private static final Set<String> sWarnings                = new       HashSet<>();
 
@@ -329,7 +332,7 @@ public class Weaver {
     private static void restoreJars() {
         delete(TMP_CLASS_MAP  );
         delete(TMP_TO_HANDLE  );
-        delete(TMP_FLAG_SCRIPT); //todo remove flag file?
+        delete(TMP_FLAG_SCRIPT);
 
         File backup = new File(TMP_BACKUP);
         if (!backup.exists()) return;
@@ -614,7 +617,7 @@ public class Weaver {
 
         // handle project classes
         for (String classesDir: classesDirs.split(File.pathSeparator)) {
-            log(sNewLine + sNewLine + "-- about to weave classes in [" + classesDir + "]" + sNewLine);
+            log(sNewLine + sNewLine + "about to weave classes in [" + classesDir + "]" + sNewLine);
             searchClasses(new File(classesDir).listFiles());
         }
 
@@ -903,7 +906,7 @@ public class Weaver {
 
     private static boolean isAnnotation(String methodName) {
         return methodName.length() == 0             ||
-                methodName.equals(CONDITION_RELEASE) || methodName.equals(CONDITION_DEBUG);
+               methodName.equals(CONDITION_RELEASE) || methodName.equals(CONDITION_DEBUG);
     }
 
     private <T> void put(String className, T key, Action action, String actionToken,
@@ -998,7 +1001,7 @@ public class Weaver {
         int pos = path.indexOf(mPackageName.replace('.', File.separatorChar));
         if (pos < 0) return;
 
-        destClassName  = path.substring(pos).replace(File.separatorChar, '.')
+        destClassName = path.substring(pos).replace(File.separatorChar, '.')
                 .substring(0, path.length() - pos - 6);
         String buildDir = path.substring(0, pos);
 
@@ -1112,7 +1115,7 @@ public class Weaver {
             }
 
             if (clsDest.subclassOf(clsSrc)) {
-                log(sNewLine + "--- class to weave: " + destClassName + " (based on " +
+                log(sNewLine + "class to weave: " + destClassName + " (based on " +
                         clsSrc.getName() + ")");
                 for (String methodName: methods.get(className).keySet())
                     insertMethods(methods, clsDest, clsSrc, methodName, pool);
@@ -1155,7 +1158,7 @@ public class Weaver {
                 for (int j = 0; j < conditions.size(); j++) {
                     Condition condition = conditions.get(j);
                     if (!mDebugBuild && condition == Condition.DEBUG ||
-                            mDebugBuild && condition == Condition.RELEASE) continue;
+                         mDebugBuild && condition == Condition.RELEASE) continue;
 
                     List<String[]> methodData = map.get(conditions.get(j));
                     if (before) Collections.reverse(methodData);
@@ -1192,18 +1195,21 @@ public class Weaver {
         }
     }
 
-    private static void validate(List<String[]> methodData, String name) { //todo test
-        List<String> tmpData = new ArrayList<>();
-        for (String[] tmp: methodData)
-            if (tmp[ACTION_METHOD] != null)
-                tmpData.add(tmp[ACTION] + tmp[ACTION_TOKEN] + " " + name + " " + tmp[ACTION_CODE]);
+    private static void validate(List<String[]> methodData, String name) {
+        List<String> tmpData = new ArrayList<>(), tmpDescription = new ArrayList<>();
 
-        for (String data: tmpData)
-            if (Collections.frequency(tmpData, data) > 1)
-                logError("duplicated entries for " + name + ": " + data);
+        for (String[] tmp: methodData)
+            if (tmp[ACTION_METHOD] == null) {
+                tmpData       .add(tmp[ACTION] + tmp[ACTION_TOKEN] + " " + name + " " + tmp[ACTION_CODE]      );
+                tmpDescription.add(              tmp[ACTION_TOKEN] + " '"             + tmp[ACTION_CODE] + "'");
+            }
+
+        for (int i = 0; i < tmpData.size(); i++)
+            if (Collections.frequency(tmpData, tmpData.get(i)) > 1)
+                logError("duplicated entry for '" + name + "': " + tmpDescription.get(i));
     }
 
-    private static String adjustMethodData(CtMethod method, String methodData, String methodName) {
+    private static String adjustMethodData(CtMethod method, String methodData) {
         String className = "\"" + method.getDeclaringClass().getName() + "\"";
 
         if (Modifier.isStatic(method.getModifiers()) && methodData.contains("$0")) {
@@ -1214,7 +1220,7 @@ public class Weaver {
         }
 
         return methodData.replace(ALIAS_CLASS, className).replace(ALIAS_METHOD,
-                "\"" + methodName + "\"");
+                "\"" + method.getName() + "\"");
     }
 
     private void weave(CtMethod method, String[] methodData, ClassPool classPool, boolean before)
@@ -1222,27 +1228,26 @@ public class Weaver {
 
         Action action = getAction(methodData);
         if (!before && action == Action.INSERT_BEFORE ||
-                before && action != Action.INSERT_BEFORE) return;
+             before && action != Action.INSERT_BEFORE) return;
 
-        methodData[ACTION_CODE] = adjustMethodData(method, methodData[ACTION_CODE], method.getName());
+        String actionCode = adjustMethodData(method, methodData[ACTION_CODE]);
 
         log(sNewLine + "method " + method.getLongName() +
                 " is already overridden; about to weave, action: " +
-                getActionDescription(methodData) + ", code: " + methodData[ACTION_CODE]);
+                getActionDescription(methodData) + ", code: " + actionCode);
 
         switch (action) {
             case INSERT_BEFORE:
-                method.insertBefore(methodData[ACTION_CODE ]);
+                method.insertBefore(actionCode);
                 break;
             case INSERT_AFTER:
-                method.insertAfter (methodData[ACTION_CODE ]);
+                method.insertAfter (actionCode);
                 break;
             case INSERT_AFTER_FINALLY:
-                method.insertAfter (methodData[ACTION_CODE ], true);
+                method.insertAfter (actionCode, true);
                 break;
             case CATCH:
-                method.addCatch    (methodData[ACTION_CODE ], classPool.get(
-                        methodData[ACTION_TOKEN]), "$e");
+                method.addCatch    (actionCode, classPool.get(methodData[ACTION_TOKEN]), "$e");
                 break;
             default:        // should never happen
                 throw new CannotCompileException("error - unknown action: " + action);
@@ -1298,7 +1303,7 @@ public class Weaver {
 
         for (CtMethod methodSrc: methods) {
             if (posParenthesis >= 0 && !methodSrc.getSignature().startsWith(
-                    method.substring(posParenthesis))) continue; //todo check for isNew
+                    method.substring(posParenthesis))) continue;
 
             CtMethod methodDest = null;
             try {
@@ -1331,8 +1336,6 @@ public class Weaver {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "UnusedParameters"})
     protected String getNewMethod(ClassPool classPool, CtMethod methodSrc, String[] data, CtClass clsDest,
                                   boolean isNew) throws NotFoundException, CannotCompileException {
-        data[ACTION_CODE] = adjustMethodData(methodSrc, data[ACTION_CODE], methodSrc.getName());
-
         int modifiers = methodSrc.getModifiers();
         if (!isNew && (Modifier.isStatic(modifiers) || Modifier.isFinal(modifiers) || Modifier.isPrivate(modifiers)))
             throw new CannotCompileException("error - can not override method '" + methodSrc.getName() +
@@ -1357,8 +1360,8 @@ public class Weaver {
         Action  action       = getAction(data);
         boolean hasTry       = action.equals(Action.INSERT_AFTER_FINALLY) || action.equals(Action.CATCH);
         Locale  locale       = Locale.getDefault();
+        String  code         = adjustMethodData(methodSrc, data[ACTION_CODE]);
 
-        String  code         = data[ACTION_CODE];
         StringBuilder pArgs  = new StringBuilder(), eArgs = new StringBuilder();
         for (int i = 0; i < paramTypes.length; i++)
             pArgs.append(String.format(locale, "%s%s %s%d", i == 0 ? "":
@@ -1461,8 +1464,8 @@ public class Weaver {
         private static final String     URL_PREFIX           = "file:///"   ;
         private static final String     MASK_ALL_PACKAGES    = "**"         ;
         private static final String[]   ANNOTATIONS_SUFFIXES = new String[] {".",
-                "." + CONDITION_DEBUG,
-                "." + CONDITION_RELEASE};
+                                                                             "." + CONDITION_DEBUG,
+                                                                             "." + CONDITION_RELEASE};
 
         private        final List<File> mTmpJars             = new ArrayList<>();
         private        final List<URL > mUrls                = new ArrayList<>();
@@ -1536,7 +1539,7 @@ public class Weaver {
 
             for (int i = 0; i < lastSize; i++)
                 if (!matches(patternList.get(patternList.size() - lastSize + i),
-                        nameList.get(nameList   .size() - lastSize + i))) return false;
+                                nameList.get(   nameList.size() - lastSize + i))) return false;
             return true;
         }
 
@@ -1619,8 +1622,9 @@ public class Weaver {
         }
 
         @SuppressWarnings("UnstableApiUsage")
-        public List<Class<?>> getDeclaredClassesAll(  List<String   > patterns,
-                                                      @SuppressWarnings("SpellCheckingInspection") List<ClassInfo> classInfos) {
+        public List<Class<?>> getDeclaredClassesAll(
+                                                             List<String   > patterns,
+                @SuppressWarnings("SpellCheckingInspection") List<ClassInfo> classInfos) {
 
             List<Class<?>> allClasses = new ArrayList<>();
             for (ClassInfo classinfo: classInfos) {
@@ -1666,7 +1670,7 @@ public class Weaver {
             for (;;) {
                 for (Class<?> tmp: tmpClass.getDeclaredClasses()) {
                     if ((tmp.isAnonymousClass() || tmp.isInterface() ||
-                            tmp.isPrimitive     () || tmp.isArray    ())) continue;
+                         tmp.isPrimitive     () || tmp.isArray    ())) continue;
 
                     String key = getName(tmp);
 
@@ -2028,7 +2032,7 @@ public class Weaver {
 
         private static String getEntryName(String name) {
             return name.equals(CLASSES) ? name: !name.startsWith(LIBS) ? null:
-                    name.equals(LIBS)    ? null:  name.substring (LIBS.length());
+                   name.equals(LIBS)    ? null:  name.substring (LIBS.length());
         }
 
         private File getZipEntry(ZipInputStream zipInputStream, String entryName, String extension) {

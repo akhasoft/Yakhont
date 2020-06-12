@@ -63,11 +63,6 @@ gradle.buildFinished { buildResult -> clearTmpSources() }
 def generateActivities() {
 
     String[] debugActivityClasses = [
-        'android.accounts.AccountAuthenticatorActivity'                                     ,               
-        'android.app.AliasActivity'                                                         ,
-        'android.app.ExpandableListActivity'                                                ,                     
-        'android.app.LauncherActivity'                                                      ,                           
-        'android.app.ListActivity'                                                          ,                               
         'android.app.NativeActivity'
     ]
 
