@@ -56,7 +56,6 @@ import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.Bundle;
-import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -565,13 +564,12 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
                     LiveDataDialog.getInfoText(R.string.table_desc_beers));
 
             if (sBackground == null) {          // cache the background image
-                DisplayMetrics dm       = new DisplayMetrics();
-                activity.getWindowManager().getDefaultDisplay().getMetrics(dm);
-
+                Rect      metrics       = Bubbles.getMetrics(activity);
                 Resources resources     = activity.getResources();
+
                 sBackground             = new BitmapDrawable(resources,
-                        akha.yakhont.demo.gui.Utils.decodeBitmap(
-                                resources, R.drawable.img_progress, dm.heightPixels, dm.widthPixels));
+                        akha.yakhont.demo.gui.Utils.decodeBitmap(resources,
+                                R.drawable.img_progress, metrics.height(), metrics.width()));
             }
             ((ImageView) view.findViewById(R.id.progress_background)).setImageDrawable(sBackground);
 

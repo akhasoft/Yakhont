@@ -16,34 +16,34 @@
 
 package akha.yakhont.demoservice;
 
-import akha.yakhont.CoreLogger;
-import akha.yakhont.CoreLogger.Level;
-import akha.yakhont.LogDebug;
 import akha.yakhont.demoservice.model.Data;
 import akha.yakhont.demoservice.retrofit.LocalOkHttpClient2;
 import akha.yakhont.demoservice.retrofit.Retrofit2Api;
 
 import akha.yakhont.Core.Utils;
+import akha.yakhont.CoreLogger;
+import akha.yakhont.CoreLogger.Level;
+import akha.yakhont.LogDebug;
 import akha.yakhont.loader.BaseResponse.Source;
 import akha.yakhont.loader.wrapper.BaseResponseLoaderWrapper.LoaderCallbacks;
 import akha.yakhont.technology.retrofit.Retrofit2;
 import akha.yakhont.technology.retrofit.Retrofit2LoaderWrapper.Retrofit2Loader;
 
-import android.app.IntentService;
 import android.content.Intent;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
+import androidx.core.app.JobIntentService;
 import androidx.lifecycle.ViewModelStore;
 import androidx.lifecycle.ViewModelStoreOwner;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-public class MainService extends IntentService implements ViewModelStoreOwner {
+public class MainService extends JobIntentService implements ViewModelStoreOwner {
 
-    private static final String TAG = "yakhont";
+    public  static final int     JOB_ID = 1001;
+    private static final String  TAG    = "yakhont";
 
     private final ViewModelStore mViewModelStore = new ViewModelStore();
 
@@ -51,10 +51,6 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
     @Override
     public ViewModelStore getViewModelStore() {
         return mViewModelStore;
-    }
-
-    public MainService() {
-        super("MainService");
     }
 
     @LogDebug                       // debug method demo (logs parameters and return value)
@@ -71,7 +67,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
 
     @LogDebug(Level.WARNING)        // debug method demo (logs parameters and return value)
     @Override
-    protected void onHandleIntent(@Nullable Intent intent) {
+    protected void onHandleWork(@NonNull Intent intent) {
         CountDownLatch countDownLatch = new CountDownLatch(1);
 
         LoaderCallbacks<Throwable, List<Data>> loaderCallbacks =
@@ -134,32 +130,32 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
     }
 
     private void demoWildcardsAndJarsWeaving() {
-        CoreLogger.setLogLevel(CoreLogger.Level.WARNING);
+        CoreLogger.setLogLevel(Level.WARNING);
 
-        DemoWildcards.demoStatic();
-        DemoWildcards demo = new DemoWildcards();
+        Demo.demoStatic();
+        Demo demo = new Demo();
         demo.demo();
 
-        DemoWildcards.DemoWildcardsInner demoInner = demo.new DemoWildcardsInner();
+        Demo.DemoInner demoInner = demo.new DemoInner();
         demoInner.demoInner1();
         demoInner.demoInner2();
 
         // new methods (created by the Yakhont Weaver)
         try {
             //noinspection JavaReflectionMemberAccess
-            DemoWildcards.DemoWildcardsInner.class.getMethod("x").invoke(demoInner);
+            Demo.DemoInner.class.getMethod("x").invoke(demoInner);
             //noinspection JavaReflectionMemberAccess
-            DemoWildcards.DemoWildcardsInner.class.getMethod("y").invoke(demoInner);
+            Demo.DemoInner.class.getMethod("y").invoke(demoInner);
             //noinspection JavaReflectionMemberAccess
-            DemoWildcards                   .class.getMethod("z",
-                    String.class, int.class).invoke(demo, "", 0);
+            Demo          .class.getMethod("z",
+                    String.class, int.class).invoke(null, "", 0);
         }
         catch (Exception exception) {       // should never happen
-            Log.e(TAG, "new methods invocation error", exception);
+            Log.e(TAG, "new method invocation error", exception);
         }
     }
 
-    private static class DemoWildcards {
+    private static class Demo {
 
         @SuppressWarnings("EmptyMethod")
         private static void demoStatic() {}
@@ -167,7 +163,7 @@ public class MainService extends IntentService implements ViewModelStoreOwner {
         private        void demo      () {}
 
         @SuppressWarnings("InnerClassMayBeStatic")
-        private class DemoWildcardsInner {
+        private class DemoInner {
 
             @SuppressWarnings("EmptyMethod")
             private void demoInner1() {}

@@ -283,7 +283,7 @@ boolean weaverDebug = false, weaverAddConfig = true
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
 
-    afterEvaluate {
+    afterEvaluate {     // optional; used only for JARs (like 'Retrofit') weaving
         akha.yakhont.weaver.Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
     }
 
@@ -305,7 +305,7 @@ boolean weaverDebug = false, weaverAddConfig = true
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile  = variant.javaCompileProvider.get()
 
-    afterEvaluate {
+    afterEvaluate {     // optional; used only for JARs (like 'Retrofit') weaving
         akha.yakhont.weaver.Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
     }
 
@@ -347,8 +347,8 @@ android.applicationVariants.all { variant ->
 The Yakhont Weaver is a powerful utility which manipulates the compiled Java (and Kotlin) bytecode
 (e.g. in Yakhont demo applications it customizes "Activity.onCreate()" and other callbacks).
 
-The Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time and supports wildcards
-for classes, methods and packages.
+The Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time;  
+also supports wildcards ('**', '*', '?') for classes, methods and packages.
 Please refer to the Yakhont Weaver's javadoc and the default 'weather.config' for more info.
 
 By default, the Yakhont Weaver uses configuration and scripts from it's JAR, but you can provide your own

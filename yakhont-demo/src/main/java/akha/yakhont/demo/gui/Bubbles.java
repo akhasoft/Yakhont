@@ -37,6 +37,7 @@ import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
@@ -89,7 +90,7 @@ public class Bubbles {
     private static ViewGroup                sRootLayout;
 
     private static LayoutInflater           sLayoutInflater;
-    private static DisplayMetrics           sDisplayMetrics;
+    private static Rect                     sDisplayMetrics;
     
     private static CharSequence[]           sFunText;
     private static TypedArray               sFunColors;
@@ -119,15 +120,27 @@ public class Bubbles {
             sViews.clear();
         }
 
-        sDisplayMetrics         = new DisplayMetrics();
-        activity.getWindowManager().getDefaultDisplay().getMetrics(sDisplayMetrics);
-
+        sDisplayMetrics         = getMetrics(activity);
         sRootLayout             = activity.findViewById(R.id.main_layout);
         sLayoutInflater         = LayoutInflater.from(activity);
 
         initFun(activity);
 
         scheduleNextBubble();
+    }
+
+    public static Rect getMetrics(Activity activity) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+            return activity.getWindowManager().getCurrentWindowMetrics().getBounds();
+
+        return getMetricsOld(activity);
+    }
+
+    @SuppressWarnings({"deprecation", "RedundantSuppression"})
+    private static Rect getMetricsOld(Activity activity) {
+        DisplayMetrics metrics = new DisplayMetrics();
+        activity.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+        return new Rect(0, 0, metrics.widthPixels, metrics.heightPixels);
     }
 
     private static void scheduleNextBubble() {
@@ -299,7 +312,7 @@ public class Bubbles {
         textView.setLeft(0);
         textView.setTop (0);
 
-        ValueAnimator mainAnimator = ValueAnimator.ofInt(0, sDisplayMetrics.heightPixels);
+        ValueAnimator mainAnimator = ValueAnimator.ofInt(0, sDisplayMetrics.height());
         mainAnimator.setDuration((int) (DURATION_MAX * 1000));
         mainAnimator.setInterpolator(new AccelerateInterpolator());
 
@@ -350,7 +363,7 @@ public class Bubbles {
             private int start = getX();
 
             private int getX() {
-                return sRandom.nextInt(sDisplayMetrics.widthPixels - viewWidth / 2);
+                return sRandom.nextInt(sDisplayMetrics.width() - viewWidth / 2);
             }
 
             @Override

@@ -16,13 +16,14 @@
 
 package akha.yakhont.demoservice;
 
-import akha.yakhont.Core;
 import akha.yakhont.Core.Utils;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
+
+import androidx.core.app.JobIntentService;
 
 public class MainActivity extends Activity {
 
@@ -33,15 +34,14 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (BuildConfig.DEBUG) Core.setFullLoggingInfo(true);       // optional
-
         Button buttonStartService = findViewById(R.id.button);
         buttonStartService.setTransformationMethod(null);   // switches off button's text capitalization
 
         buttonStartService.setOnClickListener(view -> {
             finish();
-            Utils.runInBackground(SERVICE_DELAY, () -> startService(
-                    new Intent(Utils.getApplication().getApplicationContext(), MainService.class)));
+            Utils.runInBackground(SERVICE_DELAY, () -> JobIntentService.enqueueWork(
+                    Utils.getApplication().getApplicationContext(), MainService.class,
+                    MainService.JOB_ID, new Intent()));
         });
     }
 }

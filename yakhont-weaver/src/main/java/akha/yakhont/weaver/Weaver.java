@@ -74,8 +74,8 @@ import javassist.NotFoundException;
  * according to configuration file info; both explicit method callbacks declarations and
  * declarations via annotations (which defines callbacks for the annotated methods) can be used.
  *
- * <p>By default, the Yakhont Weaver handles your own classes. So, 'android.app.Activity.onResume ...' in config means:
- * weave 'onResume' method in all your Activities that extend 'android.app.Activity'.
+ * <p>By default, the Yakhont Weaver handles classes from the current project. So, 'android.app.Activity.onResume ...'
+ * in config means: weave 'onResume' method in all your Activities that extend 'android.app.Activity'.
  *
  * <p>JARs weaving supported via &lt;lib&gt; prefix - e.g. we can patch 'Retrofit' JAR
  * (see demo in the default 'weather.config').
@@ -441,7 +441,10 @@ public class Weaver {
         if (!found) write(propertiesPath, GRADLE_PROP_JETIFIER_OFF);
     }
 
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     public static void makeClassMap(String classPath, String bootClassPath) {
+        if (!checkFlag(TMP_FLAG_1ST_PASS)) return;
+
         File classMap = new File(TMP_CLASS_MAP);
         if (classMap.exists()) return;
 
@@ -1210,17 +1213,16 @@ public class Weaver {
     }
 
     private static String adjustMethodData(CtMethod method, String methodData) {
-        String className = "\"" + method.getDeclaringClass().getName() + "\"";
+        String className = method.getDeclaringClass().getName();
 
-        if (Modifier.isStatic(method.getModifiers()) && methodData.contains("$0")) {
+        if (methodData.contains("$0") && Modifier.isStatic(method.getModifiers())) {
             log2ndPass(sNewLine, "for static method '" + method.getName() +
-                    "' parameter $0 in code to weave will be changed to the class name " +
-                    className.replace('\"', '\''));
-            methodData = methodData.replace("$0", className);
+                    "' parameter '$0' in code to weave will be changed to the class '" + className + "'");
+            methodData = methodData.replace("$0", className + ".class");
         }
 
-        return methodData.replace(ALIAS_CLASS, className).replace(ALIAS_METHOD,
-                "\"" + method.getName() + "\"");
+        return methodData.replace(ALIAS_CLASS , "\"" + className        + "\"")
+                         .replace(ALIAS_METHOD, "\"" + method.getName() + "\"");
     }
 
     private void weave(CtMethod method, String[] methodData, ClassPool classPool, boolean before)
