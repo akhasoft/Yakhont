@@ -136,7 +136,7 @@ ext {
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.1.0'
     projectLibVerCoreCore                                       =  '1.3.0'
-    projectLibVerFragmentFragment                               =  '1.2.4'
+    projectLibVerFragmentFragment                               =  '1.2.5'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
     projectLibVerLegacyLegacyPreferenceV14                      =  '1.0.0'

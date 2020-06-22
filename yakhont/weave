@@ -32,13 +32,13 @@ fi
 
 # Create the jar's temp class map
 java -cp $1 akha.yakhont.weaver.Weaver 0 $YAKHONT_WEAVED_MODULE
-gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean
+./gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean
 java -cp $1 akha.yakhont.weaver.Weaver 1 $YAKHONT_WEAVED_MODULE
 
 # Handle configs and patch jars
-gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:build
+./gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:build
 java -cp $1 akha.yakhont.weaver.Weaver 2
 
 # Build application and restore jars
-gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean $YAKHONT_WEAVED_MODULE:build
+./gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean $YAKHONT_WEAVED_MODULE:build
 java -cp $1 akha.yakhont.weaver.Weaver 3

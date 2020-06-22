@@ -22,6 +22,7 @@ import akha.yakhont.Core.BaseDialog;
 import akha.yakhont.Core.UriResolver;
 import akha.yakhont.Core.Utils;
 import akha.yakhont.Core.Utils.SnackbarBuilder;
+import akha.yakhont.Core.Utils.ViewHelper;
 import akha.yakhont.CoreLogger;
 import akha.yakhont.CoreLogger.Level;
 import akha.yakhont.CoreReflection;
@@ -46,13 +47,13 @@ import android.content.DialogInterface.OnKeyListener;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.CountDownTimer;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup.LayoutParams;
+import android.widget.PopupWindow;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.CallSuper;
 import androidx.annotation.MainThread;
@@ -890,8 +891,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             /**
              * Shows the data loading progress GUI.
+             *
+             * @param activity
+             *        The {@link Activity} (or null for the current one)
              */
-            void show();
+            void show(Activity activity);
 
             /**
              * Hides the data loading progress GUI.
@@ -941,7 +945,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             protected     static SnackbarBuilder    sSnackbarBuilder;
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-            protected     static ViewModifier       sToastViewModifier;
+            protected     static ViewModifier       sViewModifier;
 
             private              Snackbar           mSnackbar;
 
@@ -960,7 +964,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             private static void init() {
                 sSnackbarDuration   = null;
                 sSnackbarBuilder    = null;
-                sToastViewModifier  = null;
+                sViewModifier       = null;
             }
 
             /**
@@ -1081,22 +1085,21 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
 
             /**
-             * Sets the {@code Toast} View handler (for customizing data loading progress
-             * {@code Toast}). Usage example:
+             * Sets the View handler for customizing data loading progress component. Usage example:
              *
              * <p><pre style="background-color: silver; border: thin solid black;">
-             * setToastViewHandler((view, vh) -&gt; {
+             * setViewHandler((view, vh) -&gt; {
              *     view.setBackgroundColor(Color.GRAY);
              *     vh.getTextView().setTextColor(Color.YELLOW);
-             * //  vh.getToastProgressView().set...;
+             * //  vh.getProgressView().set...;
              * });
              * </pre>
              *
              * @param viewModifier
-             *        The Toast's view modifier
+             *        The view modifier
              */
-            public static void setToastViewHandler(final ViewModifier viewModifier) {
-                sToastViewModifier = viewModifier;
+            public static void setViewHandler(final ViewModifier viewModifier) {
+                sViewModifier = viewModifier;
             }
         }
 
@@ -1127,11 +1130,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              */
             @SuppressWarnings("unused")
             @Override
-            public void show() {
+            public void show(Activity activity) {
                 mProgress = CoreReflection.createSafe(mClass);
                 if (mProgress == null) return;
 
-                final Activity activity = Utils.getCurrentActivity();
+                if (activity  == null) activity = Utils.getCurrentActivity();
+
                 if (activity instanceof FragmentActivity) {
                     mTag = "yakhont_progress_" + RANDOM.nextInt(Integer.MAX_VALUE);
                     mProgress.show(((FragmentActivity) activity).getSupportFragmentManager(), mTag);
@@ -1301,12 +1305,10 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
         private static class ProgressDefaultImp extends ProgressDefault {
 
-            private final static long               UPDATE_INTERVAL         = 300;
-
             private       static ProgressDefaultImp sInstance;
 
-            private              Toast              mToast;
-            private              CountDownTimer     mCountDownTimer;
+            private              PopupWindow        mPopupWindow;
+            private              String             mText;
 
             static {
                 init();
@@ -1324,34 +1326,39 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
 
             private ProgressDefaultImp() {
-                makeToast();
             }
 
-            @SuppressLint("InflateParams")
-            private void makeToast() {
-                final Context context = getContext();
+            private void showPopupWindow(final View viewPopupWindow) {
+                Context context = getContext();
+                View    view    = getView(context);
 
-                mToast = new Toast(context);
-                View view = getView(context);
-
-                final ViewHandler viewHandler = getToastViewHandler();
+                final ViewHandler viewHandler = getViewHandler();
 
                 if (viewHandler != null && !viewHandler.wrapper(view)) {
-                    CoreLogger.logError("failed View customization for Toast: " + mToast);
+                    CoreLogger.logError("failed View customization for PopupWindow: " + mPopupWindow);
                     view = getView(context);
                 }
+                if (mText != null) {
+                    ((TextView) view.findViewById(akha.yakhont.R.id.yakhont_loader_text)).setText(mText);
+                    mText = null;
+                }
 
-                mToast.setView(view);
-                mToast.setGravity(Gravity.CENTER, 0, 0);
-                mToast.setDuration(Toast.LENGTH_SHORT);
+                try {
+                    mPopupWindow = new PopupWindow(view, LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+                    mPopupWindow.showAtLocation(viewPopupWindow, Gravity.CENTER, 0, 0);
+                }
+                catch (Exception exception) {
+                    mPopupWindow = null;
+                    CoreLogger.log("can't show data loading progress", exception);
+                }
             }
 
-            private static ViewHandler getToastViewHandler() {
-                return sToastViewModifier == null ? null: new ViewHandler() {
+            private static ViewHandler getViewHandler() {
+                return sViewModifier == null ? null: new ViewHandler() {
                     @SuppressWarnings("unused")
                     @Override
                     public void modify(final View view, final ViewHandler viewHandler) {
-                        sToastViewModifier.modify(view, viewHandler);
+                        sViewModifier.modify(view, viewHandler);
                     }
                 };
             }
@@ -1365,34 +1372,35 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             @SuppressWarnings("unused")
             @Override
             public void setText(@NonNull final String text) {
-                ((TextView) mToast.getView().findViewById(akha.yakhont.R.id.yakhont_loader_text)).setText(text);
+                if (mPopupWindow != null)
+                    CoreLogger.logWarning("data loading progress PopupWindow already exists, " +
+                            "so text '" + text + "' will be used next time");
+                mText = text;
             }
 
             @Override
-            public void show() {
-                mCountDownTimer = new CountDownTimer(Long.MAX_VALUE, UPDATE_INTERVAL) {
-                    @Override
-                    public void onTick(final long millisUntilFinished) {
-                        mToast.show();
-                    }
+            public void show(final Activity activity) {
+                if (mPopupWindow != null) {
+                    CoreLogger.logWarning("data loading progress PopupWindow already exists");
+                    return;
+                }
+                View view = ViewHelper.getView(activity);
 
-                    @Override
-                    public void onFinish() {
-                    }
-                }.start();
+                if (view == null)
+                    CoreLogger.logError("can't create data loading progress PopupWindow");
+                else
+                    showPopupWindow(view);
             }
 
             @SuppressWarnings("unused")
             @Override
             public void hide() {
-                if (mCountDownTimer != null) {
-                    mCountDownTimer.cancel();
-                    mCountDownTimer = null;
-                }
                 super.hide();
 
-                mToast.cancel();
-                makeToast();
+                if (mPopupWindow == null) return;
+
+                mPopupWindow.dismiss();
+                mPopupWindow = null;
             }
         }
 
@@ -1500,6 +1508,21 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     info: context.getString(akha.yakhont.R.string.yakhont_loader_progress_def_info));
         }
 
+        // subject to call by the Yakhont Weaver
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        public static void startForWeaver(final Activity activity) {
+            final LiveDataDialog liveDataDialog = LiveDataDialog.getInstance();
+            if (liveDataDialog.mProgress instanceof ProgressDefaultImp)
+                liveDataDialog.start(((ProgressDefaultImp) liveDataDialog.mProgress).mText, activity);
+        }
+
+        // subject to call by the Yakhont Weaver
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        public static void stopForWeaver() {
+            if (LiveDataDialog.getInstance().mProgress instanceof ProgressDefaultImp)
+                ProgressDefaultImp.getInstance().hide();
+        }
+
         /**
          * Shows the data loading progress GUI (it always runs in UI thread).
          *
@@ -1510,11 +1533,15 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          */
         @SuppressWarnings("WeakerAccess")
         public void start(final String text) {
-            Utils.postToMainLoop(new Runnable() {
+            start(text, (Activity) null);
+        }
+
+        private void start(final String text, final Activity activity) {
+            Utils.postToMainLoop(100, new Runnable() {
                 @Override
                 public void run() {
                     synchronized (mLock) {
-                        startAsync(text);
+                        startAsync(text, activity);
                     }
                 }
 
@@ -1526,20 +1553,22 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             });
         }
 
-        private void startAsync(final String text) {
+        private void startAsync(final String text, final Activity activity) {
             if (mProgress == null) mProgress = ProgressDefaultImp.getInstance();
 
             mProgress.setText(text != null ? text: getInfoText(null));
 
-            if (mIsLoading) {
-                mCounter++;
-                CoreLogger.log("progress counter incremented to " + mCounter);
-                return;
+            if (activity == null) {
+                if (mIsLoading) {
+                    mCounter++;
+                    CoreLogger.log("progress counter incremented to " + mCounter);
+                    return;
+                }
+                mCounter = 1;
             }
-            mCounter   = 1;
             mIsLoading = true;
 
-            mProgress.show();
+            mProgress.show(activity);
         }
 
         /**

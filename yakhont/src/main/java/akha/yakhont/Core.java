@@ -96,7 +96,6 @@ import androidx.annotation.ColorInt;
 import androidx.annotation.ColorRes;
 import androidx.annotation.IdRes;
 import androidx.annotation.IntRange;
-import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.StringRes;
@@ -2318,23 +2317,8 @@ public class Core implements DefaultLifecycleObserver {
          *        {@code Toast.LENGTH_SHORT}, null for default value
          */
         @SuppressWarnings("unused")
-        public static void showToastExt(final Toast toast, final Integer duration) {
-            UiModule.showToastExt(toast, duration);
-        }
-
-        /**
-         * Shows {@link Toast}.
-         *
-         * @param viewId
-         *        The layout ID to show in {@code Toast}
-         *
-         * @param duration
-         *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
-         *        {@code Toast.LENGTH_SHORT}, null for default value
-         */
-        @SuppressWarnings("unused")
-        public static void showToastExt(@LayoutRes final int viewId, final Integer duration) {
-            UiModule.showToastExt(viewId, duration);
+        public static void showToast(final Toast toast, final Integer duration) {
+            UiModule.showToast(toast, duration);
         }
 
         ////////////////////////////////////////////////////////////////////////////////////////////
@@ -2345,9 +2329,6 @@ public class Core implements DefaultLifecycleObserver {
          * <p>Can call {@link Activity#onActivityResult} (see {@link #setRequestCode}).
          */
         public static class ToastBuilder {
-
-            @LayoutRes
-            private            Integer                  mViewLayoutId;
 
             @StringRes
             private            int                      mTextId                         = Core.NOT_VALID_RES_ID;
@@ -2368,20 +2349,6 @@ public class Core implements DefaultLifecycleObserver {
              */
             @SuppressWarnings("unused")
             public ToastBuilder() {
-            }
-
-            /**
-             * Sets the Toast's {@link View}.
-             *
-             * @param viewLayoutId
-             *        The View's layout ID
-             *
-             * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
-             */
-            @SuppressWarnings("unused")
-            public ToastBuilder setViewLayoutId(@LayoutRes final int viewLayoutId) {
-                mViewLayoutId     = viewLayoutId;
-                return this;
             }
 
             /**
@@ -2483,9 +2450,8 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             private Toast run(final boolean show) {
-                return UiModule.showToast(mViewLayoutId != null ? mViewLayoutId: Core.NOT_VALID_RES_ID,
-                        mTextId, mText, mDuration, mRequestCode, mData, mGravity, mXOffset, mYOffset,
-                        mHorizontalMargin, mVerticalMargin, show);
+                return UiModule.showToast(mTextId, mText, mDuration, mRequestCode, mData, mGravity,
+                        mXOffset, mYOffset, mHorizontalMargin, mVerticalMargin, show);
             }
 
             /**
@@ -2824,7 +2790,7 @@ public class Core implements DefaultLifecycleObserver {
              * Sets the View handler for the Snackbar's view. Usage example:
              *
              * <p><pre style="background-color: silver; border: thin solid black;">
-             * setToastViewHandler((view, vh) -&gt; {
+             * setViewHandler((view, vh) -&gt; {
              *     view.setBackgroundColor(Color.BLUE);
              *     vh.getTextView().setTextColor(Color.GREEN);
              * });

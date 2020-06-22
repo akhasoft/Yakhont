@@ -42,7 +42,6 @@ import android.content.res.ColorStateList;
 import android.os.CountDownTimer;
 import android.text.TextUtils;
 import android.view.GestureDetector;
-import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ProgressBar;
@@ -52,7 +51,6 @@ import android.widget.Toast;
 import androidx.annotation.ColorInt;
 import androidx.annotation.ColorRes;
 import androidx.annotation.IdRes;
-import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
@@ -636,20 +634,13 @@ public interface Dagger2 {
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void showToastExt(final Toast toast, final Integer duration) {
+        public static void showToast(final Toast toast, final Integer duration) {
             new BaseToast(toast, duration, null).startToast(null,
                     Core.NOT_VALID_RES_ID, null);
         }
 
         /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static void showToastExt(@LayoutRes final int viewId, final Integer duration) {
-            new BaseToast(viewId, duration, null).startToast(null,
-                    Core.NOT_VALID_RES_ID, null);
-        }
-
-        /** @exclude */ @SuppressWarnings("JavaDoc")
-        public static Toast showToast(@LayoutRes final int viewLayoutId,
-                                      @StringRes final int textId, final String text,
+        public static Toast showToast(@StringRes final int textId, final String text,
                                       final Integer duration, final Integer requestCode, final Intent data,
                                       final Integer gravity, final int xOffset, final int yOffset,
                                       final Float horizontalMargin, final float verticalMargin,
@@ -658,7 +649,7 @@ public interface Dagger2 {
 
             final Toast[] toast = new Toast[] {null};
             try {
-                final boolean result = new BaseToast(viewLayoutId, duration, requestCode)
+                final boolean result = new BaseToast(duration, requestCode)
                         .setGravity(gravity, xOffset, yOffset)
                         .setMargin (horizontalMargin, verticalMargin)
                         .startToast(text, textId, data, toast, show);
@@ -800,12 +791,12 @@ public interface Dagger2 {
             }
 
             /**
-             * Returns {@code ProgressBar} for Yakhont's {@code Toast}.
+             * Returns {@code ProgressBar} for Yakhont's loading progress component.
              * Should be called from {@link #modify} only.
              *
              * @return  The {@code ProgressBar}
              */
-            public ProgressBar getToastProgressView() {
+            public ProgressBar getProgressView() {
                 return mView == null ? null: mView.findViewById(akha.yakhont.R.id.yakhont_loader_progress);
             }
 
@@ -914,8 +905,8 @@ public interface Dagger2 {
              * Always returns null, should never be called.
              */
             @Override
-            public ProgressBar getToastProgressView() {
-                CoreLogger.logError("getToastProgressView() should be called for Toasts only");
+            public ProgressBar getProgressView() {
+                CoreLogger.logError("getProgressView() should't be called for Snackbars");
                 return null;
             }
         }
@@ -1760,9 +1751,6 @@ class BaseToast implements BaseDialog {
     private              Toast                    mToast;
     private        final Integer                  mRequestCode;
 
-    @LayoutRes
-    private        final int                      mViewLayoutId;
-
     @NonNull
     private        final Integer                  mDuration;
     private              Integer                  mGravity;
@@ -1774,26 +1762,15 @@ class BaseToast implements BaseDialog {
 
     private              CountDownTimer           mCountDownTimer;
 
+    BaseToast(final Integer duration, final Integer requestCode) {
+        this(null, duration, requestCode);
+    }
+
     BaseToast(final Integer duration) {
-        this(Core.NOT_VALID_RES_ID, duration);
+        this(duration, null);
     }
 
-    BaseToast(@LayoutRes final int viewLayoutId, final Integer duration, final Integer requestCode) {
-        this(null, viewLayoutId, duration, requestCode);
-    }
-
-    BaseToast(@NonNull final Toast toast, final Integer duration,
-              @SuppressWarnings("SameParameterValue") final Integer requestCode) {
-        this(toast, Core.NOT_VALID_RES_ID, duration, requestCode);
-    }
-
-    private BaseToast(@SuppressWarnings("SameParameterValue") @LayoutRes final int viewLayoutId,
-                      final Integer duration) {
-        this(viewLayoutId, duration, null);
-    }
-
-    private BaseToast(final Toast toast, @LayoutRes final int viewLayoutId,
-                      Integer duration, final Integer requestCode) {
+    BaseToast(final Toast toast, Integer duration, final Integer requestCode) {
 
         if (duration != null && toast != null)
             toast.setDuration(isStandardDuration(duration) ? duration: Toast.LENGTH_SHORT);
@@ -1806,7 +1783,6 @@ class BaseToast implements BaseDialog {
 
         mDuration         = isStandardDuration(duration) ? duration: Core.adjustTimeout(duration);
         mRequestCode      = requestCode;
-        mViewLayoutId     = viewLayoutId;
         mToast            = toast;
 
         Helper.checkRequestCode(requestCode);
@@ -1831,12 +1807,8 @@ class BaseToast implements BaseDialog {
         return startToast(text, textId, data, new Toast[] {null}, true);
     }
 
-    private boolean noView() {
-        return mViewLayoutId == Core.NOT_VALID_RES_ID;
-    }
-
     private String getToastDescription(final String text) {
-        return "text - " + text + ", view layout ID - " + CoreLogger.getResourceDescription(mViewLayoutId);
+        return "text - " + text;
     }
 
     @SuppressLint("ShowToast")
@@ -1844,7 +1816,7 @@ class BaseToast implements BaseDialog {
                        final Toast[] toast, final boolean show) {
         final Context context = Utils.getApplication();
 
-        if (text == null && noView())
+        if (text == null)
             if (textId == Core.NOT_VALID_RES_ID) {
                 CoreLogger.logError("no text for Toast");
                 return false;
@@ -1852,7 +1824,7 @@ class BaseToast implements BaseDialog {
             else
                 text = Objects.requireNonNull(context).getString(textId);
 
-        if (mToast == null && noView() && !Dagger2.UiModule.validate(text)) return false;
+        if (mToast == null && !Dagger2.UiModule.validate(text)) return false;
 
         try {
             if (mToast == null) {
@@ -1948,20 +1920,13 @@ class BaseToast implements BaseDialog {
 
     @SuppressLint("ShowToast")
     private void makeToast(final Context context, final String text) {
-        if (mViewLayoutId != Core.NOT_VALID_RES_ID) {
-            mToast = new Toast(context);
-            mToast.setView(LayoutInflater.from(context).inflate(
-                    mViewLayoutId, null, false));
-            mToast.setDuration(getDuration());
+        try {
+            mToast = Toast.makeText(context, text, getDuration());
         }
-        else
-            try {
-                mToast = Toast.makeText(context, text, getDuration());
-            }
-            catch (Exception exception) {
-                CoreLogger.log("looks like a Toast.makeText() bug for Toast: " + getToastDescription(text) +
-                        ", context: " + CoreLogger.getDescription(context), exception);
-            }
+        catch (Exception exception) {
+            CoreLogger.log("looks like a Toast.makeText() bug for Toast: " + getToastDescription(text) +
+                    ", context: " + CoreLogger.getDescription(context), exception);
+        }
     }
 
     private static boolean isStandardDuration(final int duration) {

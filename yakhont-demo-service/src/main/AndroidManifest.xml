@@ -20,7 +20,7 @@
     package="akha.yakhont.demoservice"
     tools:ignore="GoogleAppIndexingWarning">
 
-    <uses-permission android:name="android.permission.WAKE_LOCK"                             />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name="androidx.multidex.MultiDexApplication"

@@ -1213,7 +1213,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             if (isService) {
                 builder.setProgress(new ProgressDefault() {
                     @Override
-                    public void show() {
+                    public void show(final Activity activity) {
                         CoreLogger.logWarning("ProgressDefault.show() ignored 'cause of Service");
                     }
 

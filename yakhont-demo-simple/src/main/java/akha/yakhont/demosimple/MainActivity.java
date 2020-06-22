@@ -81,10 +81,10 @@ public class MainActivity extends Activity implements ViewModelStoreOwner, Locat
         // customize default progress here (and uncomment setEmulatedNetworkDelay() below to see results)
         // you can also provide your own progress component (see below)
 /*
-        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setToastViewHandler((view, vh) -> {
+        akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setViewHandler((view, vh) -> {
             view.setBackgroundColor(android.graphics.Color.GRAY);
             vh.getTextView().setTextColor(android.graphics.Color.YELLOW);
-//          vh.getToastProgressView().set...;
+//          vh.getProgressView().set...;
         });
         akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.setSnackbarBuilder(
                 akha.yakhont.loader.BaseLiveData.LiveDataDialog.ProgressDefault.getDefaultSnackbarBuilder()

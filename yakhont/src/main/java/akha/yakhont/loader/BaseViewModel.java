@@ -773,7 +773,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
     // subject to call by the Yakhont Weaver
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
-    public static boolean isLoadingForWeaver(@NonNull final Activity activity) {
+    public static boolean isLoadingForWeaver(@NonNull final Activity activity, final boolean ignoreConfirm) {
         if (!(activity instanceof ViewModelStoreOwner)) return false;
 
         final Level level = CoreLogger.getDefaultLevel();
@@ -782,7 +782,8 @@ public class BaseViewModel<D> extends AndroidViewModel {
 
         for (final BaseViewModel<?> model: models) {
             final BaseLiveData<?> data = model.getData();
-            if (data.isLoading() && data.confirm(activity, null)) return true;
+            if (data.isLoading() &&
+                    (ignoreConfirm || data.confirm(activity, null))) return true;
         }
         return false;
     }

@@ -69,33 +69,46 @@ import javassist.CtNewMethod;
 import javassist.Loader;
 import javassist.NotFoundException;
 
+//todo change dev to master in weaver.config and script links
 /**
- * The <code>Weaver</code> class weaves the given application's compiled classes (both Java and Kotlin are supported),
- * according to configuration file info; both explicit method callbacks declarations and
- * declarations via annotations (which defines callbacks for the annotated methods) can be used.
+ * The <code>Weaver</code> utility weaves the given application's compiled classes (both Java and Kotlin),
+ * according to configuration file info; both explicit methods weaving and weaving via annotations are supported.
+ *
+ * <p>Your code to weave is just a string in some (you can use as many as you want)
+ * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weaver.config">config file</a>};
+ * it will be compiled by {@link <a href="https://www.javassist.org/">Javassist</a>} during build process.
+ *
+ * <p>Please refer to {@link <a href="https://github.com/akhasoft/Yakhont/tree/dev#usage">usage</a>}
+ * for build.gradle configuration info.
  *
  * <p>By default, the Yakhont Weaver handles classes from the current project. So, 'android.app.Activity.onResume ...'
  * in config means: weave 'onResume' method in all your Activities that extend 'android.app.Activity'.
  *
- * <p>JARs weaving supported via &lt;lib&gt; prefix - e.g. we can patch 'Retrofit' JAR
- * (see demo in the default 'weather.config').
+ * <p>JARs weaving supported via &lt;lib&gt; prefix - e.g. we can patch 'Retrofit' JAR (please refer to demo in the default
+ * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weaver.config">weaver.config</a>}).
  * <p>To do this, the build process should be run from the command line -
- * and Yakhont Weaver provides reference scripts implementation (the 'weave' and the 'weave.bat').
+ * and Yakhont Weaver provides reference scripts implementation (the
+ * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weave">weave</a>} and the
+ * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weave.bat">weave.bat</a>}).
  *
  * <p>For Windows it could be something like this:
- *   <br>&lt;path to the jar executable&gt; xf "&lt;path to the Yakhont Weaver jar&gt;" weave.bat
- *   <br>call weave.bat "&lt;path to the Yakhont Weaver jar&gt;;&lt;path to the javassist jar&gt;" [optional module name, default is 'app']
- *   <br>del weave.bat
+ * <pre style="background-color: silver; border: thin solid black;">
+ *   jar xf "&lt;path to Yakhont Weaver jar&gt;" weave.bat
+ *   weave.bat "&lt;path to Weaver jar&gt;;&lt;path to Javassist jar&gt;" [module, default is 'app']
+ *   del weave.bat
+ * </pre>
  *
  * <p>For Unix something like following should work:
- *   <br>&lt;path to the jar executable&gt; xf &lt;path to the Yakhont Weaver jar&gt; weave
- *   <br>./weave &lt;path to the Yakhont Weaver jar&gt;:&lt;path to the javassist jar&gt; [optional module name, default is 'app']
- *   <br>rm ./weave
+ * <pre style="background-color: silver; border: thin solid black;">
+ *   jar xf &lt;path to Yakhont Weaver jar&gt; weave
+ *   ./weave &lt;path to Weaver jar&gt;:&lt;path to Javassist jar&gt; [module, default is 'app']
+ *   rm ./weave
+ * </pre>
  *
  * <p>And well, any JAR can be patched this way - except signed ones ('cause of classes checksums).
  *
  * <p>It's also possible to add new methods to already existing classes - please refer to the default
- * 'weaver.config' for more info.
+ * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weaver.config">weaver.config</a>} for more info.
  *
  * <p>For classes, methods and packages names wildcards are also supported: '*' (many symbols), '?' (one symbol)
  * and '**' ('*' + all following packages - and yes, you can use '**' with packages only).
@@ -118,8 +131,9 @@ import javassist.NotFoundException;
  * {@link <a href="https://developer.android.com/topic/libraries/data-binding">Data Binding</a>}, etc.)
  * is not supported for the moment.
  *
- * <p>For more info and working examples please refer to the default 'weaver.config' configuration file
- * (e.g. new methods should be created with the 'before' keyword and without wildcards).
+ * <p>For more info and working examples please refer to the default
+ * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weaver.config">weaver.config</a>}
+ * configuration file (e.g. new methods should be created with the 'before' keyword and without wildcards).
  *
  * <p>And last but not least - the Yakhont Weaver supports any Java / Kotlin applications
  * (i.e. you can use it even without Yakhont library).
@@ -217,7 +231,7 @@ public class Weaver {
     /**
      * Initialises a newly created {@code Weaver} object.
      */
-    public Weaver() {
+    protected Weaver() {
     }
 
     /**
@@ -757,12 +771,12 @@ public class Weaver {
         logAddResults(found);
     }
 
-    private void logAddHeader(String pattern) {
+    private static void logAddHeader(String pattern) {
         if (!checkFlag(TMP_FLAG_1ST_PASS)) log(false, sNewLine + sNewLine +
                 MSG_TITLE + " added for pattern '" + pattern + "':");
     }
 
-    private void logAddResults(boolean[] found) {
+    private static void logAddResults(boolean[] found) {
         if (!found[0] && !checkFlag(TMP_FLAG_1ST_PASS)) log(false, "  nothing");
     }
 
@@ -841,10 +855,10 @@ public class Weaver {
                 addMethod(mapM, mapA, tokens, className, method, found, line);
     }
 
-    private void addMethod(Map<String, Map<String   , List<String[]>>> mapM,
-                           Map<String, Map<Condition, List<String[]>>> mapA,
-                           List<String> tokens, String className, String methodName,
-                           boolean[] found, String line) throws CannotCompileException {
+    private static void addMethod(Map<String, Map<String   , List<String[]>>> mapM,
+                                  Map<String, Map<Condition, List<String[]>>> mapA,
+                                  List<String> tokens, String className, String methodName,
+                                  boolean[] found, String line) throws CannotCompileException {
         tokens.set(0, className + "." + methodName);
         parseConfigHelper(mapM, mapA, tokens, line);
         found[0] = true;
@@ -852,9 +866,9 @@ public class Weaver {
             log(false, "  " + tokens.get(getClassOffset(tokens, line)));
     }
 
-    private void parseConfigHelper(Map<String, Map<String   , List<String[]>>> mapM,
-                                   Map<String, Map<Condition, List<String[]>>> mapA,
-                                   List<String> tokens, String line) throws CannotCompileException {
+    private static void parseConfigHelper(Map<String, Map<String   , List<String[]>>> mapM,
+                                          Map<String, Map<Condition, List<String[]>>> mapA,
+                                          List<String> tokens, String line) throws CannotCompileException {
         Action action;
         String actionToken = tokens.get(tokens.size() - 2);
 
@@ -912,8 +926,8 @@ public class Weaver {
                methodName.equals(CONDITION_RELEASE) || methodName.equals(CONDITION_DEBUG);
     }
 
-    private <T> void put(String className, T key, Action action, String actionToken,
-                         List<String> tokens, Map<String, Map<T, List<String[]>>> map, int classOffset) {
+    private static <T> void put(String className, T key, Action action, String actionToken,
+                                List<String> tokens, Map<String, Map<T, List<String[]>>> map, int classOffset) {
         if (!map.containsKey(className))    //noinspection Convert2Diamond
             map.put(className, new LinkedHashMap<T, List<String[]>>());
         Map<T, List<String[]>> classMap = map.get(className);
@@ -975,15 +989,15 @@ public class Weaver {
         log(sNewLine + "END OF CONFIG");
     }
 
-    private String removeExtraSpaces(String str) {
+    private static String removeExtraSpaces(String str) {
         return str.replaceAll("\\s+", " ");
     }
 
-    private Action getAction(String[] methodData) {
+    private static Action getAction(String[] methodData) {
         return Action.values()[Integer.parseInt(methodData[ACTION])];
     }
 
-    private String getActionDescription(String[] methodData) {
+    private static String getActionDescription(String[] methodData) {
         Action action = getAction(methodData);
         return (action.equals(Action.CATCH) ? "catch ": "") + methodData[ACTION_TOKEN];
     }
@@ -1086,7 +1100,7 @@ public class Weaver {
         }
 
         if (mToHandle.containsKey(className))     // should never happen
-            logError("class '" + className + "' is already patched");
+            logError("class '" + className + "' is already weaved");
         else
             mToHandle.put(className, newClassFileName + File.pathSeparator + newClassDir);
     }
@@ -1225,13 +1239,17 @@ public class Weaver {
                          .replace(ALIAS_METHOD, "\"" + method.getName() + "\"");
     }
 
+    private static boolean skipAction(String[] methodData, boolean before) {
+        Action action = getAction(methodData);
+        return !before && action == Action.INSERT_BEFORE ||
+                before && action != Action.INSERT_BEFORE;
+    }
+
     private void weave(CtMethod method, String[] methodData, ClassPool classPool, boolean before)
             throws NotFoundException, CannotCompileException {
+        if (skipAction(methodData, before)) return;
 
-        Action action = getAction(methodData);
-        if (!before && action == Action.INSERT_BEFORE ||
-             before && action != Action.INSERT_BEFORE) return;
-
+        Action action     = getAction(methodData);
         String actionCode = adjustMethodData(method, methodData[ACTION_CODE]);
 
         log(sNewLine + "method " + method.getLongName() +
@@ -1317,7 +1335,10 @@ public class Weaver {
             try {
                 if (methodDest != null)
                     weave(methodDest, methodData, classPool, before);
+
                 else {
+                    if (skipAction(methodData, before)) continue;
+
                     String newMethod = getNewMethod(classPool, methodSrc, methodData, clsDest, isNew);
                     log(sNewLine + "about to add method " + method + sNewLine +
                             " method body: " + newMethod);
@@ -1624,13 +1645,10 @@ public class Weaver {
         }
 
         @SuppressWarnings("UnstableApiUsage")
-        public List<Class<?>> getDeclaredClassesAll(
-                                                             List<String   > patterns,
-                @SuppressWarnings("SpellCheckingInspection") List<ClassInfo> classInfos) {
-
+        public List<Class<?>> getDeclaredClassesAll(List<String> patterns, List<ClassInfo> classInfo) {
             List<Class<?>> allClasses = new ArrayList<>();
-            for (ClassInfo classinfo: classInfos) {
-                Class<?> cls = getClass(classinfo);
+            for (ClassInfo info: classInfo) {
+                Class<?> cls = getClass(info);
                 if (cls != null) allClasses.add(cls);
             }
             return getDeclaredClasses(patterns, allClasses);
