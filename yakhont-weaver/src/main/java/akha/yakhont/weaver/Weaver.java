@@ -18,11 +18,13 @@ package akha.yakhont.weaver;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -41,6 +43,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -93,25 +96,48 @@ import javassist.NotFoundException;
  *
  * <p>For Windows it could be something like this:
  * <pre style="background-color: silver; border: thin solid black;">
- *   jar xf "&lt;path to Yakhont Weaver jar&gt;" weave.bat
- *   weave.bat "&lt;path to Weaver jar&gt;;&lt;path to Javassist jar&gt;" [module, default is 'app']
+ *   jar xf "&lt;Yakhont Weaver jar&gt;" weave.bat
+ *   weave.bat "&lt;Yakhont Weaver jar&gt;;&lt;Javassist jar&gt;" [module, default is 'app'] [arg]
  *   del weave.bat
  * </pre>
  *
  * <p>For Unix something like following should work:
  * <pre style="background-color: silver; border: thin solid black;">
- *   jar xf &lt;path to Yakhont Weaver jar&gt; weave
- *   ./weave &lt;path to Weaver jar&gt;:&lt;path to Javassist jar&gt; [module, default is 'app']
+ *   jar xf &lt;Yakhont Weaver jar&gt; weave
+ *   ./weave &lt;Yakhont Weaver jar&gt;:&lt;Javassist jar&gt; [module, default is 'app'] [arg]
  *   rm ./weave
  * </pre>
  *
- * <p>And well, any JAR can be patched this way - except signed ones ('cause of classes checksums).
+ * <p>And well, any JARs / AARs can be patched this way - except signed ones ('cause of classes checksums).
  *
  * <p>It's also possible to add new methods to already existing classes - please refer to the default
  * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weaver.config">weaver.config</a>} for more info.
  *
- * <p>For classes, methods and packages names wildcards are also supported: '*' (many symbols), '?' (one symbol)
+ * <p>For classes, methods and packages names wildcards are also supported: '*' (for many symbols), '?' (for one symbol)
  * and '**' ('*' + all following packages - and yes, you can use '**' with packages only).
+ *
+ * <p>E.g. 'and**.S?rvi*.on*' will be expanded to
+ * <ul>
+ *   <li>androidx.lifecycle.ServiceLifecycleDispatcher.onServicePreSuperOnCreate</li>
+ *   <li>androidx.lifecycle.ServiceLifecycleDispatcher.onServicePreSuperOnDestroy</li>
+ *   <li>androidx.lifecycle.ServiceLifecycleDispatcher.onServicePreSuperOnStart</li>
+ *   <li>androidx.lifecycle.ServiceLifecycleDispatcher.onServicePreSuperOnBind</li>
+ *   <li>android.app.Service.onTaskRemoved</li>
+ *   <li>android.app.Service.onUnbind</li>
+ *   <li>android.app.Service.onBind</li>
+ *   <li>android.app.Service.onConfigurationChanged</li>
+ *   <li>android.app.Service.onRebind</li>
+ *   <li>android.app.Service.onTrimMemory</li>
+ *   <li>android.app.Service.onDestroy</li>
+ *   <li>android.app.Service.onCreate</li>
+ *   <li>android.app.Service.onStartCommand</li>
+ *   <li>android.app.Service.onStart</li>
+ *   <li>android.app.Service.onLowMemory</li>
+ *   <li>android.content.ServiceConnection.onServiceDisconnected</li>
+ *   <li>android.content.ServiceConnection.onBindingDied</li>
+ *   <li>android.content.ServiceConnection.onServiceConnected</li>
+ *   <li>android.content.ServiceConnection.onNullBinding</li>
+ * </ul>
  *
  * <p>Wildcards support implemented via {@link <a href="https://github.com/google/guava">Guava</a>}'s
  * {@link <a href="https://guava.dev/releases/snapshot-jre/api/docs/com/google/common/reflect/ClassPath.html">ClassPath</a>}.
@@ -151,6 +177,10 @@ public class Weaver {
     private static final String      DEFAULT_CONFIG_FILE      = "weaver.config";
     private static final String      DEFAULT_MODULE           = "app"          ;
 
+    private static final String      SCRIPT_INIT              = "init"         ;
+    private static final String      SCRIPT_LIBS_WEAVE        = "weave"        ;
+    private static final String      SCRIPT_LIBS_RESTORE      = "restore"      ;
+
     private static final String      TMP_PREFIX               = "_tmp_yakhont_weaver_"                ;
     private static final String      TMP_BACKUP               = "./" + TMP_PREFIX + "backup.txt"      ;
     private static final String      TMP_TO_HANDLE            = "./" + TMP_PREFIX + "to_handle.txt"   ;
@@ -159,10 +189,10 @@ public class Weaver {
     private static final String      TMP_FLAG_SCRIPT          = "./" + TMP_PREFIX + "flag_script.txt" ;
     private static final String      TMP_FLAG_1ST_PASS        = "./" + TMP_PREFIX + "flag_1st.txt"    ;
 
-    private static final String      GRADLE_PROPS_FILE        = "gradle.properties"            ;
-    private static final String      GRADLE_PROPS_BACKUP      = TMP_PREFIX + GRADLE_PROPS_FILE ;
-    private static final String      GRADLE_PROP_JETIFIER     = "android.enableJetifier"       ;
-    private static final String      GRADLE_PROP_JETIFIER_OFF = GRADLE_PROP_JETIFIER + "=false";
+    private static final String      NM_PREFIX                = "__";
+    private static final String      NM_ARG_PREFIX            = NM_PREFIX + "arg";
+    private static final String      NM_RESULT_NAME           = NM_PREFIX + "result";
+    private static final String      NM_EXCEPTION_NAME        = NM_PREFIX + "exception";
 
     private static final String      CONDITION_DEBUG          = "_D";
     private static final String      CONDITION_RELEASE        = "_R";
@@ -190,8 +220,9 @@ public class Weaver {
                                      mBackup                  = new       HashMap<>();
     private        final Map<String, String>
                                      mToHandle                = new       HashMap<>();
-    private              Map<String, String[]>
+    private              Map<String, List<String[]>>
                                      mClassMap                                       ;
+    private              List<File>  mTmpJars                                        ;
 
     @SuppressWarnings("UnstableApiUsage")
     private              ImmutableSet<ClassInfo>
@@ -251,7 +282,7 @@ public class Weaver {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     protected static void logError(String message) {
-        log(false, sNewLine + MSG_ERROR   + message);
+        log(false, sNewLine + MSG_ERROR + message);
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -279,63 +310,92 @@ public class Weaver {
     }
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static void main(String[] args) throws IOException {
-        String module = args.length > 1 ? args[1]: DEFAULT_MODULE;
-
-        switch (args[0]) {
-            case "0":
-                switchOffJetifier(module);
+    public static void main(String[] parameters) throws IOException {
+        switch (parameters[0].toLowerCase()) {
+            case SCRIPT_INIT:
+                initScript();
                 break;
-            case "1":
-                restoreJetifier  (module);
+            case SCRIPT_LIBS_WEAVE:
+                weaveLibs(Boolean.parseBoolean(parameters[1]));
                 break;
-            case "2":
-                weaveJars();
+            case SCRIPT_LIBS_RESTORE:
+                restoreLibs();
                 break;
             default:
-                restoreJars();
+                logError("unknown argument: " + parameters[0]);
                 break;
         }
     }
 
-    private static Map<String, String[]> getClassMap() throws IOException {
-        Map<String, String[]> classMap = new HashMap<>();
+    private static Map<String, List<String[]>> getClassMap() throws IOException {
+        Map<String, List<String[]>> classMap = new HashMap<>();
 
         for (String line: read(TMP_CLASS_MAP)) {
             String[] tmp = parse(line);
             String   cls = tmp[0];
-            String   jar = tmp[1];
+            String   jar = tmp[tmp.length - 1];
 
-            if (jar.substring(jar.lastIndexOf(File.separator) + 1).startsWith("jetified-"))
-                logWarning("jetified JARs are not supported - '" + jar + "'");
+            String jarName = jar.substring(jar.lastIndexOf(File.separator) + 1).toLowerCase();
+            if (jarName.startsWith("jetified-")) reportJarProblem("jetified JAR", jar);
+            if (jarName.  endsWith("-api.jar" )) reportJarProblem("JAR from AAR", jar);
 
-            int pos = cls.length() - 6;
-            classMap.put(cls.substring(0, pos), new String[] {cls.substring(pos), jar});
+            int    pos = cls.length() - 6;
+            String key = cls.substring(0, pos);
+
+            if (!classMap.containsKey(key)) classMap.put(key, new ArrayList<>());
+
+            String[] data = new String[tmp.length];
+            data[0] = cls.substring(pos);
+            System.arraycopy(tmp, 1, data, 1, tmp.length - 1);
+
+            classMap.get(key).add(data);
         }
 
         return classMap;
     }
 
-    private static void weaveJars() throws IOException {
+    private static void reportJarProblem(String info, String jar) {
+        logError(info + " is not subject to weave ('cause it's a temp file) - '" + jar + "'");
+    }
+
+    private static void weaveLibs(boolean debug) throws IOException {
         delete(TMP_FLAG_1ST_PASS);
 
-        Map<String, String[]> classMap   = getClassMap();
-        ArcHandler            arcHandler = new ArcHandler(false);
+        Map<String, List<String[]>> classMap   = getClassMap();
+        LibHandler                  libHandler = new LibHandler(debug);
 
         for (String line: read(TMP_TO_HANDLE)) {
-            String[]  tmp = parse(line);
-            String    cls = tmp[0];
-            String   file = tmp[1];
-            String[] data = classMap.get(cls);
+            String[]       data = parse(line);
+            String          cls = data[0];
+            String         file = data[1];
+            List<String[]> libs = classMap.get(cls);
 
-            if (data == null)
-                logError("can't find jar for class " + getClassName(cls));
+            if (libs.size() == 0)
+                logError("can't find lib for class " + getClassName(cls));
+            else
+                for (String[] tmp: libs)
+                    if (tmp.length == 2)
+                        libHandler.replace(tmp[1], cls + tmp[0], file);
+                    else
+                        try {
+                            List<File[]> files = LibHandler.getAarLibAsTmpFiles(new File(tmp[1]),
+                                    Arrays.asList(Arrays.copyOfRange(tmp, 1, tmp.length)));
+                            libHandler.replace(files.get(files.size() - 1)[0].getAbsolutePath(),
+                                    cls + tmp[0], file);
 
-            else if (arcHandler.replace(data[1], cls + data[0], file))
-                logForce(sNewLine, "'" + data[1] + "' was updated with class " +
-                        getClassName(cls) + sNewLine);
+                            for (int i = files.size() - 2; i >= 0; i--) {
+                                File[] newFile = files.get(i + 1);
+                                libHandler.replace(files.get(i)[0].getAbsolutePath(), tmp[i + 2],
+                                        newFile[0].getAbsolutePath());
+                                delete(newFile[1]);
+                            }
+                            log(!debug, sNewLine);
+                        }
+                        catch (/*IO*/Exception exception) {
+                            exception.printStackTrace();
+                        }
 
-            delete(tmp[2]);
+            delete(data[2]);
         }
     }
 
@@ -343,7 +403,7 @@ public class Weaver {
         return "'" + cls.replace('/', '.') + "'";
     }
 
-    private static void restoreJars() {
+    private static void restoreLibs() {
         delete(TMP_CLASS_MAP  );
         delete(TMP_TO_HANDLE  );
         delete(TMP_FLAG_SCRIPT);
@@ -387,25 +447,6 @@ public class Weaver {
                     sNewLine + "don't run build process again - try to manually restore files first");
     }
 
-    private static void restoreJetifier(String path) {
-        logForce(sNewLine, "about to restore Android Jetifier for '" + path + "'...");
-
-        File tmpProperties = new File(path, GRADLE_PROPS_FILE);
-        boolean result = delete(tmpProperties);
-        if (result) {
-            File backup = new File(path, GRADLE_PROPS_BACKUP);
-            if (backup.exists() && !rename(backup, GRADLE_PROPS_FILE)) {
-                logError("can't restore Android Jetifier from '" + backup.getAbsolutePath() + "'");
-                result = false;
-            }
-        }
-        else
-            logError("can't delete temporarily file '" + tmpProperties.getAbsolutePath() +
-                    "', please do it manually");
-
-        if (result) logForce("Android Jetifier successfully restored" + sNewLine);
-    }
-
     private static void createFlag(String name) throws IOException {
         File flag = new File(name);
         if (!flag.createNewFile()) logError("can't create '" + flag.getAbsolutePath() + "'");
@@ -416,9 +457,7 @@ public class Weaver {
         return new File(name).exists();
     }
 
-    private static void switchOffJetifier(String path) throws IOException {
-        logForce("about to temporarily switch off Android Jetifier for '" + path + "'..." + sNewLine);
-
+    private static void initScript() throws IOException {
         delete(TMP_CLASS_MAP);
         delete(TMP_CLASSES  );
         delete(TMP_TO_HANDLE);
@@ -426,37 +465,19 @@ public class Weaver {
 
         createFlag(TMP_FLAG_SCRIPT  );
         createFlag(TMP_FLAG_1ST_PASS);
-
-        File   properties     = new File(path, GRADLE_PROPS_FILE);
-        String propertiesPath = properties.getAbsolutePath();
-
-        if (!properties.exists()) {
-            write(propertiesPath, GRADLE_PROP_JETIFIER_OFF);
-            return;
-        }
-
-        File propertiesBackup = new File(path, GRADLE_PROPS_BACKUP);
-        Files.copy(properties.toPath(), propertiesBackup.toPath(), StandardCopyOption.REPLACE_EXISTING);
-        if (!delete(properties)) return;
-
-        boolean found = false;
-        for (String line: read(propertiesBackup)) {
-            String tmpLine = line.trim();
-
-            if (tmpLine.startsWith(GRADLE_PROP_JETIFIER)) {
-                int pos = tmpLine.indexOf('=');
-                if (pos > 0 && GRADLE_PROP_JETIFIER.equals(tmpLine.substring(0, pos).trim())) {
-                    line  = GRADLE_PROP_JETIFIER_OFF;
-                    found = true;
-                }
-            }
-            write(propertiesPath, line);
-        }
-        if (!found) write(propertiesPath, GRADLE_PROP_JETIFIER_OFF);
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
-    public static void makeClassMap(String classPath, String bootClassPath) {
+    /**
+     * Makes class map (containing info about JARs / AARs and classes inside them).
+     * <br>Used for JARs / AARs weaving only.
+     *
+     * @param libs
+     *        The collection of JARs / AARs
+     *
+     * @param debug
+     *        The flag which switches ON / OFF printing debug messages to the console
+     */
+    public static void makeClassMap(Collection<File> libs, boolean debug) {
         if (!checkFlag(TMP_FLAG_1ST_PASS)) return;
 
         File classMap = new File(TMP_CLASS_MAP);
@@ -465,25 +486,28 @@ public class Weaver {
         logForce(sNewLine, "about to create temporarily class map '" +
                 classMap.getAbsolutePath() + "'...");
 
-        addToClassMap(classPath    );
-        addToClassMap(bootClassPath);
+        try {
+            BufferedWriter writer = new BufferedWriter(new FileWriter(classMap));
+            try {
+                for (File lib: libs)
+                    LibHandler.classMapHandle(writer, lib, debug);
+            }
+            finally {
+                try {
+                    writer.close();
+                }
+                catch (Exception exception) {
+                    classMapHandleError(exception);
+                }
+            }
+        }
+        catch (Exception exception) {
+            classMapHandleError(exception);
+        }
     }
 
-    private static void addToClassMap(String classPath) {
-        for (String path: classPath.split(File.pathSeparator)) {
-            if (!path.toLowerCase().endsWith(".jar")) continue;
-
-            //noinspection Convert2Lambda
-            ArcHandler.zipEntryHandler(path, null, new ArcHandler.ZipEntryHandler() {
-                @Override
-                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String jar,
-                                   List<File> result) {
-                    String entryName = zipEntry.getName();
-                    if (entryName.toLowerCase().endsWith(".class"))
-                        write(TMP_CLASS_MAP, entryName + File.pathSeparator + path);
-                }
-            });
-        }
+    private static void classMapHandleError(Exception exception) {
+        logError(exception.toString());
     }
 
     /**
@@ -605,6 +629,19 @@ public class Weaver {
         mAllClasses         = null;
         mWildCardsHandler   = null;
 
+        mTmpJars            = new ArrayList<>();
+        try {
+            run(classesDirs, configFiles, addConfig);
+        }
+        finally {
+            for (File tmpJar: mTmpJars)
+                delete(tmpJar);
+        }
+    }
+
+    private void run(String classesDirs, String[] configFiles, boolean addConfig)
+            throws NotFoundException, CannotCompileException, IOException {
+
         if (addConfig) parseConfig();
         if (configFiles != null) {
             //noinspection ForLoopReplaceableByForEach
@@ -659,10 +696,10 @@ public class Weaver {
         logPaths("boot classpath", mBootClassPath);
     }
 
-    private void logPaths(String pathName, String path) {
+    private void logPaths(String pathName, String paths) {
         log(sNewLine + pathName + ":");
-        for (String token: path.split(File.pathSeparator))
-            log(token);
+        for (String path: paths.split(File.pathSeparator))
+            log(path);
     }
 
     private static String[] parse(String line) {
@@ -1058,12 +1095,12 @@ public class Weaver {
         mUpdated = true;
     }
 
-    private void handleClassDest(CtClass classDest, String newClassDir, boolean lib)
+    private void handleClassDest(CtClass classDest, String newClassDir, boolean isLib)
             throws CannotCompileException, IOException {
         if (!newClassDir.endsWith(File.separator)) newClassDir += File.separator;
 
         classDest.writeFile(newClassDir);
-        if (!lib) return;
+        if (!isLib) return;
 
         if (!checkFlag(TMP_FLAG_SCRIPT)) {
             delete(newClassDir);
@@ -1076,28 +1113,29 @@ public class Weaver {
         String newClassFileName = newClassDir + className.replace('.', File.separatorChar) + ".class";
         className = className.replace('.', '/');
 
-        String[] data = mClassMap == null ? null: mClassMap.get(className);
+        List<String[]> data = mClassMap == null ? null: mClassMap.get(className);
         if (data == null) {
             if (mClassMap != null) logError("can't find class " + getClassName(className) + " in the class map");
         }
-        else {
-            String jar = data[1];
+        else
+            for (String[] tmp: data) {
+                String lib = tmp[1];
 
-            if (!mBackup.containsKey(jar)) {
-                File   jarFile = new File(jar);
-                String jarName = jarFile.getName();
+                if (!mBackup.containsKey(lib)) {
+                    File   libFile = new File(lib);
+                    String libName = libFile.getName();
 
-                File backup = File.createTempFile(jarName.substring(
-                        0, jarName.lastIndexOf('.') + 1), jar.substring(jar.length() - 4));
-                backupAndRestore(jarFile, backup);
+                    File backup = File.createTempFile(libName.substring(
+                            0, libName.lastIndexOf('.') + 1), lib.substring(lib.length() - 4));
+                    backupAndRestore(libFile, backup);
 
-                String backupName = backup.getAbsolutePath();
-                mBackup.put(jar, backupName);
+                    String backupName = backup.getAbsolutePath();
+                    mBackup.put(lib, backupName);
 
-                logForce(sNewLine, "backed up '" + jarFile.getAbsolutePath() + "' to '" +
-                        backupName + "'");
+                    logForce(sNewLine, "backed up '" + libFile.getAbsolutePath() + "' to '" +
+                            backupName + "'");
+                }
             }
-        }
 
         if (mToHandle.containsKey(className))     // should never happen
             logError("class '" + className + "' is already weaved");
@@ -1114,10 +1152,32 @@ public class Weaver {
         // ClassPool.getDefault() returns singleton, but we need new instance
         ClassPool classPool = new ClassPool(true);
 
-        classPool.appendPathList(mClassPath    );
-        classPool.appendPathList(mBootClassPath);
+        LibHandler libHandler = new LibHandler(mDebug);
+
+        appendPaths(classPool, mClassPath    , mTmpJars, libHandler);
+        appendPaths(classPool, mBootClassPath, mTmpJars, libHandler);
 
         return classPool;
+    }
+
+    private static void appendPaths(ClassPool classPool, String paths, List<File> tmpJars,
+                                    LibHandler libHandler) throws NotFoundException {
+        for (String path: paths.split(File.pathSeparator))
+            if (getExtension(path).equals(".aar"))
+                for (File jar: libHandler.getJars(path, null)) {
+                    classPool.appendClassPath(jar.getAbsolutePath());
+                    tmpJars.add(jar);
+                }
+            else {
+                if (path.endsWith(File.pathSeparator))
+                    path = path.substring(0, path.length() - File.pathSeparator.length());
+                classPool.appendClassPath(path);
+            }
+    }
+
+    private static String getExtension(String path) {
+        int idx = path.lastIndexOf('.');
+        return idx < 0 ? "": path.substring(idx).toLowerCase();
     }
 
     private void handleMethods(CtClass clsDest, ClassPool pool, String destClassName,
@@ -1351,11 +1411,6 @@ public class Weaver {
         }
     }
 
-    private static final String     NM_PREFIX           = "__";
-    private static final String     NM_ARG_PREFIX       = NM_PREFIX + "arg";
-    private static final String     NM_RESULT_NAME      = NM_PREFIX + "result";
-    private static final String     NM_EXCEPTION_NAME   = NM_PREFIX + "exception";
-
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "UnusedParameters"})
     protected String getNewMethod(ClassPool classPool, CtMethod methodSrc, String[] data, CtClass clsDest,
                                   boolean isNew) throws NotFoundException, CannotCompileException {
@@ -1413,10 +1468,13 @@ public class Weaver {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static void delete(String file) {
-        delete(new File(file));
+        if (file != null) delete(new File(file));
     }
 
-    private static boolean delete(File file) {
+    /** @exclude */ @SuppressWarnings("JavaDoc")
+    public static boolean delete(File file) {
+        if (file == null) return true;
+
         boolean result = true;
         if (!file.exists()) //noinspection ConstantConditions
             return result;
@@ -1484,11 +1542,11 @@ public class Weaver {
 
     private static class WildCardsHandler {
 
-        private static final String     URL_PREFIX           = "file:///"   ;
-        private static final String     MASK_ALL_PACKAGES    = "**"         ;
         private static final String[]   ANNOTATIONS_SUFFIXES = new String[] {".",
                                                                              "." + CONDITION_DEBUG,
                                                                              "." + CONDITION_RELEASE};
+        private static final String     URL_PREFIX           = "file:///"   ;
+        private static final String     MASK_ALL_PACKAGES    = "**"         ;
 
         private        final List<File> mTmpJars             = new ArrayList<>();
         private        final List<URL > mUrls                = new ArrayList<>();
@@ -1844,14 +1902,14 @@ public class Weaver {
 
         public void add(String classes) {
             try {
-                addInternal(classes);
+                addHelper(classes);
             }
             catch (IOException exception) {
                 exception.printStackTrace();
             }
         }
 
-        private void addInternal(String classes) throws IOException {
+        private void addHelper(String classes) throws IOException {
             String classesLowerCase = classes.toLowerCase();
 
             if (classes.endsWith("/") || classes.endsWith("\\") || classesLowerCase.endsWith(".jar")) {
@@ -1864,10 +1922,7 @@ public class Weaver {
                 return;
             }
 
-            List<File> jars = new ArrayList<>();
-            new ArcHandler(mDebug).getJars(classes, jars);
-
-            for (File jar: jars) {
+            for (File jar: new LibHandler(mDebug).getJars(classes, null)) {
                 mTmpJars.add(jar);
                 mUrls.add(new URL(makeUrl(jar.getCanonicalPath())));
             }
@@ -1879,7 +1934,7 @@ public class Weaver {
     /**
      * Helper class to work with JARs and AARs.
      */
-    public static class ArcHandler {
+    public static class LibHandler {
 
         private static final String                 CLASSES              = "classes.jar";
         private static final String                 LIBS                 = "libs/"      ;
@@ -1896,43 +1951,45 @@ public class Weaver {
         }
 
         /**
-         * Initialises a newly created {@code ArcHandler} object.
+         * Initialises a newly created {@code LibHandler} object.
          *
          * @param debug
          *        The flag which switches ON / OFF printing debug messages to the console
          */
-        public ArcHandler(boolean debug) {
+        public LibHandler(boolean debug) {
             mDebug = debug;
         }
 
         /**
-         * Replaces class in the given JAR.
+         * Replaces file in the given JAR / AAR.
          *
-         * @param jarName
-         *        The JAR file name
+         * @param file
+         *        The JAR / AAR file to update
          *
-         * @param className
-         *        The class name
+         * @param entry
+         *        The JAR / AAR entry name
          *
-         * @param newClassFileName
-         *        The new class file name
+         * @param newEntry
+         *        The new file to replace the old entry
          *
-         * @return  {@code true} if class was successfully replaced, {@code false} otherwise
+         * @return  {@code true} if file was successfully replaced, {@code false} otherwise
          */
-        public boolean replace(String jarName, String className, String newClassFileName) {
+        public boolean replace(String file, String entry, String newEntry) {
             // based on https://gist.github.com/DataPools/9c66bec1c9de1bbb626137056d788fa7
-            log(!mDebug, "about to update '" + jarName + "' with class '" + className + "'...");
+            log(!mDebug, sNewLine + "about to update '" + file + "' with '" + entry +
+                    "' from '" + newEntry + "'...");
             try {
                 try (FileSystem fileSystem = FileSystems.newFileSystem(
-                        URI.create("jar:" + new File(jarName).toURI()), sFileSystemEnv)) {
-                    Files.copy(Paths.get(newClassFileName), fileSystem.getPath(className),
+                        URI.create("jar:" + new File(file).toURI()), sFileSystemEnv)) {
+                    Files.copy(Paths.get(newEntry), fileSystem.getPath(entry),
                             StandardCopyOption.REPLACE_EXISTING);
                 }
-                log(!mDebug, "'" + jarName + "' was updated with class '" + className + "'");
+                log(!mDebug, "'" + file + "' updated with '" + entry + "'");
                 return true;
             }
-            catch (IOException exception) {
+            catch (/*IO*/Exception exception) {
                 exception.printStackTrace();
+                logError("failed to update '" + file + "' with '" + entry + "' from '" + newEntry + "'");
                 return false;
             }
         }
@@ -1944,10 +2001,12 @@ public class Weaver {
          *        The AAR file
          *
          * @param result
-         *        The list of resulting JARS
+         *        The list to fill with resulting JARs (or null)
+         *
+         * @return  The list of resulting JARs
          */
-        public void getJars(File aar, List<File> result) {
-            getJars(aar.getAbsolutePath(), result);
+        public List<File> getJars(File aar, List<File> result) {
+            return getJars(aar.getAbsolutePath(), result);
         }
 
         /**
@@ -1958,26 +2017,243 @@ public class Weaver {
          *        The AAR file name
          *
          * @param result
-         *        The list of resulting JARS
+         *        The list to fill with resulting JARs (or null)
+         *
+         * @return  The list of resulting JARs
          */
-        public void getJars(String aar, List<File> result) {
-            getJars(aar, result, false);
+        public List<File> getJars(String aar, List<File> result) {
+            if (result == null) result = new ArrayList<>();
+            getJarsHelper(aar, result);
+            return result;
         }
 
-        private void getJars(String aar, List<File> result, boolean isTmp) {
-            try {
-                aarHandler(aar, result);
+        private void getJarsHelper(String aar, List<File> result) {
+            log(!mDebug, "about to handle jars in '" + aar + "'");
+            List<File> tmpFiles = new ArrayList<>();
+
+            //noinspection Convert2Lambda
+            handleAar(aar, null, new AarEntryHandler() {
+                @Override
+                public void handle(List<String> internalPath, File file) {
+                    log(!mDebug, "for aar '" + aar + "' found entry '" +
+                            Arrays.deepToString(internalPath.toArray()) + "'");
+                    result.add(file);
+                }
+            }, false, tmpFiles, mDebug);
+
+            for (int i = tmpFiles.size() - 1; i >= 0; i--) {
+                File tmpFile = tmpFiles.get(i);
+                if (!result.contains(tmpFile)) delete(tmpFile);
             }
-            finally {
-                if (isTmp) delete(aar);
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static List<File[]> getAarLibAsTmpFiles(File lib, List<String> entryLibs) throws IOException {
+            List<File[]> result = new ArrayList<>();
+            getAarLibAsTmpFiles(lib, entryLibs, result, true);
+            return result;
+        }
+
+        private static void getAarLibAsTmpFiles(File lib, List<String> entryLibs, List<File[]> result,
+                                                boolean firstPass) throws IOException {
+            if (entryLibs.isEmpty()) {
+                logError("empty lib entries to handle '" + lib.getAbsolutePath() + "'");
+                return;
             }
+            String entryLib = entryLibs.get(0);
+            File[] tmp = firstPass && isAar(entryLib) ?
+                    new File[] { new File(entryLib), null }: getAarLibAsTmpFile(lib, entryLib);
+            if (tmp[0] == null) {
+                logError("can't find tmp file for '" + entryLib + "'");
+                return;
+            }
+            result.add(tmp);
+
+            String path = tmp[0].getAbsolutePath();
+            if (isAar(tmp[0].getName()))
+                if (entryLibs.size() < 2)
+                    logError("no lib entry to handle '" + path + "'");
+                else
+                    getAarLibAsTmpFiles(tmp[0], entryLibs.subList(1, entryLibs.size()),
+                            result, false);
+            else if (entryLibs.size() > 1)
+                logError("too many lib entries for '" + path + "': " +
+                        Arrays.deepToString(entryLibs.toArray()));
+        }
+
+        private static boolean isAar(String path) {
+            return getExtension(path).equals(".aar");
+        }
+
+        /** @exclude */ @SuppressWarnings("JavaDoc")
+        public static File[] getAarLibAsTmpFile(File lib, String entryLib) throws IOException {
+            File[] result = new File[] { null, Files.createTempDirectory(null).toFile() };
+            File[] tmpDir = new File[] { result[1] };
+
+            //noinspection Convert2Lambda
+            zipEntryHandle(lib.getAbsolutePath(), new ZipEntryHandler() {
+                @Override
+                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String notUsed) {
+                    String entryName = zipEntry.getName();
+                    if (!entryName.equals(entryLib)) return;
+
+                    String[] entryNames = entryName.split("/");
+                    for (int i = 0; i < entryNames.length - 1; i++) {
+                        tmpDir[0] = new File(tmpDir[0], entryNames[i]);
+                        if (!tmpDir[0].mkdir())
+                            logError("can't create dir '" + tmpDir[0] + "'");
+                    }
+
+                    try {
+                        result[0] = new File(tmpDir[0], entryNames[entryNames.length - 1]);
+                        if (!getZipEntry(zipInputStream, new FileOutputStream(result[0])))
+                            result[0] = null;
+                    }
+                    catch (Exception exception) {
+                        exception.printStackTrace();
+                    }
+                }
+            });
+
+            return result;
+        }
+
+        private static void classMapHandle(BufferedWriter writer, File lib, boolean debug) {
+            String path = lib.getAbsolutePath();
+
+            List<String> pathList = new ArrayList<>();
+            pathList.add(path);
+
+            switch (getExtension(path)) {
+                case ".jar":
+                    classMapHandleJar(writer, path, pathList);
+                    break;
+                case ".aar":
+                    classMapHandleAar(writer, path, pathList, debug);
+                    break;
+                default:
+                    logWarning("unknown lib: " + lib);
+                    break;
+            }
+        }
+
+        private static void classMapHandleAar(BufferedWriter writer, String path, List<String> pathList,
+                                              boolean debug) {
+            //noinspection Convert2Lambda
+            handleAar(path, pathList, new AarEntryHandler() {
+                @Override
+                public void handle(List<String> innerPath, File file) {
+                    classMapHandleJar(writer, file.getAbsolutePath(), innerPath);
+                }
+            }, false, null, debug);
+        }
+
+        private static void classMapHandleJar(BufferedWriter writer, String path, List<String> pathList) {
+            //noinspection Convert2Lambda
+            zipEntryHandle(path, new ZipEntryHandler() {
+                @Override
+                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String jar) {
+                    String entryName = zipEntry.getName();
+                    if (!entryName.toLowerCase().endsWith(".class")) return;
+
+                    try {
+                        StringBuilder fullPath = new StringBuilder(entryName);
+                        for (int i = 0 ; i < pathList.size(); i++)
+                            fullPath.append(File.pathSeparator).append(pathList.get(i));
+                        writer.write(fullPath.toString());
+                        writer.newLine();
+                    }
+                    catch (Exception exception) {
+                        classMapHandleError(exception);
+                    }
+                }
+            });
+        }
+
+        /**
+         * Handles JARs in AAR, recursively.
+         *
+         * @param aar
+         *        The AAR to handle
+         *
+         * @param innerPath
+         *        The list of files in AAR which contains the given JAR
+         *
+         * @param handler
+         *        The JAR's handler
+         *
+         * @param all
+         *        {@code true} for handling all JARs, {@code false} for 'classes.jar' and 'libs/*.?ar' only
+         *
+         * @param tmpFiles
+         *        The list of tmp JAR / AAR files; if null, they will be deleted by Yakhont,
+         *        otherwise should be deleted by the caller
+         *
+         * @param debug
+         *        The flag which switches ON / OFF printing debug messages to the console
+         */
+        public static void handleAar(String aar, List<String> innerPath, AarEntryHandler handler,
+                                     boolean all, List<File> tmpFiles, boolean debug) {
+            //noinspection Convert2Lambda
+            zipEntryHandle(aar, new ZipEntryHandler() {
+                @Override
+                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String zip) {
+                    String entryName = zipEntry.getName(), entryNameLower = entryName.toLowerCase();
+                    String extension = getExtension(entryName);
+
+                    if (!extension.equals(".jar") && !extension.equals(".aar")) return;
+
+                    List<String> tmpPath =
+                            innerPath == null ? new ArrayList<>(): new ArrayList<>(innerPath);
+                    tmpPath.add(entryName);
+
+                    File tmpFile = new LibHandler(debug).getZipEntry(zipInputStream,
+                            entryName, entryName.substring(entryName.length() - 3));
+
+                    if (extension.equals(".jar") && (all || entryNameLower.startsWith(LIBS) ||
+                            entryNameLower.equals(CLASSES)))
+                        try {
+                            handler.handle(tmpPath, tmpFile);
+                        }
+                        catch (Exception exception) {
+                            exception.printStackTrace();
+                        }
+
+                    if (tmpFile != null) {
+                        if (extension.equals(".aar") && (all || entryNameLower.startsWith(LIBS)))
+                            handleAar(tmpFile.getAbsolutePath(), tmpPath, handler, all, tmpFiles, debug);
+
+                        if (tmpFiles == null)
+                            delete(tmpFile);
+                        else
+                            tmpFiles.add(tmpFile);
+                    }
+                }
+            });
+        }
+
+        /**
+         * API to handle JARs in AAR.
+         */
+        public interface AarEntryHandler {
+
+            /**
+             * JAR handler.
+             *
+             * @param innerPath
+             *        The list of files in AAR which contains the given JAR
+             *
+             * @param tmpJar
+             *        The extracted temp JAR file
+             */
+            void handle(List<String> innerPath, File tmpJar);
         }
 
         private interface ZipEntryHandler {
-            void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String zip, List<File> result);
+            void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String zip);
         }
 
-        private static void zipEntryHandler(String zip, List<File> result, ZipEntryHandler handler) {
+        private static void zipEntryHandle(String zip, ZipEntryHandler handler) {
             ZipInputStream zipInputStream;
             try {
                 zipInputStream = new ZipInputStream(new BufferedInputStream(new FileInputStream(zip)));
@@ -1990,7 +2266,7 @@ public class Weaver {
             try {
                 ZipEntry zipEntry;
                 while ((zipEntry = zipInputStream.getNextEntry()) != null)
-                    handler.handle(zipInputStream, zipEntry, zip, result);
+                    handler.handle(zipInputStream, zipEntry, zip);
             }
             catch (IOException exception) {
                 exception.printStackTrace();
@@ -2005,59 +2281,14 @@ public class Weaver {
             }
         }
 
-        private void aarHandler(String aar, List<File> result) {
-            log(!mDebug, "about to handle jars in '" + aar + "'");
-            //noinspection Convert2Lambda,Anonymous2MethodRef
-            zipEntryHandler(aar, result, new ZipEntryHandler() {
-                @Override
-                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String aar,
-                                   List<File> result) {
-                    entryHandler(zipInputStream, zipEntry, aar, result);
-                }
-            });
-        }
-
-        private void entryHandler(ZipInputStream zipInputStream, ZipEntry zipEntry,
-                                  String aar, List<File> result) {
-            String name = getEntryName(zipEntry.getName());
-            if (name == null) return;
-
-            log(!mDebug, "for aar '" + aar + "' found entry '" + name + "'");
-            if (name.length() < 3) return;
-
-            File entry = getZipEntry(zipInputStream, name, name.substring(name.length() - 3));
-            if (entry == null) return;
-
-            String entryName = entry.getName();
-            int posDot = entryName.lastIndexOf('.');
-            if (posDot < 0) {
-                delete(entry);
-                return;
-            }
-
-            switch (entryName.substring(posDot + 1).toLowerCase()) {
-                case "jar":
-                    result.add(entry);
-                    break;
-
-                case "aar":
-                    getJars(entry.getAbsolutePath(), result, true);
-                    break;
-
-                default:
-                    delete(entry);
-                    break;
-            }
-        }
-
         private static String getEntryName(String name) {
-            return name.equals(CLASSES) ? name: !name.startsWith(LIBS) ? null:
-                   name.equals(LIBS)    ? null:  name.substring (LIBS.length());
+            return name.equalsIgnoreCase(CLASSES) ? name: !name.toLowerCase().startsWith(LIBS) ? null:
+                   name.equalsIgnoreCase(LIBS)    ? null:  name.substring(LIBS.length());
         }
 
         private File getZipEntry(ZipInputStream zipInputStream, String entryName, String extension) {
             try {
-                File tmpFile = File.createTempFile("cls", "." + extension);
+                File tmpFile = File.createTempFile("yakhont_", "." + extension);
 
                 if (getZipEntry(zipInputStream, new FileOutputStream(tmpFile))) {
                     log(!mDebug, "created '" + tmpFile.getCanonicalPath() +
@@ -2076,20 +2307,20 @@ public class Weaver {
         private static boolean getZipEntry(ZipInputStream zipInputStream, OutputStream outputStream) {
             boolean[] result = new boolean[] { true };
             byte   [] buffer = new byte[BUFFER_SIZE];
-            int       len;
+            int       length;
 
             try {
-                while ((len = zipInputStream.read(buffer)) != -1)
-                    outputStream.write(buffer, 0, len);
+                while ((length = zipInputStream.read(buffer)) != -1)
+                    outputStream.write(buffer, 0, length);
             }
-            catch (IOException exception) {
+            catch (Exception exception) {
                 handleZipError(result, exception);
             }
             finally {
                 try {
                     outputStream.close();
                 }
-                catch (IOException exception) {
+                catch (Exception exception) {
                     handleZipError(result, exception);
                 }
             }
@@ -2097,7 +2328,7 @@ public class Weaver {
             return result[0];
         }
 
-        private static void handleZipError(boolean[] result, IOException exception) {
+        private static void handleZipError(boolean[] result, Exception exception) {
             result[0] = false;
             exception.printStackTrace();
         }

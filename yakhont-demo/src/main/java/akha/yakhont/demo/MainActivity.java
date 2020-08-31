@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 7);
+        if (savedInstanceState == null) Utils.showToast(R.string.demo_description, 7);
 
         initLocationRx();   // optional
 /*

@@ -164,7 +164,6 @@ dependencies {
     implementation      "com.github.akhasoft:yakhont:$projectVerName@aar"
 }
 
-//todo switch off and test jars weaving
 // let's build release (or debug) only - just to reduce building time
 android.variantFilter { variant ->
     if (variant.buildType.name == (projectConfig == projectDebug ? 'release': 'debug')) {
@@ -177,17 +176,20 @@ android.variantFilter { variant ->
 String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
+afterEvaluate {         // just for JARs / AARs weaving demo
+    Set<File> libs = new HashSet<File>()
+    configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
+    Weaver.makeClassMap(libs, weaverDebug)
+}
+
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
 
-    afterEvaluate {     // just for JARs weaving demo
-        Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
-    }
-
     javaCompile.doLast {
         String destDir = javaCompile.destinationDir.toString()
+
         Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, destDir,
-                javaCompile.classpath.asPath + File.pathSeparator + destDir,    // for wildcards weaving demo only
+                javaCompile.classpath.asPath + File.pathSeparator + destDir,    // destDir - for wildcards weaving demo only
                 android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }

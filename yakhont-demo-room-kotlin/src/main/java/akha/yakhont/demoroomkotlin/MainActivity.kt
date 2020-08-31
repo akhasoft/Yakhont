@@ -94,7 +94,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if (savedInstanceState == null) Utils.showToastExt(R.layout.info, 12)
+        if (savedInstanceState == null) Utils.showToast(R.string.demo_description, 7)
 
         setDebugLogging(BuildConfig.DEBUG)      // optional
 

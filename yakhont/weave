@@ -15,30 +15,37 @@
 #  limitations under the License.
 
 echo
-echo 'The Yakhont Weaver patching jars script reference implementation.'
+echo 'The Yakhont Weaver patching JARs / AARs script reference implementation.'
 echo
-echo 'Usage: weave _cp _mn, where'
-echo '  _cp - Java class path (should include Yakhont Weaver and Javassist),'
-echo '  _mn - Android project module name to weave (skip for the default one).'
+echo 'Usage: weave _cp [_mn] [_arg], where'
+echo '  _cp  - Java class path (should include Yakhont Weaver and Javassist JARs),'
+echo '  _mn  - Android project module name to weave (default one is "app"),'
+echo '  _arg - user-defined info to use in build.gradle while weaving JARs / AARs,'
+echo '         can be accessed via project.property("yakhont_weave_arg").'
 echo
 echo 'Should be called from the root project directory.'
 echo
 
 if [ "$2" == "" ]; then
-  YAKHONT_WEAVED_MODULE=app
+  YAKHONT_TO_WEAVE=app
 else
-  YAKHONT_WEAVED_MODULE=$2
+  YAKHONT_TO_WEAVE=$2
 fi
 
-# Create the jar's temp class map
-java -cp $1 akha.yakhont.weaver.Weaver 0 $YAKHONT_WEAVED_MODULE
-./gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean
-java -cp $1 akha.yakhont.weaver.Weaver 1 $YAKHONT_WEAVED_MODULE
+if [ "$3" == "" ]; then
+  YAKHONT_ARG=
+else
+  YAKHONT_ARG=-Pyakhont_weave_arg=$3
+fi
 
-# Handle configs and patch jars
-./gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:build
-java -cp $1 akha.yakhont.weaver.Weaver 2
+# init script
+java -cp $1 akha.yakhont.weaver.Weaver init
+# make class map
+./gradlew --configure-on-demand $YAKHONT_ARG $YAKHONT_TO_WEAVE:clean $YAKHONT_TO_WEAVE:build
+# weave JARs / AArs
+java -cp $1 akha.yakhont.weaver.Weaver weave true
 
-# Build application and restore jars
-./gradlew --configure-on-demand $YAKHONT_WEAVED_MODULE:clean $YAKHONT_WEAVED_MODULE:build
-java -cp $1 akha.yakhont.weaver.Weaver 3
+# build application
+./gradlew --configure-on-demand              $YAKHONT_TO_WEAVE:clean $YAKHONT_TO_WEAVE:build
+# restore libs
+java -cp $1 akha.yakhont.weaver.Weaver restore

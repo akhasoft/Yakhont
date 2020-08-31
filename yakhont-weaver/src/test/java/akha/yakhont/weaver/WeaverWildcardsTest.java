@@ -19,6 +19,7 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
@@ -49,22 +50,24 @@ class WeaverWildcardsTest {
     }
 
     @Test
-    void testArcHandler() throws CannotCompileException, ClassNotFoundException, NoSuchMethodException,
+    void testLibHandler() throws CannotCompileException, ClassNotFoundException, NoSuchMethodException,
             InstantiationException, IllegalAccessException, InvocationTargetException, IOException,
             NotFoundException {
-        Class<?> cls = Class.forName("akha.yakhont.weaver.Weaver$ArcHandler");
-        Object arcHandler = cls.getConstructor(boolean.class).newInstance(true);
+        Class<?> cls = Class.forName("akha.yakhont.weaver.Weaver$LibHandler");
+        Object libHandler = cls.getConstructor(boolean.class).newInstance(true);
 
-        getJarsTest(arcHandler, cls.getMethod("getJars", String.class, List  .class));
-        replaceTest(arcHandler, cls.getMethod("replace", String.class, String.class, String.class));
+        getJarsTest(libHandler, cls.getMethod("getJars", String.class, List  .class));
+        replaceTest(libHandler, cls.getMethod("replace", String.class, String.class, String.class));
     }
 
     @Test
-    void testWeaver() throws NotFoundException, CannotCompileException {
+    void testWeaver() throws NotFoundException, CannotCompileException, IOException {
         getNewMethodTest();
+        getAarLibTest   ();
+        getAarLibsTest  ();
     }
 
-    private void replaceTest(Object arcHandler, Method replace) throws CannotCompileException,
+    private void replaceTest(Object libHandler, Method replace) throws CannotCompileException,
             IllegalAccessException, InvocationTargetException, IOException, NotFoundException {
         File jar = File.createTempFile("test", ".jar");
 
@@ -75,9 +78,9 @@ class WeaverWildcardsTest {
             if (zipEntry.getName().equals("classes.jar")) {
                 FileOutputStream out = new FileOutputStream(jar);
                 byte[] buffer = new byte[2048];
-                int len;
-                while ((len = zipInputStream.read(buffer)) != -1)
-                    out.write(buffer, 0, len);
+                int length;
+                while ((length = zipInputStream.read(buffer)) != -1)
+                    out.write(buffer, 0, length);
                 out.close();
                 break;
             }
@@ -97,7 +100,7 @@ class WeaverWildcardsTest {
         ctClass.getClassFile().write(new DataOutputStream(fileOutputStream));
         fileOutputStream.close();
 
-        replace.invoke(arcHandler, jar.getAbsolutePath(),
+        replace.invoke(libHandler, jar.getAbsolutePath(),
                 "akha/testaar/TestStub.class", newClass.getAbsolutePath());
 
         Process process = Runtime.getRuntime().exec("java -cp " + jar.getAbsolutePath() +
@@ -126,11 +129,10 @@ class WeaverWildcardsTest {
         }
     }
 
-    private void getJarsTest(Object arcHandler, Method getJars) throws IllegalAccessException,
+    @SuppressWarnings("unchecked")
+    private void getJarsTest(Object libHandler, Method getJars) throws IllegalAccessException,
             InvocationTargetException, IOException {
-        List<File> files = new ArrayList<>();
-
-        getJars.invoke(arcHandler, TEST_AAR, files);
+        List<File> files = (List<File>) getJars.invoke(libHandler, TEST_AAR, null);
         assertEquals(3, files.size());
 
         List<String> entries = new ArrayList<>();
@@ -196,7 +198,7 @@ class WeaverWildcardsTest {
             throws IllegalAccessException, InvocationTargetException {
         String test = "123ABC";
 
-        assertTrue((Boolean) matches.invoke(wildCardsHandler, test, test));
+        assertTrue ((Boolean) matches.invoke(wildCardsHandler, test  , test));
 
         assertTrue ((Boolean) matches.invoke(wildCardsHandler, "1*"  , test));
         assertTrue ((Boolean) matches.invoke(wildCardsHandler, "?2*" , test));
@@ -359,6 +361,39 @@ class WeaverWildcardsTest {
                 Action._catch, "throw $e;", "protected int testInt(int __arg0, int __arg1) throws " +
                         "java.lang.Exception { try { int __result = super.testInt($$); return __result; } " +
                         "catch(java.lang.Exception __exception) { throw __exception; } }");
+    }
+
+    private void getAarLibTest() throws IOException {
+        File lib = new File(TEST_AAR);
+        getAarLibHelper(lib, "classes.jar");
+        getAarLibHelper(lib, "libs/support-annotations-19.1.0.jar");
+        getAarLibHelper(lib, "libs/instantvideo-26.0.0-alpha1.aar");
+    }
+
+    private void getAarLibHelper(File lib, String entryLib) throws IOException {
+        File[] result = Weaver.LibHandler.getAarLibAsTmpFile(lib, entryLib);
+        assertTrue(result[0].getAbsolutePath().endsWith(File.separator +
+                entryLib.replace("/", File.separator)));
+        Weaver.delete(result[1]);
+    }
+
+    private void getAarLibsTest() throws IOException {
+        File lib = new File(TEST_AAR);
+        getAarLibsHelper(lib, new String[] { "classes.jar" });
+        getAarLibsHelper(lib, new String[] { "libs/support-annotations-19.1.0.jar" });
+        getAarLibsHelper(lib, new String[] { "libs/instantvideo-26.0.0-alpha1.aar", "classes.jar" });
+    }
+
+    private void getAarLibsHelper(File lib, String[] entryLibs) throws IOException {
+        if (entryLibs[0].endsWith(".aar")) return;
+        List<File[]> result = Weaver.LibHandler.getAarLibAsTmpFiles(lib, Arrays.asList(entryLibs));
+        assertEquals(entryLibs.length, result.size());
+
+        for (int i = 0 ; i < entryLibs.length; i++)
+            assertTrue(result.get(i)[0].getAbsolutePath().endsWith(File.separator +
+                    entryLibs[i].replace("/", File.separator)));
+        for (File[] tmp: result)
+            Weaver.delete(tmp[1]);
     }
 
     private static class TestA {

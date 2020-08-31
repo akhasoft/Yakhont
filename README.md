@@ -280,18 +280,23 @@ dependencies {
 String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
+afterEvaluate {         // optional; used only for AARs / JARs (like 'Retrofit') weaving
+    Set<File> libs = new HashSet<File>()
+    // you may want to use only some configurations ('cause of same classes in different libraries)
+    // most of the time '<prefix>CompileClasspath' is enough 
+    configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
+    akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug)
+}
+
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
-
-    afterEvaluate {     // optional; used only for JARs (like 'Retrofit') weaving
-        akha.yakhont.weaver.Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
-    }
 
     javaCompile.doLast {
         akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString(), 
-            javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
-            weaverAddConfig, weaverConfigFiles)
+            // you may want to to change classpath according to the set of configurations above
+            javaCompile.classpath.asPath, 
+            android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }
 ```
@@ -302,12 +307,16 @@ android.applicationVariants.all { variant ->
 String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
 boolean weaverDebug = false, weaverAddConfig = true
 
+afterEvaluate {         // optional; used only for AARs / JARs (like 'Retrofit') weaving
+    Set<File> libs = new HashSet<File>()
+    // you may want to use only some configurations ('cause of same classes in different libraries)
+    // most of the time '<prefix>CompileClasspath' is enough 
+    configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
+    akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug)
+}
+
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile  = variant.javaCompileProvider.get()
-
-    afterEvaluate {     // optional; used only for JARs (like 'Retrofit') weaving
-        akha.yakhont.weaver.Weaver.makeClassMap(javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator))
-    }
 
     javaCompile.doLast {
         String kotlinBase    = buildDir.toString()  + kotlinDir.replace('/', File.separator)
@@ -315,8 +324,9 @@ android.applicationVariants.all { variant ->
         
         akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
             javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
-            javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
-            weaverAddConfig, weaverConfigFiles)
+            // you may want to to change classpath according to the set of configurations above
+            javaCompile.classpath.asPath, 
+            android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }
 ```
