@@ -186,10 +186,11 @@ android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
 
     javaCompile.doLast {
-        String destDir = javaCompile.destinationDir.toString()
+        String classesDir = javaCompile.destinationDir.toString()
 
-        Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, destDir,
-                javaCompile.classpath.asPath + File.pathSeparator + destDir,    // destDir - for wildcards weaving demo only
+        Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, classesDir,
+                // classesDir is needed for weaving using application's code
+                javaCompile.classpath.asPath + File.pathSeparator + classesDir,
                 android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }

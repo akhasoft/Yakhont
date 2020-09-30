@@ -87,7 +87,7 @@ import javassist.NotFoundException;
  * <p>By default, the Yakhont Weaver handles classes from the current project. So, 'android.app.Activity.onResume ...'
  * in config means: weave 'onResume' method in all your Activities that extend 'android.app.Activity'.
  *
- * <p>JARs weaving supported via &lt;lib&gt; prefix - e.g. we can patch 'Retrofit' JAR (please refer to demo in the default
+ * <p>JARs / AARs weaving supported via &lt;lib&gt; prefix - e.g. we can patch 'Retrofit' JAR (please refer to demo in the default
  * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weaver.config">weaver.config</a>}).
  * <p>To do this, the build process should be run from the command line -
  * and Yakhont Weaver provides reference scripts implementation (the
@@ -109,6 +109,8 @@ import javassist.NotFoundException;
  * </pre>
  *
  * <p>And well, any JARs / AARs can be patched this way - except signed ones ('cause of classes checksums).
+ *
+ * <p>If some class to weave exists in more than one library - all these libraries will be weaved.
  *
  * <p>It's also possible to add new methods to already existing classes - please refer to the default
  * {@link <a href="https://github.com/akhasoft/Yakhont/blob/dev/yakhont/weaver.config">weaver.config</a>} for more info.
@@ -166,7 +168,7 @@ import javassist.NotFoundException;
  *
  * @author akha
  */
-@SuppressWarnings({"WeakerAccess", "unused"})
+@SuppressWarnings("WeakerAccess")
 public class Weaver {
 
     private static final String      COMMENT                  = "#"            ;
@@ -175,23 +177,25 @@ public class Weaver {
     private static final String      ALIAS_METHOD             = "$method"      ;
     private static final String      ALIAS_CLASS              = "$cls"         ;
     private static final String      DEFAULT_CONFIG_FILE      = "weaver.config";
-    private static final String      DEFAULT_MODULE           = "app"          ;
 
     private static final String      SCRIPT_INIT              = "init"         ;
     private static final String      SCRIPT_LIBS_WEAVE        = "weave"        ;
     private static final String      SCRIPT_LIBS_RESTORE      = "restore"      ;
+    private static final String      SCRIPT_CLEANUP           = "cleanup"      ;
 
-    private static final String      TMP_PREFIX               = "_tmp_yakhont_weaver_"                ;
-    private static final String      TMP_BACKUP               = "./" + TMP_PREFIX + "backup.txt"      ;
-    private static final String      TMP_TO_HANDLE            = "./" + TMP_PREFIX + "to_handle.txt"   ;
-    private static final String      TMP_CLASS_MAP            = "./" + TMP_PREFIX + "class_map.txt"   ;
-    private static final String      TMP_CLASSES              = "./" + TMP_PREFIX + "classes.txt"     ;
-    private static final String      TMP_FLAG_SCRIPT          = "./" + TMP_PREFIX + "flag_script.txt" ;
-    private static final String      TMP_FLAG_1ST_PASS        = "./" + TMP_PREFIX + "flag_1st.txt"    ;
+    private static final String      ENV_VAR_TMP_DIR          = "YAKHONT_WEAVER_TMP_DIR"      ;
 
-    private static final String      NM_PREFIX                = "__";
-    private static final String      NM_ARG_PREFIX            = NM_PREFIX + "arg";
-    private static final String      NM_RESULT_NAME           = NM_PREFIX + "result";
+    private static final String      TMP_PREFIX               = "_tmp_yakhont_weaver_"        ;
+    private static final String      TMP_BACKUP               = TMP_PREFIX + "backup.txt"     ;
+    private static final String      TMP_TO_HANDLE            = TMP_PREFIX + "to_handle.txt"  ;
+    private static final String      TMP_CLASS_MAP            = TMP_PREFIX + "class_map.txt"  ;
+    private static final String      TMP_CLASSES              = TMP_PREFIX + "classes.txt"    ;
+    private static final String      TMP_FLAG_SCRIPT          = TMP_PREFIX + "flag_script.txt";
+    private static final String      TMP_FLAG_1ST_PASS        = TMP_PREFIX + "flag_1st.txt"   ;
+
+    private static final String      NM_PREFIX                = "__"                   ;
+    private static final String      NM_ARG_PREFIX            = NM_PREFIX + "arg"      ;
+    private static final String      NM_RESULT_NAME           = NM_PREFIX + "result"   ;
     private static final String      NM_EXCEPTION_NAME        = NM_PREFIX + "exception";
 
     private static final String      CONDITION_DEBUG          = "_D";
@@ -265,6 +269,19 @@ public class Weaver {
     protected Weaver() {
     }
 
+    private static String getTmpDir() {
+        String tmpDir = null;
+        try {
+            tmpDir = System.getenv(ENV_VAR_TMP_DIR);
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+        }
+        if (tmpDir == null) tmpDir = ".";
+
+        return tmpDir.endsWith(File.separator) ? tmpDir: tmpDir + File.separator;
+    }
+
     /**
      * Prints debug message to the console.
      *
@@ -303,9 +320,9 @@ public class Weaver {
         log(false, (prefix == null ? "": prefix) + MSG_TITLE + ": " + message);
     }
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "SameParameterValue"})
     protected static void log2ndPass(String prefix, String message) {
-        if (!checkFlag(TMP_FLAG_1ST_PASS))
+        if (!checkFlag(getTmpDir() + TMP_FLAG_1ST_PASS))
             log(false, (prefix == null ? "": prefix) + MSG_TITLE + ": " + message);
     }
 
@@ -321,23 +338,32 @@ public class Weaver {
             case SCRIPT_LIBS_RESTORE:
                 restoreLibs();
                 break;
+            case SCRIPT_CLEANUP:
+                cleanup();
+                break;
             default:
                 logError("unknown argument: " + parameters[0]);
                 break;
         }
     }
 
-    private static Map<String, List<String[]>> getClassMap() throws IOException {
+    private static Map<String, List<String[]>> getClassMap(boolean debug) throws IOException {
         Map<String, List<String[]>> classMap = new HashMap<>();
+        Set<String> jetified = new HashSet<>(), api = new HashSet<>();
 
-        for (String line: read(TMP_CLASS_MAP)) {
+        for (String line: read(getTmpDir() + TMP_CLASS_MAP)) {
             String[] tmp = parse(line);
             String   cls = tmp[0];
             String   jar = tmp[tmp.length - 1];
 
-            String jarName = jar.substring(jar.lastIndexOf(File.separator) + 1).toLowerCase();
-            if (jarName.startsWith("jetified-")) reportJarProblem("jetified JAR", jar);
-            if (jarName.  endsWith("-api.jar" )) reportJarProblem("JAR from AAR", jar);
+            String jarName = getJarName(jar);
+            boolean tmpJarFromAar = isTmpJarFromAar(jarName), jetifiedJar = isJetifiedJar(jarName);
+
+            if (tmpJarFromAar   ) reportJarProblem(api     , "JAR from AAR", jar, debug);
+            else if (jetifiedJar) reportJarProblem(jetified, "jetified JAR", jar, debug);
+
+            // could be uncommented to increase performance
+//          if (tmpJarFromAar || jetifiedJar) continue;
 
             int    pos = cls.length() - 6;
             String key = cls.substring(0, pos);
@@ -354,28 +380,55 @@ public class Weaver {
         return classMap;
     }
 
-    private static void reportJarProblem(String info, String jar) {
-        logError(info + " is not subject to weave ('cause it's a temp file) - '" + jar + "'");
+    private static String getJarName(String jar) {
+        return jar.substring(jar.lastIndexOf(File.separator) + 1).toLowerCase();
+    }
+
+    private static boolean isJetifiedJar(String jarName) {
+        return jarName.startsWith("jetified-");
+    }
+
+    private static boolean isTmpJarFromAar(String jarName) {
+        return jarName.endsWith  ("-api.jar" );
+    }
+
+    private static void reportJarProblem(Set<String> set, String info, String jar, boolean debug) {
+        if (!debug || set.contains(jar)) return;
+
+        log(false, MSG_TITLE + ": " + info +
+                " is not subject to weave ('cause it's a temp file) - '" + jar + "'");
+        set.add(jar);
     }
 
     private static void weaveLibs(boolean debug) throws IOException {
-        delete(TMP_FLAG_1ST_PASS);
+        delete(getTmpDir() + TMP_FLAG_1ST_PASS);
 
-        Map<String, List<String[]>> classMap   = getClassMap();
+        Map<String, List<String[]>> classMap   = getClassMap(false);
         LibHandler                  libHandler = new LibHandler(debug);
 
-        for (String line: read(TMP_TO_HANDLE)) {
+        for (String line: read(getTmpDir() + TMP_TO_HANDLE)) {
             String[]       data = parse(line);
             String          cls = data[0];
             String         file = data[1];
             List<String[]> libs = classMap.get(cls);
 
-            if (libs.size() == 0)
-                logError("can't find lib for class " + getClassName(cls));
+            if (libs == null || libs.size() == 0)
+                logError("can't find lib for class " + getClassName(cls) + "; make sure you have " +
+                        "'afterEvaluate { ... Weaver.makeClassMap(...) }' in your build.gradle");
             else
-                for (String[] tmp: libs)
-                    if (tmp.length == 2)
+                for (String[] tmp: libs) {
+                    if (tmp.length == 2) {
+                        String jarName = getJarName(tmp[1]);
+
+                        if (jarName.equals("android.jar"))
+                            logError("'" + cls + ".class' - weaving 'android.jar" +
+                                    "' is pointless 'cause it hardcoded in devices");
+                        else if (isTmpJarFromAar(jarName) || isJetifiedJar(jarName))
+                            logError("'" + cls + ".class' - weaving '" + tmp[1] +
+                                    "' is pointless 'cause it's a temp file");
+
                         libHandler.replace(tmp[1], cls + tmp[0], file);
+                    }
                     else
                         try {
                             List<File[]> files = LibHandler.getAarLibAsTmpFiles(new File(tmp[1]),
@@ -389,12 +442,12 @@ public class Weaver {
                                         newFile[0].getAbsolutePath());
                                 delete(newFile[1]);
                             }
-                            log(!debug, sNewLine);
                         }
                         catch (/*IO*/Exception exception) {
                             exception.printStackTrace();
                         }
-
+                    log(!debug, sNewLine);
+                }
             delete(data[2]);
         }
     }
@@ -403,12 +456,28 @@ public class Weaver {
         return "'" + cls.replace('/', '.') + "'";
     }
 
-    private static void restoreLibs() {
-        delete(TMP_CLASS_MAP  );
-        delete(TMP_TO_HANDLE  );
-        delete(TMP_FLAG_SCRIPT);
+    private static void cleanup() {
+        File tmpClasses = new File(getTmpDir() + TMP_CLASSES);
+        if (!tmpClasses.exists()) return;
 
-        File backup = new File(TMP_BACKUP);
+        try {
+            for (String line: read(tmpClasses))
+                delete(line);
+        }
+        catch (/*IO*/Exception exception) {
+            exception.printStackTrace();
+        }
+        delete(tmpClasses);
+    }
+
+    private static void restoreLibs() {
+        String tmpDir = getTmpDir();
+
+        delete(tmpDir + TMP_CLASS_MAP  );
+        delete(tmpDir + TMP_TO_HANDLE  );
+        delete(tmpDir + TMP_FLAG_SCRIPT);
+
+        File backup = new File(tmpDir + TMP_BACKUP);
         if (!backup.exists()) return;
 
         try {
@@ -433,14 +502,12 @@ public class Weaver {
                 }
             }
             if (ok) delete(backup);
-
-            for (String line: read(TMP_CLASSES))
-                delete(line);
-            delete(TMP_CLASSES);
         }
-        catch (IOException exception) {
+        catch (/*IO*/Exception exception) {
             exception.printStackTrace();
         }
+
+        cleanup();
 
         if (backup.exists())
             logError("failed to restore files, the list of them is in " + backup.getAbsolutePath() +
@@ -458,13 +525,15 @@ public class Weaver {
     }
 
     private static void initScript() throws IOException {
-        delete(TMP_CLASS_MAP);
-        delete(TMP_CLASSES  );
-        delete(TMP_TO_HANDLE);
-        delete(TMP_BACKUP   );
+        String tmpDir = getTmpDir();
 
-        createFlag(TMP_FLAG_SCRIPT  );
-        createFlag(TMP_FLAG_1ST_PASS);
+        delete(tmpDir + TMP_CLASS_MAP);
+        delete(tmpDir + TMP_CLASSES  );
+        delete(tmpDir + TMP_TO_HANDLE);
+        delete(tmpDir + TMP_BACKUP   );
+
+        createFlag(tmpDir + TMP_FLAG_SCRIPT  );
+        createFlag(tmpDir + TMP_FLAG_1ST_PASS);
     }
 
     /**
@@ -477,10 +546,11 @@ public class Weaver {
      * @param debug
      *        The flag which switches ON / OFF printing debug messages to the console
      */
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void makeClassMap(Collection<File> libs, boolean debug) {
-        if (!checkFlag(TMP_FLAG_1ST_PASS)) return;
+        if (!checkFlag(getTmpDir() + TMP_FLAG_1ST_PASS)) return;
 
-        File classMap = new File(TMP_CLASS_MAP);
+        File classMap = new File(getTmpDir() + TMP_CLASS_MAP);
         if (classMap.exists()) return;
 
         logForce(sNewLine, "about to create temporarily class map '" +
@@ -654,20 +724,24 @@ public class Weaver {
         validateMethods    (mLibMethodsToWeave);
         validateAnnotations();
 
+        String tmpDir = getTmpDir();
+
         mToHandle.clear();
-        delete(TMP_TO_HANDLE);
+        delete(tmpDir + TMP_TO_HANDLE);
 
         mBackup.clear();
 
-        File backup = new File(TMP_BACKUP);
+        File backup = new File(tmpDir + TMP_BACKUP);
         if (backup.exists())
             for (String line: read(backup)) {
                 String[] tmp = parse(line);
                 mBackup.put(tmp[0], tmp[1]);
             }
 
-        if (mLibMethodsToWeave.size() == 0)        delete(TMP_CLASS_MAP);
-        else if (new File(TMP_CLASS_MAP).exists()) mClassMap = getClassMap();
+        if (mLibMethodsToWeave.size() == 0)
+            delete(tmpDir + TMP_CLASS_MAP);
+        else if (new File(tmpDir + TMP_CLASS_MAP).exists())
+            mClassMap = getClassMap(mDebug);
 
         // handle project classes
         for (String classesDir: classesDirs.split(File.pathSeparator)) {
@@ -678,8 +752,8 @@ public class Weaver {
         // handle jars
         for (String key: mLibMethodsToWeave.keySet())
             weave(key);
-        write(mToHandle, TMP_TO_HANDLE);
-        write(mBackup  , TMP_BACKUP   );
+        write(mToHandle, tmpDir + TMP_TO_HANDLE);
+        write(mBackup  , tmpDir + TMP_BACKUP   );
 
         if (mMethodsToWeave.size() + mLibMethodsToWeave.size() + mAnnotations.size() > 0 && !mUpdated)
             logWarning("no classes to weave");
@@ -809,12 +883,13 @@ public class Weaver {
     }
 
     private static void logAddHeader(String pattern) {
-        if (!checkFlag(TMP_FLAG_1ST_PASS)) log(false, sNewLine + sNewLine +
-                MSG_TITLE + " added for pattern '" + pattern + "':");
+        if (!checkFlag(getTmpDir() + TMP_FLAG_1ST_PASS)) log(false,
+                sNewLine + sNewLine + MSG_TITLE + " added for pattern '" + pattern + "':");
     }
 
     private static void logAddResults(boolean[] found) {
-        if (!found[0] && !checkFlag(TMP_FLAG_1ST_PASS)) log(false, "  nothing");
+        if (!found[0] && !checkFlag(getTmpDir() + TMP_FLAG_1ST_PASS))
+            log(false, "  nothing");
     }
 
     private static boolean hasWildCards(String string) {
@@ -899,7 +974,7 @@ public class Weaver {
         tokens.set(0, className + "." + methodName);
         parseConfigHelper(mapM, mapA, tokens, line);
         found[0] = true;
-        if (!checkFlag(TMP_FLAG_1ST_PASS))
+        if (!checkFlag(getTmpDir() + TMP_FLAG_1ST_PASS))
             log(false, "  " + tokens.get(getClassOffset(tokens, line)));
     }
 
@@ -1102,12 +1177,12 @@ public class Weaver {
         classDest.writeFile(newClassDir);
         if (!isLib) return;
 
-        if (!checkFlag(TMP_FLAG_SCRIPT)) {
+        if (!checkFlag(getTmpDir() + TMP_FLAG_SCRIPT)) {
             delete(newClassDir);
             return;
         }
 
-        write(TMP_CLASSES, newClassDir);
+        write(getTmpDir() + TMP_CLASSES, newClassDir);
 
         String className = classDest.getName();
         String newClassFileName = newClassDir + className.replace('.', File.separatorChar) + ".class";
@@ -1363,8 +1438,8 @@ public class Weaver {
             String newMethod = methodData[ACTION_METHOD] == null ?
                     "public void " + methodName + "() {}": methodData[ACTION_METHOD];
             log2ndPass(sNewLine, "new method '" + newMethod.substring(0, newMethod
-                    .indexOf('{')).trim() + "' will be created in the class '" + clsSrc.getName() + "'");
-
+                    .indexOf('{')).replace(" (", "(").trim() +
+                    "' will be created in the class '" + clsSrc.getName() + "'");
             try {
                 methods = new CtMethod[] {CtNewMethod.make(newMethod, clsSrc)};
             }
@@ -1514,6 +1589,7 @@ public class Weaver {
         return result;
     }
 
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     private static boolean rename(File source, String destination) {
         try {
             Path sourcePath = source.toPath();
@@ -1526,6 +1602,7 @@ public class Weaver {
         }
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     private static boolean write(String file, String line) {
         try {
             Files.write(Paths.get(file), Collections.singletonList(line),
@@ -1912,7 +1989,7 @@ public class Weaver {
         private void addHelper(String classes) throws IOException {
             String classesLowerCase = classes.toLowerCase();
 
-            if (classes.endsWith("/") || classes.endsWith("\\") || classesLowerCase.endsWith(".jar")) {
+            if (classes.endsWith(File.separator) || classesLowerCase.endsWith(".jar")) {
                 mUrls.add(new URL(makeUrl(classes)));
                 return;
             }
@@ -1932,18 +2009,17 @@ public class Weaver {
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
     /**
-     * Helper class to work with JARs and AARs.
+     * Helper class to work with JARs / AARs.
      */
     public static class LibHandler {
 
-        private static final String                 CLASSES              = "classes.jar";
-        private static final String                 LIBS                 = "libs/"      ;
+        private static final String                 LIBS                 = "libs/"   ;
+        private static final String                 TMP_FILE_PREFIX      = "yakhont_";
 
-        private static final int                    BUFFER_SIZE          = 8192;
+        private static final int                    BUFFER_SIZE          = 8192      ;
 
         private static final Map<String, String>    sFileSystemEnv;
-
-        private        final boolean                mDebug;
+        private        final boolean                mDebug        ;
 
         static {
             sFileSystemEnv = new HashMap<>();
@@ -1974,6 +2050,7 @@ public class Weaver {
          *
          * @return  {@code true} if file was successfully replaced, {@code false} otherwise
          */
+        @SuppressWarnings("UnusedReturnValue")
         public boolean replace(String file, String entry, String newEntry) {
             // based on https://gist.github.com/DataPools/9c66bec1c9de1bbb626137056d788fa7
             log(!mDebug, sNewLine + "about to update '" + file + "' with '" + entry +
@@ -2005,12 +2082,13 @@ public class Weaver {
          *
          * @return  The list of resulting JARs
          */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public List<File> getJars(File aar, List<File> result) {
             return getJars(aar.getAbsolutePath(), result);
         }
 
         /**
-         * Extracts JARs from the given AAR ('classes.jar' and everything from 'libs', recursively).
+         * Extracts JARs from the given AAR (all JARs and everything from 'libs', recursively).
          * These files are temporary ones, and it's a caller responsibility to remove them.
          *
          * @param aar
@@ -2039,7 +2117,7 @@ public class Weaver {
                             Arrays.deepToString(internalPath.toArray()) + "'");
                     result.add(file);
                 }
-            }, false, tmpFiles, mDebug);
+            }, tmpFiles, mDebug);
 
             for (int i = tmpFiles.size() - 1; i >= 0; i--) {
                 File tmpFile = tmpFiles.get(i);
@@ -2093,7 +2171,7 @@ public class Weaver {
             //noinspection Convert2Lambda
             zipEntryHandle(lib.getAbsolutePath(), new ZipEntryHandler() {
                 @Override
-                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String notUsed) {
+                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry) {
                     String entryName = zipEntry.getName();
                     if (!entryName.equals(entryLib)) return;
 
@@ -2145,14 +2223,14 @@ public class Weaver {
                 public void handle(List<String> innerPath, File file) {
                     classMapHandleJar(writer, file.getAbsolutePath(), innerPath);
                 }
-            }, false, null, debug);
+            }, null, debug);
         }
 
         private static void classMapHandleJar(BufferedWriter writer, String path, List<String> pathList) {
             //noinspection Convert2Lambda
             zipEntryHandle(path, new ZipEntryHandler() {
                 @Override
-                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String jar) {
+                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry) {
                     String entryName = zipEntry.getName();
                     if (!entryName.toLowerCase().endsWith(".class")) return;
 
@@ -2182,9 +2260,6 @@ public class Weaver {
          * @param handler
          *        The JAR's handler
          *
-         * @param all
-         *        {@code true} for handling all JARs, {@code false} for 'classes.jar' and 'libs/*.?ar' only
-         *
          * @param tmpFiles
          *        The list of tmp JAR / AAR files; if null, they will be deleted by Yakhont,
          *        otherwise should be deleted by the caller
@@ -2193,11 +2268,11 @@ public class Weaver {
          *        The flag which switches ON / OFF printing debug messages to the console
          */
         public static void handleAar(String aar, List<String> innerPath, AarEntryHandler handler,
-                                     boolean all, List<File> tmpFiles, boolean debug) {
+                                     List<File> tmpFiles, boolean debug) {
             //noinspection Convert2Lambda
             zipEntryHandle(aar, new ZipEntryHandler() {
                 @Override
-                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String zip) {
+                public void handle(ZipInputStream zipInputStream, ZipEntry zipEntry) {
                     String entryName = zipEntry.getName(), entryNameLower = entryName.toLowerCase();
                     String extension = getExtension(entryName);
 
@@ -2210,8 +2285,7 @@ public class Weaver {
                     File tmpFile = new LibHandler(debug).getZipEntry(zipInputStream,
                             entryName, entryName.substring(entryName.length() - 3));
 
-                    if (extension.equals(".jar") && (all || entryNameLower.startsWith(LIBS) ||
-                            entryNameLower.equals(CLASSES)))
+                    if (extension.equals(".jar"))
                         try {
                             handler.handle(tmpPath, tmpFile);
                         }
@@ -2220,8 +2294,8 @@ public class Weaver {
                         }
 
                     if (tmpFile != null) {
-                        if (extension.equals(".aar") && (all || entryNameLower.startsWith(LIBS)))
-                            handleAar(tmpFile.getAbsolutePath(), tmpPath, handler, all, tmpFiles, debug);
+                        if (extension.equals(".aar") && entryNameLower.startsWith(LIBS))
+                            handleAar(tmpFile.getAbsolutePath(), tmpPath, handler, tmpFiles, debug);
 
                         if (tmpFiles == null)
                             delete(tmpFile);
@@ -2250,7 +2324,7 @@ public class Weaver {
         }
 
         private interface ZipEntryHandler {
-            void handle(ZipInputStream zipInputStream, ZipEntry zipEntry, String zip);
+            void handle(ZipInputStream zipInputStream, ZipEntry zipEntry);
         }
 
         private static void zipEntryHandle(String zip, ZipEntryHandler handler) {
@@ -2266,7 +2340,7 @@ public class Weaver {
             try {
                 ZipEntry zipEntry;
                 while ((zipEntry = zipInputStream.getNextEntry()) != null)
-                    handler.handle(zipInputStream, zipEntry, zip);
+                    handler.handle(zipInputStream, zipEntry);
             }
             catch (IOException exception) {
                 exception.printStackTrace();
@@ -2281,14 +2355,9 @@ public class Weaver {
             }
         }
 
-        private static String getEntryName(String name) {
-            return name.equalsIgnoreCase(CLASSES) ? name: !name.toLowerCase().startsWith(LIBS) ? null:
-                   name.equalsIgnoreCase(LIBS)    ? null:  name.substring(LIBS.length());
-        }
-
         private File getZipEntry(ZipInputStream zipInputStream, String entryName, String extension) {
             try {
-                File tmpFile = File.createTempFile("yakhont_", "." + extension);
+                File tmpFile = File.createTempFile(TMP_FILE_PREFIX, "." + extension);
 
                 if (getZipEntry(zipInputStream, new FileOutputStream(tmpFile))) {
                     log(!mDebug, "created '" + tmpFile.getCanonicalPath() +

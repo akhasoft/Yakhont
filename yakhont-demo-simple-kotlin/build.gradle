@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import akha.yakhont.weaver.Weaver
+
 buildscript {
     repositories {
         jcenter()
@@ -127,7 +129,7 @@ dependencies {
     implementation      "androidx.core:core-ktx:$projectLibVerKotlinCoreCore"
     kapt                "com.android.databinding:compiler:$projectLibVerKotlinDatabindingCompiler"
 
-    implementation      "com.google.dagger:dagger:$projectLibVerDefault"
+    implementation      "com.google.dagger:dagger:$projectLibVerDagger"
     kapt                "com.google.dagger:dagger-compiler:$projectLibVerDagger"
 
     implementation      "androidx.appcompat:appcompat:$projectLibVerAppcompatAppcompat"
@@ -141,22 +143,23 @@ dependencies {
     // comment out if you don't need Location API
     // (and uncomment lines in proguard-project-app.pro)
     implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
-    implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
+
+    implementation      "com.google.android.gms:play-services-location:$projectLibVerLocation"
 
     implementation      "com.google.code.gson:gson:$projectLibVerGson"
 
     //noinspection GradleDependency
-    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerDefault") {
+    implementation     ("com.squareup.retrofit2:retrofit:$projectLibVerRetrofit2") {
         exclude group:  "com.squareup.okhttp3", module: "okhttp"
     }
     //noinspection GradleDependency
-    implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerDefault") {
+    implementation     ("com.squareup.retrofit2:converter-gson:$projectLibVerRetrofit2") {
         exclude group:  "com.google.code.gson", module: "gson"
     }
 
     //noinspection GradleDependency
-    implementation      "com.squareup.okhttp3:okhttp:$projectLibVerDefault"
-    implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerDefault"
+    implementation      "com.squareup.okhttp3:okhttp:$projectLibVerOkHttp3"
+    implementation      "com.squareup.okhttp3:logging-interceptor:$projectLibVerOkHttp3"
 
     implementation      "io.reactivex.rxjava3:rxjava:$projectLibVerRxJava3"
 
@@ -172,18 +175,26 @@ android.variantFilter { variant ->
 
 // null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
 //   or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/your_1.config' /*, ...*/ }
-String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
+String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
+
+afterEvaluate {         // just for JARs / AARs weaving demo
+    Set<File> libs = new HashSet<File>()
+    configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
+    Weaver.makeClassMap(libs, weaverDebug)
+}
 
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
+
     javaCompile.doLast {
-        //noinspection UnnecessaryQualifiedReference
-        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
-                javaCompile.destinationDir.toString() + File.pathSeparator + buildDir.toString() +
-                        kotlinDir.replace('/', File.separator) +
-                        (projectConfig == projectDebug ? 'debug': 'release'),
-                javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
-                weaverAddConfig, weaverConfigFiles)
+        String classesDirs = javaCompile.destinationDir.toString() + File.pathSeparator +
+                buildDir.toString() + '/tmp/kotlin-classes/'.replace('/', File.separator) +
+                (projectConfig == projectDebug ? 'debug': 'release')
+
+        Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, classesDirs,
+                // classesDirs is needed for weaving using application's code
+                javaCompile.classpath.asPath + File.pathSeparator + classesDirs,
+                android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }

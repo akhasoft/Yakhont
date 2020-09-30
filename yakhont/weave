@@ -38,14 +38,25 @@ else
   YAKHONT_ARG=-Pyakhont_weave_arg=$3
 fi
 
-# init script
+# set Yakhont Weaver tmp dir (by default it's a current one)
+# export YAKHONT_WEAVER_TMP_DIR=...
+
+# init weaving script
 java -cp $1 akha.yakhont.weaver.Weaver init
-# make class map
+
+# make class map and build temp application (just to compile your code)
 ./gradlew --configure-on-demand $YAKHONT_ARG $YAKHONT_TO_WEAVE:clean $YAKHONT_TO_WEAVE:build
-# weave JARs / AArs
+
+# weave JARs / AARs (with your application's code just compiled); 'true' enables debug output to console
 java -cp $1 akha.yakhont.weaver.Weaver weave true
 
-# build application
+# build final application (with already weaved JARs / AARs)
 ./gradlew --configure-on-demand              $YAKHONT_TO_WEAVE:clean $YAKHONT_TO_WEAVE:build
-# restore libs
+
+# restore weaved JARs / AARs
 java -cp $1 akha.yakhont.weaver.Weaver restore
+
+# cleanup
+java -cp $1 akha.yakhont.weaver.Weaver cleanup
+
+# unset YAKHONT_WEAVER_TMP_DIR

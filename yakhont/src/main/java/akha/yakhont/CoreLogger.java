@@ -310,16 +310,19 @@ public class CoreLogger {
     }
 
     /**
-     * Gets the default log level. The default value is {@link Level#INFO}.
+     * Gets the default log level.
      *
      * @return  The default log level
+     *
+     * @see #setDefaultLevel
      */
     public static Level getDefaultLevel() {
         return sLogLevelDefault.get();
     }
 
     /**
-     * Sets the default log level.
+     * Sets the default log level (the default value is {@link Level#INFO}).
+     * It's used for creating new log messages.
      *
      * @param level
      *        The default log level
@@ -388,7 +391,8 @@ public class CoreLogger {
     }
 
     /**
-     * Sets the log level.
+     * Sets the log level (the default value is {@link Level#ERROR}).
+     * Log messages with level below this one will not be logged.
      *
      * @param level
      *        The value to set
@@ -404,6 +408,8 @@ public class CoreLogger {
      * Gets the log level.
      *
      * @return  The current log level
+     *
+     * @see #setLogLevel
      */
     @SuppressWarnings("unused")
     public static Level getLogLevel() {
@@ -679,7 +685,6 @@ public class CoreLogger {
     @SuppressWarnings("WeakerAccess")
     public static void log(@NonNull final Level level, @NonNull final String str,
                            final Throwable throwable, Boolean showStack) {
-
         if (isNotLog(level)) return;
         final boolean isLog = isLogHelper(level);
 
@@ -3580,13 +3585,27 @@ public class CoreLogger {
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static Level getLogDebugLevel(@NonNull final Object object, @NonNull final String name,
                                                   final Object... args) {
-        return ((LogDebug) CoreReflection.getAnnotationMethod(object, LogDebug.class, name, args)).value();
+        try {
+            return ((LogDebug) CoreReflection.getAnnotationMethod(
+                    object, LogDebug.class, name, args)).value();
+        }
+        catch (Exception exception) {       // throws for obfuscated methods in release builds
+            Log.e(getTag(null), "@LogDebug - getLogDebugLevel() failed (default one is accepted); " +
+                    "if it's a problem, you can try to switch off obfuscation", exception);
+            return Level.ERROR;             // should be consistent with @LogDebug default level
+        }
     }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
     public static String getLogDebugDescription(@NonNull final Object object, @NonNull final String name,
                                                 final Object value, final Object... args) {
-        return String.format("object: %s, method: %s, return value: %s, arguments: %s", getDescription(object),
-                name, value, Arrays.deepToString(args));
+        try {
+            return String.format("object: %s, method: %s, return value: %s, arguments: %s",
+                    getDescription(object), name, value, Arrays.deepToString(args));
+        }
+        catch (Exception exception) {       // should never happen
+            Log.e(getTag(null), "@LogDebug - getLogDebugDescription() failed", exception);
+            return "@LogDebug: object info is N/A";
+        }
     }
 }

@@ -575,7 +575,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
             mConfirm = view.findViewById(R.id.progress_confirm);
 
-//          normally such call should be enough - but here we handle the 'confirm' flag, so see below...
+//          normally it should be enough - but here we handle the 'confirm' flag, so see below...
 //          return ProgressDefaultDialog.handle(builder.setView(view).create(), view);
 
             return ProgressDefaultDialog.handle(builder.setView(view).create(), () -> {

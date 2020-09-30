@@ -26,11 +26,14 @@ import java.lang.annotation.Target;
 /**
  * Defines the annotation for logging arguments and return value of the annotated method
  * (by default for debug builds only - defined in the 'weaver.config').
- * The idea of {@code LogDebug} came from the Jake Wharton's
+ *
+ * <br>The idea of {@code LogDebug} came from the Jake Wharton's
  * {@link <a href="https://github.com/JakeWharton/hugo">Hugo</a>} project.
+ *
  * <br>{@code LogDebug} works via the Yakhont Weaver, the code to execute defined in the 'weaver.config'
  * (and you can redefine it whatever way you want - 'cause it's just a string which Yakhont Weaver
  * compiles just before weaving).
+ *
  * <br>Note: for compilation Yakhont Weaver uses the
  * {@link <a href="http://jboss-javassist.github.io/javassist/">Javassist</a>} library.
  *
@@ -41,5 +44,5 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.CONSTRUCTOR})
 public @interface LogDebug {
     /** The logging level. */
-    Level value() default Level.ERROR;
+    Level value() default Level.ERROR;  // should be consistent with CoreLogger.getLogDebugLevel()
 }

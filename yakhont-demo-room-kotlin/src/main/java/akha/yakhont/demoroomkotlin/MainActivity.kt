@@ -82,7 +82,7 @@ class MainActivity: AppCompatActivity(), LocationListener {
     private lateinit var client : LocalOkHttpClient2
     private lateinit var adapter: CustomAdapter
 
-    // cache cursor; will be closed automatically by Yakhont
+    // cursor will be cached (and closed automatically by Yakhont)
     private          var cursor : Cursor? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,6 +116,10 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
         val retrofit2 = Retrofit2<Retrofit2Api, List<Beer>>()
         client = LocalOkHttpClient2(retrofit2)
+
+        // just to demo the progress GUI - comment it out if not needed
+        client.setEmulatedNetworkDelay(12)
+
         retrofit2.init(Retrofit2Api::class.java, "http://localhost/", client)
 
         Retrofit2Loader.adjust(Retrofit2CoreLoadBuilder(retrofit2)

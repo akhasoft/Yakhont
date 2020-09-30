@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import akha.yakhont.weaver.Weaver
+
 buildscript {
     repositories {
         jcenter()
@@ -166,10 +168,13 @@ boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
+
     javaCompile.doLast {
-        //noinspection UnnecessaryQualifiedReference
-        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
-                javaCompile.destinationDir.toString(), javaCompile.classpath.asPath,
+        String classesDir = javaCompile.destinationDir.toString()
+
+        Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, classesDir,
+                // classesDir is needed for weaving using application's code
+                javaCompile.classpath.asPath + File.pathSeparator + classesDir,
                 android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }

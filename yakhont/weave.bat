@@ -40,14 +40,25 @@ if "%3"=="" (
   set yakhont_arg=-Pyakhont_weave_arg=%3
 )
 
-rem init script
+rem set Yakhont Weaver tmp dir (by default it's a current one)
+rem set YAKHONT_WEAVER_TMP_DIR=...
+
+rem init weaving script
 java -cp %1 akha.yakhont.weaver.Weaver init
-rem make class map
+
+rem make class map and build temp application (just to compile your code)
 call gradlew --configure-on-demand %yakhont_arg% %yakhont_to_weave%:clean %yakhont_to_weave%:build | find /v "> Task :"
-rem weave JARs / AARs
+
+rem weave JARs / AARs (with your application's code just compiled); 'true' enables debug output to console
 java -cp %1 akha.yakhont.weaver.Weaver weave true
 
-rem build application
+rem build final application (with already weaved JARs / AARs)
 call gradlew --configure-on-demand               %yakhont_to_weave%:clean %yakhont_to_weave%:build | find /v "> Task :"
-rem restore libs
+
+rem restore weaved JARs / AARs
 java -cp %1 akha.yakhont.weaver.Weaver restore
+
+rem cleanup
+java -cp %1 akha.yakhont.weaver.Weaver cleanup
+
+rem set YAKHONT_WEAVER_TMP_DIR=

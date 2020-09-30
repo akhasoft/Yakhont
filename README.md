@@ -280,9 +280,10 @@ dependencies {
 String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
-afterEvaluate {         // optional; used only for AARs / JARs (like 'Retrofit') weaving
+afterEvaluate {         // optional; used for AARs / JARs weaving only
     Set<File> libs = new HashSet<File>()
     // you may want to use only some configurations ('cause of same classes in different libraries)
+    //   if some class to weave exists in more than one library - all these libraries will be weaved
     // most of the time '<prefix>CompileClasspath' is enough 
     configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
     akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug)
@@ -292,10 +293,12 @@ android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
 
     javaCompile.doLast {
-        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
-            javaCompile.destinationDir.toString(), 
-            // you may want to to change classpath according to the set of configurations above
-            javaCompile.classpath.asPath, 
+        String classesDir = javaCompile.destinationDir.toString()
+
+        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, classesDir,
+            // you may want to to change classpath according to the set of configurations above;
+            //   classesDir is needed for weaving using your project's code
+            javaCompile.classpath.asPath + File.pathSeparator + classesDir,
             android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }
@@ -304,12 +307,13 @@ android.applicationVariants.all { variant ->
 ```groovy
 // null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
 //   or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/your_1.config' /*, ...*/ }
-String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
+String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
-afterEvaluate {         // optional; used only for AARs / JARs (like 'Retrofit') weaving
+afterEvaluate {         // optional; used for AARs / JARs weaving only
     Set<File> libs = new HashSet<File>()
     // you may want to use only some configurations ('cause of same classes in different libraries)
+    //   if some class to weave exists in more than one library - all these libraries will be weaved
     // most of the time '<prefix>CompileClasspath' is enough 
     configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
     akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug)
@@ -319,13 +323,15 @@ android.applicationVariants.all { variant ->
     JavaCompile javaCompile  = variant.javaCompileProvider.get()
 
     javaCompile.doLast {
-        String kotlinBase    = buildDir.toString()  + kotlinDir.replace('/', File.separator)
-        String kotlinClasses = kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
+        String kotlinBase  = buildDir.toString() + '/tmp/kotlin-classes/'.replace('/', File.separator)
+        // you will need to adjust it if you're using flavours
+        String classesDirs = javaCompile.destinationDir.toString() + File.pathSeparator +
+            kotlinBase + 'debug' + File.pathSeparator + kotlinBase + 'release'
         
-        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
-            javaCompile.destinationDir.toString() + File.pathSeparator + kotlinClasses,
-            // you may want to to change classpath according to the set of configurations above
-            javaCompile.classpath.asPath, 
+        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, classesDirs,
+            // you may want to to change classpath according to the set of configurations above;
+            //   classesDirs is needed for weaving using your project's code
+            javaCompile.classpath.asPath + File.pathSeparator + classesDirs,
             android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }
@@ -429,7 +435,16 @@ $ ./gradlew --configure-on-demand yakhont-demo-service:clean       yakhont-demo-
 $ ./gradlew --configure-on-demand yakhont-demo-simple-kotlin:clean yakhont-demo-simple-kotlin:build
 $ ./gradlew --configure-on-demand yakhont-demo-room-kotlin:clean   yakhont-demo-room-kotlin:build
 ```
-
+To build demo applications with Yakhont-weaving demo support for JARs /
+AARs, you can do something like this (please refer to the
+[Weaver](https://akhasoft.github.io/yakhont/1.2.01/weaver/akha/yakhont/weaver/Weaver.html)
+for more info):
+```
+$ jar xf _Yakhont_Weaver_jar weave
+$ ./weave _Yakhont_Weaver_jar:_Javassist_jar yakhont-demo-service
+$ ./weave _Yakhont_Weaver_jar:_Javassist_jar yakhont-demo-simple-kotlin
+$ rm ./weave
+```
 **Note:** you may need to update your Android SDK before building.
 
 To avoid some lint issues (in Android Studio, when running Analyze -> Inspect Code)

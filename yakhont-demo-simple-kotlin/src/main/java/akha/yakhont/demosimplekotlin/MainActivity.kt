@@ -36,6 +36,7 @@ import akha.yakhont.technology.rx.BaseRx.SubscriberRx
 
 import android.location.Location
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
@@ -49,8 +50,21 @@ import java.util.Date
 //   please provide unique ViewModel keys
 //private const val DEMO_VIEWMODEL_KEY = "yakhont_demo_simple_viewmodel_key"
 
+// for Yakhont Weaver demo
+fun demoWeaving1(msg: String, cls: String, method: String) {
+    Log.e("yakhont", msg + "class: " + cls + ", method: " + method)
+}
+
 @CallbacksInherited(LocationCallbacks::class)
 class MainActivity: AppCompatActivity(), LocationListener {
+
+    // for Yakhont Weaver demo
+    object DemoWeaving {
+        @JvmStatic
+        fun demoWeaving2(msg: String, cls: String, method: String) {
+            demoWeaving1(msg, cls, method)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
 
@@ -92,6 +106,8 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
                 , retrofit2, getRx(), null, { view, _ -> handleItemClick(view) }, null).start()
         }
+
+        CoreLogger.setShowAppId(false)     // just for aar weaving demo
     }
 
     private fun handleItemClick(view: View) {
@@ -128,6 +144,12 @@ class MainActivity: AppCompatActivity(), LocationListener {
 
     companion object {
         private var location: String? = null
+
+        // for Yakhont Weaver demo
+        @JvmStatic
+        fun demoWeaving3(msg: String, cls: String, method: String) {
+            demoWeaving1(msg, cls, method)
+        }
     }
 
     override fun onLocationChanged(newLocation: Location, newDate: Date) {

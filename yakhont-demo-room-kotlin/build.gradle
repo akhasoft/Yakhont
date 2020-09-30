@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import akha.yakhont.weaver.Weaver
+
 buildscript {
     repositories {
         jcenter()
@@ -177,18 +179,20 @@ android.variantFilter { variant ->
 
 // null means default config (or provide something like "projectDir.absolutePath + '/your.config'")
 //   or: String[] weaverConfigFiles = new String[] {projectDir.absolutePath + '/your_1.config' /*, ...*/ }
-String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId, kotlinDir = '/tmp/kotlin-classes/'
+String weaverConfigFiles = null, pkg = android.defaultConfig.applicationId
 boolean weaverDebug = false, weaverAddConfig = true
 
 android.applicationVariants.all { variant ->
     JavaCompile javaCompile = variant.javaCompileProvider.get()
+
     javaCompile.doLast {
-        //noinspection UnnecessaryQualifiedReference
-        akha.yakhont.weaver.Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg,
-                javaCompile.destinationDir.toString() + File.pathSeparator + buildDir.toString() +
-                        kotlinDir.replace('/', File.separator) +
-                        (projectConfig == projectDebug ? 'debug': 'release'),
-                javaCompile.classpath.asPath, android.bootClasspath.join(File.pathSeparator),
-                weaverAddConfig, weaverConfigFiles)
+        String classesDirs = javaCompile.destinationDir.toString() + File.pathSeparator +
+                buildDir.toString() + '/tmp/kotlin-classes/'.replace('/', File.separator) +
+                (projectConfig == projectDebug ? 'debug': 'release')
+
+        Weaver.run(variant.buildType.name == 'debug', weaverDebug, pkg, classesDirs,
+                // classesDirs is needed for weaving using application's code
+                javaCompile.classpath.asPath + File.pathSeparator + classesDirs,
+                android.bootClasspath.join(File.pathSeparator), weaverAddConfig, weaverConfigFiles)
     }
 }

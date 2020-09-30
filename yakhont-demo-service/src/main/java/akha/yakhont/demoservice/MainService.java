@@ -53,7 +53,8 @@ public class MainService extends JobIntentService implements ViewModelStoreOwner
         return mViewModelStore;
     }
 
-    @LogDebug                       // debug method demo (logs parameters and return value)
+    // by default @LogDebug works with debug builds only
+    @LogDebug                       // debug method demo (logs method's parameters and return value)
     @Override
     public void onCreate() {
         // uncomment if you're going to use Rx; for more info please refer to
@@ -62,10 +63,13 @@ public class MainService extends JobIntentService implements ViewModelStoreOwner
 
         super.onCreate();
 
-        demoWildcardsAndJarsWeaving();
+        CoreLogger.setLogLevel(Level.WARNING);          // for @LogDebug(Level.WARNING) below
+
+        demoWeaving();
     }
 
-    @LogDebug(Level.WARNING)        // debug method demo (logs parameters and return value)
+    // by default @LogDebug works with debug builds only
+    @LogDebug(Level.WARNING)        // debug method demo (logs method's parameters and return value)
     @Override
     protected void onHandleWork(@NonNull Intent intent) {
         CountDownLatch countDownLatch = new CountDownLatch(1);
@@ -122,32 +126,33 @@ public class MainService extends JobIntentService implements ViewModelStoreOwner
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    // for Yakhont Weaver wildcards and jars weaving demo
+    // for Yakhont Weaver demo
 
     @SuppressWarnings("unused")
-    public static void demo(String msg, String cls, String method) {
-        Log.e(TAG, msg + ", class: " + cls + ", method: " + method);
+    public static void demoWeaving(String msg, String cls, String method) {
+        Log.e(TAG, msg + "class: " + cls + ", method: " + method);
     }
 
-    private void demoWildcardsAndJarsWeaving() {
-        CoreLogger.setLogLevel(Level.WARNING);
+    private void demoWeaving() {
 
-        Demo.demoStatic();
-        Demo demo = new Demo();
-        demo.demo();
+        CoreLogger.setShowAppId(false);     // just for aar weaving demo
 
-        Demo.DemoInner demoInner = demo.new DemoInner();
+        DemoWeaving.demoStatic();
+        DemoWeaving demoWeaving = new DemoWeaving();
+        demoWeaving.demo();
+
+        DemoWeaving.DemoInner demoInner = demoWeaving.new DemoInner();
         demoInner.demoInner1();
         demoInner.demoInner2();
 
         // new methods (created by the Yakhont Weaver)
         try {
             //noinspection JavaReflectionMemberAccess
-            Demo.DemoInner.class.getMethod("x").invoke(demoInner);
+            DemoWeaving.DemoInner.class.getMethod("x").invoke(demoInner);
             //noinspection JavaReflectionMemberAccess
-            Demo.DemoInner.class.getMethod("y").invoke(demoInner);
+            DemoWeaving.DemoInner.class.getMethod("y").invoke(demoInner);
             //noinspection JavaReflectionMemberAccess
-            Demo          .class.getMethod("z",
+            DemoWeaving          .class.getMethod("z",
                     String.class, int.class).invoke(null, "", 0);
         }
         catch (Exception exception) {       // should never happen
@@ -155,7 +160,7 @@ public class MainService extends JobIntentService implements ViewModelStoreOwner
         }
     }
 
-    private static class Demo {
+    private static class DemoWeaving {
 
         @SuppressWarnings("EmptyMethod")
         private static void demoStatic() {}
