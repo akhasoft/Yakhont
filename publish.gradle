@@ -50,7 +50,6 @@ if (getProperty('javadoc', null, 'true') == 'false') {
 String projectBintrayUser = projectPublish ? getProperty('bintray.user', 'BINTRAY_USER', null): null
 if (projectPublish) {
     println ' bintray user == ' + projectBintrayUser
-
     projectPublish = projectBintrayUser != null
 }
 if (projectPublish) {
@@ -61,9 +60,9 @@ apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 apply plugin: 'maven-publish'
 
-version = getPropertyExt('publishedVersion')
 //noinspection GroovyUnusedAssignment
 group   = getPropertyExt('publishedGroupId')
+version = getPropertyExt('publishedVersion')
 
 def pomConfig = {
     def nodeRoot = asNode()
@@ -83,7 +82,7 @@ def pomConfig = {
 
     nodeRoot.children().last() + {
         //noinspection UnnecessaryQualifiedReference
-//        resolveStrategy             Closure.DELEGATE_FIRST
+//      resolveStrategy             Closure.DELEGATE_FIRST
 
         name                        getPropertyExt('publishedName')
         url                         getPropertyExt('urlSite')
@@ -153,12 +152,17 @@ List<JavadocOfflineLink> linkOfflineList = new ArrayList<JavadocOfflineLink>()
 getPropertyExtArray('projectJavaDocLinksOffline').each {
     linkOfflineList.add(new JavadocOfflineLink(it[0], it[1]))
 }
+
+String packageListsPath = project.rootDir.getAbsolutePath() + '/package-lists/'
+
 if (isAndroidApp || isAndroidLib) {
     linkOfflineList.add(new JavadocOfflineLink('https://developer.android.com/reference/',
-            android.sdkDirectory.path + '/docs/reference/'))
+            packageListsPath + 'android/'))
+    linkOfflineList.add(new JavadocOfflineLink('https://developers.google.com/android/reference/',
+            android.sdkDirectory.path + '/extras/google/google_play_services/reference/'))
 }
 linkOfflineList.add(new JavadocOfflineLink('https://docs.oracle.com/javase/8/docs/api/',
-        project.rootDir.getAbsolutePath()))
+        packageListsPath + 'java/'))
 
 def getLocProperty = { String key, String addKey ->
     if (localProperties == null) {

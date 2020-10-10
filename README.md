@@ -407,9 +407,9 @@ buildTypes {
     release {
         minifyEnabled true
 
+        proguardFile 'proguard-glide.pro'
         proguardFile 'proguard-gson.pro'
         proguardFile 'proguard-rx-java.pro'
-        proguardFile 'proguard-square-glide.pro'
         proguardFile 'proguard-square-okhttp.pro'
         proguardFile 'proguard-square-okhttp3.pro'
         proguardFile 'proguard-square-okio.pro'

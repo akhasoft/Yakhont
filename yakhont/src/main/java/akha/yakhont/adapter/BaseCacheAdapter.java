@@ -60,7 +60,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.cursoradapter.widget.SimpleCursorAdapter;
-import androidx.databinding.BindingAdapter;                 // for javadoc
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
 import androidx.recyclerview.widget.RecyclerView;
@@ -122,7 +121,9 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     /**
      * Sets the image loader.
-     * <br>Note: consider using {@link BindingAdapter} instead. For example:
+     * <br>Note: consider using
+     * {@link <a href="https://developer.android.com/reference/android/databinding/BindingAdapter">BindingAdapter</a>}
+     * instead. For example:
      *
      * <p><pre style="background-color: silver; border: thin solid black;">
      * &#064;BindingAdapter("android:src")
