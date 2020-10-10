@@ -362,7 +362,8 @@ public class Weaver {
             if (tmpJarFromAar   ) reportJarProblem(api     , "JAR from AAR", jar, debug);
             else if (jetifiedJar) reportJarProblem(jetified, "jetified JAR", jar, debug);
 
-            // could be uncommented to increase performance
+            // could be uncommented to increase performance (if class map contains such files);
+            //   please refer to makeClassMap() for more info
 //          if (tmpJarFromAar || jetifiedJar) continue;
 
             int    pos = cls.length() - 6;
@@ -545,9 +546,12 @@ public class Weaver {
      *
      * @param debug
      *        The flag which switches ON / OFF printing debug messages to the console
+     *
+     * @param noTmp
+     *        The flag which switches ON / OFF using tmp JARs (jetified or from AARs) in class map
      */
     @SuppressWarnings({"unused", "RedundantSuppression"})
-    public static void makeClassMap(Collection<File> libs, boolean debug) {
+    public static void makeClassMap(Collection<File> libs, boolean debug, boolean noTmp) {
         if (!checkFlag(getTmpDir() + TMP_FLAG_1ST_PASS)) return;
 
         File classMap = new File(getTmpDir() + TMP_CLASS_MAP);
@@ -560,7 +564,7 @@ public class Weaver {
             BufferedWriter writer = new BufferedWriter(new FileWriter(classMap));
             try {
                 for (File lib: libs)
-                    LibHandler.classMapHandle(writer, lib, debug);
+                    LibHandler.classMapHandle(writer, lib, debug, noTmp);
             }
             finally {
                 try {
@@ -1262,7 +1266,10 @@ public class Weaver {
         for (String className: methods.keySet()) {
             CtClass clsSrc = pool.getOrNull(className);
             if (clsSrc == null) {
-                logWarning("can't find class '" + className + "'");
+                // hack for weaving demo in the default weaver.config
+                if (!(className.startsWith("akha.yakhont.demoservice.MainService") ||
+                      className.startsWith("akha.yakhont.demosimplekotlin.MainActivity")))
+                    logWarning("can't find class '" + className + "'");
                 continue;
             }
 
@@ -1481,7 +1488,10 @@ public class Weaver {
                 }
             }
             catch (CannotCompileException exception) {
-                logWarning(exception.getMessage());
+                String message = exception.getMessage();
+                // hack for weaving demo in the default weaver.config
+                if (!(message.contains("no such class: akha.yakhont.demos")))
+                    logWarning(message);
             }
         }
     }
@@ -2196,7 +2206,8 @@ public class Weaver {
             return result;
         }
 
-        private static void classMapHandle(BufferedWriter writer, File lib, boolean debug) {
+        private static void classMapHandle(BufferedWriter writer, File lib, boolean debug,
+                                           boolean noJetified) {
             String path = lib.getAbsolutePath();
 
             List<String> pathList = new ArrayList<>();
@@ -2204,11 +2215,20 @@ public class Weaver {
 
             switch (getExtension(path)) {
                 case ".jar":
+                    if (noJetified) {
+                        String jarName = getJarName(path);
+                        if (isTmpJarFromAar(jarName) || isJetifiedJar(jarName)) {
+                            log(!debug, "tmp JAR will be skipped in class map: " + lib);
+                            break;
+                        }
+                    }
                     classMapHandleJar(writer, path, pathList);
                     break;
+
                 case ".aar":
                     classMapHandleAar(writer, path, pathList, debug);
                     break;
+
                 default:
                     logWarning("unknown lib: " + lib);
                     break;

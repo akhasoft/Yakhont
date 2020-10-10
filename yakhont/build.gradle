@@ -43,11 +43,11 @@ ext {
 
 def dependenciesStrategy = { DependencyResolveDetails details ->
     if     (details.requested.group == 'com.google.android.gms') {
-        if (details.requested.name  == 'play-services-location' || 
-            details.requested.name  == 'play-services-places-placereport')
-            details.useVersion      projectLibVerLocation
-        else
             details.useVersion      projectLibVerGms
+        if (details.requested.name  == 'play-services-location')
+            details.useVersion      projectLibVerLocation
+        if (details.requested.name  == 'play-services-places-placereport')
+            details.useVersion      projectLibVerPlacesPlacereport
         details.because 'To enforce releasable units for Google Play Services'
     }
     if (details.requested.group == 'com.squareup.retrofit2') {
@@ -174,8 +174,6 @@ dependencies {
 
     api                 "com.github.bumptech.glide:glide:$projectLibVerGlide"
     annotationProcessor "com.github.bumptech.glide:compiler:$projectLibVerGlide"
-
-    api                 "com.squareup.picasso:picasso:$projectLibVerPicasso"
 
     api                 "androidx.paging:paging-runtime:$projectLibVerPaging"
 

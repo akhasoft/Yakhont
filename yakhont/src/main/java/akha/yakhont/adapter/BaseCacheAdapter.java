@@ -60,6 +60,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.annotation.Size;
 import androidx.cursoradapter.widget.SimpleCursorAdapter;
+import androidx.databinding.BindingAdapter;                 // for javadoc
 import androidx.databinding.DataBindingUtil;
 import androidx.databinding.ViewDataBinding;
 import androidx.recyclerview.widget.RecyclerView;
@@ -73,7 +74,6 @@ import java.util.Map;
 import java.util.Set;
 
 import com.bumptech.glide.Glide;
-import com.squareup.picasso.Picasso;
 
 /**
  *  The {@link android.widget.Adapter Adapter} which was designed for {@link CacheLiveData}.
@@ -97,7 +97,7 @@ import com.squareup.picasso.Picasso;
  */
 public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter, Filterable {
 
-    private static       boolean                             sUseGlide;
+    private static       ImageLoader                         sImageLoader;
 
     private              BaseAdapter                         mBaseAdapter;
     private        final BaseArrayAdapter<T>                 mArrayAdapter;
@@ -117,20 +117,26 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     }
 
     private static void init() {
-        sUseGlide   = true;
+        sImageLoader = null;
     }
 
     /**
-     * Sets default library for images loading.
+     * Sets the image loader.
+     * <br>Note: consider using {@link BindingAdapter} instead. For example:
      *
-     * @param value
-     *        {@code true} for {@link <a href="https://github.com/bumptech/glide">Glide</a>},
-     *        {@code false} for {@link <a href="https://square.github.io/picasso/">Picasso</a>},
-     *        default value is {@code true}
+     * <p><pre style="background-color: silver; border: thin solid black;">
+     * &#064;BindingAdapter("android:src")
+     * public static void setImage(ImageView view, String data) {
+     *     Picasso.get().load(data).into(view);
+     * }
+     * </pre>
+     *
+     * @param imageLoader
+     *        The {@code ImageLoader}
      */
     @SuppressWarnings("unused")
-    public static void useGlide(final boolean value) {
-        sUseGlide = value;
+    public static void setImageLoader(final ImageLoader imageLoader) {
+        sImageLoader = imageLoader;
     }
 
     /**
@@ -1191,6 +1197,38 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         }
     }
 
+    /**
+     * Use it to replace the default image loader ({@link <a href="https://bumptech.github.io/glide/">Glide</a>}).
+     * <br>Usage example (for {@link <a href="https://square.github.io/picasso/">Picasso</a>}):
+     *
+     * <p><pre style="background-color: silver; border: thin solid black;">
+     * BaseCacheAdapter.setImageLoader(new BaseCacheAdapter.ImageLoader() {
+     *     &#064;Override
+     *     public void load(Context context, ImageView imageView, String data) {
+     *         Picasso.get().load(data).into(imageView);
+     *     }
+     * });
+     * </pre>
+     *
+     * @see #setImageLoader
+     */
+    public interface ImageLoader {
+
+        /**
+         * Loads image into a {@code View}.
+         *
+         * @param context
+         *        The Context
+         *
+         * @param imageView
+         *        The ImageView
+         *
+         * @param data
+         *        The data to load
+         */
+        void load(Context context, ImageView imageView, String data);
+    }
+
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static void bindImageView(Context context, @NonNull final ImageView imageView, final Object value) {
         final String strValue = getString(value);
@@ -1198,26 +1236,17 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             imageView.setImageResource(Integer.parseInt(strValue));
         }
         catch (NumberFormatException numberFormatException) {
-            if (sUseGlide) {
-                if (context == null) context = Utils.getCurrentActivity();
-                if (context != null) {
-                    try {
-                        Glide.with(context).load(strValue).into(imageView);
-                        return;
-                    }
-                    catch (Exception exception) {
-                        CoreLogger.logWarning("about to use Picasso 'cause Glide failed for image: " +
-                                strValue, exception);
-                    }
-                }
-                else
-                    CoreLogger.logWarning("about to use Picasso 'cause of null Context");
-            }
+            if (context == null) context = Utils.getCurrentActivity();
             try {
-                Picasso.get().load(strValue).into(imageView);
+                if (sImageLoader != null)
+                    sImageLoader.load(context, imageView, strValue);
+                else if (context == null)
+                    Glide.with(imageView).load(strValue).into(imageView);
+                else
+                    Glide.with(context)  .load(strValue).into(imageView);
             }
             catch (Exception exception) {
-                CoreLogger.logError("Picasso failed for image: " + strValue, exception);
+                CoreLogger.logError("loading failed for image: " + strValue, exception);
             }
         }
     }

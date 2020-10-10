@@ -24,7 +24,7 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.android.tools.build:gradle:4.0.1"
+        classpath "com.android.tools.build:gradle:4.0.2"
 
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
@@ -73,8 +73,8 @@ ext {
             'See the License for the specific language governing permissions and<br>'                                          +
             'limitations under the License.</font>'
 
-    projectProGuardFiles    = ['proguard-rx-java.pro'                                   ,
-                               'proguard-square-glide.pro'                              ,
+    projectProGuardFiles    = ['proguard-glide.pro'                                     ,
+                               'proguard-rx-java.pro'                                   ,
                                'proguard-square-okhttp.pro'                             ,
                                'proguard-square-okhttp3.pro'                            ,
                                'proguard-square-okio.pro'                               ,
@@ -98,13 +98,14 @@ ext {
     projectLibVerDefault                                        = 'default'
 
     projectLibVerGms                                            = '16.0.1'
-    projectLibVerLocation                                       = '17.0.0'
+    projectLibVerLocation                                       = '17.1.0'
+    projectLibVerPlacesPlacereport                              = '17.0.0'
 
     // for demo debug builds
     projectLibVerMultidex                                       =  '2.0.1'
     projectLibVerLeakCanary                                     =  '2.4'
 
-    // temp Retrofit RxJava3 adapter should be updated after changing version
+    // temp Retrofit RxJava3 adapter should be changed to standard one after upgrading
     //todo: upgrade
     projectLibVerRetrofit2                                      =  '2.6.4'      // should be 2.6.x
     projectLibVerRetrofit                                       =  '1.9.0'
@@ -112,7 +113,6 @@ ext {
     projectLibVerGson                                           =  '2.8.6'
 
     projectLibVerGlide                                          =  '4.11.0'
-    projectLibVerPicasso                                        =  '2.71828'
 
     //todo: upgrade
     projectLibVerOkHttp3                                        =  '3.12.10'    // should be 3.12.x
@@ -135,7 +135,7 @@ ext {
 
     projectLibVerAnnotationAnnotation                           =  '1.0.1'
     projectLibVerAppcompatAppcompat                             =  '1.2.0'
-    projectLibVerCoreCore                                       =  '1.3.1'
+    projectLibVerCoreCore                                       =  '1.3.2'
     projectLibVerFragmentFragment                               =  '1.2.5'
     projectLibVerLeanbackLeanback                               =  '1.0.0'
     projectLibVerLeanbackLeanbackPreference                     =  '1.0.0'
@@ -145,14 +145,14 @@ ext {
     projectLibVerLegacyLegacySupportV13                         =  '1.0.0'
     projectLibVerLifecycleLifecycleCommonJava8                  =  '2.2.0'
     projectLibVerLifecycleLifecycleExtensions                   =  '2.2.0'
-    projectLibVerMediaMedia                                     =  '1.1.0'
+    projectLibVerMediaMedia                                     =  '1.2.0'
     projectLibVerMediaRouterMediaRouter                         =  '1.0.0'
     projectLibVerPreferencePreference                           =  '1.1.0'
     projectLibVerRecyclerViewRecyclerView                       =  '1.1.0'
 
     projectLibVerNotxMaterialMaterial                           =  '1.2.1'
 
-    projectLibVerKotlinCoreCore                                 =  '1.3.1'
+    projectLibVerKotlinCoreCore                                 =  '1.3.2'
     projectLibVerKotlinDatabindingCompiler                      =  '3.1.4'
     projectLibVerKotlinLifecycleLifecycleViewmodel              =  '2.2.0'
     projectLibVerKotlinLifecycleLifecycleReactiveStreams        =  '2.2.0'

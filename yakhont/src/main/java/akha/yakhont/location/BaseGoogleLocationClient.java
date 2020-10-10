@@ -677,7 +677,8 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     // another one ugly hack :-)
     private static Level getLevel(final Exception exception) {
         final String message = exception.getMessage();
-        return message != null && message.contains("listener already unregistered")
+        return message != null && (message.contains("listener already unregistered") ||
+                                   message.contains("LocationServices.API is not available on this device"))
                 ? CoreLogger.getDefaultLevel(): Level.ERROR;
     }
 

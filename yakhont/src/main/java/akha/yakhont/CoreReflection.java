@@ -60,7 +60,7 @@ import java.util.Set;
  *       <li>Checks if parameter is array, collections, etc. {@link #isNotSingle(Object)}</li>
  *       <li>Gets the size of parameter (if it's an array, collections, etc.) {@link #getSize(Object)}</li>
  *       <li>Returns contained objects if parameter is array, collections, etc. {@link #getObjects(Object, boolean)}</li>
- *       <li>Merges data (each parameter can be array, collections, etc.) {@link #mergeObjects(Object, Object)}</li>
+ *       <li>Merges data (each parameter can be array, collections, etc.) {@link #mergeObjectsAsList(Object, Object)}</li>
  *     </ul>
  *   <li>Finds list of the overridden methods {@link #findOverriddenMethods(Class, Class)}</li>
  *   <li>Compares methods {@link #equalsMethods(Method, Method)}</li>
@@ -613,7 +613,7 @@ public class CoreReflection {
      *        The object
      *
      * @param handleSingles
-     *        If {@code true} returns at least single-element-Collection (never null)
+     *        If {@code true} returns at least single-element-list (never null)
      *
      * @return  The list of objects (or null)
      */
@@ -967,10 +967,9 @@ public class CoreReflection {
         return object;
     }
 
-    //todo check how it works - and put in javadoc ?
     /**
      * Merges data (each parameter can be array, {@code Collection}, {@code *ArrayMap},
-     * {@code Circular*Array} or {@code *Sparse*Array*}).
+     * {@code Circular*Array}, {@code *Sparse*Array*} - or even single object).
      *
      * @param object1
      *        The 1st object to merge (or null)
@@ -982,8 +981,8 @@ public class CoreReflection {
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static Object mergeObjects(Object object1, Object object2) {
-        if (object1 == null) return object2;
-        if (object2 == null) return object1;
+        if (object1 == null) return getObjects(object2, false);
+        if (object2 == null) return getObjects(object1, false);
 
         if (!isNotSingle(object1))
             if (!isNotSingle(object2)) {
@@ -999,7 +998,7 @@ public class CoreReflection {
         object1 = mergeObjectsHelper(object1);
         object2 = mergeObjectsHelper(object2);
 
-        int size2 = getSize(object2);
+        int size2 = isNotSingle(object2) ? getSize(object2): 0;
 
         // not getClass(object)
         final Class<?> cls1 = object1.getClass();
@@ -1055,6 +1054,39 @@ public class CoreReflection {
         // should never happen
         CoreLogger.logError("can't merge objects: " + cls1 + ", " + cls2);
         return null;
+    }
+
+    /**
+     * Wrapper for {@link #mergeObjects}.
+     */
+    @SuppressWarnings({"unchecked", "unused"})
+    @NonNull
+    public static List<Object> mergeObjectsAsList(Object object1, Object object2) {
+        final Object merged = mergeObjects(object1, object2);
+
+        if (merged == null) return Collections.emptyList();
+
+        final Class<?> cls = merged.getClass();
+
+        if (cls.isArray())
+            //noinspection Convert2Lambda
+            return getObjectsHelper(Array.getLength(merged), new GetObjectsHelper() {
+                @SuppressWarnings("unused")
+                @Override
+                public Object getObject(final int idx) {
+                    return Array.get(merged, idx);
+                }
+            });
+
+        if (List.class.isAssignableFrom(cls))
+            return (List<Object>) merged;
+
+        if (Collection.class.isAssignableFrom(cls))
+            return new ArrayList<>((Collection<Object>) merged);
+
+        final List<Object> result = new ArrayList<>();
+        result.add(merged);
+        return result;
     }
 
     /**

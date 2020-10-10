@@ -66,8 +66,9 @@ For logging - video / audio recording possibility. And more.
 
 In sum, as I told - you can make the whole data loading in just one line of code (plus your callbacks - if any).
 
-And last but not least - the Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time.
-Just one line in the 'weaver.config'. Sapienti sat.
+And last but not least - the Yakhont Weaver allows patching AARs / JARs
+(like 'Retrofit') in the build time. Just one line in the
+'weaver.config'. Sapienti sat.
 
 ## Table of Contents
 
@@ -94,9 +95,12 @@ for the working example).
 In addition, there are powerful utility classes which includes:
 - completely transparent (but fully customizable) 
 [dynamic permissions handling](https://akhasoft.github.io/yakhont/1.2.01/library/core/akha/yakhont/CorePermissions.html)
-- extended [logger](https://akhasoft.github.io/yakhont/1.2.01/library/core/akha/yakhont/CoreLogger.html):
-sending logcat error reports (with screenshots and DB copies) on just shaking device (or making Z-gesture), 
-stack traces, byte[] logging and more.
+- extended
+  [logger](https://akhasoft.github.io/yakhont/1.2.01/library/core/akha/yakhont/CoreLogger.html):
+  sending logcat error reports (with screenshots and DB copies) on just
+  shaking device (or making Z-gesture), methods / threads / stack traces
+  info, byte arrays logging, 3-rd party loggers support (e.g.
+  [Timber](https://github.com/JakeWharton/timber)) and more.
 - video / audio recording (also via shaking device or making Z-gesture - for more info please refer to the logger mentioned above).
 - transparent gestures recognition / handling without [GestureOverlayView](https://developer.android.com/reference/android/gesture/GestureOverlayView.html)
  (i.e. can be used, say, with [RecyclerView](https://developer.android.com/reference/androidx/recyclerview/widget/RecyclerView.html) - also, implemented in logger). 
@@ -180,8 +184,9 @@ For more information please refer to the [detailed feature list](https://github.
 All kinds of Activities and Fragments are supported: it's not necessary to derive 
 them from some predefined ones (with one exception - you will need it for lifecycle debug).
 
-The Yakhont AAR is about 590 KB (except the _full_ version, which is about 700 KB).
-Please use R8 / ProGuard to reduce size of your application and remove code which is not used.
+The Yakhont AAR is about 594 KB (except the _full_ version, which is
+about 690 KB). Please use R8 / ProGuard to reduce size of your
+application and remove code which is not used.
 
 Yakhont supports Android 4.0 (API level 14) and above ('cause support library requires API level 14 as a minimum).
 
@@ -286,7 +291,7 @@ afterEvaluate {         // optional; used for AARs / JARs weaving only
     //   if some class to weave exists in more than one library - all these libraries will be weaved
     // most of the time '<prefix>CompileClasspath' is enough 
     configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
-    akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug)
+    akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug, true)
 }
 
 android.applicationVariants.all { variant ->
@@ -316,7 +321,7 @@ afterEvaluate {         // optional; used for AARs / JARs weaving only
     //   if some class to weave exists in more than one library - all these libraries will be weaved
     // most of the time '<prefix>CompileClasspath' is enough 
     configurations.each { if (it.canBeResolved) it.each { libs.add(it) } }
-    akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug)
+    akha.yakhont.weaver.Weaver.makeClassMap(libs, weaverDebug, true)
 }
 
 android.applicationVariants.all { variant ->
@@ -363,9 +368,10 @@ android.applicationVariants.all { variant ->
 The Yakhont Weaver is a powerful utility which manipulates the compiled Java (and Kotlin) bytecode
 (e.g. in Yakhont demo applications it customizes "Activity.onCreate()" and other callbacks).
 
-The Yakhont Weaver allows patching JARs (like 'Retrofit') in the build time;  
-also supports wildcards ('**', '*', '?') for classes, methods and packages.
-Please refer to the Yakhont Weaver's javadoc and the default 'weather.config' for more info.
+The Yakhont Weaver allows patching AARs / JARs (like 'Retrofit') in the
+build time; also supports wildcards ('**', '*', '?') for classes,
+methods and packages. Please refer to the Yakhont Weaver's javadoc and
+the default 'weather.config' for more info.
 
 By default, the Yakhont Weaver uses configuration and scripts from it's JAR, but you can provide your own
 configuration file(s) as a parameter (see above). The "weaverAddConfig = true" means adding your
@@ -440,9 +446,9 @@ AARs, you can do something like this (please refer to the
 [Weaver](https://akhasoft.github.io/yakhont/1.2.01/weaver/akha/yakhont/weaver/Weaver.html)
 for more info):
 ```
-$ jar xf _Yakhont_Weaver_jar weave
-$ ./weave _Yakhont_Weaver_jar:_Javassist_jar yakhont-demo-service
-$ ./weave _Yakhont_Weaver_jar:_Javassist_jar yakhont-demo-simple-kotlin
+$ jar xf <Yakhont Weaver jar> weave
+$ ./weave <Yakhont Weaver jar>:<Javassist jar> yakhont-demo-service
+$ ./weave <Yakhont Weaver jar>:<Javassist jar> yakhont-demo-simple-kotlin
 $ rm ./weave
 ```
 **Note:** you may need to update your Android SDK before building.

@@ -102,7 +102,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * The <code>CoreLogger</code> class is responsible for logging. It also contains some additional components:
+ * The <code>CoreLogger</code> class is responsible for logging; provides methods / threads / stack traces
+ * info, splits long strings, supports 3-rd party loggers, etc. Also contains some additional components:
  *
  * <p><ul>
  *   <li>for recording audio / video: {@link VideoRecorder VideoRecorder}</li>
@@ -121,6 +122,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *   <li>The logcat support: {@link #getLogCat(List, boolean, String)}</li>
  *   <li>Sending error reports via e-mail: {@link #sendLogCat(Activity, String...)}, {@link #sendData sendData}</li>
  *   <li>Sending error reports via e-mail on shaking device (or making Z-gesture): {@link #registerDataSender(Context, String...)}</li>
+ *   <li>3-rd party loggers support: {@link LoggerExtender LoggerExtender}</li>
  * </ul>
  *
  * <p>Call {@link #setLogLevel} to set {@link Level log level}.
@@ -154,9 +156,9 @@ public class CoreLogger {
     }
 
     private static final String                         FORMAT                   = "%s: %s";
-    private static final String                         FORMAT_INFO              = "%s.%s(line %s)";
-    private static final String                         FORMAT_THREAD            = "[%s] %s";
-    private static final String                         FORMAT_APP_ID            = "APP ID: %s, %s";
+    private static final String                         FORMAT_INFO              = "%s.%s(line %s)" ;
+    private static final String                         FORMAT_THREAD            = "THREAD: [%s] %s";
+    private static final String                         FORMAT_APP_ID            = "APP ID: %s, %s" ;
 
     private static final String                         CLASS_NAME               = CoreLogger.class.getName();
 
@@ -203,16 +205,35 @@ public class CoreLogger {
     private static final Object                         sLock;
 
     /**
-     * Allows usage of 3-rd party loggers. Please refer to {@link #setLoggerExtender(LoggerExtender)}.
+     * Allows usage of 3-rd party loggers.
+     * <br>Usage example (for {@link <a href="https://github.com/JakeWharton/timber">Timber</a>}):
+     *
+     * <p><pre style="background-color: silver; border: thin solid black;">
+     * CoreLogger.setLoggerExtender(new CoreLogger.LoggerExtender() {
+     *     &#064;Override
+     *     public boolean log(Level level, String tag, String msg, Throwable throwable,
+     *                        boolean showStack, StackTraceElement stackTraceElement) {
+     *         if (level == Level.SILENT) return !CoreLogger.EXTENDER_NO_DEFAULT_LOGS;
+     *
+     *         // for long messages you can use CoreLogger.split(...)
+     *         Timber.tag(tag);
+     *         Timber.log(CoreLogger.toLogPriority(level), throwable, msg);
+     *
+     *         return CoreLogger.EXTENDER_NO_DEFAULT_LOGS;  // switched off default logging
+     *     }
+     * });
+     * </pre>
+     *
+     * @see #setLoggerExtender
      */
     @SuppressWarnings("unused")
     public interface LoggerExtender {
 
         /**
          * Intended to log the info provided. The way of logging is up to implementation.
-         * When logging is handled by this {@code LoggerExtender}, this method must return {@code true}.
-         * If this method returns {@code false}, {@code CoreLogger} will attempts to handle
-         * the logging on its own.
+         * When logging should be handled by this {@code LoggerExtender} only, this method must return
+         * {@link #EXTENDER_NO_DEFAULT_LOGS}. If this method returns {@code !EXTENDER_NO_DEFAULT_LOGS},
+         * both {@code CoreLogger} and {@code LoggerExtender} will handle logging.
          *
          * @param level
          *        The logging priority level
@@ -232,11 +253,34 @@ public class CoreLogger {
          * @param stackTraceElement
          *        The stack trace to log
          *
-         * @return  {@link #EXTENDER_NO_DEFAULT_LOGS} to prevent {@code CoreLogger} from logging
-         * that info, {@code !EXTENDER_NO_DEFAULT_LOGS} otherwise
+         * @return  {@link #EXTENDER_NO_DEFAULT_LOGS} to prevent {@code CoreLogger} logging that info
+         *          by the Yakhont {@code CoreLogger}, {@code !EXTENDER_NO_DEFAULT_LOGS} otherwise
          */
         boolean log(Level level, String tag, String msg, Throwable throwable, boolean showStack,
                     StackTraceElement stackTraceElement);
+    }
+
+    /**
+     * Converts CoreLogger's {@link Level} to {@link Log}'s priority.
+     *
+     * @param level
+     *        The level
+     *
+     * @return  The priority
+     *
+     * @throws  RuntimeException
+     *          If {@link Level} can not be converted to {@link Log}'s priority
+     */
+    @SuppressWarnings("unused")
+    public static int toLogPriority(final Level level) {
+        switch (level) {
+            case VERBOSE: return Log.VERBOSE;
+            case DEBUG  : return Log.DEBUG  ;
+            case INFO   : return Log.INFO   ;
+            case WARNING: return Log.WARN   ;
+            case ERROR  : return Log.ERROR  ;
+        }
+        throw new RuntimeException("unsupported level: " + level);
     }
 
     private CoreLogger() {
