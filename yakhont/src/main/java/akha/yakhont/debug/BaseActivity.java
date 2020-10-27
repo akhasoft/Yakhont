@@ -50,7 +50,7 @@ import java.util.Arrays;
  * @author akha
  */
 @SuppressLint("Registered")
-@SuppressWarnings({"unused", "JavaDoc"})
+@SuppressWarnings("JavaDoc")
 public class BaseActivity extends Activity {        // don't modify this line: it's subject to change by the Yakhont preprocessor
 
     /**
@@ -62,7 +62,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
     /**
      * Override to change the logging message.
      *
-      * @return  The logging message (for debugging)
+     * @return  The logging message (for debugging)
      */
     protected String getDebugMessage() {
         return "activity " + CoreLogger.getDescription(this);
@@ -559,6 +559,7 @@ public class BaseActivity extends Activity {        // don't modify this line: i
      *
      * @see BackKeyInActionModeHandler
      */
+    @SuppressWarnings({"unused", "RedundantSuppression"})                                       //YakhontPreprocessor:removeInGenerated
     public boolean checkBackKeyAndReset() {                                                     //YakhontPreprocessor:removeInGenerated
         return mBackKeyHandler.checkBackKeyAndReset();                                          //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated

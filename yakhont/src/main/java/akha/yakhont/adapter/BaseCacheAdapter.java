@@ -135,7 +135,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param imageLoader
      *        The {@code ImageLoader}
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setImageLoader(final ImageLoader imageLoader) {
         sImageLoader = imageLoader;
     }
@@ -189,7 +189,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @return  The {@code Cursor}
          */
-        @SuppressWarnings("unused")
         Cursor swapCursor(Cursor cursor);
 
         /**
@@ -252,10 +251,10 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     /**
      * This class can be used by external clients of {@code BaseCacheAdapter} to bind values to views.
      */
-    @SuppressWarnings("unused")
     public interface ViewBinder {
 
         /** To use as a {@link #setViewValue} return type (the value is {@value}). */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         boolean VIEW_BOUND = true;
 
         /**
@@ -320,7 +319,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param baseCacheAdapter
      *        The BaseCacheAdapter
      */
-    @SuppressWarnings({"unused", "WeakerAccess", "CopyConstructorMissesField"})
+    @SuppressWarnings({"unused", "WeakerAccess", "CopyConstructorMissesField", "RedundantSuppression"})
     public BaseCacheAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter) {
         this(baseCacheAdapter.mCursorAdapter, baseCacheAdapter.mArrayAdapter, baseCacheAdapter.mConverter);
     }
@@ -530,7 +529,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      *
      * @return  This {@code BaseCacheAdapter} object
      */
-    @SuppressWarnings({"unused", "UnusedReturnValue"})
+    @SuppressWarnings("UnusedReturnValue")
     public BaseCacheAdapter<T, R, E, D> setAdapterViewBinder(final ViewBinder viewBinder) {
         mArrayAdapter .setAdapterViewBinder(viewBinder);
         mCursorAdapter.setAdapterViewBinder(viewBinder);
@@ -543,7 +542,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
     public static View findListView(@NonNull final View view) {
         //noinspection Convert2Lambda
         return ViewHelper.findView(view, new ViewHelper.ViewVisitor() {
-            @SuppressWarnings("unused")
             @Override
             public boolean handle(final View viewTmp) {
                 return viewTmp instanceof AbsListView || viewTmp instanceof RecyclerView;
@@ -560,7 +558,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
         //noinspection Convert2Lambda
         ViewHelper.visitView(viewInflater.inflate(null), new ViewHelper.ViewVisitor() {
-            @SuppressWarnings("unused")
             @Override
             public boolean handle(final View view) {
                 final int id = view.getId();
@@ -1097,7 +1094,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
      * @param <D>
      *        The type of data in the adapter created
      */
-    @SuppressWarnings("unused")
     public static class BaseCacheAdapterFactory<T, R, E, D> {
 
         /**
@@ -1288,7 +1284,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @return  The {@code ViewBinder} or null
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public abstract ViewBinder getAdapterViewBinder();
 
         /**
@@ -1339,7 +1335,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public ViewBinder getAdapterViewBinder() {
             return mDataBinder.getAdapterViewBinder();
@@ -1396,7 +1392,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
                     mInflater.inflate(mLayoutId, parent, false);
         }
 
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @LayoutRes
         public int getLayoutId() {
             return mLayoutId;
@@ -1530,7 +1526,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public Converter<D> getConverter() {
             return mConverter;
@@ -1539,7 +1535,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public Cursor swapCursor(final Cursor cursor) {
             mCursorCache = null;
@@ -1549,7 +1545,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
         @Override
         public T convert(final Cursor cursor, final int position) {
             if (cursor == null) {           // should never happen
@@ -1665,7 +1660,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @return  The BaseCacheAdapter
          */
         @NonNull
-        @SuppressWarnings("unused")
         public BaseCacheAdapter<T, R, E, D> getAdapter() {
             return mBaseCacheAdapter;
         }
@@ -1676,7 +1670,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @return  The ContentValuesRecyclerViewAdapter
          */
         @NonNull
-        @SuppressWarnings("unused")
         public BaseRecyclerViewAdapter<T, R, E, D> getRecyclerViewAdapter() {
             return mBaseRecyclerViewAdapter;
         }
@@ -1708,6 +1701,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public void update(final BaseResponse<R, E, D> data, final boolean isMerge,
                            final Runnable onLoadFinished) {
@@ -1718,7 +1712,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Resets the array adapter.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public void resetArray() {
             Utils.postToMainLoop(new Runnable() {
                 @Override
@@ -1740,7 +1734,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @return  The BaseCursorAdapter
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public BaseCursorAdapter getCursorAdapter() {
             return mBaseCacheAdapter.getCursorAdapter();
@@ -1751,7 +1745,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
     private static class DataBindingDataConverter<R, E, D> extends BaseDataConverter<Object, R, E, D> {
 
-        @SuppressWarnings("unused")
         @Override
         public Collection<Object> convert(final BaseResponse<R, E, D> baseResponse) {
             if (baseResponse == null) {
@@ -1767,7 +1760,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
             return Collections.singletonList(data);
         }
 
-        @SuppressWarnings("unused")
         @Override
         protected Object convertSingle(@NonNull final Object data) {
             return data;
@@ -1795,7 +1787,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
 
         private       BaseCacheAdapter<Object, R, E, D>             mBaseCacheAdapter;
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         protected DataBindingArrayAdapter(@NonNull   final Context context,
                                           @LayoutRes final int     layoutId,
                                                      final int     dataBindingId) {
@@ -1812,7 +1804,6 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          * @param adapter
          *        The {@code BaseCacheAdapter}
          */
-        @SuppressWarnings("unused")
         public void setAdapter(final BaseCacheAdapter<Object, R, E, D> adapter) {
             mBaseCacheAdapter = adapter;
         }
@@ -1834,7 +1825,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public ViewBinder getAdapterViewBinder() {
             return null;
@@ -2030,7 +2021,7 @@ public class BaseCacheAdapter<T, R, E, D> implements ListAdapter, SpinnerAdapter
          *
          * @see     ViewDataBinding#getRoot() ViewDataBinding.getRoot()
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static View getView(@NonNull   final ViewGroup parent,
                                    @LayoutRes final int       layoutId) {
             return getView(getViewDataBinding(parent, layoutId));

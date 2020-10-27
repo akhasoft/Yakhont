@@ -87,7 +87,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      *
      * @return  This {@code GoogleApiClient}
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public SettingsClient getSettingsClient() {
         return mSettingsClient;
     }
@@ -99,7 +99,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * @param value
      *        {@code true} for requesting location updates, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public void setRequestLocationUpdates(final boolean value) {
         mRequestLocationUpdates = value;
     }
@@ -111,7 +111,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * @param value
      *        {@code true} for run location updates, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public void setRunLocationUpdates(final boolean value) {
         mRunLocationUpdates = value;
     }
@@ -309,7 +309,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      *
      * @return  This {@code GoogleLocationClientNew} object, so that setters can be chained
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public GoogleLocationClientNew setPendingIntent(final PendingIntent pendingIntent) {
         mPendingIntent = pendingIntent;
         return this;
@@ -358,7 +358,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * @see #INTENT_DEFAULT_ACTION
      * @see #INTENT_DEFAULT_CODE
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static PendingIntent createPendingIntentBroadcast(@NonNull final Activity activity,
                                                              @NonNull final Class<?> classBroadcast) {
         return createPendingIntentBroadcast(activity, classBroadcast, INTENT_DEFAULT_ACTION, INTENT_DEFAULT_CODE);
@@ -412,7 +412,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      * @see #INTENT_DEFAULT_ACTION
      * @see #INTENT_DEFAULT_CODE
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static PendingIntent createPendingIntentService(@NonNull final Activity activity,
                                                            @NonNull final Class<?> classService) {
         return createPendingIntentService(activity, classService, INTENT_DEFAULT_ACTION, INTENT_DEFAULT_CODE);
@@ -454,7 +454,7 @@ public class GoogleLocationClientNew extends BaseGoogleLocationClient {
      *
      * @see #INTENT_DEFAULT_ACTION
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Location getLocation(@NonNull final Intent intent) {
         return getLocation(intent, INTENT_DEFAULT_ACTION);
     }

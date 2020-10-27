@@ -20,7 +20,8 @@
         <td width="45%" align="right">Yakhont - break limits now</td>
     </tr></table>
 </div>         
-        
+<div style="text-align: right"><i>Software is like sex; it's better when it's free.<br>Linus Torvalds</i></div>
+
 # Yakhont: all-in-one high-level Android library for data loading, code weaving, location and more
 
 Yes, all in one (well, almost all :-). Data loading (including paging), Rx, progress GUI, cache, data binding,

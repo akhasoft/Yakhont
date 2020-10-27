@@ -24,15 +24,14 @@ import java.util.Locale;
 
 import com.google.gson.annotations.SerializedName;
 
-@SuppressWarnings("unused")
 public class Beer extends BaseObservable {      // POJO with Data Binding Library support
 
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @SerializedName("title")
-    @SuppressWarnings("unused")
     private String mTitle;
 
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @SerializedName("image")
-    @SuppressWarnings("unused")
     private String mImage;
 
     private int mCacheInfo;

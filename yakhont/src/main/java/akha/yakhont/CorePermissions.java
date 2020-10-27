@@ -264,7 +264,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "unused", "RedundantSuppression"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
         final Collection<CorePermissions> collection = onActivityResultHelper(activity, requestCode, resultCode, data);
@@ -458,7 +458,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void onResume(final Activity activity) {
         final List<CorePermissions> list = get(activity, null);
         if (list == null) return;
@@ -508,7 +508,7 @@ public class CorePermissions implements ConfigurationChangedListener {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void onRequestPermissionsResult(final Activity activity, final int requestCode,
                                                   final String[] permissions, final int[] grantResults) {
         CoreLogger.log("CorePermissions.onRequestPermissionsResult: " + Arrays.toString(permissions) +
@@ -754,7 +754,7 @@ public class CorePermissions implements ConfigurationChangedListener {
          *
          * @return  The permission
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public String getPermission() {
             return mPermission;
         }
@@ -863,7 +863,7 @@ public class CorePermissions implements ConfigurationChangedListener {
          *
          * @return  The callback's list
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public List<Callbacks> getCallbacks() {
             return mCallbacks;
         }
@@ -881,6 +881,7 @@ public class CorePermissions implements ConfigurationChangedListener {
                 CoreLogger.logError("permission == null");
             else
                 addCallbacks(runnable == null ? null: new Callbacks(permission) {
+                    @SuppressWarnings({"unused", "RedundantSuppression"})
                     @Override
                     public void onGranted() {
                         super.onGranted();
@@ -929,7 +930,6 @@ public class CorePermissions implements ConfigurationChangedListener {
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
         public RequestBuilder setRationale(@StringRes final int rationaleId, final Object... args) {
             mRationale = Objects.requireNonNull(Utils.getApplication()).getString(rationaleId, args);
             return this;
@@ -943,7 +943,7 @@ public class CorePermissions implements ConfigurationChangedListener {
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public RequestBuilder setView(@IdRes final int viewId) {
             mViewId = viewId;
             return this;
@@ -958,7 +958,6 @@ public class CorePermissions implements ConfigurationChangedListener {
          *
          * @return  This {@code RequestBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
         public RequestBuilder setRequestCode(@IntRange(from = 0) final Integer requestCode) {
             mRequestCode = requestCode;
             return this;

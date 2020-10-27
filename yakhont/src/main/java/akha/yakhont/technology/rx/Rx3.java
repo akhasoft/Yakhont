@@ -107,7 +107,7 @@ public class Rx3<D> extends CommonRx<D> {
      *
      * @see RxJavaPlugins#setErrorHandler
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setErrorHandlerEmpty() {
         setErrorHandler(Functions.emptyConsumer());
     }
@@ -187,22 +187,22 @@ public class Rx3<D> extends CommonRx<D> {
     public Disposable subscribe(@NonNull final SubscriberRx<D> subscriber) {
         return isSingle() ? createSingle().subscribeWith(new DisposableSingleObserver<D>() {
             @Override
-            public void onSuccess(final D result) {
+            public void onSuccess(@NonNull final D result) {
                 subscriber.onNext(result);
             }
 
             @Override
-            public void onError(final Throwable throwable) {
+            public void onError(@NonNull final Throwable throwable) {
                 subscriber.onError(throwable);
             }
         }): createObservable().subscribeWith(new DisposableObserver<D>() {
             @Override
-            public void onNext(final D result) {
+            public void onNext(@NonNull final D result) {
                 subscriber.onNext(result);
             }
 
             @Override
-            public void onError(final Throwable throwable) {
+            public void onError(@NonNull final Throwable throwable) {
                 subscriber.onError(throwable);
             }
 
@@ -486,7 +486,7 @@ public class Rx3<D> extends CommonRx<D> {
     public Observable<D> createObservable() {
         return new Observable<D>() {
             @Override
-            protected void subscribeActual(final Observer<? super D> observer) {
+            protected void subscribeActual(@NonNull final Observer<? super D> observer) {
                 if (!checkNullObserver(observer)) return;
 
                 if (mDisposable != null) observer.onSubscribe(mDisposable);
@@ -592,7 +592,7 @@ public class Rx3<D> extends CommonRx<D> {
      * @return  The {@link Flowable}
      */
     @NonNull
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public Flowable<D> createFlowable() {
         return createFlowable(BackpressureStrategy.LATEST);
     }
@@ -629,7 +629,7 @@ public class Rx3<D> extends CommonRx<D> {
      * @return  The {@link Maybe}
      */
     @NonNull
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public Maybe<D> createMaybe() {
         checkSingle();
         return createObservable().singleElement();
@@ -641,7 +641,7 @@ public class Rx3<D> extends CommonRx<D> {
      * @return  The {@link Completable}
      */
     @NonNull
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public Completable createCompletable() {
         return createObservable().ignoreElements();
     }

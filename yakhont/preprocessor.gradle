@@ -21,7 +21,7 @@ import groovy.transform.Field
 @Field final boolean addDebugActivities               = true  // auto generate additional debug Activities
 @Field final boolean addDebugFragments                = true  // auto generate additional debug Fragments
 
-@Field final String  corePathDebug                    = 'src/main/java/akha/yakhont/debug'
+@Field final String  mainPathDebug                    = 'src/main/java/akha/yakhont/debug'
 @Field final String  fullPathDebug                    = 'src/full/java/akha/yakhont/debug'
 
 @Field final String  preprocessorAddToGenerated       = '//YakhontPreprocessor:addToGenerated'
@@ -211,7 +211,7 @@ static def getShortClassName(String fullClassName) {
 def prepareTemplates(boolean isSupport, boolean activities) {
     String filesMask = activities ? '**/BaseActivity.java': '**/*Fragment*'
     copy {
-        from (fileTree(corePathDebug).include(filesMask))
+        from (fileTree(mainPathDebug).include(filesMask))
         into (fullPathDebug)
 
         eachFile { copyDetails ->

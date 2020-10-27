@@ -33,14 +33,14 @@ public interface Retrofit2Api {
     Observable<List<Beer>>              getDataRx   ();  // Flowable, Maybe and Single works too
 
     @GET("/data")
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     io.reactivex.Observable<List<Beer>> getDataRx2  ();  // Flowable, Maybe and Single works too
 
     @GET("/data")
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     rx.Observable<List<Beer>>           getDataRx1  ();  // Single works too
 
     @GET("/data")
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     Call<List<Beer>>                    getData(@Query("not_used") String notUsed /* just for demo */ );
 }

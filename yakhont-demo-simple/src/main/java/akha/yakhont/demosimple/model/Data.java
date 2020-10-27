@@ -24,11 +24,10 @@ import java.util.Locale;
 
 import com.google.gson.annotations.SerializedName;
 
-@SuppressWarnings("unused")
 public class Data extends BaseObservable {      // POJO with Data Binding Library support
 
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @SerializedName("title")
-    @SuppressWarnings("unused")
     private String mTitle;
 
     @Bindable

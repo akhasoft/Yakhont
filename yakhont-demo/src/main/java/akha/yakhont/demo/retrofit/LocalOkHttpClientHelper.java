@@ -57,7 +57,7 @@ public class LocalOkHttpClientHelper {
         Context context = mContext.get();
         if (context == null) handleError("context == null");
 
-        //noinspection ConstantConditions
+        @SuppressWarnings("ConstantConditions")
         int resourceId = context.getResources().getIdentifier(fileName,
                 "raw", context.getPackageName());
         if (resourceId == 0) handleError("Could not find res/raw/" + fileName + ".json");

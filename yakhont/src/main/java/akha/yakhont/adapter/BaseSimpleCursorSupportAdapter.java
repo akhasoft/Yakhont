@@ -71,12 +71,12 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         init();
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "deprecation", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "deprecation", "unused", "RedundantSuppression"})
     public BaseSimpleCursorSupportAdapter(@NonNull                    final Context  context ,
                                           @LayoutRes                  final    int   layoutId,
                                           @NonNull @Size(min = 1)     final String[] from    ,
                                           @NonNull @Size(min = 1)     final    int[] to      ,
-                                          @SuppressWarnings("unused") final    int   ignored) {
+                                                                      final    int   ignored) {
         super(context, layoutId, null, from, to);
         mContext = new WeakReference<>(context);
         init();
@@ -92,7 +92,7 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
         });
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean isSupport() {
         final boolean result = true;
         CoreLogger.log("BaseSimpleCursorAdapter.isSupport() == " + result);
@@ -104,12 +104,12 @@ public class BaseSimpleCursorSupportAdapter extends SimpleCursorAdapter implemen
      *
      * @return  The {@code ViewBinder} or null
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseCacheAdapter.ViewBinder getAdapterViewBinder() {
         return mViewBinder;
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "UnusedReturnValue"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
     @Override
     public void setAdapterViewBinder(final BaseCacheAdapter.ViewBinder viewBinder) {
         mViewBinder = viewBinder;

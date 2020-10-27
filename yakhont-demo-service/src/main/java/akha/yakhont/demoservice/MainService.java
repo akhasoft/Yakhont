@@ -128,7 +128,7 @@ public class MainService extends JobIntentService implements ViewModelStoreOwner
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // for Yakhont Weaver demo
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void demoWeaving(String msg, String cls, String method) {
         Log.e(TAG, msg + "class: " + cls + ", method: " + method);
     }

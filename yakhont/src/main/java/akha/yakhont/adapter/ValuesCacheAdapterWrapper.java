@@ -142,7 +142,7 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
      * @param to
      *        The views that should display data in the "from" parameter
      */
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
     public ValuesCacheAdapterWrapper(@NonNull final BaseCacheAdapterFactory<ContentValues, R, E, D> factory,
                                                              final boolean  support,
                                                              final boolean  supportCursorAdapter,
@@ -207,7 +207,6 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
                                                            @NonNull @Size(min = 1) final String[] from,
                                                            @NonNull @Size(min = 1) final int   [] to) {
         return new DataBinder<ContentValues>(context, from, to) {
-            @SuppressWarnings("unused")
             @Override
             protected Object getValue(@NonNull ContentValues item, int index) {
                 return ValuesCacheAdapterWrapper.getValue(item, index, mFrom, true);
@@ -312,7 +311,6 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
 
         private final String[]                                          mFrom;
 
-        @SuppressWarnings("unused")
         private ContentValuesDataConverter(@NonNull @Size(min = 1) final String[] from) {
             mFrom = from;
         }
@@ -322,7 +320,6 @@ public class ValuesCacheAdapterWrapper<R, E, D> extends BaseCacheAdapterWrapper<
             return (D) mConverter.getData(cursor, null);
         }
         
-        @SuppressWarnings("unused")
         @Override
         public Collection<ContentValues> convert(@NonNull final BaseResponse<R, E, D> baseResponse) {
             List<ContentValues> result = null;

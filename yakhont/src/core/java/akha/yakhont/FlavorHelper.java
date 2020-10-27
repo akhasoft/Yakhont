@@ -44,13 +44,13 @@ public class FlavorHelper {
     public static void setRxErrorHandlerJustLog() {
     }
 
-    @SuppressWarnings({"SameReturnValue", "unused"})
+    @SuppressWarnings({"SameReturnValue", "unused", "RedundantSuppression"})
     public static <D> Object handleRx(final Object handler, final Method method, final Object[] args,
                                       final CallbackRx<D> callback) {
         return null;
     }
 
-    @SuppressWarnings({"EmptyMethod", "unused"})
+    @SuppressWarnings({"EmptyMethod", "unused", "RedundantSuppression"})
     public static void cancelRx(final Object object) {
     }
 
@@ -68,11 +68,11 @@ public class FlavorHelper {
         public void unsubscribe() {
         }
 
-        @SuppressWarnings({"EmptyMethod", "unused"})
+        @SuppressWarnings({"EmptyMethod", "unused", "RedundantSuppression"})
         public static void unsubscribeAnonymous(@NonNull final String msg) {
         }
 
-        @SuppressWarnings({"EmptyMethod", "unused"})
+        @SuppressWarnings({"EmptyMethod", "unused", "RedundantSuppression"})
         public static <D> void add(final BaseRx<D> rx, final Object resultRx) {
         }
     }

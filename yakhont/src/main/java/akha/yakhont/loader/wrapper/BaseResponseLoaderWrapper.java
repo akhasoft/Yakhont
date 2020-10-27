@@ -128,7 +128,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     protected final     Requester<C>                            mRequester;
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
     protected final     Converter<D>                            mConverter;
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused", "RedundantSuppression"})
     protected final     UriResolver                             mUriResolver;
 
     private             CacheAdapter<R, E, D>                   mAdapter;
@@ -152,7 +152,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param <C>
      *        The type of callback (or Retrofit API)
      */
-    @SuppressWarnings("unused")
     public interface Requester<C> {
 
         /**
@@ -196,7 +195,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param <D>
      *        The type of data to load
      */
-    @SuppressWarnings("unused")
     public static abstract class LoaderCallbacks<E, D> implements LoaderCallback<D> {
 
         /**
@@ -216,9 +214,9 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @param source
          *        The data loading source
          */
-        @SuppressWarnings("WeakerAccess")
-        public void onLoadError(@SuppressWarnings("unused") final E      error,
-                                @SuppressWarnings("unused") final Source source) {
+        @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
+        public void onLoadError(final E      error,
+                                final Source source) {
             CoreLogger.log("empty onLoadError in " + this);
         }
     }
@@ -247,7 +245,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param uriResolver
      *        The URI resolver (for cache provider)
      */
-    @SuppressWarnings("unused")
     protected BaseResponseLoaderWrapper(@NonNull final ViewModelStore viewModelStore, final String loaderId,
                                         @NonNull final Requester<C> requester,
                                         @NonNull final String tableName, final String description,
@@ -286,7 +283,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param <D>
      *        The type of data to load
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static <E, D> void clearCache(final CoreLoad<E, D> coreLoad) {
         if (coreLoad == null) {
             CoreLogger.logError("coreLoad == null");
@@ -401,7 +398,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *
      * @return  The Rx component
      */
-    @SuppressWarnings("unused")
     public LoaderRx<R, E, D> getRx() {
         return mRx;
     }
@@ -426,7 +422,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      *
      * @return  The adapter
      */
-    @SuppressWarnings("unused")
     @Override
     public CacheAdapter<R, E, D> getAdapter() {
         return mAdapter;
@@ -435,7 +430,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @Override
     public BaseCacheAdapter<?, R, E, D> getListAdapter() {
         if (mAdapter instanceof BaseCacheAdapterWrapper)
@@ -448,7 +443,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("unused")
     @Override
     public BaseRecyclerViewAdapter<?, R, E, D> getRecyclerViewAdapter() {
         if (mAdapter instanceof BaseCacheAdapterWrapper)
@@ -466,7 +460,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @Override
     public PagingRecyclerViewAdapter<?, R, E> getPagingAdapter() {
         return mPagingAdapter;
@@ -752,7 +746,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setTableName(@NonNull final Context context,
                                                                   @StringRes final int tableNameId) {
@@ -815,7 +809,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code BaseResponseLoaderBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public BaseResponseLoaderBuilder<C, R, E, D> setDescription(@NonNull final Context context,
                                                                     @StringRes final int descriptionId) {
@@ -1142,7 +1136,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  {@code true} if the loader ID was auto generated, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         protected boolean isLoaderIdAutoGenerated() {
             return mLoaderId == null;
         }
@@ -1220,7 +1214,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @param fragment
          *        The Fragment
          */
-        @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder(final Fragment fragment) {
             super(fragment);
         }
@@ -1231,7 +1224,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @param activity
          *        The Activity
          */
-        @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder(final Activity activity) {
             super(activity);
         }
@@ -1242,12 +1234,11 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @param viewModelStore
          *        The ViewModelStore
          */
-        @SuppressWarnings("unused")
         public BaseResponseLoaderExtendedBuilder(final ViewModelStore viewModelStore) {
             super(viewModelStore);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         protected static abstract class RequesterHelper<C, T> {
 
             protected       Method                              mMethod;
@@ -1282,7 +1273,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
 
             //noinspection Convert2Lambda
             return new Requester<C>() {
-                @SuppressWarnings("unused")
+                @SuppressWarnings({"unused", "RedundantSuppression"})
                 @Override
                 public void makeRequest(@NonNull final C callback) {
                     try {
@@ -1339,7 +1330,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  The default {@code Requester}
          */
-        @SuppressWarnings("unused")
         Requester<C> getDefaultRequester();
     }
 
@@ -1488,7 +1478,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @see     LoadParameters#NO_LOAD
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         boolean start();
 
         /**
@@ -1499,7 +1489,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  {@code true} if data loading was successfully started, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         boolean start(long pageId);
 
         /**
@@ -1513,7 +1503,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  {@code true} if data loading was successfully started, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
         boolean start(ViewModelStoreOwner viewModelStoreOwner, LoadParameters parameters);
 
         /**
@@ -1535,7 +1524,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoad} object to allow for chaining of calls
          */
-        @SuppressWarnings({"UnusedReturnValue", "unused"})
+        @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
         CoreLoad<E, D> setGoBackOnCancelLoading(boolean isGoBackOnCancelLoading);
     }
 
@@ -1548,7 +1537,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
      * @param <D>
      *        The type of data to load
      */
-    @SuppressWarnings("unused")
     public static class CoreLoader<E, D> implements CoreLoad<E, D>, ViewModelStoreOwner {
 
         // for default ViewModelStoreOwner only
@@ -1658,6 +1646,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public CoreLoad<E, D> setGoBackOnCancelLoading(final boolean isGoBackOnCancelLoading) {
             mGoBackOnCancelLoading.set(isGoBackOnCancelLoading);
@@ -1676,6 +1665,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public boolean start() {
             return start(null);
@@ -1684,6 +1674,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public boolean start(final long pageId) {
             return start(BaseViewModel.cast(Utils.getCurrentActivity(), null), new LoadParameters(pageId));
@@ -1790,7 +1781,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  The Rx component
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public LoaderRx<R, E, D> getRx() {
             return mRx;
         }
@@ -1803,7 +1794,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue"})
         public CoreLoadBuilder<C, R, E, D> setOnItemClickListener(final OnItemClickListener listener) {
             checkData(mOnItemClickListener, listener, "OnItemClickListener");
             mOnItemClickListener = listener;
@@ -1819,7 +1810,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setSwipeToRefreshCallback(final Runnable callback) {
             checkData(mSwipeToRefreshCallback, callback, "SwipeToRefreshCallback");
             mSwipeToRefreshCallback = callback;
@@ -1850,7 +1841,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setPagingBoundaryCallback(final BoundaryCallback<?> boundaryCallback) {
             checkData(mBoundaryCallback, boundaryCallback, "BoundaryCallback");
             mBoundaryCallback = boundaryCallback;
@@ -1865,7 +1856,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setPagingFetchExecutor(final Executor fetchExecutor) {
             checkData(mFetchExecutor, fetchExecutor, "FetchExecutor");
             mFetchExecutor = fetchExecutor;
@@ -1880,7 +1871,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused"})
+        @SuppressWarnings({"WeakerAccess", "UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setPagingInitialLoadKey(final Object initialLoadKey) {
             checkData(mInitialLoadKey, initialLoadKey, "InitialLoadKey");
             mInitialLoadKey = initialLoadKey;
@@ -1895,7 +1886,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"unused", "UnusedReturnValue", "WeakerAccess"})
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess"})
         public CoreLoadBuilder<C, R, E, D> setPagingConfig(final Config config) {
             checkData(mPagingConfig, config, "PagingConfig");
             mPagingConfig = config;
@@ -1910,7 +1901,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused"})
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setPageSize(final Integer pageSize) {
             checkData(mPageSize, pageSize, "PageSize");
             mPageSize = pageSize;
@@ -1925,7 +1916,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings({"unused", "UnusedReturnValue", "WeakerAccess"})
+        @SuppressWarnings({"UnusedReturnValue", "WeakerAccess", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setPagingItemCallback(final ItemCallback<?> itemCallback) {
             checkData(mPagingItemCallback, itemCallback, "PagingItemCallback");
             mPagingItemCallback = itemCallback;
@@ -1941,7 +1932,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
+        @SuppressWarnings("UnusedReturnValue")
         public CoreLoadBuilder<C, R, E, D> setRx(final LoaderRx<R, E, D> rx) {
             checkData(mRx, rx, "Rx");
             mRx = rx;
@@ -1973,7 +1964,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"UnusedReturnValue", "unused"})
+        @SuppressWarnings("UnusedReturnValue")
         public <S> CoreLoadBuilder<C, R, E, D> setAdapterWrapper(
                 final BaseCacheAdapterWrapper<S, R, E, D> adapterWrapper) {
             checkData(mAdapterWrapper, adapterWrapper, "adapter wrapper");
@@ -1990,7 +1981,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"UnusedReturnValue", "unused"})
+        @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setAdapter(final CacheAdapter<R, E, D> adapter) {
             checkData(mAdapter, adapter, "adapter");
             mAdapter = adapter;
@@ -2006,7 +1997,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
+        @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setViewBinder(final ViewBinder viewBinder) {
             checkData(mViewBinder, viewBinder, "ViewBinder");
             mViewBinder = viewBinder;
@@ -2022,7 +2013,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
+        @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setViewHolderCreator(final ViewHolderCreator viewHolderCreator) {
             checkData(mViewHolderCreator, viewHolderCreator, "ViewHolder creator");
             mViewHolderCreator = viewHolderCreator;
@@ -2041,7 +2032,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
+        @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setListView(@IdRes final int listViewId) {
             if (mListViewId != Core.NOT_VALID_VIEW_ID)
                 CoreLogger.log(Level.ERROR, "The list view id is already set");
@@ -2071,7 +2062,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
+        @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
         public CoreLoadBuilder<C, R, E, D> setListItem(@LayoutRes final int layoutItemId) {
             if (mLayoutItemId != Core.NOT_VALID_RES_ID)
                 CoreLogger.log(Level.ERROR, "The layout item id is already set");
@@ -2088,7 +2079,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings({"unused", "UnusedReturnValue"})
+        @SuppressWarnings("UnusedReturnValue")
         public CoreLoadBuilder<C, R, E, D> setNoBinding(final boolean noBinding) {
             mNoBinding = noBinding;
             return this;
@@ -2427,7 +2418,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setNoCache(final boolean noCache) {
             mNoCache            = noCache;
@@ -2442,7 +2433,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings("UnusedReturnValue")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Progress progress) {
             final Callable<Progress> tmp = progress == null ? null: new Callable<Progress>() {
@@ -2470,7 +2461,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setProgress(final Callable<Progress> progress) {
             checkData(mProgress, progress, "progress");
@@ -2486,7 +2477,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModel(
                 final Callable<? extends BaseViewModel<BaseResponse<R, E, D>>> baseViewModel) {
@@ -2503,7 +2494,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings("UnusedReturnValue")
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModelKey(final String key) {
             checkData(mBaseViewModelKey, key, "baseViewModelKey");
@@ -2519,7 +2510,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setBaseViewModelOnCleared(final Runnable onCleared) {
             checkData(mBaseViewModelOnCleared, onCleared, "baseViewModelOnCleared");
@@ -2551,7 +2542,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderCallback(final LoaderCallback<D> loaderCallback) {
             return setLoaderCallbacks(getLoaderCallbacks(loaderCallback));
@@ -2560,7 +2551,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
         public static <E, D> LoaderCallbacks<E, D> getLoaderCallbacks(final LoaderCallback<D> loaderCallback) {
             return loaderCallback == null ? null: new LoaderCallbacks<E, D>() {
-                @SuppressWarnings("unused")
                 @Override
                 public void onLoadFinished(final D data, final Source source) {
                     Utils.safeRun(new Runnable() {
@@ -2597,7 +2587,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setType(final Type type) {
             checkData(mType, type, "type");
             mType = type;
@@ -2614,8 +2604,8 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @see ViewDataBinding#setVariable
          */
+        @SuppressWarnings("UnusedReturnValue")
         @NonNull
-        @SuppressWarnings("unused")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setDataBinding(@NonNull final Integer id) {
             checkData(mDataBindingId, id, "data binding id");
             mDataBindingId = id;
@@ -2634,7 +2624,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setDataBinding(@NonNull @Size(min = 1) final String[] from,
                                                                      @NonNull @Size(min = 1) final    int[] to) {
             checkData(mFrom, from, "from data binding");
@@ -2655,7 +2645,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setDescription(final String description) {
             checkData(mDescription, description, "description");
             mDescription = description;
@@ -2671,7 +2661,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setDescriptionId(@StringRes final int descriptionId) {
             if (mDescriptionId != Core.NOT_VALID_RES_ID)
                 CoreLogger.log(Level.ERROR, "The description id is already set");
@@ -2688,7 +2678,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setTableName(@NonNull final String tableName) {
             checkData(mTableName, tableName, "table name");
             mTableName = tableName;
@@ -2704,7 +2694,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setLoaderId(final String loaderId) {
             if (mLoaderId != null)
                 CoreLogger.log(Level.ERROR, "The loader id is already set");
@@ -2721,7 +2711,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setUriResolver(@NonNull final UriResolver uriResolver) {
             checkData(mUriResolver, uriResolver, "URI resolver");
             mUriResolver = uriResolver;
@@ -2741,7 +2731,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setViewBinder(final ViewBinder viewBinder) {
@@ -2752,7 +2742,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setViewHolderCreator(final ViewHolderCreator viewHolderCreator) {
@@ -2763,7 +2753,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setListView(final int listViewId) {
@@ -2774,7 +2764,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setListItem(final int layoutItemId) {
@@ -2785,7 +2775,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setNoBinding(final boolean noBinding) {
@@ -2801,7 +2790,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
         @NonNull
         @Override
         public <S> CoreLoadExtendedBuilder<C, R, E, D, T> setAdapterWrapper(
@@ -2818,7 +2806,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setAdapter(final CacheAdapter<R, E, D> adapter) {
@@ -2850,7 +2838,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingBoundaryCallback(
@@ -2867,7 +2855,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingFetchExecutor(final Executor fetchExecutor) {
@@ -2883,7 +2871,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingInitialLoadKey(final Object initialLoadKey) {
@@ -2914,7 +2902,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setOnItemClickListener(final OnItemClickListener listener) {
             super.setOnItemClickListener(listener);
             return this;
@@ -2929,7 +2916,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setSwipeToRefreshCallback(final Runnable callback) {
@@ -2945,7 +2932,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPageSize(final Integer pageSize) {
             super.setPageSize(pageSize);
             return this;
@@ -2959,7 +2946,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @NonNull
         @Override
         public CoreLoadExtendedBuilder<C, R, E, D, T> setPagingItemCallback(
@@ -2977,14 +2964,14 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @return  This {@code CoreLoadExtendedBuilder} object to allow for chaining of calls to set methods
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setConverter(final Converter<D> converter) {
             checkData(mConverter, converter, "converter");
             mConverter = converter;
             return this;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setSupportMode(final boolean support) {
             checkData(mSupport, support, "support");
@@ -2992,7 +2979,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return this;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         @NonNull
         public CoreLoadExtendedBuilder<C, R, E, D, T> setSupportCursorAdapterMode(final boolean support) {
             checkData(mSupportCursorAdapter, support, "support CursorAdapter");
@@ -3024,7 +3011,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @see     #setRequesterRaw
          * @see     #makeRequest(Object)
          */
-        @SuppressWarnings("unused")
         public CoreLoadExtendedBuilder<C, R, E, D, T> setRequester(final Requester<T> requester) {
             checkData(mRequester, requester, "requester");
             mRequester = requester;
@@ -3112,7 +3098,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @see     #setRequester
          * @see     #makeRequest(Object)
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoadExtendedBuilder<C, R, E, D, T> setRequesterRaw(final Requester<C> requester) {
             checkData(mRequesterRaw, requester, "raw requester");
             mRequesterRaw = requester;
@@ -3129,7 +3115,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          * @see     #setRequesterRaw
          * @see     Requester#makeRequest(Object)
          */
-        @SuppressWarnings("unused")
         @Override
         public void makeRequest(@NonNull final C callback) {
             if (mRequesterRaw != null) {
@@ -3169,7 +3154,6 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @see BaseRetrofit#getApi(Object) BaseRetrofit.getApi()
          */
-        @SuppressWarnings("unused")
         public abstract T getApi(final C callback);
 
         private static String toString(final Object[] data) {
@@ -3219,7 +3203,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  The {@code CoreLoad} instance
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoad<E, D> create() {
             return super.create(null, null);
         }
@@ -3232,7 +3216,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  The {@code CoreLoad} instance
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoad<E, D> create(@NonNull final Activity activity) {
             return super.create(activity, null);
         }
@@ -3245,7 +3229,7 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
          *
          * @return  The {@code CoreLoad} instance
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CoreLoad<E, D> create(@NonNull final Fragment fragment) {
             return super.create(fragment.getActivity(), fragment);
         }
@@ -3255,13 +3239,13 @@ public abstract class BaseResponseLoaderWrapper<C, R, E, D> extends BaseLoaderWr
             return create(null, null, builder);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         protected CoreLoad<E, D> create(@NonNull final Activity activity,
                                         final BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(activity, null, builder);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         protected CoreLoad<E, D> create(@NonNull final Fragment fragment,
                                         final BaseResponseLoaderBuilder<C, R, E, D> builder) {
             return create(fragment.getActivity(), fragment, builder);

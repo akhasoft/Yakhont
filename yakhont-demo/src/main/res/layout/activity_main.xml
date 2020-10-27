@@ -43,7 +43,9 @@
         android:layout_marginBottom="@dimen/activity_vertical_margin"
 
         android:layout_gravity="bottom|end"
-        android:src="@android:drawable/ic_dialog_map" />
+        android:src="@android:drawable/ic_dialog_map"
+        android:contentDescription="N/A"
+        tools:ignore="HardcodedText" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_info"
@@ -56,6 +58,8 @@
         android:layout_marginBottom="@dimen/activity_vertical_margin"
 
         android:layout_gravity="top|end"
-        android:src="@android:drawable/ic_dialog_info" />
+        android:src="@android:drawable/ic_dialog_info"
+        android:contentDescription="N/A"
+        tools:ignore="HardcodedText" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

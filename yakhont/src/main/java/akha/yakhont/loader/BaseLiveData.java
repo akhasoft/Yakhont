@@ -56,6 +56,8 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import androidx.annotation.CallSuper;
+import androidx.annotation.IdRes;
+import androidx.annotation.LayoutRes;
 import androidx.annotation.MainThread;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
@@ -172,7 +174,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      *
      * @return  The timeout
      */
-    @SuppressWarnings({"SameReturnValue", "unused"})
+    @SuppressWarnings("SameReturnValue")
     protected int getDefaultTimeout() {
         return Core.TIMEOUT_CONNECTION;
     }
@@ -187,7 +189,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      * @param dataLoader
      *        The {@code DataLoader} component
      */
-    @SuppressWarnings("unused")
     public BaseLiveData(@NonNull final DataLoader<D> dataLoader) {
         this(dataLoader, getDefaultBaseDialog());
     }
@@ -356,8 +357,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         CoreLogger.log(LOADING_FAILED, (Throwable) error);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected void handleError(@SuppressWarnings("unused") final D result, final boolean notDisplayErrors) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused", "RedundantSuppression"})
+    protected void handleError(final D result, final boolean notDisplayErrors) {
         CoreLogger.logError(LOADING_FAILED);
         displayError(null, notDisplayErrors);
     }
@@ -379,8 +380,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         return System.currentTimeMillis();
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
-    protected String makeErrorMessage(@SuppressWarnings({"unused", "rawtypes"}) final BaseResponse baseResponse) {
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused", "RedundantSuppression"})
+    protected String makeErrorMessage(@SuppressWarnings("rawtypes") final BaseResponse baseResponse) {
         return Objects.requireNonNull(Utils.getApplication()).getString(akha.yakhont.R.string.yakhont_loader_error);
     }
 
@@ -492,7 +493,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      * @param progressDelay
      *        The progress delay
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public void setProgressDelay(final int progressDelay) {
         if (progressDelay > 0)
             mProgressDelay = progressDelay;
@@ -589,7 +590,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          * @param uriResolver
          *        The URI resolver
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public CacheLiveData(@NonNull final DataLoader<D> dataLoader,
                              @NonNull final String tableName, final UriResolver uriResolver) {
             super(dataLoader);
@@ -642,6 +643,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         /**
          * Please refer to the base method description.
          */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         @Override
         public void makeRequest(final Activity activity, final String text, final Intent data,
                                 final LoadParameters loadParameters) {
@@ -872,10 +874,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
      * The GUI which shows data loading progress.
      */
     public static class LiveDataDialog implements BaseDialog {
-                                                                                                  /*
-                             For Madmen Only
-                               - Hermann Hesse, Steppenwolf
-                                                                                                  */
+
         /**
          * The API to show the data loading progress.
          */
@@ -936,7 +935,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         /**
          * The base (with {@link Snackbar} for confirmation) {@link Progress} implementation.
          */
-        @SuppressWarnings("unused")
         public static abstract class ProgressDefault implements Progress {
 
             /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -1028,6 +1026,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *
              * @return  The default SnackbarBuilder
              */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static SnackbarBuilder getDefaultSnackbarBuilder() {
                 return getDefaultSnackbarBuilder(null);
             }
@@ -1050,7 +1049,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                         .setViewHandlersChain(true)
                         .setViewHandler(Utils.getDefaultSnackbarViewModifier())
 
-                        .setActionTextId(akha.yakhont.R.string.yakhont_alert_yes)
+                        .setActionTextId(akha.yakhont.R.string.yakhont_yes)
                         .setActionColor(Utils.getDefaultSnackbarActionColor())
                         .setAction(new View.OnClickListener() {
                             @Override
@@ -1067,6 +1066,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Snackbar.LENGTH_INDEFINITE},
              *        {@code Snackbar.LENGTH_LONG} or {@code Snackbar.LENGTH_SHORT}, null for default value
              */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static void setConfirmDuration(final Integer duration) {
                 sSnackbarDuration = duration;
             }
@@ -1080,8 +1080,24 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *
              * @see #getDefaultSnackbarBuilder
              */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static void setSnackbarBuilder(final SnackbarBuilder snackbarBuilder) {
                 sSnackbarBuilder = snackbarBuilder;
+            }
+
+            /**
+             * Sets custom {@code View} for the data loading progress GUI.
+             *
+             * @param layoutId
+             *        The view's layout ID
+             *
+             * @param textViewId
+             *        The view's {@code TextView} ID (to show loading info) - or {@link Core#NOT_VALID_RES_ID}
+             */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
+            public static void setView(@LayoutRes int layoutId, @IdRes int textViewId) {
+                ProgressDefaultImp.sLayoutId    = layoutId  ;
+                ProgressDefaultImp.sTextViewId  = textViewId;
             }
 
             /**
@@ -1098,6 +1114,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * @param viewModifier
              *        The view modifier
              */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static void setViewHandler(final ViewModifier viewModifier) {
                 sViewModifier = viewModifier;
             }
@@ -1120,7 +1137,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              * @param cls
              *        The {@link DialogFragment} class
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public ProgressDefaultDialog(@NonNull final Class<?> cls) {
                 mClass = cls;
             }
@@ -1128,7 +1145,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             /**
              * Please refer to the base method description.
              */
-            @SuppressWarnings("unused")
             @Override
             public void show(Activity activity) {
                 mProgress = CoreReflection.createSafe(mClass);
@@ -1148,7 +1164,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             /**
              * Please refer to the base method description.
              */
-            @SuppressWarnings("unused")
             @Override
             public void hide() {
                 super.hide();
@@ -1163,7 +1178,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *
              * @return  The {@link DialogFragment}
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public DialogFragment getDialog() {
                 return mProgress;
             }
@@ -1175,12 +1190,12 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *
              * @see     DialogFragment#show(FragmentManager, String)
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public String getTag() {
                 return mTag;
             }
 
-            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+            /** @exclude */ @SuppressWarnings("JavaDoc")
             @Override
             protected void adjustSnackbarBuilder(final SnackbarBuilder snackbarBuilder, final View view) {
                 snackbarBuilder.setView(view);
@@ -1227,7 +1242,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
              * @return  The handled {@link Dialog}
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static Dialog handle(@NonNull final Dialog dialog, final View view, final String key) {
                 return handle(dialog, createCallable(BaseViewModel.get(key), null, view));
             }
@@ -1250,7 +1265,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *
              * @return  The handled {@link Dialog}
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static Dialog handle(@NonNull final Dialog dialog, final View view,
                                         final Activity activity, final String key) {
                 return handle(dialog, createCallable(BaseViewModel.get(
@@ -1275,7 +1290,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
              *
              * @return  The handled {@link Dialog}
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static Dialog handle(@NonNull final Dialog dialog, final View view,
                                         final Fragment fragment, final String key) {
                 return handle(dialog, createCallable(BaseViewModel.get(fragment, key),
@@ -1307,6 +1322,11 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             private       static ProgressDefaultImp sInstance;
 
+            @LayoutRes
+            private       static int                sLayoutId;
+            @IdRes
+            private       static int                sTextViewId;
+
             private              PopupWindow        mPopupWindow;
             private              String             mText;
 
@@ -1315,7 +1335,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
 
             private static void init() {
-                sInstance = null;
+                sInstance   = null;
+                sLayoutId   = akha.yakhont.R.layout.yakhont_progress;
+                sTextViewId = akha.yakhont.R.id.yakhont_loader_text ;
             }
 
             // lazy init and no sync ('cause it's implemented in parent class)
@@ -1329,8 +1351,8 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
             }
 
             private void showPopupWindow(final View viewPopupWindow) {
-                Context context = getContext();
-                View    view    = getView(context);
+                final Context context = getContext();
+                View          view    = getView(context);
 
                 final ViewHandler viewHandler = getViewHandler();
 
@@ -1338,8 +1360,16 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     CoreLogger.logError("failed View customization for PopupWindow: " + mPopupWindow);
                     view = getView(context);
                 }
+
                 if (mText != null) {
-                    ((TextView) view.findViewById(akha.yakhont.R.id.yakhont_loader_text)).setText(mText);
+                    if (sTextViewId != Core.NOT_VALID_RES_ID) {
+                        final TextView textView = view.findViewById(sTextViewId);
+                        if (textView != null)
+                            textView.setText(mText);
+                        else
+                            CoreLogger.logError("can't find TextView for " +
+                                    CoreLogger.getResourceDescription(sTextViewId));
+                    }
                     mText = null;
                 }
 
@@ -1355,7 +1385,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             private static ViewHandler getViewHandler() {
                 return sViewModifier == null ? null: new ViewHandler() {
-                    @SuppressWarnings("unused")
+                    @SuppressWarnings({"unused", "RedundantSuppression"})
                     @Override
                     public void modify(final View view, final ViewHandler viewHandler) {
                         sViewModifier.modify(view, viewHandler);
@@ -1365,11 +1395,9 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
 
             @SuppressLint("InflateParams")
             private View getView(final Context context) {
-                return LayoutInflater.from(context).inflate(
-                        akha.yakhont.R.layout.yakhont_progress, null, false);
+                return LayoutInflater.from(context).inflate(sLayoutId, null, false);
             }
 
-            @SuppressWarnings("unused")
             @Override
             public void setText(@NonNull final String text) {
                 if (mPopupWindow != null)
@@ -1392,7 +1420,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
                     showPopupWindow(view);
             }
 
-            @SuppressWarnings("unused")
             @Override
             public void hide() {
                 super.hide();
@@ -1433,7 +1460,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          *
          * @return  The Progress
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Progress getProgress() {
             return mProgress;
         }
@@ -1446,9 +1473,10 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          *
          * @return  {@code true} if component set was OK, {@code false} otherwise
          */
-        @SuppressWarnings("UnusedReturnValue")
+        @SuppressWarnings({"UnusedReturnValue", "RedundantSuppression"})
         public boolean setProgress(final Progress progress) {
             final boolean result = mProgress == null && progress != null;
+            //noinspection RedundantSuppression
             if (!result)
                 //noinspection ConstantConditions
                 CoreLogger.logWarning(String.format("unexpected progress: %s (mProgress: %s)" +
@@ -1476,7 +1504,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          *
          * @return  The text for data loading GUI
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static String getInfoText() {
             return getInfoText(null);
         }
@@ -1489,7 +1517,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
          *
          * @return  The text for data loading GUI
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static String getInfoText(@StringRes final int info) {
             return getInfoText(getContext().getResources().getString(info));
         }
@@ -1509,7 +1537,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         // subject to call by the Yakhont Weaver
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         public static void startForWeaver(final Activity activity) {
             final LiveDataDialog liveDataDialog = LiveDataDialog.getInstance();
             if (liveDataDialog.mProgress instanceof ProgressDefaultImp)
@@ -1517,7 +1545,7 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         }
 
         // subject to call by the Yakhont Weaver
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         public static void stopForWeaver() {
             if (LiveDataDialog.getInstance().mProgress instanceof ProgressDefaultImp)
                 ProgressDefaultImp.getInstance().hide();
@@ -1574,7 +1602,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
         @Override
         public boolean start(final String text, final Intent data) {
             start(text);
@@ -1584,7 +1611,6 @@ public class BaseLiveData<D> extends MutableLiveData<D> {
         /**
          * Please refer to the base method description (it always runs in UI thread).
          */
-        @SuppressWarnings("unused")
         @Override
         public void stop() {
             stop(false, Utils.getCurrentActivity());

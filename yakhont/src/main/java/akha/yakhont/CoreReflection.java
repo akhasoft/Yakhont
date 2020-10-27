@@ -201,7 +201,6 @@ public class CoreReflection {
     /**
      * Same as {@link #create(Class, Object...)} but never throws exceptions.
      */
-    @SuppressWarnings("unused")
     public static <T> T createSafe(@NonNull final Class<?> cls, final Object... args) {
         try {
             return create(cls, args);
@@ -275,7 +274,7 @@ public class CoreReflection {
     /**
      * Same as {@link #invoke(Object, Method, Object...)} but never throws exceptions.
      */
-    @SuppressWarnings({"UnusedReturnValue", "SameParameterValue", "unused"})
+    @SuppressWarnings({"UnusedReturnValue", "SameParameterValue"})
     public static <T> T invokeSafe(@NonNull final Object object, @NonNull final Method method, final Object... args) {
         try {
             return invoke(object, method, args);
@@ -289,7 +288,7 @@ public class CoreReflection {
     /**
      * Same as {@link #create(Constructor, Object...)} but never throws exceptions.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static <T> T createSafe(@NonNull final Constructor<?> constructor, final Object... args) {
         try {
             return create(constructor, args);
@@ -397,7 +396,7 @@ public class CoreReflection {
      *
      * @return  The {@link Method} or null (if not found)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Method findMethod(@NonNull final Object object,
                                     @NonNull final String methodName, final Object... args) {
         return findMethod(object, methodName, getClassesFromArgs(args));
@@ -453,7 +452,7 @@ public class CoreReflection {
      *
      * @return  The {@link Constructor} or null (if not found)
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
+    @SuppressWarnings("WeakerAccess")
     public static Constructor<?> findConstructor(@NonNull final Class<?> cls, final Class<?>... args) {
         return findConstructor(Level.WARNING, cls, args);
     }
@@ -469,7 +468,7 @@ public class CoreReflection {
      *
      * @return  The {@link Constructor} or null (if not found)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Constructor<?> findConstructor(@NonNull final Class<?> cls, final Object... args) {
         return findConstructor(cls, getClassesFromArgs(args));
     }
@@ -550,11 +549,9 @@ public class CoreReflection {
                 || SparseBooleanArray           .class.isAssignableFrom(cls)
                 || SparseIntArray               .class.isAssignableFrom(cls))       return true;
 
-        //noinspection RedundantIfStatement
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2 &&
                 SparseLongArray                 .class.isAssignableFrom(cls))       return true;
 
-        //noinspection RedundantIfStatement
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN     &&
                 android.util.LongSparseArray    .class.isAssignableFrom(cls))       return true;
 
@@ -1059,7 +1056,7 @@ public class CoreReflection {
     /**
      * Wrapper for {@link #mergeObjects}.
      */
-    @SuppressWarnings({"unchecked", "unused"})
+    @SuppressWarnings({"unchecked", "unused", "RedundantSuppression"})
     @NonNull
     public static List<Object> mergeObjectsAsList(Object object1, Object object2) {
         final Object merged = mergeObjects(object1, object2);
@@ -1071,7 +1068,6 @@ public class CoreReflection {
         if (cls.isArray())
             //noinspection Convert2Lambda
             return getObjectsHelper(Array.getLength(merged), new GetObjectsHelper() {
-                @SuppressWarnings("unused")
                 @Override
                 public Object getObject(final int idx) {
                     return Array.get(merged, idx);
@@ -1202,7 +1198,7 @@ public class CoreReflection {
      *
      * @return  {@code true} if the method has "package-private" (default) scope, {@code false} otherwise
      */
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
     public static boolean isPackagePrivate(final Method method) {
         if (method == null) {
             CoreLogger.logError("method == null");
@@ -1366,7 +1362,6 @@ public class CoreReflection {
      *
      * @return  The field value
      */
-    @SuppressWarnings("unused")
     public static <T> T getField(@NonNull final Object object, @NonNull final String fieldName) {
         final Field field = findField(object, fieldName);
         //noinspection RedundantTypeArguments
@@ -1387,7 +1382,6 @@ public class CoreReflection {
      *
      * @return  The field value
      */
-    @SuppressWarnings("unused")
     public static <T> T getField(@NonNull final Object object, final Field field) {
         return doField(false, getObject(object), field, null /* ignored */);
     }
@@ -1409,7 +1403,7 @@ public class CoreReflection {
      *
      * @return  The field's previous value
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static <T> T setField(@NonNull final Object object, @NonNull final String fieldName,
                                  final T newValue) {
         final Field field = findField(object, fieldName);
@@ -1433,7 +1427,6 @@ public class CoreReflection {
      *
      * @return  The field's previous value
      */
-    @SuppressWarnings("unused")
     public static <T> T setField(@NonNull final Object object, final Field field, final T newValue) {
         return doField(true, getObject(object), field, newValue);
     }
@@ -1665,7 +1658,7 @@ public class CoreReflection {
      *
      * @return  The {@link Annotation} or null (if not found)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Annotation getAnnotationConstructor(@NonNull Class<?> cls,
                                                       @NonNull final Class<? extends Annotation> annotation,
                                                                final Object... args) {
@@ -1686,7 +1679,7 @@ public class CoreReflection {
      *
      * @return  The {@link Annotation} or null (if not found)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Annotation getAnnotationConstructor(@NonNull Class<?> cls,
                                                       @NonNull final Class<? extends Annotation> annotation,
                                                                final Class<?>... args) {
@@ -1751,7 +1744,7 @@ public class CoreReflection {
      *
      * @return  The {@link Annotation} or null (if not found)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Annotation getAnnotationMethod(@NonNull final Object object,
                                                  @NonNull final Class<? extends Annotation> annotation,
                                                  @NonNull final String methodName, final Class<?>... args) {
@@ -1790,7 +1783,7 @@ public class CoreReflection {
      *
      * @return  The {@link Annotation} or null (if not found)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Annotation getAnnotationField(@NonNull final Object object,
                                                 @NonNull final Class<? extends Annotation> annotation,
                                                 @NonNull final String fieldName) {
@@ -1808,7 +1801,7 @@ public class CoreReflection {
      *
      * @return  {@code true} if the object was annotated, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean isAnnotated(@NonNull final Object object,
                                       @NonNull final Class<? extends Annotation> annotation) {
         return getClass(object).isAnnotationPresent(annotation);
@@ -1831,7 +1824,7 @@ public class CoreReflection {
      *
      * @return  {@code true} if the method was annotated, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean isAnnotatedMethod(@NonNull final Object object,
                                             @NonNull final Class<? extends Annotation> annotation,
                                             @NonNull final String methodName, @NonNull final Class<?>... args) {
@@ -1855,7 +1848,7 @@ public class CoreReflection {
      *
      * @return  {@code true} if the field was annotated, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean isAnnotatedField(@NonNull final Object object, @NonNull final Class<? extends Annotation> annotation,
                                            @NonNull final String fieldName) {
         final Field field = findField(object, fieldName);

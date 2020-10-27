@@ -431,7 +431,7 @@ public class BaseFragment extends Fragment {        // don't modify this line: i
      * @param view
      *        The view to handle
      */
-    @SuppressWarnings("unused")                                                                 //YakhontPreprocessor:removeInGenerated
+    @SuppressWarnings({"unused", "RedundantSuppression"})                                       //YakhontPreprocessor:removeInGenerated
     protected void onAdjustMeasuredView(@NonNull final View view) {                             //YakhontPreprocessor:removeInGenerated
         Utils.onAdjustMeasuredView(mViewAdjusterImpl, view);                                    //YakhontPreprocessor:removeInGenerated
     }                                                                                           //YakhontPreprocessor:removeInGenerated

@@ -243,7 +243,6 @@ public abstract class BaseRetrofit<T, B, C, D> {
         return mFindMethod;
     }
 
-    @SuppressWarnings("unused")
     private static class RawCallException extends RuntimeException {}
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -266,7 +265,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
      *
      * @return  The connection timeout
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public int getConnectionTimeout() {
         return mConnectionTimeout;
     }
@@ -279,7 +278,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
      *
      * @return  The Retrofit builder
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public abstract B getDefaultBuilder(@NonNull final String retrofitBase);
 
     /**
@@ -293,7 +292,6 @@ public abstract class BaseRetrofit<T, B, C, D> {
      *
      * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
-    @SuppressWarnings("unused")
     public BaseRetrofit<T, B, C, D> init(@NonNull final Class<T> service, @NonNull final String retrofitBase) {
         return init(service, retrofitBase, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, null);
     }
@@ -309,7 +307,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
      *
      * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedReturnValue")
     public BaseRetrofit<T, B, C, D> init(@NonNull final Class<T> service, @NonNull final B builder) {
         return init(service, builder, Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION, false);
     }
@@ -357,7 +355,7 @@ public abstract class BaseRetrofit<T, B, C, D> {
      *
      * @return  This {@code BaseRetrofit} object to allow for chaining of calls
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"UnusedReturnValue", "unused", "RedundantSuppression"})
     public BaseRetrofit<T, B, C, D> init(@NonNull final Class<T> service, @NonNull final B builder,
                                          @IntRange(from = 1) final int connectTimeout,
                                          @IntRange(from = 1) final int readTimeout) {

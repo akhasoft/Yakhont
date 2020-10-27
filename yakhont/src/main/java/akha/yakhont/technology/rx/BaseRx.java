@@ -60,10 +60,10 @@ public abstract class BaseRx<D> {
      */
     public enum RxVersions {
         /** Please refer to {@link <a href="https://github.com/ReactiveX/RxJava/tree/1.x">RxJava</a>}.   */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         VERSION_1,
         /** Please refer to {@link <a href="https://github.com/ReactiveX/RxJava/tree/2.x">RxJava 2</a>}. */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         VERSION_2,
         /** Please refer to {@link <a href="https://github.com/ReactiveX/RxJava">RxJava 3</a>}.          */
         VERSION_3
@@ -128,7 +128,7 @@ public abstract class BaseRx<D> {
      *
      * @return  {@code true} if given Rx component has some registered observers, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public boolean hasObservers() {
         return !mCallbacks.isEmpty();
     }
@@ -153,7 +153,7 @@ public abstract class BaseRx<D> {
      *
      * @return  {@code true} if {@link CommonRx} either emits one value only or an error notification, {@code false} otherwise
      */
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
     protected boolean isSingle() {
         return mIsSingle;
     }
@@ -163,7 +163,6 @@ public abstract class BaseRx<D> {
      *
      * @return  The {@link CommonRx} in use
      */
-    @SuppressWarnings("unused")
     public CommonRx<D> getRx(){
         return mCommonRx;
     }
@@ -238,7 +237,7 @@ public abstract class BaseRx<D> {
      *
      * @return  This {@code BaseRx} object to allow for chaining of calls to methods
      */
-    @SuppressWarnings({"unused", "WeakerAccess"})
+    @SuppressWarnings("WeakerAccess")
     public BaseRx<D> subscribe(final SubscriberRx<D> subscriber) {
         if (subscriber == null)
             CoreLogger.logError("subscriber is null");
@@ -300,7 +299,7 @@ public abstract class BaseRx<D> {
          * @param n
          *        The maximum number of items you want the {@code Observable} to emit to the {@code SubscriberRx} at this time
          */
-        @SuppressWarnings("WeakerAccess")
+        @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
         public void request(final long n) {
             CoreLogger.log("Rx: request; n == " + n);
         }
@@ -461,7 +460,7 @@ public abstract class BaseRx<D> {
          *
          * @return  The Rx version
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static RxVersions getVersion() {
             if (sVersion == null) CoreLogger.logError("unknown Rx version");    // should never happen
             return sVersion;
@@ -491,7 +490,7 @@ public abstract class BaseRx<D> {
                     " methods); ignore this information only if you know what you're doing", errMgsParam));
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         public FlavorCommonRx getFlavorCommonRx() {
             return mFlavorCommonRx;
         }
@@ -531,7 +530,7 @@ public abstract class BaseRx<D> {
          * Stops the receipt of notifications on the anonymous subscribers (and disposables).
          * e.g. if Rx is in Retrofit API only.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void unsubscribeAnonymous() {
             final String msg ="about to unregister anonymous %s";
 
@@ -573,7 +572,7 @@ public abstract class BaseRx<D> {
         /**
          * Please refer to {@link BaseRx#getResult BaseRx.getResult()} description.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         protected D getResult() {
             return mBaseRx.getResult();
         }
@@ -692,7 +691,7 @@ public abstract class BaseRx<D> {
         /**
          * Initialises a newly created {@code LocationRx} object.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public LocationRx() {
             this(RxVersions.VERSION_3, null);
         }
@@ -717,7 +716,7 @@ public abstract class BaseRx<D> {
          * @param commonRx
          *        The {@link CommonRx} to use
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public LocationRx(final CommonRx<Location> commonRx) {
             this(commonRx, null);
         }
@@ -740,7 +739,6 @@ public abstract class BaseRx<D> {
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
         @Override
         public LocationRx subscribe(final SubscriberRx<Location> subscriber) {
             return (LocationRx) super.subscribe(subscriber);
@@ -908,31 +906,28 @@ public abstract class BaseRx<D> {
          *
          * @return  This {@code LoaderRx} object to allow for chaining of calls to methods
          */
-        @SuppressWarnings("unused")
         public LoaderRx<R, E, D> subscribeSimple(final SubscriberRx<D> subscriber) {
             if (subscriber == null) {
                 CoreLogger.logError("subscriber is null");
                 return null;
             }
             return subscribe(new SubscriberRx<BaseResponse<R, E, D>>() {
+                @SuppressWarnings({"unused", "RedundantSuppression"})
                 @Override
                 public void request(final long n) {
                     subscriber.request(n);
                 }
 
-                @SuppressWarnings("unused")
                 @Override
                 public void onNext(final BaseResponse<R, E, D> result) {
                     subscriber.onNext(result == null ? null: result.getResult());
                 }
 
-                @SuppressWarnings("unused")
                 @Override
                 public void onError(final Throwable throwable) {
                     subscriber.onError(throwable);
                 }
 
-                @SuppressWarnings("unused")
                 @Override
                 public void onCompleted() {
                     subscriber.onCompleted();

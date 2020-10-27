@@ -82,7 +82,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      *
      * @return  This {@code GoogleApiClient}
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public GoogleApiClient getGoogleApiClient() {
         return mClient;
     }
@@ -95,7 +95,7 @@ public class GoogleLocationClient extends BaseGoogleLocationClient implements Co
      *
      * @return  This {@code LocationClient} object
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public LocationClient showSystemErrorDialog(final boolean systemErrorDialog) {
         mSystemErrorDialog = systemErrorDialog;
         return this;

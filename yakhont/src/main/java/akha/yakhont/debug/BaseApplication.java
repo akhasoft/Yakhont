@@ -39,12 +39,12 @@ import androidx.annotation.NonNull;
  * @author akha
  */
 @SuppressLint("Registered")
-@SuppressWarnings("unused")
 public class BaseApplication extends Application {
 
     /**
      * Initialises a newly created {@code BaseApplication} object.
      */
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseApplication() {
     }
 

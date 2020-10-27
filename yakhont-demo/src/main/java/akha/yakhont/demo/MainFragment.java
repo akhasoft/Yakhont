@@ -86,7 +86,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     private static final int                                     EMULATED_NETWORK_DELAY     = 7;
 
     private       CoreLoad<? extends Throwable, ?>               mCoreLoad;
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     private       boolean                                        mNotDisplayLoadingErrors;
 
     private       LocalOkHttpClient                              mOkHttpClient;
@@ -310,16 +310,18 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
 
     @SuppressWarnings("UnusedParameters")
     private boolean setViewValue(View view, Object data, String textRepresentation) {
-        switch (view.getId()) {
+        Object tag = view.getTag();
 
-            case R.id._id:
-                view.setVisibility(getVisibility());
-                return ViewBinder.VIEW_BOUND;                   // switch off default view binding
+        if (tag instanceof String)
+            switch ((String) tag) {
+                case "_id_tag":                                 // should be consistent with '@string/_id_tag'
+                    view.setVisibility(getVisibility());
+                    return ViewBinder.VIEW_BOUND;               // switch off default view binding
 
-            case R.id.image:
-                setImageUrl((ImageView) view, textRepresentation);
-                return ViewBinder.VIEW_BOUND;
-        }
+                case "image_tag":                               // should be consistent with '@string/image_tag'
+                    setImageUrl((ImageView) view, textRepresentation);
+                    return ViewBinder.VIEW_BOUND;
+            }
         
         return !ViewBinder.VIEW_BOUND;                          // default view binding will be applied
     }
@@ -351,11 +353,11 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
     private       Retrofit2Rx<List<Beer>>               mRxRetrofit2;
 
     // unsubscribe goes automatically
-    @SuppressWarnings("ConstantConditions")
     private void initRx() {
         boolean singleRx = false;
 
         if (getMainActivity().isRetrofit2()) {
+            //noinspection ConstantConditions
             mRxRetrofit2 = new Retrofit2Rx<>(getMainActivity().getRxVersion(), singleRx);
 
             mRxRetrofit2.subscribeSimple(new SubscriberRx<List<Beer>>() {
@@ -371,6 +373,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
             });
         }
         else {
+            //noinspection ConstantConditions
             mRxRetrofit = new RetrofitRx<>(getMainActivity().getRxVersion(), singleRx);
 
             mRxRetrofit.subscribeSimple(new SubscriberRx<List<BeerDefault>>() {
@@ -414,7 +417,7 @@ public class MainFragment extends Fragment implements MeasuredViewAdjuster {
         super.onDestroyView();
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @Override
     public void adjustMeasuredView(View view) {
         mGuiHelper.mSlideRect = new Rect(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());

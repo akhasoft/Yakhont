@@ -76,7 +76,10 @@ import java.util.concurrent.Executor;
  * @author akha
  */
 public class BaseViewModel<D> extends AndroidViewModel {
-
+                                                                                                  /*
+                             For Madmen Only
+                               - Hermann Hesse, Steppenwolf
+                                                                                                  */
     /**
      * The {@link ViewModel} default key (use it only if you have exactly one {@link ViewModel}
      * in your {@link ViewModelStore}).
@@ -216,7 +219,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The {@link BaseViewModel}
      */
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings("WeakerAccess")
     public static <S extends BaseViewModel<D>, D> S get(final Fragment fragment, final String key) {
         if (fragment == null) {
             CoreLogger.logError("fragment == null");
@@ -325,7 +328,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @see     WeakReference
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Collection<WeakReference<? extends BaseViewModel<?>>> getWeak(final ViewModelStore store) {
         return getWeak(store, (boolean[]) null);
     }
@@ -382,7 +385,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The {@link CoreLoad}
      */
-    @SuppressWarnings({"unchecked", "TypeParameterHidesVisibleType", "unused"})
+    @SuppressWarnings({"unchecked", "TypeParameterHidesVisibleType", "unused", "RedundantSuppression"})
     public <E, D> CoreLoad<E, D> getCoreLoad() {
         final List<CoreLoad<?, ?>> list = getCoreLoads();
         if (list != null && list.size() > 1)
@@ -431,7 +434,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @see #getData(String)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public <V> V setData(final String key, final V value) {
         return mDataStore.setData(key, value);
     }
@@ -449,7 +452,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @see #setData
      */
-    @SuppressWarnings({"unchecked", "unused"})
+    @SuppressWarnings({"unchecked", "unused", "RedundantSuppression"})
     public <V> V getData(final String key) {
         return (V) mDataStore.getData(key);
     }
@@ -517,7 +520,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void updateUiFragmentForWeaver(final boolean stop, @NonNull final Fragment fragment) {
         final Collection<BaseViewModel<?>> models = new ArrayList<>();
 
@@ -529,7 +532,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void updateUiActivityForWeaver(final boolean stop, @NonNull final Activity activity) {
         final Level level = CoreLogger.getDefaultLevel();
         if (!(activity instanceof ViewModelStoreOwner)) {
@@ -572,7 +575,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void updateUiServiceForWeaver(final int timeout, final Service service) {
         final ViewModelStoreOwner viewModelStoreOwner = service instanceof ViewModelStoreOwner ?
                 (ViewModelStoreOwner) service: CoreLoader.INSTANCE;
@@ -680,7 +683,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  {@code true} if data loading is in progress, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean isLoading(@NonNull final Activity activity) {
         return isLoading(cast(activity, null), null, true);
     }
@@ -696,7 +699,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  {@code true} if data loading is in progress, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean isLoading(@NonNull final Activity activity, final String key) {
         return isLoading(cast(activity, null), key, true);
     }
@@ -709,7 +712,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  {@code true} if data loading is in progress, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean isLoading(@NonNull final Fragment fragment) {
         return isLoading(fragment, null);
     }
@@ -772,7 +775,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean isLoadingForWeaver(@NonNull final Activity activity, final boolean ignoreConfirm) {
         if (!(activity instanceof ViewModelStoreOwner)) return false;
 
@@ -799,7 +802,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
      *
      * @return  The {@code BaseViewModel} collection
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Collection<BaseViewModel<?>> getViewModels(
             final ViewModelStoreOwner viewModelStoreOwner, final boolean includeFragments) {
         return getViewModels(viewModelStoreOwner, includeFragments, Level.ERROR);
@@ -830,7 +833,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
         return BaseViewModelProvider.getEntries(viewModelStoreOwner);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static Set<Map.Entry<String, WeakReference<? extends BaseViewModel<?>>>> getViewModels(
             @NonNull final Fragment fragment) {
         return BaseViewModelProvider.getEntries(fragment);
@@ -982,7 +985,6 @@ public class BaseViewModel<D> extends AndroidViewModel {
             sMap = Utils.newWeakMap();
         }
 
-        @SuppressWarnings("unused")
         private BaseViewModelProvider(@NonNull final ViewModelStore     store,
                                       @NonNull final BaseLiveData<D>    data,
                                       @NonNull final Observer    <D>    observer,
@@ -1559,7 +1561,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
          *
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Builder<S, Key, T, R, E, D> setBaseLiveData(final BaseLiveData<D> baseLiveData) {
             mData                   = baseLiveData;
             return this;
@@ -1612,7 +1614,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
          *
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Builder<S, Key, T, R, E, D> setClass(final Class<S> cls) {
             mClass                  = cls;
             return this;
@@ -1626,7 +1628,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
          *
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Builder<S, Key, T, R, E, D> setBaseDialog(final BaseDialog baseDialog) {
             mBaseDialog             = baseDialog;
             return this;
@@ -1640,7 +1642,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
          *
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Builder<S, Key, T, R, E, D> setUriResolver(final UriResolver uriResolver) {
             mUriResolver            = uriResolver;
             return this;
@@ -1746,7 +1748,7 @@ public class BaseViewModel<D> extends AndroidViewModel {
          *
          * @return  This {@code Builder} object to allow for chaining of calls to set methods
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Builder<S, Key, T, R, E, D> setFragment(final Fragment fragment) {
             if (fragment != null) {
                 final Activity activity = fragment.getActivity();

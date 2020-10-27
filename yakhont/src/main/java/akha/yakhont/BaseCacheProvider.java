@@ -29,6 +29,7 @@ import android.content.ContentProvider;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
@@ -36,8 +37,11 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.BaseColumns;
+import android.provider.Settings;
 import android.text.TextUtils;
+import android.view.View;
 
 import androidx.annotation.CallSuper;
 import androidx.annotation.NonNull;
@@ -124,7 +128,6 @@ import java.util.concurrent.Callable;
  * @author akha
  */
 @SuppressLint("Registered")
-@SuppressWarnings("unused")
 public class BaseCacheProvider extends ContentProvider {    // should be SQLite 3.5.9 compatible
 
     private static final String         DB_NAME           = "cache.db";
@@ -286,7 +289,6 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      */
     @Override
     public boolean onCreate() {
-        //noinspection ConstantConditions
         mDbHelper = new DbHelper(getContext(), DB_NAME, getDbVersion());
         return true;
     }
@@ -650,7 +652,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
 
     private static boolean              sUsePragma;
 
-    /** @exclude */ @SuppressWarnings("JavaDoc")
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void setPragmaUsage(final boolean value) {
         sUsePragma = value;
     }
@@ -767,8 +769,10 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
          */
         public enum DataType {
             /** The signed integer. */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             INTEGER,
             /** The floating point. */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             REAL,
             /** The text string. */
             TEXT,
@@ -832,6 +836,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      *
      * @return  {@code true} if transaction completed successfully, {@code false} otherwise
      */
+    @SuppressWarnings("UnusedReturnValue")
     public static boolean runTransaction(@NonNull final SQLiteDatabase db,
                                          @NonNull final Runnable       runnable) {
         return runTransactionBoolean(db, new Callable<Boolean>() {
@@ -878,6 +883,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      *
      * @return  {@code T} if transaction completed successfully, null otherwise
      */
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @SuppressLint("ObsoleteSdkInt")
     public static <T> T runTransaction(final SQLiteDatabase db, final Callable<T> callable) {
         return runTransactionHelper(db, callable, true, true);
@@ -958,6 +964,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      *
      * @return  {@code true} if script was executed successfully, {@code false} otherwise
      */
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean execSql(Context context, @NonNull final SQLiteDatabase db,
                                   @NonNull final String sql) {
         context = fixContext(context);
@@ -1101,6 +1108,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      *
      * @return  The {@code SQLiteOpenHelper}
      */
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public SQLiteOpenHelper getDbHelper() {
         return mDbHelper;
     }
@@ -1143,6 +1151,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
 
     private class DbHelper extends SQLiteOpenHelper {
 
+        @SuppressWarnings("SameParameterValue")
         private DbHelper(@NonNull Context context, @NonNull final String name, final int version) {
             super(context, name, null, version);
         }
@@ -1186,7 +1195,6 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
         }
     }
 
-    @SuppressWarnings("unused")
     private static class Matcher {
 
         private enum Match {
@@ -1223,7 +1231,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
      * @param context
      *        The context (or null for default one)
      */
-    @SuppressWarnings("WeakerAccess")
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
     public static void copyDb(final Context context) {
         copyDb(context, null, null);
     }
@@ -1251,8 +1259,35 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
                     "please consider to use CoreLogger.registerDataSender()");
     }
 
+    private static void handleScopedStorage(@NonNull final Context context) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return;
+
+        if (Environment.isExternalStorageManager()) return;
+
+        final Activity activity = context instanceof Activity ? (Activity) context:
+                Utils.getCurrentActivity();
+        if (activity == null) return;
+
+        //noinspection Convert2Lambda
+        new Utils.SnackbarBuilder()
+                .setDuration(7)
+                .setMaxLines(3)
+                .setTextId(R.string.yakhont_all_files)
+                .setAction(new View.OnClickListener() {
+                    @SuppressLint("InlinedApi")
+                    @Override
+                    public void onClick(View view) {
+                        activity.startActivity(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+                    }
+                })
+                .create().show();
+    }
+
     private static void copyFile(@NonNull final Context context, @NonNull final File srcFile,
                                  final File dstFile) {
+        handleScopedStorage(context);
+
         final String  permission = Manifest.permission.WRITE_EXTERNAL_STORAGE;
         final boolean result     = new CorePermissions.RequestBuilder(
                     context instanceof Activity ? (Activity) context: null)
@@ -1270,6 +1305,7 @@ public class BaseCacheProvider extends ContentProvider {    // should be SQLite 
                 })
                 .setRationale(R.string.yakhont_permission_storage)
                 .request();
+
         CoreLogger.log(permission + " request result: " + (result ? "already granted": "not granted yet"));
     }
 

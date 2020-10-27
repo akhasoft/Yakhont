@@ -92,7 +92,7 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
         });
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean isSupport() {
         final boolean result = false;
         CoreLogger.log("BaseSimpleCursorAdapter.isSupport() == " + result);
@@ -104,12 +104,12 @@ public class BaseSimpleCursorAdapter extends SimpleCursorAdapter implements Base
      *
      * @return  The {@code ViewBinder} or null
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseCacheAdapter.ViewBinder getAdapterViewBinder() {
         return mViewBinder;
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "UnusedReturnValue"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
     @Override
     public void setAdapterViewBinder(final BaseCacheAdapter.ViewBinder viewBinder) {
         mViewBinder = viewBinder;

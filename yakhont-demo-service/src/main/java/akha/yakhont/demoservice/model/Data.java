@@ -22,11 +22,10 @@ import java.util.Locale;
 
 import com.google.gson.annotations.SerializedName;
 
-@SuppressWarnings("unused")
 public class Data {
 
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @SerializedName("title")
-    @SuppressWarnings("unused")
     private String mTitle;
 
     public String getTitle() {

@@ -283,7 +283,7 @@ public class Bubbles {
 
         //noinspection Convert2Lambda
         Core.Utils.onAdjustMeasuredView(new MeasuredViewAdjuster() {
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             @Override
             public void adjustMeasuredView(View view) {
                 startAnimation((TextView) view);
@@ -507,7 +507,7 @@ public class Bubbles {
             mAnimator.start();
         }
 
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public void setInterpolator(TimeInterpolator timeInterpolator) {
             mTimeInterpolator = timeInterpolator;
         }
@@ -737,7 +737,7 @@ public class Bubbles {
                 mForegroundColor    = color;
             }
 
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public MutableForegroundColorSpan(Parcel src) {
                 super(src);
                 
@@ -762,12 +762,12 @@ public class Bubbles {
                 mAlpha = alpha;
             }
 
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public void setForegroundColor(int foregroundColor) {
                 mForegroundColor = foregroundColor;
             }
 
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public float getAlpha() {
                 return mAlpha;
             }

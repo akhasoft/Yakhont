@@ -25,7 +25,7 @@ import retrofit2.http.GET;
 
 public interface Retrofit2Api {
 
+    @SuppressWarnings("UnusedReturnValue")
     @GET("/data")
-    @SuppressWarnings("unused")
     Call<List<Data>> getData( /* @retrofit2.http.Query("parameter") String parameter */ );
 }

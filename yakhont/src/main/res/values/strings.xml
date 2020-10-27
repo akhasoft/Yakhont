@@ -27,18 +27,18 @@
 
     <string name="yakhont_sending_email"                >Sending debug email</string>
     <string name="yakhont_record_video"                 >Press OK to start video recording\nor swipe (for screenshot)</string>
-    <string name="yakhont_record_video_ok"              >@string/yakhont_alert_ok</string>
+    <string name="yakhont_record_video_ok"              >@string/yakhont_ok</string>
     <string name="yakhont_record_video_info"            >Please shake device or make gesture Z to stop recording</string>
     <string name="yakhont_record_video_stop" tools:ignore="TypographyEllipsis"
                                                         >About to stop recording...</string>
 
-    <string name="yakhont_alert_ok"         tools:keep="@string/yakhont_alert_ok"
+    <string name="yakhont_ok"               tools:keep="@string/yakhont_ok"
                                                         >OK</string>
-    <string name="yakhont_alert_cancel"     tools:keep="@string/yakhont_alert_cancel"
+    <string name="yakhont_cancel"           tools:keep="@string/yakhont_cancel"
                                                         >Cancel</string>
 
-    <string name="yakhont_alert_yes"                    >Yes</string>
-    <string name="yakhont_alert_no"         tools:keep="@string/yakhont_alert_no"
+    <string name="yakhont_yes"                          >Yes</string>
+    <string name="yakhont_no"               tools:keep="@string/yakhont_no"
                                                         >No</string>
 
     <string name="yakhont_permission_denied_alert"      >Permission was denied, press OK to check application settings.</string>
@@ -56,5 +56,7 @@
     <string name="yakhont_location_s"                   >S</string>
     <string name="yakhont_location_w"                   >W</string>
     <string name="yakhont_location_e"                   >E</string>
+
+    <string name="yakhont_all_files"                    >If you need \'All files access\', please press \'OK\'\nand in system settings enable\n\'Allow access to manage all files\'.</string>
 
 </resources>

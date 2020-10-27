@@ -111,7 +111,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
      * @param retrofit
      *        The Retrofit2 component
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public Retrofit2LoaderWrapper(@NonNull final ViewModelStore         viewModelStore,
                                   @NonNull final Requester<Callback<D>> requester,
                                   @NonNull final String                 table,
@@ -163,7 +163,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
         //noinspection Convert2Lambda
         mConverter.setConverterGetter(new ConverterGetter<D>() {
-            @SuppressWarnings("unused")
             @Override
             public ConverterHelper<D> get(Type type) {
                 if (type == null) type = getType();
@@ -304,12 +303,10 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
 
         private final retrofit2.Converter<ResponseBody, D>  mConverter;
 
-        @SuppressWarnings("unused")
         private ConverterHelperRetrofit2(final retrofit2.Converter<ResponseBody, D> converter) {
             mConverter = converter;
         }
 
-        @SuppressWarnings("unused")
         @Override
         public D get(final String mediaType, final byte[] data) {
             if (data == null || data.length == 0) {
@@ -362,7 +359,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param rx
          *        The Rx component
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Retrofit2LoaderBuilder(final Fragment                            fragment,
                                       @NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
@@ -384,7 +381,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param rx
          *        The Rx component
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Retrofit2LoaderBuilder(final Activity                            activity,
                                       @NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
@@ -406,7 +403,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param rx
          *        The Rx component
          */
-        @SuppressWarnings("unused")
         public Retrofit2LoaderBuilder(final ViewModelStore                      viewModelStore,
                                       @NonNull final Retrofit2<T, D>            retrofit,
                                       final LoaderRx<Response<D>, Throwable, D> rx) {
@@ -421,13 +417,11 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         public Requester<Callback<D>> getDefaultRequester() {
             return getRequester(new RequesterHelper<Callback<D>, T>(mType) {
 
-                @SuppressWarnings("unused")
                 @Override
                 public void init() {
                     mMethod = findDefaultMethod(mType);
                 }
 
-                @SuppressWarnings("unused")
                 @Override
                 public void request(final Callback<D> callback) throws Throwable {
                     if (mRetrofit.checkForDefaultRequesterOnly(mMethod, callback))
@@ -487,7 +481,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          * @param retrofit
          *        The Retrofit2 component
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Retrofit2CoreLoadBuilder(@NonNull final Retrofit2<T, D> retrofit) {
             this(retrofit, null);
         }
@@ -513,7 +507,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         /**
          * Please refer to the base method description.
          */
-        @SuppressWarnings("unused")
         @Override
         public T getApi(final Callback<D> callback) {
             return mRetrofit.getApi(callback);
@@ -524,7 +517,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
          *
          * @return  The {@link Rx3Disposable}
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Rx3Disposable getRxDisposableHandler() {
             return Retrofit2.getRxDisposableHandler(mRx);
         }
@@ -532,7 +525,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
         /**
          * Please refer to {@link Retrofit2#getRxWrapper}.
          */
-        @SuppressWarnings({"WeakerAccess", "unused"})
+        @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
         public static <D> CallbackRx<D> getRxWrapper(final Callback<D> callback) {
             return Retrofit2.getRxWrapper(callback);
         }
@@ -572,7 +565,7 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
      * }
      * </pre>
      */
-    @SuppressWarnings({"JavadocReference", "WeakerAccess", "unused"})
+    @SuppressWarnings({"JavadocReference", "WeakerAccess", "unused", "RedundantSuppression"})
     public static class Retrofit2Loader<E, D> extends CoreLoader<E, D> {
 
         /** Stub to use in services. */
@@ -1286,7 +1279,6 @@ public class Retrofit2LoaderWrapper<D, T> extends BaseResponseLoaderWrapper<Call
             final View root = Utils.getDefaultView(activity);
             //noinspection Convert2Lambda
             return root == null ? null: ViewHelper.findView(root, new ViewHelper.ViewVisitor() {
-                @SuppressWarnings("unused")
                 @Override
                 public boolean handle(final View view) {
                     return view instanceof SwipeRefreshLayout;

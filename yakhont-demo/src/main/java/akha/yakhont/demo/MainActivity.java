@@ -206,22 +206,19 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
     // default implementation - customize only modules you need
 //  @Component(modules = {CallbacksValidationModule.class, LocationModule.class, UiModule.class})
 
-    @SuppressWarnings("unused")
     @Component(modules = {DemoCallbacksValidationModule.class, DemoLocationModule.class, DemoUiModule.class})
     interface DemoDagger extends Dagger2 {
         @Component.Builder
         interface Builder {
-            @SuppressWarnings("unused")
             @BindsInstance
             Builder parameters(Parameters parameters);
-            @SuppressWarnings("unused")
             DemoDagger build();
         }
     }
 
     // customize Yakhont callbacks validation here
     // it's optional - use CallbacksValidationModule.class for default implementation (see @Component above)
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoCallbacksValidationModule extends CallbacksValidationModule {
         @SuppressWarnings("EmptyMethod")
@@ -233,7 +230,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     // customize Yakhont location client here
     // it's optional - use LocationModule.class for default implementation (see @Component above)
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoLocationModule extends LocationModule {
         @SuppressWarnings("EmptyMethod")
@@ -245,7 +242,7 @@ public class MainActivity extends AppCompatActivity implements LocationListener 
 
     // customize Yakhont GUI here
     // it's optional - use UiModule.class for default implementation (see @Component above)
-    @SuppressWarnings({"WeakerAccess", "unused"})
+    @SuppressWarnings("WeakerAccess")
     @Module
     static class DemoUiModule extends UiModule {
         @SuppressWarnings("EmptyMethod")

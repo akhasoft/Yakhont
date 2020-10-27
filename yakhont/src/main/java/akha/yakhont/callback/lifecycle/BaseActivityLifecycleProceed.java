@@ -123,12 +123,12 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
         log(info, value.incrementAndGet(), getActivityName(activity));
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean isVisible() {
         return sStarted.get() > sStopped.get();
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean isInForeground() {
         return sResumed.get() > sPaused.get();
     }
@@ -222,7 +222,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully unregistered, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean unregister(@NonNull final Class<? extends BaseActivityCallbacks> callbacksClass) {
         return unregister(sCallbacks, callbacksClass);
     }
@@ -341,7 +341,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * @param savedInstanceState
      *        The additional information concerning the activity state
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onCreated(@NonNull final Activity activity, final Bundle savedInstanceState) {
         if (!sActive) return;
 
@@ -357,7 +357,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * @param activity
      *        The activity to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onDestroyed(@NonNull final Activity activity) {
         if (!sActive) return;
 
@@ -376,7 +376,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * @param outState
      *        The additional information concerning the activity state
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onSaveInstanceState(@NonNull final Activity activity, final Bundle outState) {
         if (!sActive) return;
 
@@ -392,7 +392,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * @param activity
      *        The activity to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onResumed(@NonNull final Activity activity) {
         if (!sActive) return;
 
@@ -408,7 +408,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * @param activity
      *        The activity to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onPaused(@NonNull final Activity activity) {
         if (!sActive) return;
 
@@ -424,7 +424,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * @param activity
      *        The activity to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onStarted(@NonNull final Activity activity) {
         if (!sActive) return;
 
@@ -440,7 +440,7 @@ public abstract class BaseActivityLifecycleProceed extends BaseLifecycleProceed 
      * @param activity
      *        The activity to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onStopped(@NonNull final Activity activity) {
         if (!sActive) return;
 

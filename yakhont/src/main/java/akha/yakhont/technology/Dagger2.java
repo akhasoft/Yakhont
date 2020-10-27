@@ -169,13 +169,17 @@ import dagger.Provides;
  */
 public interface Dagger2 {
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */
+    @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     String      UI_ALERT_PERMISSION             = "alert_permission";
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */
+    @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     String      UI_ALERT_PERMISSION_DENIED      = "alert_permission_denied";
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */
+    @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     String      UI_TOAST_LENGTH_LONG            = "toast_long";
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */
+    @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     String      UI_TOAST_LENGTH_SHORT           = "toast_short";
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -184,7 +188,7 @@ public interface Dagger2 {
     @Named(UI_ALERT_PERMISSION_DENIED) Provider<BaseDialog>     getAlertPermissionDenied();
     /** @exclude */ @SuppressWarnings("JavaDoc")
     @Named(UI_TOAST_LENGTH_LONG)       Provider<BaseDialog>     getToastLong();
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Named(UI_TOAST_LENGTH_SHORT)      Provider<BaseDialog>     getToastShort();
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
@@ -193,7 +197,7 @@ public interface Dagger2 {
     /** @exclude */ @SuppressWarnings("JavaDoc")
     Lazy<LocationClient> getLocationClient();
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings("JavaDoc")
     @Component(modules = {LocationModule.class, UiModule.class, CallbacksValidationModule.class})
     interface DefaultComponent extends Dagger2 {
         @Component.Builder
@@ -295,11 +299,11 @@ public interface Dagger2 {
         /**
          * Initialises a newly created {@code CallbacksValidationModule} object.
          */
-        @SuppressWarnings({"WeakerAccess", "unused"})
+        @SuppressWarnings("WeakerAccess")
         public CallbacksValidationModule() {
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         @Provides
         public Validator provideCallbacksValidator() {
             return getCallbacksValidator();
@@ -352,11 +356,11 @@ public interface Dagger2 {
         /**
          * Initialises a newly created {@code LocationModule} object.
          */
-        @SuppressWarnings({"WeakerAccess", "unused"})
+        @SuppressWarnings("WeakerAccess")
         public LocationModule() {
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         @Provides
         public LocationClient provideLocationClient(final Parameters parameters) {
             return getLocationClient(getFlagLocation(parameters));
@@ -384,7 +388,7 @@ public interface Dagger2 {
     /**
      * The user interface component.
      */
-    @SuppressWarnings({"JavadocReference", "unused"})
+    @SuppressWarnings("JavadocReference")
     @dagger.Module // strange bug
     class UiModule {
 
@@ -472,7 +476,7 @@ public interface Dagger2 {
          *
          * @return  {@code true} if Snackbar's queue is empty, {@code false} otherwise
          */
-        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+        @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "unused", "RedundantSuppression"})
         public static boolean isSnackbarsQueueEmpty() {
             return BaseSnackbar.isQueueEmpty();
         }
@@ -482,6 +486,7 @@ public interface Dagger2 {
          *
          * @return  The Snackbar's text (or null)
          */
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static String getSnackbarText() {
             return BaseSnackbar.getText();
         }
@@ -500,14 +505,14 @@ public interface Dagger2 {
             return baseDialog instanceof BaseSnackbar;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         @Provides @Named(UI_ALERT_PERMISSION)
         public BaseDialog providePermissionAlert(final Parameters parameters) {
             return getPermissionAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_RATIONALE_ALERT),
                     PERMISSION_RATIONALE_DURATION);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         @Provides @Named(UI_ALERT_PERMISSION_DENIED)
         public BaseDialog providePermissionDeniedAlert(final Parameters parameters) {
             return getPermissionAlert(Utils.getRequestCode(RequestCodes.PERMISSIONS_DENIED_ALERT),
@@ -533,7 +538,7 @@ public interface Dagger2 {
             return new BaseSnackbar(duration, requestCode)
                     .setViewModifiers(viewModifiers)
 
-                    .setActionText(R.string.yakhont_alert_ok)
+                    .setActionText(R.string.yakhont_ok)
                     .setActionTextColor(Utils.getDefaultSnackbarActionColor())
                     .setActionCountDownLatch(new CountDownLatch(1) {
                         @NonNull
@@ -565,7 +570,7 @@ public interface Dagger2 {
             return result;
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
         public static boolean setId(final BaseDialog baseDialog, final String id) {
             return handle(false, baseDialog, id, null);
         }
@@ -575,7 +580,7 @@ public interface Dagger2 {
             return handle(true, baseDialog, null, ids);
         }
 
-        /** @exclude */ @SuppressWarnings("JavaDoc")
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue"})
         public static boolean releaseCountDownLatch(final BaseDialog baseDialog) {
             return releaseCountDownLatch(baseDialog, null);
         }
@@ -584,7 +589,7 @@ public interface Dagger2 {
             return parameters.get(Parameters.VALUE_TOAST);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         @Provides @Named(UI_TOAST_LENGTH_LONG)
         public BaseDialog provideLongToast(final Parameters parameters) {
             final boolean useSnackbarIsoToast = getFlagToast(parameters);
@@ -592,7 +597,7 @@ public interface Dagger2 {
                     useSnackbarIsoToast ? Snackbar.LENGTH_LONG: Toast.LENGTH_LONG);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         @Provides @Named(UI_TOAST_LENGTH_SHORT)
         public BaseDialog provideShortToast(final Parameters parameters) {
             final boolean useSnackbarIsoToast = getFlagToast(parameters);
@@ -767,7 +772,7 @@ public interface Dagger2 {
         }
 
         /**
-         * Intended to customize views (e.g. in {@code Toast}).
+         * Intended to customize views.
          */
         public static abstract class ViewHandler implements ViewModifier {
 
@@ -781,7 +786,7 @@ public interface Dagger2 {
             }
 
             /**
-             * Returns {@code TextView} for Yakhont's {@code Toast}.
+             * Returns {@code TextView} for Yakhont's data loading progress GUI.
              * Should be called from {@link #modify} only.
              *
              * @return  The {@code TextView}
@@ -791,11 +796,12 @@ public interface Dagger2 {
             }
 
             /**
-             * Returns {@code ProgressBar} for Yakhont's loading progress component.
+             * Returns {@code ProgressBar} for Yakhont's data loading progress GUI.
              * Should be called from {@link #modify} only.
              *
              * @return  The {@code ProgressBar}
              */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public ProgressBar getProgressView() {
                 return mView == null ? null: mView.findViewById(akha.yakhont.R.id.yakhont_loader_progress);
             }
@@ -904,6 +910,7 @@ public interface Dagger2 {
             /**
              * Always returns null, should never be called.
              */
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             @Override
             public ProgressBar getProgressView() {
                 CoreLogger.logError("getProgressView() should't be called for Snackbars");
@@ -1154,7 +1161,7 @@ class BaseSnackbar implements BaseDialog {
         return this;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     BaseSnackbar setText(final String string) {
         mString             = string;
         return this;
@@ -1181,7 +1188,7 @@ class BaseSnackbar implements BaseDialog {
         return this;
     }
 
-    @SuppressWarnings("unused")
+    @SuppressWarnings("SameParameterValue")
     BaseSnackbar setActionCountDownLatch(final CountDownLatch countDownLatch, final Long timeout) {
         mCountDownLatch         = countDownLatch;
         mCountDownLatchTimeout  = timeout;
@@ -1473,7 +1480,7 @@ class BaseSnackbar implements BaseDialog {
 
         final ViewHandlerSnackbar viewHandler = viewModifiers.size() == 0 ? null:
                 new UiModule.ViewHandlerSnackbar() {
-                    @SuppressWarnings("unused")
+                    @SuppressWarnings({"unused", "RedundantSuppression"})
                     @Override
                     public void modify(final View view, final UiModule.ViewHandler viewHandler) {
                         for (int i = 0; i < viewModifiers.size(); i++)

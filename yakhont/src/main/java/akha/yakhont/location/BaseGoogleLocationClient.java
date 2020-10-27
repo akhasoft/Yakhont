@@ -126,7 +126,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      *
      * @return  This {@code GoogleApiClient}
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public FusedLocationProviderClient getClient() {
         return mFusedLocationClient;
     }
@@ -138,7 +138,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      * @param value
      *        {@code true} for changed values only location updates, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public void setUniqueUpdates(final boolean value) {
         mUniqueUpdates = value;
     }
@@ -146,7 +146,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @Override
     public Location getCurrentLocation() {
         return mCurrentLocation;
@@ -155,7 +155,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @Override
     public Date getLastUpdateTime() {
         return mLastUpdateTime;
@@ -260,7 +260,7 @@ public abstract class BaseGoogleLocationClient implements LocationClient, Locati
      *
      * @see LocationRequest
      */
-    @SuppressWarnings({"SameParameterValue", "UnusedReturnValue", "WeakerAccess", "unused"})
+    @SuppressWarnings({"SameParameterValue", "UnusedReturnValue", "WeakerAccess", "unused", "RedundantSuppression"})
     public BaseGoogleLocationClient setLocationUpdatesParameters(final boolean requestingLocationUpdates,
                                                                  final boolean highAccuracy) {
         final long interval = highAccuracy ? UPDATE_INTERVAL_HIGH_ACCURACY:

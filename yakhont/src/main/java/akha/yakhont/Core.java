@@ -80,6 +80,7 @@ import android.os.Build.VERSION_CODES;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.KeyEvent;
 import android.view.View;
@@ -182,7 +183,10 @@ import com.google.android.material.snackbar.Snackbar;
  */
 @SuppressWarnings("JavadocReference")
 public class Core implements DefaultLifecycleObserver {
-
+                                                                                                  /*
+                             Write drunk, edit sober.
+                               - assigned to Ernest Hemingway
+                                                                                                  */
     /** Not valid resource ID (the value is {@value}). */
     @AnyRes
     public static final int                             NOT_VALID_RES_ID            = 0;
@@ -196,7 +200,6 @@ public class Core implements DefaultLifecycleObserver {
     public static final int                             NOT_VALID_COLOR             = Integer.MAX_VALUE;
 
     private static final String                         BASE_URI                    = "content://%s.provider";
-    @SuppressWarnings("unused")
     private static final String                         LOG_TAG_FORMAT              = "v.%s-%d-%s";
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -379,7 +382,7 @@ public class Core implements DefaultLifecycleObserver {
      *        {@code true} to force using {@link ConnectivityManager#getActiveNetworkInfo()}
      *        for checking network connection (by default Yakhont uses {@link NetworkCallback})
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void config(final Boolean supportMode, final Boolean setOrientation, final Boolean hideKeyboard,
                               final Boolean oldConnectionCheck) {
         if (supportMode         != null) sSupport            = supportMode;
@@ -405,7 +408,7 @@ public class Core implements DefaultLifecycleObserver {
      *
      * @return  {@code false} if library was already initialized before, {@code true} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean init(@SuppressWarnings("SameParameterValue") @NonNull final Application application            ,
                                @SuppressWarnings("SameParameterValue")          final boolean     useGoogleLocationOldApi,
                                @SuppressWarnings("SameParameterValue")          final boolean     useSnackbarIsoToast) {
@@ -552,12 +555,12 @@ public class Core implements DefaultLifecycleObserver {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // initDefault(...) methods are subjects to call by the Yakhont Weaver
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused", "RedundantSuppression"})
     public static void initDefault(@NonNull final Service service) {
         initDefault(service.getApplication());
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused", "RedundantSuppression"})
     public static void initDefault(@NonNull final Activity activity) {
         if (sInstance == null)
             initDefault(activity.getApplication());
@@ -578,7 +581,7 @@ public class Core implements DefaultLifecycleObserver {
      * @param fullInfo
      *        Indicates whether the detailed logging should be enabled or not
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setFullLoggingInfo(final boolean fullInfo) {
         sInstance.mInit.logging(sInstance.mApplication.get(), fullInfo, true);
     }
@@ -590,7 +593,7 @@ public class Core implements DefaultLifecycleObserver {
      * @param terminate
      *        {@code true} to terminate application in case of uncaught Rx exception, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setRxUncaughtExceptionBehavior(final boolean terminate) {
         if (terminate) {
             FlavorHelper.setRxErrorHandlerDefault();    // Rx / Rx2 support is in full version
@@ -752,7 +755,7 @@ public class Core implements DefaultLifecycleObserver {
     private final          AtomicBoolean                mNoAutoCleanUp              = new AtomicBoolean();
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused", "RedundantSuppression"})
     public static void considerService(final boolean increment) {
         if (increment)
             sInstance.mServicesCounter.incrementAndGet();
@@ -761,7 +764,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess", "unused", "RedundantSuppression"})
     public static void cleanUpDefault(final int timeout, final Activity activity) {
         if (!sInstance.mNoAutoCleanUp.get()) cleanUpFinal(timeout, activity);
     }
@@ -772,7 +775,7 @@ public class Core implements DefaultLifecycleObserver {
      * @param value
      *        The value to set ({@code true} for no auto cleanup, {@code false} otherwise)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setNoAutoCleanUp(final boolean value) {
         sInstance.mNoAutoCleanUp.set(value);
     }
@@ -783,7 +786,7 @@ public class Core implements DefaultLifecycleObserver {
      * @param value
      *        The callback
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setCleanUpCallback(final Runnable value) {
         sInstance.mCleanUpCallback = value;
     }
@@ -802,7 +805,6 @@ public class Core implements DefaultLifecycleObserver {
      *
      * @see #cleanUpFinal()
      */
-    @SuppressWarnings("unused")
     public static void cleanUpFinal(final int timeout, final Activity activity) {
         final Runnable runnable = new Runnable() {
             @Override
@@ -1022,7 +1024,7 @@ public class Core implements DefaultLifecycleObserver {
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void onApplicationConfigurationChanged(final Configuration newConfig) {
         if (sInstance.mAppCallbacks == null) return;
         sInstance.mAppCallbacks.onConfigurationChanged(newConfig);
@@ -1101,7 +1103,7 @@ public class Core implements DefaultLifecycleObserver {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    @SuppressWarnings({"unused", "InnerClassMayBeStatic"})
+    @SuppressWarnings("InnerClassMayBeStatic")
     private class Init extends BaseListeners {
 
         private              String                     mBaseUri;
@@ -1154,6 +1156,7 @@ public class Core implements DefaultLifecycleObserver {
             registerCallbacksSupport(application);
         }
 
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         private void registerCallbacks(@NonNull final Application application) {
             // don't remove validation
             BaseFragmentLifecycleProceed.register(new ValidateFragmentCallbacks(), true);
@@ -1175,7 +1178,7 @@ public class Core implements DefaultLifecycleObserver {
             });
         }
 
-        @SuppressWarnings({"UnusedReturnValue", "unused"})
+        @SuppressWarnings("UnusedReturnValue")
         private boolean register(@NonNull final BaseActivityCallbacks callbacks) {
             return BaseActivityLifecycleProceed.register(callbacks);
         }
@@ -1237,7 +1240,7 @@ public class Core implements DefaultLifecycleObserver {
                 }
 
                 CoreLogger.setTag(String.format(Utils.getLocale(), LOG_TAG_FORMAT, version,
-                        akha.yakhont.BuildConfig.VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
+                        akha.yakhont.BuildConfig.YAKHONT_VERSION_CODE, akha.yakhont.BuildConfig.FLAVOR));
             }
 
             synchronized (mLogLevelSetLock) {
@@ -1435,7 +1438,7 @@ public class Core implements DefaultLifecycleObserver {
         }
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void setRunNetworkMonitor(final boolean runNetworkMonitor) {
         if (sInstance.mInit.mRunNetworkMonitor.compareAndSet(!runNetworkMonitor, runNetworkMonitor))
             sInstance.mInit.handleConnection(sInstance.mApplication.get(), null, false);
@@ -1451,7 +1454,7 @@ public class Core implements DefaultLifecycleObserver {
      *
      * @return  The previous interval
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static int setRunNetworkMonitorInterval(final int interval) {
 //      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) return -1;
         synchronized (sInstance.mInit.mConnectedLock) {
@@ -1477,12 +1480,12 @@ public class Core implements DefaultLifecycleObserver {
 
     private        final Set<NetworkStatusListener>     mNetworkStatusListeners         = Utils.newSet();
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean register(@NonNull final NetworkStatusListener listener) {
         return sInstance.mNetworkStatusListeners.add(listener);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean unregister(@NonNull final NetworkStatusListener listener) {
         return sInstance.mNetworkStatusListeners.remove(listener);
     }
@@ -1522,7 +1525,7 @@ public class Core implements DefaultLifecycleObserver {
      *
      * @see #getSingleton
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static <V> V setSingleton(final String key, final V value) {
         return sInstance.mStore.setData(key, value);
     }
@@ -1540,7 +1543,7 @@ public class Core implements DefaultLifecycleObserver {
      *
      * @see #setSingleton
      */
-    @SuppressWarnings({"unchecked", "unused"})
+    @SuppressWarnings({"unchecked", "unused", "RedundantSuppression"})
     public static <V> V getSingleton(final String key) {
         return (V) sInstance.mStore.getData(key);
     }
@@ -1582,6 +1585,7 @@ public class Core implements DefaultLifecycleObserver {
 
             //noinspection Convert2Lambda
             sUriResolver              = new UriResolver() {
+                @SuppressWarnings({"unused", "RedundantSuppression"})
                 @Override
                 public Uri getUri(@NonNull final String tableName) {
                     return Uri.parse(String.format("%s/%s", getBaseUri(), tableName));
@@ -1638,7 +1642,7 @@ public class Core implements DefaultLifecycleObserver {
             return null;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         public static boolean safeRunBoolean(final Callable<Boolean> callable) {
             final Boolean result = safeRun(callable);
             return result == null ? false: result;
@@ -1654,7 +1658,6 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  The current {@link Application}
          */
-        @SuppressWarnings("unused")
         public static Application getApplication() {
             try {
                 // should never happen
@@ -1675,7 +1678,6 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  The current {@link Activity} (or null)
          */
-        @SuppressWarnings("unused")
         public static Activity getCurrentActivity() {
             return BaseActivityLifecycleProceed.getCurrentActivity();
         }
@@ -1690,7 +1692,6 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  The default {@link View} (or null)
          */
-        @SuppressWarnings("unused")
         public static View getDefaultView(final Activity activity) {
             return ViewHelper.getView(activity);
         }
@@ -1700,7 +1701,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  The data loading progress indicator
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static BaseDialog getLoadingProgressDefault() {
             return LiveDataDialog.getInstance();
         }
@@ -1711,7 +1712,7 @@ public class Core implements DefaultLifecycleObserver {
          * @param resId
          *        The resource ID of the {@link View} (should be common for all used Activities)
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setDefaultViewId(@IdRes final int resId) {
             ViewHelper.sDefViewId = resId;
         }
@@ -1722,7 +1723,7 @@ public class Core implements DefaultLifecycleObserver {
          * @return  The Handler
          */
         @NonNull
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static Handler getHandlerMainThread() {
             return ExecutorHelper.getMainHandler();
         }
@@ -1753,7 +1754,7 @@ public class Core implements DefaultLifecycleObserver {
          * @return  Returns {@code true} if the Runnable was successfully placed in to the
          *          message queue, {@code false} otherwise.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings("UnusedReturnValue")
         public static boolean postToMainLoop(final long delay, @NonNull final Runnable runnable) {
             return ExecutorHelper.postToMainLoop(delay, runnable);
         }
@@ -1796,7 +1797,7 @@ public class Core implements DefaultLifecycleObserver {
             return sExecutorHelper.runInBackground(runnable, delay, false);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         public static int getInvertedColor(final int color) {
             return Color.rgb(255 - Color.red(color), 255 - Color.green(color), 255 - Color.blue(color));
         }
@@ -1894,7 +1895,7 @@ public class Core implements DefaultLifecycleObserver {
          * @param uriResolver
          *        The URI resolver component
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setUriResolver(@NonNull final UriResolver uriResolver) {
             sUriResolver = uriResolver;
         }
@@ -1929,7 +1930,7 @@ public class Core implements DefaultLifecycleObserver {
             return String.valueOf(result);
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         public static String getDialogInterfaceString(final int which) {
             switch (which) {
                 case        DialogInterface.BUTTON_POSITIVE                                 :
@@ -2096,7 +2097,7 @@ public class Core implements DefaultLifecycleObserver {
          *
          * @return  {@code true} if ZIP file was created successfully, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static boolean zip(final String zipFile, final String... srcFiles) {
             return zip(null, zipFile, srcFiles);
         }
@@ -2258,8 +2259,12 @@ public class Core implements DefaultLifecycleObserver {
         public static <K, V> Map<K, V> newWeakMap() {   // temp solution
             return Collections.synchronizedMap(new WeakHashMap<>());
         }
-
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+                                                                                                  /*
+                             Just the place for a Snark! I have said it thrice:
+                             What I tell you three times is true.     :-)
+                               - Lewis Carroll, The Hunting of the Snark
+                                                                                                  */
+        /** @exclude */ @SuppressWarnings("JavaDoc")
         public static <E> List<E> newList() {           // temp solution
             return new CopyOnWriteArrayList<>();
         }
@@ -2286,7 +2291,7 @@ public class Core implements DefaultLifecycleObserver {
          *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
          *        {@code Toast.LENGTH_SHORT}, null for default value
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void showToast(final String text, final Integer duration) {
             UiModule.showToast(text, duration);
         }
@@ -2301,7 +2306,7 @@ public class Core implements DefaultLifecycleObserver {
          *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
          *        {@code Toast.LENGTH_SHORT}, null for default value
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void showToast(@StringRes final int resId, final Integer duration) {
             UiModule.showToast(resId, duration);
         }
@@ -2316,7 +2321,7 @@ public class Core implements DefaultLifecycleObserver {
          *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Toast.LENGTH_LONG} or
          *        {@code Toast.LENGTH_SHORT}, null for default value
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void showToast(final Toast toast, final Integer duration) {
             UiModule.showToast(toast, duration);
         }
@@ -2347,7 +2352,6 @@ public class Core implements DefaultLifecycleObserver {
             /**
              * Initialises a newly created {@code ToastBuilder} object.
              */
-            @SuppressWarnings("unused")
             public ToastBuilder() {
             }
 
@@ -2359,7 +2363,6 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
             public ToastBuilder setTextId(@StringRes final int textId) {
                 mTextId           = textId;
                 return this;
@@ -2373,7 +2376,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public ToastBuilder setText(final String text) {
                 mText             = text;
                 return this;
@@ -2388,7 +2391,6 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
             public ToastBuilder setDuration(final Integer duration) {
                 mDuration         = duration;
                 return this;
@@ -2403,7 +2405,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public ToastBuilder setRequestCode(@IntRange(from = 0) final Integer requestCode) {
                 mRequestCode      = requestCode;
                 return this;
@@ -2418,7 +2420,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public ToastBuilder setData(final Intent data) {
                 mData             = data;
                 return this;
@@ -2429,7 +2431,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public ToastBuilder setGravity(final Integer gravity, final int xOffset, final int yOffset) {
                 mGravity          = gravity;
                 mXOffset          = xOffset;
@@ -2442,7 +2444,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code ToastBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public ToastBuilder setMargin(final Float horizontalMargin, final float verticalMargin) {
                 mHorizontalMargin = horizontalMargin;
                 mVerticalMargin   = verticalMargin;
@@ -2450,8 +2452,9 @@ public class Core implements DefaultLifecycleObserver {
             }
 
             private Toast run(final boolean show) {
-                return UiModule.showToast(mTextId, mText, mDuration, mRequestCode, mData, mGravity,
-                        mXOffset, mYOffset, mHorizontalMargin, mVerticalMargin, show);
+                return UiModule.showToast(mTextId, mText, mDuration == null ? Toast.LENGTH_SHORT: mDuration,
+                        mRequestCode, mData, mGravity, mXOffset, mYOffset, mHorizontalMargin,
+                        mVerticalMargin, show);
             }
 
             /**
@@ -2459,7 +2462,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  The created (but not shown) {@link Toast} (or null)
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public Toast create() {
                 return run(false);
             }
@@ -2469,7 +2472,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  The created and shown {@link Toast} (or null)
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings("UnusedReturnValue")
             public Toast show() {
                 return run(true);
             }
@@ -2487,7 +2490,7 @@ public class Core implements DefaultLifecycleObserver {
          *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Snackbar.LENGTH_INDEFINITE},
          *        {@code Snackbar.LENGTH_LONG} or {@code Snackbar.LENGTH_SHORT}, null for default value
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void showSnackbar(final String text, final Integer duration) {
             UiModule.showSnackbar(text, duration);
         }
@@ -2502,7 +2505,7 @@ public class Core implements DefaultLifecycleObserver {
          *        duration in seconds (<= 5 min), milliseconds (> 5 min), {@code Snackbar.LENGTH_INDEFINITE},
          *        {@code Snackbar.LENGTH_LONG} or {@code Snackbar.LENGTH_SHORT}, null for default value
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void showSnackbar(@StringRes final int resId, final Integer duration) {
             UiModule.showSnackbar(resId, duration);
         }
@@ -2530,7 +2533,7 @@ public class Core implements DefaultLifecycleObserver {
         public static ViewModifier getDefaultSnackbarViewModifier() {
             //noinspection Convert2Lambda
             return new ViewModifier() {
-                @SuppressWarnings("unused")
+                @SuppressWarnings({"unused", "RedundantSuppression"})
                 @Override
                 public void modify(final View view, final ViewHandler viewHandler) {
                     view.setBackgroundResource(R.drawable.yakhont_snackbar_background);
@@ -2592,7 +2595,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings("UnusedReturnValue")
             public SnackbarBuilder setViewId(@IdRes final Integer viewId) {
                 mViewId          = viewId;
                 return this;
@@ -2636,7 +2639,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public SnackbarBuilder setText(final String text) {
                 mText            = text;
                 return this;
@@ -2665,7 +2668,6 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
             public SnackbarBuilder setRequestCode(@IntRange(from = 0) final Integer requestCode) {
                 mRequestCode     = requestCode;
                 return this;
@@ -2679,7 +2681,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public SnackbarBuilder setData(final Intent data) {
                 mData            = data;
                 return this;
@@ -2720,7 +2722,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public SnackbarBuilder setActionText(final String actionText) {
                 mActionText      = actionText;
                 return this;
@@ -2735,7 +2737,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public SnackbarBuilder setMaxLines(final Integer maxLines) {
                 mMaxLines        = maxLines;
                 return this;
@@ -2750,7 +2752,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public SnackbarBuilder setActionColors(final ColorStateList actionColors) {
                 mActionColors    = actionColors;
                 return this;
@@ -2765,7 +2767,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public SnackbarBuilder setActionColorId(@ColorRes final int actionColorId) {
                 mActionColorId   = actionColorId;
                 return this;
@@ -2780,7 +2782,6 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
             public SnackbarBuilder setActionColor(@ColorInt final int actionColor) {
                 mActionColor     = actionColor;
                 return this;
@@ -2801,7 +2802,6 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  This {@code SnackbarBuilder} object to allow for chaining of calls to set methods
              */
-            @SuppressWarnings("unused")
             public SnackbarBuilder setViewHandler(final ViewModifier viewModifier) {
                 if (viewModifier == null)
                     mViewModifiers.clear();
@@ -2820,8 +2820,10 @@ public class Core implements DefaultLifecycleObserver {
 
             private Snackbar run(final boolean show) {
                 return UiModule.showSnackbar(mView == null ? null: mView.get(), mViewId,
-                        mTextId, mText, mMaxLines, mDuration, mRequestCode, mData,
-                        mActionTextId, mActionText, mAction, mActionColors, mActionColorId,
+                        mTextId, mText, mMaxLines, mDuration == null ? Snackbar.LENGTH_SHORT: mDuration,
+                        mRequestCode, mData, TextUtils.isEmpty(mActionText) &&
+                                mActionTextId == Core.NOT_VALID_RES_ID ? R.string.yakhont_ok:
+                                mActionTextId, mActionText, mAction, mActionColors, mActionColorId,
                         mActionColor, mViewModifiers, show);
             }
 
@@ -2830,7 +2832,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  The created (but not shown) {@link Snackbar} (or null)
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public Snackbar create() {
                 return run(false);
             }
@@ -3018,12 +3020,12 @@ public class Core implements DefaultLifecycleObserver {
                 return null;
             }
 
-            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
             public boolean isCancelled() {
                 return mCancelled;
             }
 
-            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+            /** @exclude */ @SuppressWarnings("JavaDoc")
             public void cancel() {
                 cancel(false);
             }
@@ -3101,7 +3103,6 @@ public class Core implements DefaultLifecycleObserver {
          * }
          * </pre>
          */
-        @SuppressWarnings("unused")
         public static class BackKeyInActionModeHandler {
 
             private final AtomicBoolean                 mIsBackWasPressed               = new AtomicBoolean();
@@ -3328,7 +3329,6 @@ public class Core implements DefaultLifecycleObserver {
 
                 //noinspection Convert2Lambda
                 visitView(parentView, new ViewVisitor() {
-                    @SuppressWarnings("unused")
                     @Override
                     public boolean handle(final View view) {
                         if (visitor.handle(view)) views.add(view);
@@ -3463,7 +3463,7 @@ public class Core implements DefaultLifecycleObserver {
                         ((GenericArrayType) type).getGenericComponentType(): type;
             }
 
-            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+            /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
             public static Type getParameterizedOrGenericComponentType(final Type type) {
                 final Type genericArrayType = getGenericComponentType(type);
                 return type != null && !type.equals(genericArrayType) ? genericArrayType: getParameterizedType(type);
@@ -3684,12 +3684,12 @@ public class Core implements DefaultLifecycleObserver {
          * @param timeout
          *        The timeout (0 for endless awaiting, null for the default value)
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAwaitDefaultTimeout(final Long timeout) {
             sInstance.mAwaitDefaultTimeout = timeout;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedReturnValue", "unused", "RedundantSuppression"})
         public static Long getAwaitDefaultTimeout() {
             return sInstance.mAwaitDefaultTimeout;
         }
@@ -3861,7 +3861,7 @@ public class Core implements DefaultLifecycleObserver {
 
              * @see #setPagingCallbacks
              */
-            @SuppressWarnings({"unused", "rawtypes"})
+            @SuppressWarnings("rawtypes")
             public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad<E,    D> coreLoad,
                                                                   final LoaderCallback<D> callback,
                                                                   final Runnable          callbackError,
@@ -3887,6 +3887,7 @@ public class Core implements DefaultLifecycleObserver {
                 final CacheLiveData liveData = tmpData;
 
                 return setPagingCallbacks(coreLoad, new LoaderCallbacks<E, D>() {
+                    @SuppressWarnings({"unused", "RedundantSuppression"})
                     @Override
                     public void onLoadFinished(final D data, final Source source) {
                         Utils.safeRun(new Runnable() {
@@ -3903,6 +3904,7 @@ public class Core implements DefaultLifecycleObserver {
                         });
                     }
 
+                    @SuppressWarnings({"unused", "RedundantSuppression"})
                     @Override
                     public void onLoadError(final E error, final Source source) {
                         Utils.safeRun(callbackError != null ? callbackError:
@@ -3986,7 +3988,7 @@ public class Core implements DefaultLifecycleObserver {
 
              * @see #setPagingCallbacks
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static <E, D> CoreLoad<E, D> setPagingCallback(final CoreLoad<E,    D> coreLoad,
                                                                   final LoaderCallback<D> callback) {
                 return setPagingCallback(coreLoad, callback, null, getCurrentActivity());
@@ -4094,7 +4096,7 @@ public class Core implements DefaultLifecycleObserver {
              *
              * @return  The {@code CoreLoad} passed as parameter
              */
-            @SuppressWarnings("unused")
+            @SuppressWarnings({"unused", "RedundantSuppression"})
             public static <E, D> CoreLoad<E, D> invalidateDataSources(final CoreLoad<E, D> coreLoad) {
                 return invalidateDataSources(coreLoad, null);
             }

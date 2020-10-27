@@ -15,7 +15,7 @@
      limitations under the License.
 -->
 
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Yakhont Full Demo</string>
 
     <string name="flag_force">Load from cache</string>
@@ -38,4 +38,7 @@
         and results will be sent by e-mail\n
         wherever you want
     </string>
+
+    <string name="image_tag" tools:ignore="MissingTranslation">image_tag</string>
+    <string name="_id_tag"   tools:ignore="MissingTranslation">_id_tag</string>
 </resources>

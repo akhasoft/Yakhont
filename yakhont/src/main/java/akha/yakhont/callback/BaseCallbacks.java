@@ -144,7 +144,10 @@ import java.util.concurrent.Callable;
  * @author akha
  */
 public abstract class BaseCallbacks<T> {
-
+                                                                                                  /*
+                             Make things as simple as possible, but not simpler.
+                               - assigned to Albert Einstein
+                                                                                                  */
     private static final String                             FORMAT                      = "-%s (%s)";
 
     private              boolean                            mForceProceed;
@@ -226,7 +229,7 @@ public abstract class BaseCallbacks<T> {
      *
      * @return  This {@code BaseCallbacks} object
      */
-    @SuppressWarnings({"unused", "rawtypes"})
+    @SuppressWarnings("rawtypes")
     public BaseCallbacks setForceProceed(final boolean forceProceed) {
         mForceProceed = forceProceed;
         return this;
@@ -243,7 +246,7 @@ public abstract class BaseCallbacks<T> {
      *
      * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     protected boolean proceed(@NonNull final T object, @NonNull final BaseCallbacks<T> callback) {
         return proceed(object, (Map<T, Boolean>) null, callback);
     }
@@ -324,7 +327,7 @@ public abstract class BaseCallbacks<T> {
      *
      * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static <T> boolean proceed(@NonNull final T object, @NonNull final Class<?> callbackClass,
                                       @NonNull final BaseCallbacks<T> callback) {
         return proceed(object, callbackClass, callback, false, null);
@@ -647,7 +650,7 @@ public abstract class BaseCallbacks<T> {
          *
          * @return  {@code true} if callbacks should be proceeded, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static <T> boolean proceed(@NonNull final BaseCacheCallbacks<T> callbacks,
                                           @NonNull final T object) {
             return proceed(callbacks, null, object, null);
@@ -707,10 +710,7 @@ public abstract class BaseCallbacks<T> {
      * @see BaseFragmentLifecycleProceed
      */
     public static abstract class BaseLifecycleProceed extends BaseProceed {
-                                                                                                  /*
-                             Make things as simple as possible, but not simpler.
-                               - A saying attributed to Albert Einstein
-                                                                                                  */
+
         private static final String                         FORMAT                      = "%s (%s)";
 
         /**

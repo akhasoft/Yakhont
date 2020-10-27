@@ -27,6 +27,6 @@ import retrofit.http.GET;
 public interface RetrofitApi {
 
     @GET("/data")
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     void getData(Callback<List<BeerDefault>> callback);
 }

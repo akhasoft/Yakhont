@@ -170,7 +170,10 @@ import javassist.NotFoundException;
  */
 @SuppressWarnings("WeakerAccess")
 public class Weaver {
-
+                                                                                                  /*
+                             I'm always right. This time I'm just even more right than usual.
+                               - Linus Torvalds
+                                                                                                  */
     private static final String      COMMENT                  = "#"            ;
     private static final String      IGNORE_SIGNATURE         = "(<all>)"      ;
     private static final String      HANDLE_LIB               = "<lib>"        ;
@@ -1558,9 +1561,10 @@ public class Weaver {
 
     /** @exclude */ @SuppressWarnings("JavaDoc")
     public static boolean delete(File file) {
-        if (file == null) return true;
-
         boolean result = true;
+
+        if (file == null)   //noinspection ConstantConditions
+            return result;
         if (!file.exists()) //noinspection ConstantConditions
             return result;
 

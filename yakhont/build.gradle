@@ -79,6 +79,8 @@ android {
         versionCode             verCode
         versionName             verName
         resConfigs              projectResConfigs
+
+        buildConfigField        "int", "YAKHONT_VERSION_CODE", "${verCode}"
     }
 
     compileOptions {

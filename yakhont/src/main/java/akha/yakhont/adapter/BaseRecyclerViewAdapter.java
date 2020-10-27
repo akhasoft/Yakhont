@@ -98,7 +98,6 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      *
      * @see Adapter#onCreateViewHolder
      */
-    @SuppressWarnings("unused")
     public interface ViewHolderCreator {
 
         /**
@@ -129,7 +128,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      * @param dataBinder
      *        The {@link DataBinder}
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseRecyclerViewAdapter(@NonNull final BaseCacheAdapter<T, R, E, D> baseCacheAdapter,
                                             final DataBinder<T>                dataBinder) {
         this(baseCacheAdapter, dataBinder, Core.NOT_VALID_RES_ID);
@@ -162,7 +161,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      *
      * @see #setOnItemClickListener
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public OnItemClickListener getOnItemClickListener() {
         return mOnItemClickListener;
     }
@@ -184,7 +183,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      *
      * @see #setAdapterViewBinder
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public ViewBinder getAdapterViewBinder() {
         return mDataBinder == null ? null: mDataBinder.getAdapterViewBinder();
     }
@@ -210,7 +209,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
      *
      * @see #setViewHolderCreator
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public ViewHolderCreator getViewHolderCreator() {
         return mViewHolderCreator;
     }
@@ -375,7 +374,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          *        The BR id of the variable to be set (please refer to
          *        {@link ViewDataBinding#setVariable} for more info)
          */
-        @SuppressWarnings({"WeakerAccess", "unused"})
+        @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
         public DataBindingViewHolder(@NonNull final View view, final int id) {
             this(DataBindingUtil.bind(view), id);
         }
@@ -463,7 +462,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          * @param <D>
          *        The type of data
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static <R, E, D> void bind(final ViewHolder              viewHolder,
                                           final BaseResponse<R, E, D>   data,
                                           final Integer                 position) {
@@ -516,7 +515,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          *
          * @see     ViewDataBinding#getRoot() ViewDataBinding.getRoot()
          */
-        @SuppressWarnings({"unused", "WeakerAccess"})
+        @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"})
         public View getView() {
             return DataBindingCacheAdapterWrapper.getView(mViewDataBinding);
         }
@@ -607,7 +606,7 @@ public class BaseRecyclerViewAdapter<T, R, E, D> extends Adapter<ViewHolder> {
          *
          * @return  The {@code BaseRecyclerViewAdapter}
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public BaseRecyclerViewAdapter<T, R, E, T> getAdapter() {
             return mRecyclerViewAdapter;
         }

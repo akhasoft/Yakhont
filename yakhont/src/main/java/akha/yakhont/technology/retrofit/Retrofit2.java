@@ -47,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -189,7 +190,6 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /**
      * Initialises a newly created {@code Retrofit2} object.
      */
-    @SuppressWarnings("unused")
     public Retrofit2() {
     }
 
@@ -402,7 +402,6 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         if (callback == null) CoreLogger.logError("callback == null");
 
         return callback == null ? null: new CallbackRx<D>() {
-            @SuppressWarnings("unused")
             @Override
             public void onResult(final D result) {
                 Utils.safeRun(new Runnable() {
@@ -420,7 +419,6 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
                 });
             }
 
-            @SuppressWarnings("unused")
             @Override
             public void onError(final Throwable throwable) {
                 Utils.safeRun(new Runnable() {
@@ -525,7 +523,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
     /**
      * Please refer to the base method description.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @Override
     public Retrofit2<T, D> init(@NonNull final Class<T> service, @NonNull final Builder builder,
                                 @IntRange(from = 1) final int connectTimeout,
@@ -649,7 +647,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
      *
      * @return  The {@code OkHttpClient} builder
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public OkHttpClient.Builder getDefaultOkHttpClientBuilder() {
         return getDefaultOkHttpClientBuilder(Core.TIMEOUT_CONNECTION, Core.TIMEOUT_CONNECTION,
                 Core.TIMEOUT_CONNECTION, null, null);
@@ -870,7 +868,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
      *
      * @return  The server response as string
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static String getResponseString(final okhttp3.Response response) {
         final byte[][] data = new byte[1][];
         final String[] type = new String[1];
@@ -897,7 +895,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
      *
      * @return  The server response as byte array
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static byte[] getResponseBytes(final okhttp3.Response response) {
         final byte[][] data = new byte[1][];
         return getResponseSafe(response, null, null, data) ? data[0]: null;
@@ -925,7 +923,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
      *
      * @return  The media type
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static MediaType getResponseMediaType(final okhttp3.Response response) {
         return getMediaType(getResponseType(response));
     }
@@ -1027,7 +1025,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         private final Scheduler                                 mScheduler;
         private final boolean                                   mIsAsync;
 
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static RxJava3CallAdapterFactoryTmp create() {
             return new RxJava3CallAdapterFactoryTmp(null, false);
         }
@@ -1037,7 +1035,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             return new RxJava3CallAdapterFactoryTmp(null, true);
         }
 
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static RxJava3CallAdapterFactoryTmp createWithScheduler(final Scheduler scheduler) {
             if (scheduler == null) throw new NullPointerException("scheduler == null");
             return new RxJava3CallAdapterFactoryTmp(scheduler, false);
@@ -1260,7 +1258,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         }
 
         @Override
-        protected void subscribeActual(final Observer<? super Response<T>> observer) {
+        protected void subscribeActual(@NonNull final Observer<? super Response<T>> observer) {
             // comment from Retrofit team:
             //   Since Call is a one-shot type, clone it for each new observer.
             final Call<T> call = mOriginalCall.clone();
@@ -1328,7 +1326,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         }
 
         @Override
-        protected void subscribeActual(final Observer<? super T> observer) {
+        protected void subscribeActual(@NonNull final Observer<? super T> observer) {
             mUpStream.subscribe(new BodyObserver<>(observer));
         }
 
@@ -1342,14 +1340,14 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             }
 
             @Override
-            public void onSubscribe(final Disposable disposable) {
+            public void onSubscribe(@NonNull final Disposable disposable) {
                 mObserver.onSubscribe(disposable);
             }
 
             @Override
             public void onNext(final Response<R> response) {
                 if (response.isSuccessful())
-                    mObserver.onNext(response.body());
+                    mObserver.onNext(Objects.requireNonNull(response.body()));
                 else {
                     mTerminated = true;
 
@@ -1365,7 +1363,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             }
 
             @Override
-            public void onError(Throwable throwable) {
+            public void onError(@NonNull Throwable throwable) {
                 if (!mTerminated)
                     mObserver.onError(throwable);
                 else {
@@ -1391,7 +1389,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         }
 
         @Override
-        protected void subscribeActual(final Observer<? super Result<T>> observer) {
+        protected void subscribeActual(@NonNull final Observer<? super Result<T>> observer) {
             mUpStream.subscribe(new ResultObserver<>(observer));
         }
 
@@ -1404,17 +1402,17 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
             }
 
             @Override
-            public void onSubscribe(final Disposable disposable) {
+            public void onSubscribe(@NonNull final Disposable disposable) {
                 mObserver.onSubscribe(disposable);
             }
 
             @Override
-            public void onNext(final Response<R> response) {
+            public void onNext(@NonNull final Response<R> response) {
                 mObserver.onNext(Result.response(response));
             }
 
             @Override
-            public void onError(final Throwable throwable) {
+            public void onError(@NonNull final Throwable throwable) {
                 try {
                     mObserver.onNext(Result.error(throwable));
                 }
@@ -1445,7 +1443,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
         /**
          * Initialises a newly created {@code Retrofit2Rx} object.
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Retrofit2Rx() {
             super();
         }
@@ -1456,7 +1454,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          * @param version
          *        The one of supported RxJava versions
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Retrofit2Rx(final RxVersions version) {
             super(version);
         }
@@ -1471,7 +1469,6 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          *        {@code true} if {@link CommonRx}
          *        either emits one value only or an error notification, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
         public Retrofit2Rx(final RxVersions version, final boolean isSingle) {
             super(version, isSingle);
         }
@@ -1482,7 +1479,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          * @param commonRx
          *        The {@link CommonRx} to use
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Retrofit2Rx(final CommonRx<BaseResponse<Response<D>, Throwable, D>> commonRx) {
             super(commonRx);
         }
@@ -1497,7 +1494,7 @@ public class Retrofit2<T, D> extends BaseRetrofit<T, Builder, Callback<D>, D> {
          *        {@code true} if {@link CommonRx}
          *        either emits one value only or an error notification, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Retrofit2Rx(final CommonRx<BaseResponse<Response<D>, Throwable, D>> commonRx, final boolean isSingle) {
             super(commonRx, isSingle);
         }

@@ -71,6 +71,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
     /**
      * Initialises a newly created {@code BaseFragmentLifecycleProceed} object.
      */
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseFragmentLifecycleProceed() {
     }
 
@@ -123,7 +124,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  The registered callbacks handlers
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Collection<BaseFragmentCallbacks> getCallbacks() {
         return sCallbacks.keySet();
     }
@@ -136,7 +137,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
      */
-    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue", "unused"})
+    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue", "unused", "RedundantSuppression"})
     public static boolean register(@NonNull final BaseFragmentCallbacks callbacks) {
         return register(callbacks, false);
     }
@@ -152,7 +153,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully registered, {@code false} otherwise
      */
-    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue", "unused"})
+    @SuppressWarnings({"UnusedReturnValue", "SameReturnValue"})
     public static boolean register(@NonNull final BaseFragmentCallbacks callbacks,
                                    final boolean silent) {
         return register(sCallbacks, callbacks, FragmentLifecycle.class, CALLBACKS,
@@ -167,7 +168,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully unregistered, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean unregister(@NonNull final Class<? extends BaseFragmentCallbacks> callbacksClass) {
         return unregister(sCallbacks, callbacksClass);
     }
@@ -183,7 +184,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @return  {@code true} if the callbacks handler was successfully unregistered, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static <C extends BaseFragmentCallbacks> boolean unregister(@NonNull final C callbacks) {
         return unregister(sCallbacks, callbacks);
     }
@@ -261,7 +262,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param active
      *        {@code true} to activate Yakhont Weaver, {@code false} otherwise
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setActive(final boolean active) {
         sActive = active;
     }
@@ -286,7 +287,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param savedInstanceState
      *        The additional information concerning the fragment state
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onCreated(@NonNull final Fragment fragment, final Bundle savedInstanceState) {
         if (!sActive) return;
 
@@ -302,7 +303,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param fragment
      *        The fragment to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onDestroyed(@NonNull final Fragment fragment) {
         if (!sActive) return;
 
@@ -321,7 +322,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param outState
      *        The additional information concerning the fragment state
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onSaveInstanceState(@NonNull final Fragment fragment, final Bundle outState) {
         if (!sActive) return;
 
@@ -337,7 +338,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param fragment
      *        The fragment to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onResumed(@NonNull final Fragment fragment) {
         if (!sActive) return;
 
@@ -353,7 +354,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param fragment
      *        The fragment to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onPaused(@NonNull final Fragment fragment) {
         if (!sActive) return;
 
@@ -369,7 +370,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param fragment
      *        The fragment to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onStarted(@NonNull final Fragment fragment) {
         if (!sActive) return;
 
@@ -385,7 +386,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param fragment
      *        The fragment to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onStopped(@NonNull final Fragment fragment) {
         if (!sActive) return;
 
@@ -401,7 +402,7 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      * @param fragment
      *        The fragment to apply callbacks to
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void onActivityCreated(@NonNull final Fragment fragment, final Bundle savedInstanceState) {
         if (!sActive) return;
 
@@ -471,7 +472,6 @@ public abstract class BaseFragmentLifecycleProceed extends BaseLifecycleProceed 
      *
      * @see FragmentLifecycle
      */
-    @SuppressWarnings("unused")
     public static abstract class BaseFragmentCallbacks extends BaseCacheCallbacks<Fragment> {
 
         /**

@@ -171,7 +171,7 @@ public class BaseResponse<R, E, D> {
      *
      * @see #getUserData
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public <V> V setUserData(final String key, final V value) {
         return mStore.setData(key, value);
     }
@@ -189,7 +189,7 @@ public class BaseResponse<R, E, D> {
      *
      * @see #setUserData
      */
-    @SuppressWarnings({"unchecked", "unused"})
+    @SuppressWarnings({"unchecked", "unused", "RedundantSuppression"})
     public <V> V getUserData(final String key) {
         return (V) mStore.getData(key);
     }
@@ -208,7 +208,6 @@ public class BaseResponse<R, E, D> {
      *
      * @return  The network response
      */
-    @SuppressWarnings("unused")
     public R getResponse() {
         return mResponse;
     }
@@ -251,7 +250,6 @@ public class BaseResponse<R, E, D> {
      *
      * @return  The error
      */
-    @SuppressWarnings("unused")
     public E getError() {
         return mError;
     }
@@ -284,7 +282,6 @@ public class BaseResponse<R, E, D> {
      *
      * @return  The additional error info
      */
-    @SuppressWarnings("unused")
     public Throwable getThrowable() {
         return mThrowable;
     }
@@ -354,7 +351,7 @@ public class BaseResponse<R, E, D> {
      *
      * @see CoreLogger#toHex(byte[], int, int, Locale, Charset)
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setBytesQtyForArray(final int bytesQtyForArray) {
         if (bytesQtyForArray > 0) sBytesQtyForArray = bytesQtyForArray;
     }

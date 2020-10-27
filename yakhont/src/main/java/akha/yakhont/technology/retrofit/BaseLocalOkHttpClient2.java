@@ -91,7 +91,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
     /**
      * Initialises a newly created {@code BaseLocalOkHttpClient2} object.
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseLocalOkHttpClient2() {
         this(null);
     }
@@ -134,7 +134,6 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
         logger.setLevel(HttpLoggingInterceptor.Level.BODY);
         add(logger);
 
-        //noinspection unused
         add(new BodySaverInterceptor() {
             @Override
             public void set(BodyCache data) {
@@ -177,7 +176,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      *
      * @return  The JSON string
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static String getJson(final String... data) {
         return data == null ? null: getJson(Arrays.asList(data));
     }
@@ -207,7 +206,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      *
      * @return  This {@code BaseLocalOkHttpClient2} object to allow for chaining of calls
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseLocalOkHttpClient2 setEmulatedNetworkDelay(final int delay) {
         CoreLogger.logWarning("emulated network delay set to " + delay + " seconds");
 
@@ -236,7 +235,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      *
      * @return  This {@code BaseLocalOkHttpClient2} object to allow for chaining of calls
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public BaseLocalOkHttpClient2 remove(final Interceptor interceptor) {
         return handle(interceptor, false);
     }
@@ -291,7 +290,7 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
      */
     @NonNull
     @Override
-    public WebSocket newWebSocket(final Request request, @NonNull final WebSocketListener listener) {
+    public WebSocket newWebSocket(@NonNull final Request request, @NonNull final WebSocketListener listener) {
         return new WebSocket() {
             @Override          public void    cancel   (                           ) {                 }
             @Override          public boolean close    (final int i, final String s) { return    true; }
@@ -315,7 +314,6 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
 
         private final Request mRequest;
 
-        @SuppressWarnings("unused")
         private CallI(final Request request) {
             mRequest = request;
         }
@@ -398,7 +396,6 @@ public abstract class BaseLocalOkHttpClient2 extends OkHttpClient {
 
             private final Response mResponse;
 
-            @SuppressWarnings("unused")
             private ChainI(final Response response) {
                 mResponse = response;
             }

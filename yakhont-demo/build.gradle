@@ -143,6 +143,9 @@ dependencies {
     implementation      "com.google.android.material:material:$projectLibVerNotxMaterialMaterial"
     implementation      "com.google.android.gms:play-services-location:$projectLibVerDefault"
 
+    api                 "com.github.bumptech.glide:glide:$projectLibVerGlide"
+    annotationProcessor "com.github.bumptech.glide:compiler:$projectLibVerGlide"
+
     implementation      "com.google.code.gson:gson:$projectLibVerGson"
 
     //noinspection GradleDependency

@@ -166,7 +166,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
          *
          * @return  The current location
          */
-        @SuppressWarnings("unused")
         Location getCurrentLocation();
 
         /**
@@ -174,7 +173,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
          *
          * @return  The last update time
          */
-        @SuppressWarnings("unused")
         Date getLastUpdateTime();
 
         /**
@@ -641,7 +639,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      *
      * @return  {@code true} if registration was successful, {@code false} otherwise
      */
-    @SuppressWarnings({"unused", "UnusedReturnValue"})
+    @SuppressWarnings({"unused", "UnusedReturnValue", "RedundantSuppression"})
     public boolean register(final Activity activity, final LocationRx locationRx) {
         if (!checkData(activity, locationRx)) return false;
 
@@ -671,7 +669,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      *
      * @return  {@code true} if component removing was successful, {@code false} otherwise
      */
-    @SuppressWarnings({"unused", "UnusedReturnValue"})
+    @SuppressWarnings({"unused", "UnusedReturnValue", "RedundantSuppression"})
     public boolean unregister(final Activity activity, final LocationRx locationRx) {
         if (!checkData(activity, locationRx)) return false;
 
@@ -723,7 +721,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      *
      * @return  The last update time
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public Date getLastUpdateTime() {
         final LocationClient locationClient = getLocationClient();
         return locationClient == null ? null: locationClient.getLastUpdateTime();
@@ -797,7 +795,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      *
      * @return  The location in the DMS format
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static String toDms(final Location location, @NonNull final Context context) {
         return toDms(location, context, null, null);
     }
@@ -819,7 +817,6 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      *
      * @return  The location in the DMS format
      */
-    @SuppressWarnings("unused")
     public static String toDms(final Location location, @NonNull final Context context,
                                final String message, final String defValue) {
         final Locale locale = Utils.getLocale();
@@ -833,7 +830,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "UnusedParameters", "unused", "RedundantSuppression"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
         Utils.onActivityResult("LocationCallbacks", activity, requestCode, resultCode, data);
@@ -864,7 +861,7 @@ public class LocationCallbacks extends BaseActivityCallbacks implements Callback
      * @param exception
      *        The {@code Exception} to handle
      */
-    @SuppressWarnings({"UnusedParameters", "unused"})
+    @SuppressWarnings({"UnusedParameters", "unused", "RedundantSuppression"})
     public static void startActivityForResultExceptionHandler(@NonNull final Activity activity,
                                                               @NonNull final RuntimeException exception) {
 

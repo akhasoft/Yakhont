@@ -44,6 +44,7 @@
 
         <ImageView
             android:id="@+id/image"
+            android:tag="@string/image_tag"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
 
@@ -60,6 +61,7 @@
 
         <TextView
             android:id="@+id/_id"
+            android:tag="@string/_id_tag"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"
 

@@ -226,7 +226,6 @@ public class CoreLogger {
      *
      * @see #setLoggerExtender
      */
-    @SuppressWarnings("unused")
     public interface LoggerExtender {
 
         /**
@@ -271,7 +270,7 @@ public class CoreLogger {
      * @throws  RuntimeException
      *          If {@link Level} can not be converted to {@link Log}'s priority
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static int toLogPriority(final Level level) {
         switch (level) {
             case VERBOSE: return Log.VERBOSE;
@@ -373,7 +372,7 @@ public class CoreLogger {
      *
      * @return  The previous default log level
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static Level setDefaultLevel(@NonNull final Level level) {
         return sLogLevelDefault.getAndSet(level);
     }
@@ -383,7 +382,7 @@ public class CoreLogger {
      *
      * @return  {@code LoggerExtender} or null
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static LoggerExtender getLoggerExtender() {
         return sLoggerExtender;
     }
@@ -394,7 +393,7 @@ public class CoreLogger {
      * @param loggerExtender
      *        The wrapper for 3-rd party logger
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setLoggerExtender(final LoggerExtender loggerExtender) {
         if (sLoggerExtender != null)
             Log.w(getTag("CoreLogger"), "already set LoggerExtender " + sLoggerExtender);
@@ -419,7 +418,7 @@ public class CoreLogger {
 
      * @return  The previous value
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static int setMaxLogLineLength(@IntRange(from = 1, to = MAX_LOG_LENGTH) final int value) {
         return value >= 1 && value <= MAX_LOG_LENGTH ?
                 sMaxLogLineLength.getAndSet(value): sMaxLogLineLength.get();
@@ -443,7 +442,7 @@ public class CoreLogger {
      *
      * @return  The previous log level
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings("UnusedReturnValue")
     public static Level setLogLevel(@NonNull final Level level) {
         return sLogLevel.getAndSet(level);
     }
@@ -455,7 +454,6 @@ public class CoreLogger {
      *
      * @see #setLogLevel
      */
-    @SuppressWarnings("unused")
     public static Level getLogLevel() {
         return sLogLevel.get();
     }
@@ -468,7 +466,7 @@ public class CoreLogger {
      *
      * @return  The previous value
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean setShowStack(final boolean showStack) {
         return sForceShowStack.getAndSet(showStack);
     }
@@ -481,7 +479,7 @@ public class CoreLogger {
      *
      * @return  The previous value
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean setShowThread(final boolean showThread) {
         return sForceShowThread.getAndSet(showThread);
     }
@@ -494,12 +492,12 @@ public class CoreLogger {
      *
      * @return  The previous value
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean setShowAppId(final boolean showAppId) {
         return sForceShowAppId.getAndSet(showAppId);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean setNoSilentLogging(final boolean value) {
         return sNoSilentBackDoor.getAndSet(value);
     }
@@ -513,7 +511,7 @@ public class CoreLogger {
      *
      * @return  The previous value
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static boolean setSplitToNewLine(final boolean value) {
         return sSplitToNewLine.getAndSet(value);
     }
@@ -607,7 +605,7 @@ public class CoreLogger {
      * @param throwable
      *        The Throwable to log
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void logWarning(@NonNull final String str, @NonNull final Throwable throwable) {
         log(Level.WARNING, str, throwable);
     }
@@ -631,7 +629,6 @@ public class CoreLogger {
      * @param throwable
      *        The Throwable to log
      */
-    @SuppressWarnings("unused")
     public static void logError(@NonNull final String str, @NonNull final Throwable throwable) {
         log(Level.ERROR, str, throwable);
     }
@@ -696,7 +693,7 @@ public class CoreLogger {
         log(level, str, null, showStack);
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean isNotLog() {
         return isNotLog(getDefaultLevel());
     }
@@ -785,7 +782,7 @@ public class CoreLogger {
      *
      * @see     #split(List, String, int, boolean)
      */
-    @SuppressWarnings({"UnusedReturnValue", "unused", "WeakerAccess"})
+    @SuppressWarnings({"UnusedReturnValue", "unused", "WeakerAccess", "RedundantSuppression"})
     public static List<String> split(final List<String> list, final String text) {
         return split(list, text, getMaxLogLineLength(), true);
     }
@@ -976,7 +973,7 @@ public class CoreLogger {
      *
      * @return  The byte array readable representation
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static String toHex(final byte[] data) {
         return toHex(data, 0, data == null ? 0: data.length, true);
     }
@@ -998,7 +995,6 @@ public class CoreLogger {
      *
      * @return  The byte array readable representation
      */
-    @SuppressWarnings("unused")
     public static String toHex(final byte[] data, int offset, final int length, final boolean bytesOnly) {
         return toHex(data, offset, length, bytesOnly, null, null);
     }
@@ -1204,7 +1200,7 @@ public class CoreLogger {
      *
      * @return  The screenshot's file
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static File getScreenshot(final String suffix) {
         return getScreenshot(null, null, suffix, Sender.SCREENSHOT_FORMAT, null, false);
     }
@@ -1352,7 +1348,7 @@ public class CoreLogger {
      * @param addresses
      *        The e-mail addresses
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void sendLogCat(@NonNull final Activity activity, @NonNull final String... addresses) {
         sendLogCat(activity, null, true, LOGCAT_DEFAULT_SUBJECT, addresses);
     }
@@ -1427,7 +1423,7 @@ public class CoreLogger {
      * @param addresses
      *        The email addresses to send data
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void registerDataSender(final Context context, final String... addresses) {
         registerDataSender(context, null, null, true, true,
                 null, null, addresses);
@@ -1671,7 +1667,6 @@ public class CoreLogger {
          * @param library
          *        The {@code GestureLibrary}
          */
-        @SuppressWarnings("unused")
         public GestureHandler(final Map<String, Runnable> handlers, final double threshold,
                               final GestureLibrary library) {
             this(handlers, threshold, library, true);
@@ -1714,7 +1709,7 @@ public class CoreLogger {
          * @param library
          *        The {@code GestureLibrary}
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public GestureHandler(final Runnable handler, final double threshold, final GestureLibrary library) {
             this(getHandler(handler), threshold, library);
         }
@@ -1751,7 +1746,7 @@ public class CoreLogger {
          *
          * @return  The {@code GestureLibrary}
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public GestureLibrary getLibrary() {
             return mLibrary;
         }
@@ -1761,7 +1756,7 @@ public class CoreLogger {
          *
          * @return  The gestures recognition threshold
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public double getThreshold() {
             return mThreshold;
         }
@@ -1771,7 +1766,7 @@ public class CoreLogger {
          *
          * @return  The recognized gestures handlers
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public Map<String, Runnable> getHandlers() {
             return mHandlers;
         }
@@ -1800,10 +1795,12 @@ public class CoreLogger {
          *
          * @return  {@code true} if this event was consumed, {@code false} otherwise
          */
-        @SuppressWarnings({"UnusedReturnValue", "ConstantConditions"})
+        @SuppressWarnings("UnusedReturnValue")
         public boolean handle(@NonNull final MotionEvent event) {
             boolean result = false;
-            if (mLibrary == null || mHandlers == null || mHandlers.size() == 0) return result;
+            if (mLibrary == null || mHandlers == null || mHandlers.size() == 0)
+                //noinspection ConstantConditions
+                return result;
 
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:           // fall through
@@ -1888,7 +1885,7 @@ public class CoreLogger {
          *
          * @return  The gestures library (or null)
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static GestureLibrary loadLibrary(final File file) {
             if (file != null) return loadLibrary(Core.NOT_VALID_RES_ID, file, null);
 
@@ -1904,7 +1901,7 @@ public class CoreLogger {
          *
          * @return  The gestures library (or null)
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static GestureLibrary loadLibrary(final String file) {
             if (file != null) return loadLibrary(Core.NOT_VALID_RES_ID, null, file);
 
@@ -1984,7 +1981,7 @@ public class CoreLogger {
      * @param threshold
      *        The gestures recognition threshold
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setGestureLibrary(final GestureLibrary library, final boolean load,
                                          final double threshold) {
         synchronized (sGestureLibraryLock) {
@@ -2001,7 +1998,7 @@ public class CoreLogger {
      *
      * @see GestureHandler
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static GestureLibrary getGestureLibrary() {
         synchronized (sGestureLibraryLock) {
             return sGestureLibrary;
@@ -2014,7 +2011,7 @@ public class CoreLogger {
     private static final Object                         sGestureLibraryLock;
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static boolean handleGestureForVideo(@NonNull final Activity activity, @NonNull final MotionEvent event) {
         if (!((sUseShake == null || !sUseShake) && sAddresses != null && sAddresses.length > 0)) return false;
 
@@ -2051,7 +2048,7 @@ public class CoreLogger {
      * @param delay
      *        The device shake delay (or null); default value is 1000
      */
-    @SuppressWarnings("unused")
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public static void setShakeParameters(final Double threshold, final Integer delay) {
         synchronized (sShakeLock) {
             sShakeThreshold     = threshold;
@@ -3315,7 +3312,7 @@ public class CoreLogger {
          * @param value
          *        {@code true} to display alerts, {@code false} otherwise
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setWarnings(final boolean value) {
             sWarnings = value;
         }
@@ -3326,7 +3323,7 @@ public class CoreLogger {
          * @param value
          *        The virtual display name
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setDisplayName(final String value) {
             sDisplayName = value;
         }
@@ -3337,7 +3334,7 @@ public class CoreLogger {
          * @param value
          *        The output file name extension
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setFileNameExtension(final String value) {
             sFileNameExtension = value;
         }
@@ -3348,7 +3345,7 @@ public class CoreLogger {
          * @param value
          *        The audio sample rate
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioSampleRate(final int value) {
             sAudioSampleRate = value;
         }
@@ -3359,7 +3356,7 @@ public class CoreLogger {
          * @param value
          *        The audio samples per frame
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioSamplesPerFrame(final int value) {
             sAudioSamplesPerFrame = value;
         }
@@ -3370,7 +3367,7 @@ public class CoreLogger {
          * @param value
          *        The audio frames per buffer
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioFramesPerBuffer(final int value) {
             sAudioFramesPerBuffer = value;
         }
@@ -3381,7 +3378,7 @@ public class CoreLogger {
          * @param value
          *        The audio bitrate
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioBitRate(final int value) {
             sAudioBitRate = value;
         }
@@ -3392,7 +3389,7 @@ public class CoreLogger {
          * @param value
          *        The audio channel mask
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioChannelMask(final int value) {
             sAudioChannelMask = value;
         }
@@ -3403,7 +3400,7 @@ public class CoreLogger {
          * @param value
          *        The audio format
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioFormat(final int value) {
             sAudioFormat = value;
         }
@@ -3414,7 +3411,7 @@ public class CoreLogger {
          * @param value
          *        The audio mime type
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioMimeType(final String value) {
             sAudioMimeType = value;
         }
@@ -3425,7 +3422,7 @@ public class CoreLogger {
          * @param value
          *        The audio quality
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioQuality(final int value) {
             sAudioQualityRepeat = value;
         }
@@ -3437,7 +3434,7 @@ public class CoreLogger {
          * @param value
          *        The audio timeout
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioTimeout(final int value) {
             sAudioTimeout = value;
         }
@@ -3448,7 +3445,7 @@ public class CoreLogger {
          * @param value
          *        The audio source
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioSource(final int value) {
             sAudioSource = value;
         }
@@ -3459,7 +3456,7 @@ public class CoreLogger {
          * @param value
          *        The audio codec profile level
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioCodecProfileLevel(final int value) {
             sAudioCodecProfileLevel = value;
         }
@@ -3470,7 +3467,7 @@ public class CoreLogger {
          * @param value
          *        The audio channels count
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setAudioChannelCount(final int value) {
             sAudioChannelCount = value;
         }
@@ -3482,7 +3479,7 @@ public class CoreLogger {
          * @param value
          *        The virtual display flags
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setVirtualDisplayFlags(final int value) {
             sVirtualDisplayFlags = value;
         }
@@ -3493,7 +3490,7 @@ public class CoreLogger {
          * @param value
          *        The video mime type
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setVideoMimeType(final String value) {
             sVideoMimeType = value;
         }
@@ -3514,7 +3511,7 @@ public class CoreLogger {
          * @see #VIDEO_BIT_RATE_360
          * @see #VIDEO_BIT_RATE_240
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setVideoBitRate(final int value) {
             sVideoBitRate     = value;
             sVideoBitRateHigh = null ;
@@ -3528,7 +3525,7 @@ public class CoreLogger {
          *
          * @see #setVideoBitRate
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setVideoBitRateQuality(final boolean value) {
             if (sVideoBitRate == null)
                 sVideoBitRateHigh = value;
@@ -3542,7 +3539,7 @@ public class CoreLogger {
          * @param value
          *        The video frame rate
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setVideoFrameRate(final int value) {
             sVideoFrameRate = value;
         }
@@ -3553,7 +3550,7 @@ public class CoreLogger {
          * @param value
          *        The video color format
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setVideoColorFormat(final int value) {
             sVideoColorFormat = value;
         }
@@ -3564,19 +3561,19 @@ public class CoreLogger {
          * @param value
          *        The {@link MediaMuxer} output format
          */
-        @SuppressWarnings("unused")
+        @SuppressWarnings({"unused", "RedundantSuppression"})
         public static void setMediaMuxerOutputFormat(final int value) {
             sMediaMuxerOutputFormat = value;
         }
 
-        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+        /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
         public static void setCyclicBarrierAwaitTimeout(final int value) {
             sCycBarAwaitTimeout = value;
         }
     }
 
     // subject to call by the Yakhont Weaver
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static void onActivityResult(@NonNull final Activity activity, final int requestCode,
                                         final int resultCode, final Intent data) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
@@ -3586,38 +3583,38 @@ public class CoreLogger {
     ////////////////////////////////////////////////////////////////////////////////////////////////
     // @LogDebug support
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final boolean[] x) { return toString(Arrays.toString(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final char   [] x) { return toString(Arrays.toString(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final byte   [] x) { return toString(Arrays.toString(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final short  [] x) { return toString(Arrays.toString(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final int    [] x) { return toString(Arrays.toString(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final long   [] x) { return toString(Arrays.toString(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final float  [] x) { return toString(Arrays.toString(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final double [] x) { return toString(Arrays.toString(x)); }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final boolean x) { return toString(Boolean  .valueOf(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final char    x) { return toString(Character.valueOf(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final byte    x) { return toString(Byte     .valueOf(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final short   x) { return toString(Short    .valueOf(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final int     x) { return toString(Integer  .valueOf(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final long    x) { return toString(Long     .valueOf(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final float   x) { return toString(Float    .valueOf(x)); }
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String toString(final double  x) { return toString(Double   .valueOf(x)); }
 
     /** @exclude */ @SuppressWarnings({"JavaDoc", "WeakerAccess"})
@@ -3626,7 +3623,7 @@ public class CoreLogger {
                 Arrays.deepToString((Object[]) object): object.toString();
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static Level getLogDebugLevel(@NonNull final Object object, @NonNull final String name,
                                                   final Object... args) {
         try {
@@ -3640,7 +3637,7 @@ public class CoreLogger {
         }
     }
 
-    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused"})
+    /** @exclude */ @SuppressWarnings({"JavaDoc", "unused", "RedundantSuppression"})
     public static String getLogDebugDescription(@NonNull final Object object, @NonNull final String name,
                                                 final Object value, final Object... args) {
         try {
